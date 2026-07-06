@@ -1,0 +1,577 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:ital,wght@0,400..800;1,400..800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+/* Custom styles for high-fidelity interactive lists scrollbars matching the beige/editorial dark theme */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #F9F7F2;
+  border-left: 1px solid rgba(0, 0, 0, 0.1);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #121212;
+  border-radius: 0px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #2b2b2b;
+}
+
+/* Custom editorial text dropcap or visual styling */
+.editorial-lead::first-letter {
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 3rem;
+  line-height: 2.5rem;
+  float: left;
+  padding-right: 8px;
+  font-weight: bold;
+  color: #121212;
+}
+
+/* HIGH-CONTRAST DARK MODE STYLE SYSTEMS */
+.dark {
+  background-color: #0B0B0A !important;
+  color: #FAF8F5 !important;
+}
+
+/* Smooth transition for theme switching */
+.dark, .dark * {
+  transition: background-color 0.15s ease, border-color 0.15s ease, fill 0.15s ease;
+}
+
+/* Overrides for containers and cards */
+.dark .bg-\[\#F9F7F2\],
+.dark .bg-\[\#FAF8F5\],
+.dark .bg-white {
+  background-color: #141412 !important;
+  color: #FAF8F5 !important;
+}
+
+.dark .bg-\[\#FAF8F5\]\/50 {
+  background-color: rgba(20, 20, 18, 0.5) !important;
+}
+
+.dark .bg-\[\#E5E2D9\]\/20,
+.dark .bg-\[\#E5E2D9\]\/30,
+.dark .bg-[#E5E2D9]\/30,
+.dark .bg-slate-100 {
+  background-color: rgba(45, 45, 40, 0.45) !important;
+}
+
+/* Text class overrides */
+.dark .text-black,
+.dark .text-\[\#121212\],
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700 {
+  color: #FAF8F5 !important;
+}
+
+.dark .text-\[\#121212\]\/80 {
+  color: rgba(250, 248, 245, 0.8) !important;
+}
+
+.dark .text-\[\#121212\]\/70 {
+  color: rgba(250, 248, 245, 0.7) !important;
+}
+
+.dark .text-slate-650,
+.dark .text-slate-600,
+.dark .text-slate-550,
+.dark .text-slate-500 {
+  color: #9D9D98 !important;
+}
+
+/* Border overrides */
+.dark .border-black,
+.dark .border-black\/10,
+.dark .border-black\/15,
+.dark .border-black\/20,
+.dark .border-black\/30,
+.dark .border-b-black\/15,
+.dark .border-y-black\/80,
+.dark .border-black\/80 {
+  border-color: rgba(250, 248, 245, 0.25) !important;
+}
+
+.dark .border-r-black\/10,
+.dark .border-l-black\/10,
+.dark .border-dashed {
+  border-color: rgba(250, 248, 245, 0.2) !important;
+}
+
+/* SVG Overrides for Map Elements */
+.dark svg path {
+  stroke: rgba(250, 248, 245, 0.25) !important;
+}
+
+.dark svg line {
+  stroke: rgba(250, 248, 245, 0.2) !important;
+}
+
+.dark svg text {
+  fill: #FAF8F5 !important;
+}
+
+.dark svg circle {
+  stroke: rgba(250, 248, 245, 0.3) !important;
+}
+
+.dark svg circle.stroke-black {
+  stroke: #FAF8F5 !important;
+}
+
+.dark svg circle.fill-white,
+.dark svg .bg-white {
+  background-color: #0B0B0A !important;
+  fill: #0B0B0A !important;
+}
+
+/* Forms, selections & inputs style overrides */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: #0B0B0A !important;
+  color: #FAF8F5 !important;
+  border-color: rgba(250, 248, 245, 0.3) !important;
+}
+
+.dark select option {
+  background-color: #141412 !important;
+  color: #FAF8F5 !important;
+}
+
+/* Buttons and dynamic badges in dark mode */
+.dark .bg-black {
+  background-color: #FAF8F5 !important;
+  color: #0B0B0A !important;
+  border-color: #FAF8F5 !important;
+}
+
+.dark .bg-black * {
+  color: #0B0B0A !important;
+}
+
+.dark .hover\:bg-black:hover {
+  background-color: #FAF8F5 !important;
+  color: #0B0B0A !important;
+}
+
+.dark .bg-transparent {
+  background-color: transparent !important;
+}
+
+.dark .hover\:bg-neutral-800:hover {
+  background-color: #CCCCCC !important;
+  color: #0B0B0A !important;
+}
+
+/* Custom elements dropcaps & details swap */
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+  background: #0B0B0A !important;
+  border-left: 1px solid rgba(250, 248, 245, 0.2) !important;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #FAF8F5 !important;
+}
+
+.dark .editorial-lead::first-letter {
+  color: #FAF8F5 !important;
+}
+
+/* Hover background states in dropdown options */
+.dark .hover\:bg-black\/5:hover,
+.dark .hover\:bg-black\/10:hover,
+.dark .hover\:bg-slate-100:hover {
+  background-color: rgba(250, 248, 245, 0.15) !important;
+  color: #FAF8F5 !important;
+}
+
+/* Recharts grid & tick line colors */
+.dark .recharts-cartesian-grid-horizontal line,
+.dark .recharts-cartesian-grid-vertical line {
+  stroke: rgba(250, 248, 245, 0.1) !important;
+}
+
+.dark .recharts-text {
+  fill: #9D9D98 !important;
+}
+
+.dark .recharts-legend-item-text {
+  color: #FAF8F5 !important;
+}
+
+.dark .recharts-default-tooltip {
+  background-color: #141412 !important;
+  border-color: rgba(250, 248, 245, 0.25) !important;
+}
+
+
+/* DARK EDITORIAL BEIGE (WARM SERENE MODE) STYLE SYSTEMS */
+.dark-beige {
+  background-color: #1E1C18 !important;
+  color: #EADCC6 !important;
+}
+
+/* Smooth transition for theme switching */
+.dark-beige, .dark-beige * {
+  transition: background-color 0.15s ease, border-color 0.15s ease, fill 0.15s ease;
+}
+
+/* Overrides for containers and cards */
+.dark-beige .bg-\[\#F9F7F2\],
+.dark-beige .bg-\[\#FAF8F5\],
+.dark-beige .bg-white {
+  background-color: #2A2621 !important;
+  color: #EADCC6 !important;
+}
+
+.dark-beige .bg-\[\#FAF8F5\]\/50 {
+  background-color: rgba(42, 38, 33, 0.5) !important;
+}
+
+.dark-beige .bg-\[\#E5E2D9\]\/20,
+.dark-beige .bg-\[\#E5E2D9\]\/30,
+.dark-beige .bg-[#E5E2D9]\/30,
+.dark-beige .bg-slate-100 {
+  background-color: rgba(62, 56, 48, 0.45) !important;
+}
+
+/* Text class overrides */
+.dark-beige .text-black,
+.dark-beige .text-\[\#121212\],
+.dark-beige .text-slate-900,
+.dark-beige .text-slate-800,
+.dark-beige .text-slate-700 {
+  color: #EADCC6 !important;
+}
+
+.dark-beige .text-\[\#121212\]\/80 {
+  color: rgba(234, 220, 198, 0.8) !important;
+}
+
+.dark-beige .text-\[\#121212\]\/70 {
+  color: rgba(234, 220, 198, 0.7) !important;
+}
+
+.dark-beige .text-slate-650,
+.dark-beige .text-slate-600,
+.dark-beige .text-slate-550,
+.dark-beige .text-slate-500 {
+  color: #A39988 !important;
+}
+
+/* Border overrides */
+.dark-beige .border-black,
+.dark-beige .border-black\/10,
+.dark-beige .border-black\/15,
+.dark-beige .border-black\/20,
+.dark-beige .border-black\/30,
+.dark-beige .border-b-black\/15,
+.dark-beige .border-y-black\/80,
+.dark-beige .border-black\/80 {
+  border-color: rgba(234, 220, 198, 0.25) !important;
+}
+
+.dark-beige .border-r-black\/10,
+.dark-beige .border-l-black\/10,
+.dark-beige .border-dashed {
+  border-color: rgba(234, 220, 198, 0.2) !important;
+}
+
+/* SVG Overrides for Map Elements */
+.dark-beige svg path {
+  stroke: rgba(234, 220, 198, 0.25) !important;
+}
+
+.dark-beige svg line {
+  stroke: rgba(234, 220, 198, 0.2) !important;
+}
+
+.dark-beige svg text {
+  fill: #EADCC6 !important;
+}
+
+.dark-beige svg circle {
+  stroke: rgba(234, 220, 198, 0.3) !important;
+}
+
+.dark-beige svg circle.stroke-black {
+  stroke: #EADCC6 !important;
+}
+
+.dark-beige svg circle.fill-white,
+.dark-beige svg .bg-white {
+  background-color: #1E1C18 !important;
+  fill: #1E1C18 !important;
+}
+
+/* Forms, selections & inputs style overrides */
+.dark-beige input,
+.dark-beige textarea,
+.dark-beige select {
+  background-color: #1E1C18 !important;
+  color: #EADCC6 !important;
+  border-color: rgba(234, 220, 198, 0.3) !important;
+}
+
+.dark-beige select option {
+  background-color: #2A2621 !important;
+  color: #EADCC6 !important;
+}
+
+/* Buttons and dynamic badges in dark mode */
+.dark-beige .bg-black {
+  background-color: #EADCC6 !important;
+  color: #1E1C18 !important;
+  border-color: #EADCC6 !important;
+}
+
+.dark-beige .bg-black * {
+  color: #1E1C18 !important;
+}
+
+.dark-beige .hover\:bg-black:hover {
+  background-color: #EADCC6 !important;
+  color: #1E1C18 !important;
+}
+
+.dark-beige .bg-transparent {
+  background-color: transparent !important;
+}
+
+.dark-beige .hover\:bg-neutral-800:hover {
+  background-color: #9D9D98 !important;
+  color: #1E1C18 !important;
+}
+
+/* Custom elements dropcaps & details swap */
+.dark-beige .custom-scrollbar::-webkit-scrollbar-track {
+  background: #1E1C18 !important;
+  border-left: 1px solid rgba(234, 220, 198, 0.2) !important;
+}
+
+.dark-beige .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #EADCC6 !important;
+}
+
+.dark-beige .editorial-lead::first-letter {
+  color: #EADCC6 !important;
+}
+
+/* Hover background states in dropdown options */
+.dark-beige .hover\:bg-black\/5:hover,
+.dark-beige .hover\:bg-black\/10:hover,
+.dark-beige .hover\:bg-slate-100:hover {
+  background-color: rgba(234, 220, 198, 0.15) !important;
+  color: #EADCC6 !important;
+}
+
+/* Recharts grid & tick line colors */
+.dark-beige .recharts-cartesian-grid-horizontal line,
+.dark-beige .recharts-cartesian-grid-vertical line {
+  stroke: rgba(234, 220, 198, 0.1) !important;
+}
+
+.dark-beige .recharts-text {
+  fill: #A39988 !important;
+}
+
+.dark-beige .recharts-legend-item-text {
+  color: #EADCC6 !important;
+}
+
+.dark-beige .recharts-default-tooltip {
+  background-color: #2A2621 !important;
+  border-color: rgba(234, 220, 198, 0.25) !important;
+}
+
+
+/* EARTH YELLOW (WARM SAND / NATURAL OCHRE MODE) STYLE SYSTEMS */
+.earth-yellow {
+  background-color: #F4EBD0 !important;
+  color: #3E2723 !important;
+}
+
+/* Smooth transition for theme switching */
+.earth-yellow, .earth-yellow * {
+  transition: background-color 0.15s ease, border-color 0.15s ease, fill 0.15s ease;
+}
+
+/* Overrides for containers and cards */
+.earth-yellow .bg-\[\#F9F7F2\],
+.earth-yellow .bg-\[\#FAF8F5\],
+.earth-yellow .bg-white {
+  background-color: #FCF9EE !important;
+  color: #3E2723 !important;
+}
+
+.earth-yellow .bg-\[\#FAF8F5\]\/50 {
+  background-color: rgba(252, 249, 238, 0.5) !important;
+}
+
+.earth-yellow .bg-\[\#E5E2D9\]\/20,
+.earth-yellow .bg-\[\#E5E2D9\]\/30,
+.earth-yellow .bg-[#E5E2D9]\/30,
+.earth-yellow .bg-slate-100 {
+  background-color: rgba(224, 215, 190, 0.45) !important;
+}
+
+/* Text class overrides */
+.earth-yellow .text-black,
+.earth-yellow .text-\[\#121212\],
+.earth-yellow .text-slate-900,
+.earth-yellow .text-slate-800,
+.earth-yellow .text-slate-700 {
+  color: #3E2723 !important;
+}
+
+.earth-yellow .text-\[\#121212\]\/80 {
+  color: rgba(62, 39, 35, 0.8) !important;
+}
+
+.earth-yellow .text-\[\#121212\]\/70 {
+  color: rgba(62, 39, 35, 0.7) !important;
+}
+
+.earth-yellow .text-slate-650,
+.earth-yellow .text-slate-600,
+.earth-yellow .text-slate-550,
+.earth-yellow .text-slate-500 {
+  color: #8D6E63 !important;
+}
+
+/* Border overrides */
+.earth-yellow .border-black,
+.earth-yellow .border-black\/10,
+.earth-yellow .border-black\/15,
+.earth-yellow .border-black\/20,
+.earth-yellow .border-black\/30,
+.earth-yellow .border-b-black\/15,
+.earth-yellow .border-y-black\/80,
+.earth-yellow .border-black\/80 {
+  border-color: rgba(62, 39, 35, 0.25) !important;
+}
+
+.earth-yellow .border-r-black\/10,
+.earth-yellow .border-l-black\/10,
+.earth-yellow .border-dashed {
+  border-color: rgba(62, 39, 35, 0.2) !important;
+}
+
+/* SVG Overrides for Map Elements */
+.earth-yellow svg path {
+  stroke: rgba(62, 39, 35, 0.25) !important;
+}
+
+.earth-yellow svg line {
+  stroke: rgba(62, 39, 35, 0.2) !important;
+}
+
+.earth-yellow svg text {
+  fill: #3E2723 !important;
+}
+
+.earth-yellow svg circle {
+  stroke: rgba(62, 39, 35, 0.3) !important;
+}
+
+.earth-yellow svg circle.stroke-black {
+  stroke: #3E2723 !important;
+}
+
+.earth-yellow svg circle.fill-white,
+.earth-yellow svg .bg-white {
+  background-color: #F4EBD0 !important;
+  fill: #F4EBD0 !important;
+}
+
+/* Forms, selections & inputs style overrides */
+.earth-yellow input,
+.earth-yellow textarea,
+.earth-yellow select {
+  background-color: #FCF9EE !important;
+  color: #3E2723 !important;
+  border-color: rgba(62, 39, 35, 0.3) !important;
+}
+
+.earth-yellow select option {
+  background-color: #FCF9EE !important;
+  color: #3E2723 !important;
+}
+
+/* Buttons and dynamic badges in dark mode */
+.earth-yellow .bg-black {
+  background-color: #3E2723 !important;
+  color: #FCF9EE !important;
+  border-color: #3E2723 !important;
+}
+
+.earth-yellow .bg-black * {
+  color: #FCF9EE !important;
+}
+
+.earth-yellow .hover\:bg-black:hover {
+  background-color: #3E2723 !important;
+  color: #FCF9EE !important;
+}
+
+.earth-yellow .bg-transparent {
+  background-color: transparent !important;
+}
+
+.earth-yellow .hover\:bg-neutral-800:hover {
+  background-color: #5D4037 !important;
+  color: #FCF9EE !important;
+}
+
+/* Custom elements dropcaps & details swap */
+.earth-yellow .custom-scrollbar::-webkit-scrollbar-track {
+  background: #F4EBD0 !important;
+  border-left: 1px solid rgba(62, 39, 35, 0.2) !important;
+}
+
+.earth-yellow .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #3E2723 !important;
+}
+
+.earth-yellow .editorial-lead::first-letter {
+  color: #3E2723 !important;
+}
+
+/* Hover background states in dropdown options */
+.earth-yellow .hover\:bg-black\/5:hover,
+.earth-yellow .hover\:bg-black\/10:hover,
+.earth-yellow .hover\:bg-slate-100:hover {
+  background-color: rgba(62, 39, 35, 0.15) !important;
+  color: #3E2723 !important;
+}
+
+/* Recharts grid & tick line colors */
+.earth-yellow .recharts-cartesian-grid-horizontal line,
+.earth-yellow .recharts-cartesian-grid-vertical line {
+  stroke: rgba(62, 39, 35, 0.1) !important;
+}
+
+.earth-yellow .recharts-text {
+  fill: #8D6E63 !important;
+}
+
+.earth-yellow .recharts-legend-item-text {
+  color: #3E2723 !important;
+}
+
+.earth-yellow .recharts-default-tooltip {
+  background-color: #FCF9EE !important;
+  border-color: rgba(62, 39, 35, 0.25) !important;
+}
+
+

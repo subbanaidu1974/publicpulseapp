@@ -1,0 +1,10 @@
+{
+  "name": "People Pulse Andhra Pradesh",
+  "description": "Real-Time Public Opinion & Electoral Insights Across Andhra Pradesh. Tracking voter sentiment, public priorities, governance feedback, and electoral trends across all constituencies.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
