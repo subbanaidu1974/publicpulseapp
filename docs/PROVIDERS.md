@@ -1,0 +1,162 @@
+# Provider adapters: SMS, KMS/HSM, number intelligence (S-63, S-64, S-62)
+
+Status: everything that does NOT depend on a vendor choice is built and tested. The three stories stay **blocked** until a real vendor adapter passes the contract suites below. Nothing here names a vendor or invents a vendor API: the HTTP adapters speak a documented, neutral JSON shape, and a vendor adapter is a thin mapper onto it (or a direct implementation of the small transport/backend interface).
+
+Code: `server/civic/providers/` (contracts, neutral HTTP adapters, helpers), `server/civic/providers/mock/` (reference vendor simulators, tests and local development only, never started by the app). Suites: `tests/civic/providers/contract/*.contract.ts`. Production guards: `server/civic/guards.ts`.
+
+## 1. What is built, per provider
+
+| | SMS (S-63, E2E-78) | KMS/HSM (S-64, E2E-79) | Number intelligence (S-62, E2E-77) |
+|---|---|---|---|
+| Core hook (unchanged) | `SmsProvider.send(to, text)`, `setSmsProvider` | `KeyProvider` hmac/encrypt/decrypt, `setKeyProvider` | `NumberIntelligence.lookup`, `setNumberIntelligence` |
+| v2 contract | `ManagedSmsProvider` (`SmsProviderV2`) over an `SmsTransport` | `KeyProviderV2` / `EnvelopeKeyProvider` over a `KmsBackend` | `NumberIntelligenceV2` / `ManagedNumberIntel` over a `NumberIntelTransport` |
+| What the vendor adapter implements | `SmsTransport.submit` (+ optional `verifyReceipt`, `parseReceipt`) | `KmsBackend.wrap`, `unwrap` (+ optional `hmac`) | `NumberIntelTransport.lookup` |
+| Neutral HTTP adapter | `HttpSmsProvider` (`CIVIC_SMS_URL`) | `RemoteKmsKeyProvider` (`CIVIC_KMS_URL`) | `HttpNumberIntel` (`CIVIC_NUMINTEL_URL`) |
+| Reference simulator | `mock/smsServer.ts` | `mock/kmsServer.ts` | `mock/intelServer.ts` |
+| Contract suite | `runSmsProviderContract(name, factory)` | `runKeyProviderContract(name, factory)` | `runNumberIntelContract(name, factory)` |
+| Everything vendor-independent | DLT template registry, idempotency, durable ledger, retry/backoff, dead letters, circuit breaker, cost accounting, receipts endpoint, quiet failure policy | per-purpose keys and versions, rotation, dual-read candidates, envelope cache with TTL and zeroization, break-glass, rehash migration | risk classification, TTL cache by phone hash, circuit breaker, failure policy, hashed logging |
+
+`installProvidersFromEnv()` (called by `createCivicRouter`) installs the neutral adapter for each URL that is set, unless something already installed a non-dev provider. A vendor adapter module wins by calling the setter before `createCivicRouter()` runs.
+
+## 2. SMS (S-63)
+
+### Messages and DLT templates
+
+Callers still pass rendered text to `getSms().send(to, text)`. The gateway matches the text against the **template registry** (`SmsTemplateRegistry`), recovers the template id and slot values, and in production **refuses to send** anything that is not an approved template carrying a `dltTemplateId` (`SmsTemplateError`, no vendor call). The built-in templates (`defaultCivicTemplates`) cover every message the civic code sends today (OTP, PIN lockout notice, adult-added notice, issue reference, IVR failure, enrolment activation, household invite). They deliberately carry **no** DLT ids: the operator registers the bodies on the DLT portal and supplies the ids with `CIVIC_SMS_TEMPLATES_FILE` (JSON array of `{id, dltTemplateId, body, language, category, senderId?}`, merged over the defaults by id). `assertProductionSafe` refuses to start while any template lacks an id. Slots are `{{name}}` (max 30 chars) or `{{name:120}}`. Sender id: per template or `CIVIC_SMS_SENDER_ID`.
+
+### Delivery and failure policy (the quiet policy)
+
+- `submit()` waits at most one attempt (`CIVIC_SMS_TIMEOUT_MS`, default 4000, enforced even if the transport ignores its own timeout), records the message in the `sms_ledger` table (identity store: phone as keyed hash, text encrypted and **dropped as soon as the vendor accepted it**), and resolves. A slow or down vendor never throws to the caller and never blocks a sign-up request: the message is retried with exponential backoff and jitter (`runRetries`, driven by an unref'd 30 s loop, disabled under test and `CIVIC_JOBS=0`), up to `CIVIC_SMS_MAX_ATTEMPTS` (default 5), then dead-lettered (audited as `sms.dead_letter`, no payload in the audit entry; `deadLetters()`, `requeueDeadLetter()`, `purge()`).
+- HTTP 4xx other than 429 is permanent: dead-lettered at once, never retried.
+- Circuit breaker: 5 consecutive failures open it for 30 s (one half-open probe), and an open circuit does not consume attempts.
+- `health()` / `smsDegraded()` / `GET /api/v1/civic/ops/providers` expose `degraded` for the UI notice (`DEGRADED_NOTICE` already exists for the hourly budget). Known limitation: while a vendor is down, a user whose OTP send is queued sees "code sent" and the existing `already_sent` guard blocks a re-request for 5 minutes; the retry usually delivers well inside that window. The UI should treat `degraded` as "may be delayed".
+- Idempotency: every send has a key (explicit `idempotencyKey`, else a keyed hash of `to|text|5-minute bucket`). A repeated key returns the first result with `deduped: true`; the key is also passed to the vendor.
+- Policy violations (`SmsTemplateError`, `SmsRejectedError` for bad number or empty/oversized text) DO throw: they are bugs or abuse, not outages.
+
+### Cost and budget
+
+Per message: `segments` (GSM-7 160/153 chars, anything else such as Telugu is UCS-2 70/67) times the unit price. The price is the vendor's reported `unit_cost` if any, else `CIVIC_SMS_UNIT_COST`, else **unknown**: cost 0 with `cost_known = 0`, and `costSummary()` reports `unknownCostMessages` so unknown is never silently free. `CIVIC_SMS_DAILY_COST_CAP` holds further sends (`state: "budget_exhausted"`) once known spend over 24 h reaches the cap. The existing per-hour message budget (`smsBudgetAllow`) is unchanged.
+
+### Receipts
+
+`POST /api/v1/civic/channels/sms-receipt`, authenticated with `X-Civic-Timestamp` (ms) + `X-Civic-Signature: sha256=hex(HMAC-SHA256(CIVIC_SMS_RECEIPT_SECRET, "<ts>.<raw body>"))`, 5-minute skew window:
+
+```json
+{ "receipts": [ { "message_id": "...", "status": "delivered", "at": "2026-01-01T00:00:00Z", "error_code": "DND" } ] }
+```
+
+Statuses map to `queued`, `sent`, `delivered`, `failed` (`normalizeSmsStatus` accepts the usual vendor words: accepted, submitted, DELIVRD, UNDELIV, rejected, expired...). A message never moves backwards, `delivered`/`failed` are terminal, unknown ids are acknowledged and ignored, a bad signature is 401. A vendor that signs differently or posts another body format implements `SmsTransport.verifyReceipt` / `parseReceipt` and keeps the same route.
+
+### Neutral submit shape (what `HttpSmsProvider` posts to `CIVIC_SMS_URL`)
+
+```
+POST CIVIC_SMS_URL     X-Civic-Timestamp, X-Civic-Signature (same scheme, secret CIVIC_SMS_SECRET)
+{ "version": 1, "idempotency_key": "...", "to": "+91XXXXXXXXXX", "sender_id": "PPULSE", "text": "<rendered>",
+  "template": { "id": "otp", "dlt_template_id": "...", "language": "en", "category": "otp" } | null,
+  "variables": { "code": "123456" }, "callback_url": "https://.../api/v1/civic/channels/sms-receipt" | null }
+-> 200 { "message_id": "...", "status": "queued|sent|delivered|failed", "unit_cost": 0.12?, "currency": "INR"? }
+```
+
+## 3. KMS/HSM (S-64)
+
+### Why envelope encryption
+
+The core `KeyProvider` is synchronous and on every request path (phone hash, OTP hash, session hash). A KMS is remote and fallible. So the KMS holds only a **KEK** that wraps one random 32-byte **data key per purpose and version**. Wrapped keys live in the `provider_keys` table (identity store; useless without the KEK, back it up with the store). `warm()` unwraps them once at startup into an in-memory cache with a TTL (`CIVIC_KMS_CACHE_TTL_MS`, default 15 min, refreshed in the background at half the TTL); `hmac`/`encrypt`/`decrypt` then run locally. Consequences, by design:
+
+- A KMS outage does not stop traffic until the cache TTL runs out; after that **every operation throws (fail closed)**. There is no fallback to a weaker key.
+- Cold start with the KMS down fails: the process never runs half-keyed. While keys are warming, the civic router answers `503 {"error":"keys_warming"}` (`requireKeysReady`); the SMS receipts route sits before that gate.
+- Unknown purposes cannot be used (`KNOWN_PURPOSES` lists every purpose the code uses; a test fails if code introduces a new one that is not listed).
+- `destroy()` and expiry zeroize cached key buffers.
+- Ciphertext is `v2.<version>.<base64url(iv|tag|ct)>` with AAD `purpose|vN`, so a key version is recoverable from the data and purpose confusion is rejected. Legacy `v1.` ciphertext is decryptable only through an explicitly passed `legacy` provider.
+- Break-glass and data-key wrapping use an AAD that binds purpose and version: a wrapped key replayed under another purpose fails to unwrap.
+
+### Neutral KMS shape (`RemoteKmsKeyProvider`, `CIVIC_KMS_URL`, secret `CIVIC_KMS_SECRET`)
+
+```
+POST {url}/v1/wrap    { "key_id": "<KEK id>", "plaintext_b64": "...", "aad": "..." }   -> { "ciphertext": "<opaque>" }
+POST {url}/v1/unwrap  { "ciphertext": "<opaque>", "aad": "..." }                      -> { "plaintext_b64": "..." }
+POST {url}/v1/hmac    { "key_id": "...", "data_b64": "..." }                          -> { "mac_hex": "<64 hex>" }   (optional)
+```
+
+Signed like the SMS calls; per-call deadline `CIVIC_KMS_TIMEOUT_MS`; circuit breaker (3 failures, 30 s). `/v1/hmac` backs `hmacRemote()`, an **async** path for adopters whose policy forbids ever exporting an HMAC key. It cannot serve the synchronous `KeyProvider.hmac` that identity uses; making identity async for those purposes is a separate piece of work and is not wired.
+
+### Rotation (dual-read, single-write)
+
+`rotate(purpose)` makes a new version the write version; old versions stay readable until `retire(purpose, version)` (refuses the current version, zeroizes the key). `hmacCandidates(purpose, value)` returns the hash under every active version, current first. Rotating `audit` is refused without `force` (it breaks verification of the existing chain). What rotation costs, per purpose (`ROTATION_IMPACT`):
+
+| Purpose | After rotating | Tool |
+|---|---|---|
+| `phone` (persons.phone_hash + phone_enc) | rehash | `rehashTable(PHONE_REHASH)` |
+| `reporter-pseudonym`, `actor-pseudonym`, `issue-link` | re-key issues store + link ledger | `rehashPseudonyms()` |
+| `otp`, `rate`, `pinsrc`, `session` | cleared (users re-request a code / sign in again) | `clearEphemeral(purpose)` |
+| other encrypt-only purposes | old ciphertext stays readable; re-encrypt lazily or with a table helper | |
+| `audit` | do not rotate | |
+
+Procedure for the phone hash:
+
+1. `await provider.rotate("phone")`. New writes already use the new hash.
+2. **Dual-read.** Lookups must use `phoneHashCandidates(e164)` (`WHERE phone_hash IN (...)`) until step 4. The identity code does not do this yet: adopting it is identity-module work. Until then rotate **offline** (stop writers, rotate, run step 3 non-dry, start).
+3. `rehashTable(PHONE_REHASH)` (a **dry run by default**) reports `scanned / alreadyCurrent / stale / fromOldVersion / fromUnknown / encStale / unrecoverable / updated`. `fromUnknown` is a tamper or foreign-key signal. Then `{ dryRun: false }`: decrypts each stored phone, writes the new hash and re-encrypts under the new version, in batches, resumable and idempotent (staleness comes from the data). Rows whose phone was purged (`phone_enc` NULL) cannot be rehashed and are reported as `unrecoverable`.
+4. A dry run showing `stale: 0` means the old version can be retired. `retire("phone", old)`.
+
+### Break-glass (`BreakGlass`)
+
+An admin requests (with a written reason), **two other admins** approve (the requester never counts, nobody approves twice, the count cannot be configured below two), then one use within 15 minutes: `exportRecoveryBundle` (the data key re-wrapped under `CIVIC_KMS_RECOVERY_KEY_ID`; the clear key never leaves the process) or `useKey` (a transient copy zeroized afterwards). Every request, approval, denial and use is written to the audit chain **before** the action; if the audit write fails the key is not released. Grants live in memory: a restart cancels all open requests. The capability to read a data key (`breakGlassAccess()`) can be taken once per provider, so no other code can obtain it. There is no HTTP surface for break-glass yet; wiring it into the admin API (dual control already exists there) is a follow-up.
+
+## 4. Number intelligence (S-62)
+
+`lookup(e164)` returns a superset of the existing `{ recently_reissued, voip }`: `lineType` (`mobile_prepaid|mobile_postpaid|voip|landline|unknown`), `recycled`, `portedRecently`, `carrierCircle`, `activationAgeDays` with `activationConfidence` (0..1), `risk` (`low|medium|high|unknown`), `trust` (`normal|reduced`), `source` (`vendor|cache|unknown`). Classification (`classifyNumber`, pure): VoIP or recycled = high; ported recently, landline, or a prepaid line activated under 30 days ago with confidence of at least 0.5 = medium; nothing known = unknown with reduced trust; otherwise low. Identity today only reads `voip` (blocks sign-up) and `recently_reissued` (flag); `risk`, `trust` and the activation age are available for it to adopt.
+
+**Failure policy:** timeout, error, open circuit or malformed answer yields `{ risk: "unknown", trust: "reduced", voip: false, recently_reissued: false }`. Sign-up is never blocked and the lookup never throws. Unknown results are cached for 30 s only, verdicts for `CIVIC_NUMINTEL_CACHE_TTL_MS` (24 h), keyed by the keyed phone hash (the cache holds no number; call `clearCache()` after rotating `phone`), bounded in size, concurrent lookups of one number make one vendor call.
+
+**Privacy:** the vendor receives the E.164 number and a random request id, nothing else (no person, IP, device, session), over TLS (https enforced in production). It is never logged: log lines carry a 10-character keyed hash. The contract suite asserts the exact request keys.
+
+Neutral shape (`CIVIC_NUMINTEL_URL`, secret `CIVIC_NUMINTEL_SECRET`, signed as above):
+
+```
+{ "version": 1, "msisdn": "+91XXXXXXXXXX", "request_id": "<random>" }
+-> { "line_type": "...", "recycled": bool, "ported_recently": bool, "carrier_circle": "AP"|null,
+     "activation_age_days": number|null, "activation_confidence": 0..1|null }
+```
+
+## 5. How to implement and certify a vendor adapter
+
+1. **Implement the small interface**, not the whole contract:
+   - SMS: `class AcmeTransport implements SmsTransport { submit(m, {timeoutMs}) }` mapping `SmsSubmit` (`idempotencyKey, to, text, senderId, template{id,dltTemplateId,language,category}, variables`) to the vendor's API and returning `{ messageId, status, unitCost? }`. Throw `ProviderError(kind, status)` for failures (`retryable` is derived: timeout, network, 5xx, 429). Pass the idempotency key through if the vendor supports one. If the vendor's receipts differ, add `verifyReceipt(raw, headers)` and `parseReceipt(raw)`.
+   - KMS: `class AcmeKms implements KmsBackend { wrap, unwrap, hmac? }` against a non-exportable KEK; bind `aad`. Then `new EnvelopeKeyProvider(backend, { kekId, registry: new SqlKeyRegistry() })`. Apply your own timeouts and a `CircuitBreaker`.
+   - Number intelligence: `class AcmeIntel implements NumberIntelTransport { lookup({msisdn, requestId}, {timeoutMs}) }` returning `RawNumberFacts` (null for unknown facts). `new ManagedNumberIntel(transport)`.
+2. **Install** in a module imported before `createCivicRouter()`: `setSmsProvider(p); setSmsGateway(p)`, `setKeyProvider(p)` (then `await p.warm()` at startup, `requireKeysReady` gates the router; mirror `installProvidersFromEnv`), `setNumberIntelligence(i)`.
+3. **Certify.** Write a test file that runs the suite against your adapter and a simulator of the vendor (copy the reference mock and the harness in `tests/civic/providers/{sms,keys,numberintel}.test.ts`):
+
+   ```ts
+   runSmsProviderContract("acme-sms", async (opts) => ({ provider: new ManagedSmsProvider(new AcmeTransport(sim.cfg), opts), setMode, received, requests, deliverReceipt, deliverForgedReceipt, setVendorPrice, close }));
+   runKeyProviderContract("acme-kms", async ({ cacheTtlMs }) => ({ provider: new EnvelopeKeyProvider(new AcmeKms(sim.cfg), { kekId, registry, cacheTtlMs, now }), restart, breakKms, advance, keyMaterialSeen, close }));
+   runNumberIntelContract("acme-intel", async (opts) => ({ intel: new ManagedNumberIntel(new AcmeIntel(sim.cfg), { ...opts, now }), setFacts, setMode, calls, bodies, advance, close }));
+   ```
+
+   Each suite's header lists the harness controls. A passing run is the **definition of done** for S-63/S-64/S-62, together with the production checklist in section 6 against a sandbox account. The suites cover: SMS (templates, DLT refusal, idempotency, receipts incl. forged ones, timeout, outage and recovery, dead letters, permanent rejection, cost, daily cap, no PII in logs); KMS (determinism, purpose separation, restart, tamper, fail closed cold/expired/destroyed, rotation and retirement, outage and refresh, no key material in logs); number intelligence (classification, unknown facts, failure policy, cache and negative cache, single-flight, circuit, exact outbound fields, no number in logs).
+4. Keep the simulator honest: it must be built from the vendor's documentation or sandbox, not from the adapter.
+
+## 6. Production readiness checklist
+
+**All providers:** endpoints are https; secrets are in the secret store, not the repo; `GET /api/v1/civic/ops/providers` (admin) shows healthy; alerts on `degraded`, open circuits and `sms.dead_letter` audit entries; contract suite green against the final adapter version.
+
+**SMS:** DLT entity, sender id(s) and every template registered; ids in `CIVIC_SMS_TEMPLATES_FILE`; template bodies in the file equal the registered text (a mismatch is refused at send time, by design); delivery-receipt URL registered with the vendor and `CIVIC_SMS_RECEIPT_SECRET` set; unit cost or vendor-reported cost verified against an invoice; `CIVIC_SMS_DAILY_COST_CAP` chosen; dead-letter review owner named; Telugu (UCS-2) rendering checked on real handsets; DND and quiet-hours handling confirmed with counsel and the vendor.
+
+**KMS/HSM:** KEK created non-exportable with an audit trail on the KMS side; separate recovery KEK held under dual control; `CIVIC_KMS_*` set; cold start tested with the KMS down (must fail, never run half-keyed); cache TTL chosen against the KMS's real availability; rotation rehearsed on a restored backup (`rehashTable` dry run then real, `rehashPseudonyms`, retire) and timed; break-glass drill performed with three admins and the audit entries inspected; backups of the identity store include `provider_keys`; CIVIC_DEV_MASTER_KEY removed from the environment.
+
+**Number intelligence:** vendor contract covers storing nothing beyond the request lifetime and using the number only for the lookup; DPDP processor agreement; timeout validated against sign-up latency budget; reduced-trust handling agreed (identity currently ignores `trust`).
+
+## 7. What remains vendor-specific
+
+The transport mapping (auth scheme, endpoints, field names, error taxonomy, rate limits); vendor receipt authentication and body format; DLT registration artefacts and their ids; how the KMS authenticates the caller (mTLS, IAM) and its wrap/unwrap/hmac semantics and limits; the number-intelligence vendor's data coverage and how it defines "recycled" and "activation age"; pricing; sandbox behaviour. And on our side, not vendor-specific but not done: identity adopting `phoneHashCandidates` (online rotation), identity reading `risk`/`trust`, an admin API surface for break-glass, async hmac for non-exportable HMAC keys.
+
+## 8. Threat notes
+
+- **SMS pumping / toll fraud:** the hourly budget, per-phone and per-network OTP caps and the daily cost cap bound spend; templates stop the gateway being used for arbitrary text.
+- **Receipt forgery:** HMAC with timestamp window; a forged "delivered" cannot hide a failure because terminal states never move backwards, and unknown ids are ignored.
+- **Payload exposure:** the ledger keeps text only while a retry could need it, encrypted, and dead-letter payloads are dropped after 24 h; logs and audit entries never carry numbers, codes or text (scrubbed by `providerLog`, asserted by the suites).
+- **KMS dependency:** a compromised KMS credential allows unwrapping data keys; mitigations are KEK policy on the KMS side, request signing, the audited dual-control break-glass, and short cache TTL. A compromised process holds unwrapped keys in memory for the TTL; zeroization limits, not removes, that window.
+- **Availability vs safety:** the key provider chooses safety (fail closed); SMS and number intelligence choose availability (quiet failure, reduced trust). That asymmetry is intentional.
+- **Clear number to the intelligence vendor** is unavoidable; the contract minimizes what accompanies it and requires TLS.
+- **Dev stand-ins:** production refuses the dev key, SMS, number-intelligence and attestation providers, an HTTP witness without `CIVIC_ANCHOR_SECRET`, half-configured provider URLs, non-https provider URLs, and SMS templates without DLT ids (tests in `tests/civic/providers/guards.providers.test.ts`).

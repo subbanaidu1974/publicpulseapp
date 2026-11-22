@@ -1,0 +1,219 @@
+{
+  "version": 1,
+  "status": "MACHINE-DRAFT: every Telugu line below is unreviewed. No native-speaker or linguist has approved any wording. Nothing here is a recording.",
+  "sources": {
+    "manifest": "data/civic/audio-manifest.json",
+    "ivrPrompts": "server/civic/channels/routes.ts (PROMPTS)",
+    "categories": "server/civic/issues/categories.ts"
+  },
+  "global": {
+    "dialects": ["coastal", "rayalaseema", "telangana"],
+    "dialectNote": "Each prompt needs one recording per dialect. overrideTe is null where we have no verified dialect wording: the linguist decides whether the same text is spoken in the local accent or whether words must change. We have not invented dialect vocabulary.",
+    "toneDefault": "Warm, calm, unhurried, respectful register toward elders (use the polite plural), no urgency or officialese, never sounding like a party or government announcement. The speaker is a helper, not an authority.",
+    "pronunciationDefault": [
+      "OTP: say the letters in Telugu (ఓ టీ పీ). SMS: ఎస్ ఎమ్ ఎస్. PIN: spoken as the word 'పిన్'.",
+      "'పీపుల్ పల్స్' is an English product name: say it the way a Telugu speaker would say the English words, once, clearly, not stretched.",
+      "'#' is spoken as 'హాష్' (hash) or by the linguist's chosen word; keep the same word in every prompt. Linguist to confirm which word callers understand best on a feature phone.",
+      "Digits are spoken as Telugu number words (ఒకటి, రెండు, మూడు...) in option lists, with a 0.4 second pause before each option."
+    ],
+    "placeNamesNote": "No current prompt contains a place name. If place-name prompts are added (village, mandal, district for confirmation), record the local pronunciation, take names and Telugu spellings from the LGD data in data/generated, and have a speaker from that district check each name. Telugu village names differ between official and local use; the local pronunciation is what the caller expects to hear.",
+    "dtmfNote": "Menu wording rule: say what the key does first, then the digit ('సమస్య నమోదు చేయడానికి 1 నొక్కండి' style is allowed because the manifest text puts the digit after the action). Keep the order and digits identical to server/civic/channels/routes.ts. Silence of about 0.5 seconds between options; no music."
+  },
+  "prompts": [
+    {
+      "id": "welcome",
+      "file": "audio/te/welcome.wav",
+      "textTe": {
+        "formal": "పీపుల్ పల్స్ కు స్వాగతం. సమస్య నమోదు చేయడానికి 1, మీ రిఫరెన్స్ స్థితికి 2, సేవల అభిప్రాయానికి 3 నొక్కండి. మేము ఎప్పుడూ OTP అడగము.",
+        "plain": "పీపుల్ పల్స్ కు స్వాగతం. మీ సమస్య చెప్పాలంటే 1 నొక్కండి. మీ రిఫరెన్స్ ఏమైందో తెలుసుకోవాలంటే 2 నొక్కండి. సేవల గురించి మీ అభిప్రాయం చెప్పాలంటే 3 నొక్కండి. మేము మిమ్మల్ని ఎప్పుడూ OTP అడగము.",
+        "machineDraft": true
+      },
+      "textEn": "Welcome to People Pulse. Press 1 to report an issue, 2 for reference status, 3 for a service feedback question. We never ask for your OTP.",
+      "dialects": { "coastal": { "needed": true, "overrideTe": null }, "rayalaseema": { "needed": true, "overrideTe": null }, "telangana": { "needed": true, "overrideTe": null } },
+      "maxDurationSec": 14,
+      "tone": "Friendly greeting, then slow clear options. The anti-scam line 'we never ask for OTP' must be spoken calmly and distinctly, not rushed; it is a safety message.",
+      "pronunciation": ["Say OTP as letters.", "Product name once, at the start."],
+      "dtmf": { "accepts": ["1", "2", "3"], "wording": "Option text then digit; pause 0.4 s between options; repeat menu once on silence." }
+    },
+    {
+      "id": "category",
+      "file": "audio/te/category.wav",
+      "textTe": {
+        "formal": "సమస్య రకం: తాగునీరు 1, రోడ్లు 2, విద్యుత్ 3, ఆరోగ్యం 4, పాఠశాల, విద్య 5, వ్యవసాయం, సాగునీరు 6, సంక్షేమ పథకాలు 7, శాంతిభద్రతలు 8, ఇతరం 9.",
+        "plain": "మీ సమస్య ఏ విషయం గురించి? తాగునీరు అయితే 1. రోడ్లు అయితే 2. కరెంటు అయితే 3. ఆరోగ్యం అయితే 4. బడి, చదువు అయితే 5. వ్యవసాయం, సాగునీరు అయితే 6. ప్రభుత్వ పథకాలు అయితే 7. శాంతిభద్రతలు అయితే 8. ఇంకేదైనా అయితే 9.",
+        "machineDraft": true
+      },
+      "textEn": "Type of issue: drinking water 1, roads 2, electricity 3, health 4, school and education 5, agriculture and irrigation 6, welfare schemes 7, law and order 8, other 9.",
+      "dialects": { "coastal": { "needed": true, "overrideTe": null }, "rayalaseema": { "needed": true, "overrideTe": null }, "telangana": { "needed": true, "overrideTe": null } },
+      "maxDurationSec": 28,
+      "tone": "Neutral and even; same pace for each option; do not stress any category over another.",
+      "pronunciation": ["Category words differ in everyday speech by region (for example for electricity, school, and water). Linguist chooses the word each region's callers say; flag any change so the text stays in step with the web category labels."],
+      "dtmf": { "accepts": ["1", "2", "3", "4", "5", "6", "7", "8", "9"], "wording": "Nine options, digit after the category name in the formal text; keep digit mapping identical to IVR_CATEGORY_DIGITS in server/civic/issues/categories.ts. Pause 0.4 s between options." }
+    },
+    {
+      "id": "record",
+      "file": "audio/te/record.wav",
+      "textTe": {
+        "formal": "బీప్ తర్వాత మీ సమస్యను తెలుగులో చెప్పండి. ముగించడానికి # నొక్కండి.",
+        "plain": "బీప్ శబ్దం వచ్చాక మీ సమస్య తెలుగులో చెప్పండి. చెప్పడం అయ్యాక # నొక్కండి.",
+        "machineDraft": true
+      },
+      "textEn": "After the beep, describe your issue in Telugu. Press # to finish.",
+      "dialects": { "coastal": { "needed": true, "overrideTe": null }, "rayalaseema": { "needed": true, "overrideTe": null }, "telangana": { "needed": true, "overrideTe": null } },
+      "maxDurationSec": 8,
+      "tone": "Encouraging and patient; the caller may be nervous speaking to a machine.",
+      "pronunciation": ["'బీప్' is the beep sound word; the actual beep tone is played by the telephony platform, not recorded here."],
+      "dtmf": { "accepts": ["#"], "wording": "Say what to press at the end. Leave 0.3 s of silence at the end of the file so the beep does not clip the last word." }
+    },
+    {
+      "id": "who",
+      "file": "audio/te/who.wav",
+      "textTe": {
+        "formal": "ఈ నంబర్ పై నమోదైన వారిలో మీరు ఎవరు? మీ వరుస సంఖ్యను నొక్కండి: మొదటి వ్యక్తికి 1, రెండవ వ్యక్తికి 2, మూడవ వ్యక్తికి 3, నాల్గవ వ్యక్తికి 4, ఐదవ వ్యక్తికి 5.",
+        "plain": "ఈ ఫోన్ నంబర్ మీద ఎంతమంది నమోదయ్యారో, వారిలో మీరు ఎన్నో వారు? మొదటి వారైతే 1, రెండవ వారైతే 2, మూడవ వారైతే 3, నాల్గవ వారైతే 4, ఐదవ వారైతే 5 నొక్కండి.",
+        "machineDraft": true
+      },
+      "textEn": "Which adult on this number are you? Press your position number: 1 for the first person, 2 for the second, 3 for the third, 4 for the fourth, 5 for the fifth.",
+      "dialects": { "coastal": { "needed": true, "overrideTe": null }, "rayalaseema": { "needed": true, "overrideTe": null }, "telangana": { "needed": true, "overrideTe": null } },
+      "maxDurationSec": 22,
+      "tone": "Clear and gentle; this is confusing for shared-phone users, so slow down and never imply the SIM holder decides for others.",
+      "pronunciation": ["Ordinal words (మొదటి, రెండవ, మూడవ, నాల్గవ, ఐదవ): confirm each is natural for the region."],
+      "dtmf": { "accepts": ["1", "2", "3", "4", "5"], "wording": "Ordinal then digit. Max five adults per SIM (CIVIC_MAX_ADULTS_PER_SIM default)." }
+    },
+    {
+      "id": "pin",
+      "file": "audio/te/pin.wav",
+      "textTe": {
+        "formal": "మీ వ్యక్తిగత పిన్ నమోదు చేసి # నొక్కండి. మీ పిన్ ను ఎవరికీ చెప్పకండి.",
+        "plain": "మీ సొంత పిన్ నంబర్ నొక్కి, చివరలో # నొక్కండి. ఈ పిన్ ను ఎవరికీ చెప్పకండి.",
+        "machineDraft": true
+      },
+      "textEn": "Enter your personal PIN, then press hash. Never tell your PIN to anyone.",
+      "dialects": { "coastal": { "needed": true, "overrideTe": null }, "rayalaseema": { "needed": true, "overrideTe": null }, "telangana": { "needed": true, "overrideTe": null } },
+      "maxDurationSec": 9,
+      "tone": "Quiet, private, reassuring; not alarming.",
+      "pronunciation": ["Say 'పిన్' as in the app. Never read an example PIN aloud."],
+      "dtmf": { "accepts": ["0-9 digits", "#"], "wording": "Digits then # to submit. Do not say the PIN length unless product confirms it." }
+    },
+    {
+      "id": "pinWrong",
+      "file": "audio/te/pinWrong.wav",
+      "textTe": {
+        "formal": "పిన్ సరైనది కాదు. మళ్ళీ ప్రయత్నించండి.",
+        "plain": "ఆ పిన్ సరిగ్గా లేదు. ఇంకోసారి నొక్కండి.",
+        "machineDraft": true
+      },
+      "textEn": "That PIN is not correct. Please try again.",
+      "dialects": { "coastal": { "needed": true, "overrideTe": null }, "rayalaseema": { "needed": true, "overrideTe": null }, "telangana": { "needed": true, "overrideTe": null } },
+      "maxDurationSec": 5,
+      "tone": "Neutral, not scolding.",
+      "pronunciation": [],
+      "dtmf": { "accepts": [], "wording": "Plays before the PIN prompt again; no key accepted during the prompt." }
+    },
+    {
+      "id": "locked",
+      "file": "audio/te/locked.wav",
+      "textTe": {
+        "formal": "చాలా తప్పు ప్రయత్నాలు జరిగాయి. ఈ సైన్-ఇన్ 30 నిమిషాల పాటు ఆగిపోయింది.",
+        "plain": "చాలాసార్లు తప్పుగా నొక్కారు. అందుకని 30 నిమిషాల వరకు ఈ సైన్-ఇన్ పనిచేయదు.",
+        "machineDraft": true
+      },
+      "textEn": "Too many wrong attempts. This sign-in is locked for 30 minutes.",
+      "dialects": { "coastal": { "needed": true, "overrideTe": null }, "rayalaseema": { "needed": true, "overrideTe": null }, "telangana": { "needed": true, "overrideTe": null } },
+      "maxDurationSec": 9,
+      "tone": "Calm and matter-of-fact; do not blame. Note: the lockout length (30 minutes) is spoken in the file, so re-record if the server value changes.",
+      "pronunciation": ["'సైన్-ఇన్' is an English loan word; the linguist may prefer a plain Telugu phrase for 'logging in'."],
+      "dtmf": { "accepts": [], "wording": "None; call ends or returns to the main menu per the call flow." }
+    },
+    {
+      "id": "confirm",
+      "file": "audio/te/confirm.wav",
+      "textTe": {
+        "formal": "మీ సమస్య నమోదైంది. రిఫరెన్స్ నంబర్ SMS ద్వారా పంపాము.",
+        "plain": "మీ సమస్య నమోదు అయింది. రిఫరెన్స్ నంబర్ ను మీ ఫోన్ కు SMS చేశాము.",
+        "machineDraft": true
+      },
+      "textEn": "Your issue is recorded. The reference was sent by SMS.",
+      "dialects": { "coastal": { "needed": true, "overrideTe": null }, "rayalaseema": { "needed": true, "overrideTe": null }, "telangana": { "needed": true, "overrideTe": null } },
+      "maxDurationSec": 8,
+      "tone": "Warm and reassuring; the caller should feel heard. Do not promise a resolution time.",
+      "pronunciation": ["SMS as letters."],
+      "dtmf": { "accepts": [], "wording": "None." }
+    },
+    {
+      "id": "status",
+      "file": "audio/te/status.wav",
+      "textTe": {
+        "formal": "మీ చివరి రిఫరెన్స్ SMS ద్వారా పంపబడింది.",
+        "plain": "మీ చివరి రిఫరెన్స్ నంబర్ ను SMS గా మళ్ళీ పంపాము.",
+        "machineDraft": true
+      },
+      "textEn": "Your reference was re-sent by SMS.",
+      "dialects": { "coastal": { "needed": true, "overrideTe": null }, "rayalaseema": { "needed": true, "overrideTe": null }, "telangana": { "needed": true, "overrideTe": null } },
+      "maxDurationSec": 6,
+      "tone": "Plain, brief.",
+      "pronunciation": ["SMS as letters."],
+      "dtmf": { "accepts": [], "wording": "None." }
+    },
+    {
+      "id": "survey",
+      "file": "audio/te/survey.wav",
+      "textTe": {
+        "formal": "మీ ఊరిలో తాగునీటి సరఫరా సంతృప్తికరంగా ఉందా? అవును 1, కాదు 2.",
+        "plain": "మీ ఊరిలో తాగునీరు సరిగ్గా వస్తోందా? అవును అయితే 1, కాదు అయితే 2 నొక్కండి.",
+        "machineDraft": true
+      },
+      "textEn": "Is drinking water supply in your village satisfactory? Yes 1, No 2.",
+      "dialects": { "coastal": { "needed": true, "overrideTe": null }, "rayalaseema": { "needed": true, "overrideTe": null }, "telangana": { "needed": true, "overrideTe": null } },
+      "maxDurationSec": 10,
+      "tone": "Neutral and non-leading: the question and options must not hint at a preferred answer. This is a service-feedback question, not an election question; never use vote or ballot words.",
+      "pronunciation": ["'ఊరు' versus 'గ్రామం' (village): linguist picks the everyday word per region."],
+      "dtmf": { "accepts": ["1", "2"], "wording": "Yes 1, No 2; read both options with equal weight." }
+    },
+    {
+      "id": "thanks",
+      "file": "audio/te/thanks.wav",
+      "textTe": {
+        "formal": "ధన్యవాదాలు.",
+        "plain": "ధన్యవాదాలు.",
+        "machineDraft": true
+      },
+      "textEn": "Thank you.",
+      "dialects": { "coastal": { "needed": true, "overrideTe": null }, "rayalaseema": { "needed": true, "overrideTe": null }, "telangana": { "needed": true, "overrideTe": null } },
+      "maxDurationSec": 3,
+      "tone": "Sincere, short.",
+      "pronunciation": [],
+      "dtmf": { "accepts": [], "wording": "None." }
+    },
+    {
+      "id": "invalid",
+      "file": "audio/te/invalid.wav",
+      "textTe": {
+        "formal": "క్షమించండి, ఆ ఎంపిక సరైనది కాదు. మళ్ళీ ప్రయత్నించండి.",
+        "plain": "క్షమించండి, ఆ నంబర్ సరిపోదు. ఇంకోసారి నొక్కండి.",
+        "machineDraft": true
+      },
+      "textEn": "Sorry, that choice is not valid. Please try again.",
+      "dialects": { "coastal": { "needed": true, "overrideTe": null }, "rayalaseema": { "needed": true, "overrideTe": null }, "telangana": { "needed": true, "overrideTe": null } },
+      "maxDurationSec": 6,
+      "tone": "Apologetic, gentle; the caller is likely on a basic phone.",
+      "pronunciation": [],
+      "dtmf": { "accepts": [], "wording": "Plays, then the previous menu repeats." }
+    },
+    {
+      "id": "goodbye",
+      "file": "audio/te/goodbye.wav",
+      "textTe": {
+        "formal": "కాల్ చేసినందుకు ధన్యవాదాలు.",
+        "plain": "ఫోన్ చేసినందుకు ధన్యవాదాలు.",
+        "machineDraft": true
+      },
+      "textEn": "Thank you for calling.",
+      "dialects": { "coastal": { "needed": true, "overrideTe": null }, "rayalaseema": { "needed": true, "overrideTe": null }, "telangana": { "needed": true, "overrideTe": null } },
+      "maxDurationSec": 4,
+      "tone": "Warm close.",
+      "pronunciation": [],
+      "dtmf": { "accepts": [], "wording": "None; call ends." }
+    }
+  ]
+}

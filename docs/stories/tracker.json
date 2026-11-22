@@ -529,7 +529,7 @@
         "E2E-58"
       ],
       "phase": "2028-P1",
-      "notes": "In progress. Threat model and checklist exist. Evidence still required: independent red-team report (gate row 2), pilot skew report (row 3), reviewed threat model with commit hash (row 1). No such evidence exists in the repo yet."
+      "notes": "Traceability test and red-team scope/pilot skew tooling exist; red-team report, pilot skew report, review sign-off and two approvers do not."
     },
     {
       "id": "S-49",
@@ -713,7 +713,8 @@
       ],
       "priority": "P1",
       "wave": "W4",
-      "source": "gap-audit: 61"
+      "source": "gap-audit: 61",
+      "notes": "Contract, mock server, failure policy and contract suite built; needs a real vendor adapter that passes the suite. Note: some vendors only expose MNP data in India, so a recently-re-issued signal may not exist."
     },
     {
       "id": "S-63",
@@ -726,7 +727,8 @@
       ],
       "priority": "P0",
       "wave": "W4",
-      "source": "gap-audit: 92"
+      "source": "gap-audit: 92",
+      "notes": "Contract v2, DLT template registry, receipts, retries, cost accounting, mock server and contract suite built; needs a real SMS vendor adapter and DLT template ids."
     },
     {
       "id": "S-64",
@@ -739,20 +741,22 @@
       ],
       "priority": "P0",
       "wave": "W4",
-      "source": "gap-audit: 91"
+      "source": "gap-audit: 91",
+      "notes": "Envelope encryption, rotation, rehash migration, break-glass, remote KMS provider, mock and contract suite built; needs a real KMS/HSM backend. Identity does not yet use dual-hash lookups, so phone-key rotation must be offline."
     },
     {
       "id": "S-65",
       "epic": "Security",
       "title": "Reconcile THREAT_MODEL and RELEASE_GATE with the code; fix claims (ASN, logs, keys, anchor)",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-80"
       ],
       "priority": "P1",
       "wave": "W5",
-      "source": "gap-audit: 101"
+      "source": "gap-audit: 101",
+      "notes": "THREAT_MODEL rewritten as a control->code->test traceability table (T-01..T-52) plus a residual-risk register; a test fails if a cited file/line/tag is missing. Owners and review dates are TBD."
     },
     {
       "id": "S-66",
@@ -1871,7 +1875,8 @@
       ],
       "priority": "P0",
       "wave": "W5",
-      "source": "gap-audit: 103,126"
+      "source": "gap-audit: 103,126",
+      "notes": "Counsel pack, artefact index and draft CERT-In/VDP/grievance-officer role are written; needs counsel sign-off and a real grievance officer/DPO. Nothing legal verified from primary sources except CERT-In 28 Apr 2022 directions."
     },
     {
       "id": "S-151",
@@ -1884,7 +1889,8 @@
       ],
       "priority": "P1",
       "wave": "W5",
-      "source": "gap-audit: 126"
+      "source": "gap-audit: 126",
+      "notes": "Recording scripts for 13 prompts and a recording guide are ready; needs a linguist and recorded audio per dialect. IVR has no dialect selector yet."
     },
     {
       "id": "S-152",
@@ -1897,20 +1903,22 @@
       ],
       "priority": "P0",
       "wave": "W5",
-      "source": "gap-audit: DESIGN 8.1"
+      "source": "gap-audit: DESIGN 8.1",
+      "notes": "Operator options memo (with recommendation for the owner to decide), cost model with all prices unknown, vendor shortlist and checklists are written; needs the owner decision recorded in DESIGN_2028 section 8.1."
     },
     {
       "id": "S-153",
       "epic": "Compliance",
       "title": "Release gate owners, dates and evidence collection; red-team and pilot skew evaluation scheduled",
       "agent": "-",
-      "status": "todo",
+      "status": "in_progress",
       "tests": [
         "E2E-168"
       ],
       "priority": "P0",
       "wave": "W5",
-      "source": "gap-audit: 102"
+      "source": "gap-audit: 102",
+      "notes": "Tooling built (npm run gate:status, per-row evidence folders, red-team scope, pilot skew tool). All 18 gate rows still need human owners, dates and evidence; release stays blocked."
     }
   ]
 }

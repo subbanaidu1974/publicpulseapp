@@ -39,7 +39,9 @@
     "test:e2e:built": "E2E_BUILT=1 playwright test e2e/lite.spec.ts --project=chromium -g \"offline|first usable\"",
     "measure:lite": "E2E_BUILT=1 playwright test e2e/lite.spec.ts --project=chromium --grep @measure",
     "backup": "tsx scripts/backup.ts",
-    "restore-drill": "tsx scripts/restore-drill.ts"
+    "restore-drill": "tsx scripts/restore-drill.ts",
+    "gate:status": "tsx scripts/gate-status.ts",
+    "pilot:skew": "tsx scripts/pilot-skew.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.14",

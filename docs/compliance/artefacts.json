@@ -1,0 +1,20 @@
+{
+  "note": "Index of every user-facing legal artefact (S-150). status stays DRAFT until counsel signs off in writing; do not change it in code. Machine-checked by tests/compliance/artefacts.test.ts.",
+  "artefacts": [
+    { "id": "A1", "name": "Signup data notice (v1)", "kind": "notice", "path": "server/civic/households/notices/signup.v1.json", "status": "DRAFT", "textSource": "json-notice" },
+    { "id": "A2", "name": "Household invite notice (v1)", "kind": "notice", "path": "server/civic/households/notices/household_invite.v1.json", "status": "DRAFT", "textSource": "json-notice" },
+    { "id": "A3", "name": "Minor dependent / parental consent notice (v1)", "kind": "notice", "path": "server/civic/households/notices/minor_dependent.v1.json", "status": "DRAFT", "textSource": "json-notice" },
+    { "id": "A4", "name": "Grievance officer contact (placeholder)", "kind": "contact", "path": "server/civic/households/notices/grievance_officer.json", "status": "DRAFT", "textSource": "json-grievance" },
+    { "id": "A5", "name": "Privacy page", "kind": "page", "path": "src/i18n/content.ts", "export": "PRIVACY", "status": "DRAFT", "textSource": "legal-sections" },
+    { "id": "A6", "name": "Terms of use page", "kind": "page", "path": "src/i18n/content.ts", "export": "TERMS", "status": "DRAFT", "textSource": "legal-sections" },
+    { "id": "A7", "name": "Who-sees-what page", "kind": "page", "path": "src/i18n/content.ts", "export": "WHO_SEES", "status": "DRAFT", "textSource": "who-sees" },
+    { "id": "A8", "name": "Takedown / correction request form (people pages). There is NO standalone takedown-process page yet: gap G1 in COUNSEL_PACK.md", "kind": "form", "path": "src/components/people/peopleText.ts", "status": "DRAFT", "textSource": "ppl-report" },
+    { "id": "A9", "name": "Consent banner chrome (draft badge, agree, accept, decline)", "kind": "banner", "path": "src/components/civic/ConsentNotice.tsx", "textPath": "src/components/civic/civicText.ts", "status": "DRAFT", "textSource": "civic-banner" },
+    { "id": "A10", "name": "Legal-page draft banner", "kind": "banner", "path": "src/components/pages/LegalPages.tsx", "textPath": "src/i18n/index.tsx", "status": "DRAFT", "textSource": "legal-draft" },
+    { "id": "A11", "name": "Data retention table", "kind": "policy", "path": "docs/RETENTION.md", "status": "DRAFT", "textSource": "none" },
+    { "id": "A12", "name": "Breach notification runbook", "kind": "policy", "path": "docs/BREACH_RUNBOOK.md", "status": "DRAFT", "textSource": "none" },
+    { "id": "A13", "name": "Breach and CERT-In incident procedure (this pack)", "kind": "policy", "path": "docs/compliance/INCIDENT_AND_VDP.md", "status": "DRAFT", "textSource": "none" },
+    { "id": "A14", "name": "Vulnerability disclosure policy (this pack)", "kind": "policy", "path": "docs/compliance/INCIDENT_AND_VDP.md", "status": "DRAFT", "textSource": "none" }
+  ],
+  "placeholderMarkers": ["example.invalid", "TO BE APPOINTED", "TO BE FILLED BY OPERATOR"]
+}

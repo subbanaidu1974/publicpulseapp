@@ -5,26 +5,39 @@ import { geoRouter } from "./geo/routes";
 import { issuesRouter } from "./issues/routes";
 import { channelsRouter } from "./channels/routes";
 import { adminRouter, auditRouter } from "./admin/routes";
-import { migrate, requireRole } from "./core";
+import { getKeys, migrate, requireRole } from "./core";
 import { startIssueSweeper } from "./issues/service";
 import { assertProductionSafe } from "./guards";
 import { jobsStatus, startJobs } from "./jobs";
 import { createE2eSeedRouter, e2eSeedEnabled } from "./e2e-seed";
+import { installProvidersFromEnv, requireKeysReady, startKeyWarmup } from "./providers/install";
+import { createSmsReceiptRouter, getSmsGateway } from "./providers/sms";
+import { isKeyProviderV2 } from "./providers/keys";
+import { getNumberIntelligence } from "./identity/service";
 
 /** Default JSON body cap for civic routes (the app mounts this router before its own global parser). */
 export const CIVIC_JSON_LIMIT = "64kb";
 
 /** Mounted at /api/v1/civic by server.ts. Each sub-router is owned by one agent (see docs/PHASE1_PLAN.md). */
 export function createCivicRouter(): Router {
+  installProvidersFromEnv(); // S-62/63/64: CIVIC_KMS_URL / CIVIC_SMS_URL / CIVIC_NUMINTEL_URL select the neutral HTTP adapters
   assertProductionSafe(); // S-55: throws on dev stand-ins in production
   migrate();
+  void startKeyWarmup(); // unwraps the KMS-held keys; until it finishes the router answers 503 keys_warming (fail closed)
   startIssueSweeper(); // SLA escalation + confirmation windows; no-op under NODE_ENV=test or CIVIC_SWEEP=0
   startJobs(); // retention, erasure, invites, audit anchor + verify, media purge; no-op under NODE_ENV=test or CIVIC_JOBS=0
   const r = Router();
+  // SMS delivery receipts authenticate themselves (HMAC) and parse their own raw body, so they sit before the key gate and the channels router.
+  r.use("/channels/sms-receipt", createSmsReceiptRouter());
+  r.use(requireKeysReady);
   // Per-router body limits (S-57). identity/households/channels set their own; issues gets a small cap except POST /media, whose
   // route carries a larger base64-JSON limit (and raw/multipart handling).
   r.use("/issues", (req, res, next) => (req.method === "POST" && req.path === "/media" ? next() : express.json({ limit: CIVIC_JSON_LIMIT })(req, res, next)));
   r.get("/ops/jobs", requireRole("admin"), (_req, res) => { res.json(jobsStatus()); });
+  r.get("/ops/providers", requireRole("admin"), (_req, res) => {
+    const k = getKeys();
+    res.json({ keys: isKeyProviderV2(k) ? k.health() : { provider: "v1", ready: true }, sms: getSmsGateway()?.health() ?? null, numberIntelligence: (getNumberIntelligence() as { contract?: number }).contract === 2 ? "v2" : "v1/dev" });
+  });
   r.use("/identity", identityRouter);
   r.use("/households", householdRouter);
   r.use("/geo", geoRouter);
