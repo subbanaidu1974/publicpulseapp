@@ -1,22 +1,544 @@
 {
   "legend": "status: todo | in_progress | done | blocked. A story may be 'done' only if every id in tests[] exists as a tag (@E2E-xx / @UT-xx) in a spec file.",
   "stories": [
-    {"id":"S-01","epic":"Foundation","title":"State as first-class dimension (AP, TG config, state switcher)","agent":"C","status":"done","tests":["E2E-01","E2E-09"]},
-    {"id":"S-02","epic":"Data","title":"Election results ingest (TCPD CSV -> normalized snapshot)","agent":"A","status":"done","tests":["E2E-23","UT-ingest"]},
-    {"id":"S-03","epic":"Data","title":"Census 2011 ingest (data.gov.in API w/ CSV fallback)","agent":"A","status":"done","tests":["E2E-24","UT-census"]},
-    {"id":"S-04","epic":"Data","title":"Boundaries fetch (DataMeet GeoJSON) + data quality gate","agent":"A","status":"done","tests":["E2E-08"]},
-    {"id":"S-05","epic":"API","title":"Public read API /api/v1 (states, elections, summary, swing, marginal, census)","agent":"B","status":"done","tests":["E2E-01","E2E-02","E2E-03","E2E-04","E2E-05","E2E-06"]},
-    {"id":"S-06","epic":"API","title":"API validation and error contract","agent":"B","status":"done","tests":["E2E-07"]},
-    {"id":"S-07","epic":"Analytics","title":"Election analytics lib (swing, margins, alliances, split voting)","agent":"B","status":"done","tests":["UT-analytics"]},
-    {"id":"S-08","epic":"UI","title":"Elections explorer page (tally, vote share, margin buckets)","agent":"C","status":"done","tests":["E2E-10"]},
-    {"id":"S-09","epic":"UI","title":"Alliance view toggle with caveat","agent":"C","status":"done","tests":["E2E-11"]},
-    {"id":"S-10","epic":"UI","title":"Constituency search (EN/TE) + profile with history and census","agent":"C","status":"done","tests":["E2E-12","E2E-14"]},
-    {"id":"S-11","epic":"UI","title":"Map layers with table fallback","agent":"C","status":"done","tests":["E2E-13"]},
-    {"id":"S-12","epic":"UI","title":"Telugu i18n toggle","agent":"C","status":"done","tests":["E2E-17"]},
-    {"id":"S-13","epic":"UI","title":"Survey validation, duplicate guard, n>=30 gating, demo badge","agent":"C","status":"done","tests":["E2E-15","E2E-16","E2E-18"]},
-    {"id":"S-14","epic":"UI","title":"Error/retry states and mobile layout","agent":"C","status":"done","tests":["E2E-20","E2E-22"]},
-    {"id":"S-15","epic":"Admin","title":"Admin data-refresh status page","agent":"C","status":"done","tests":["E2E-19"]},
-    {"id":"S-16","epic":"Quality","title":"Playwright harness, axe a11y, CI workflow","agent":"D","status":"todo","tests":["E2E-21"]},
-    {"id":"S-17","epic":"Quality","title":"Story tracker generator + CI gate","agent":"D","status":"todo","tests":["UT-tracker"]}
+    {
+      "id": "S-01",
+      "epic": "Foundation",
+      "title": "State as first-class dimension (AP, TG config, state switcher)",
+      "agent": "C",
+      "status": "done",
+      "tests": [
+        "E2E-01",
+        "E2E-09"
+      ]
+    },
+    {
+      "id": "S-02",
+      "epic": "Data",
+      "title": "Election results ingest (TCPD CSV -> normalized snapshot)",
+      "agent": "A",
+      "status": "done",
+      "tests": [
+        "E2E-23",
+        "UT-ingest"
+      ]
+    },
+    {
+      "id": "S-03",
+      "epic": "Data",
+      "title": "Census 2011 ingest (data.gov.in API w/ CSV fallback)",
+      "agent": "A",
+      "status": "done",
+      "tests": [
+        "E2E-24",
+        "UT-census"
+      ]
+    },
+    {
+      "id": "S-04",
+      "epic": "Data",
+      "title": "Boundaries fetch (DataMeet GeoJSON) + data quality gate",
+      "agent": "A",
+      "status": "done",
+      "tests": [
+        "E2E-08"
+      ]
+    },
+    {
+      "id": "S-05",
+      "epic": "API",
+      "title": "Public read API /api/v1 (states, elections, summary, swing, marginal, census)",
+      "agent": "B",
+      "status": "done",
+      "tests": [
+        "E2E-01",
+        "E2E-02",
+        "E2E-03",
+        "E2E-04",
+        "E2E-05",
+        "E2E-06"
+      ]
+    },
+    {
+      "id": "S-06",
+      "epic": "API",
+      "title": "API validation and error contract",
+      "agent": "B",
+      "status": "done",
+      "tests": [
+        "E2E-07"
+      ]
+    },
+    {
+      "id": "S-07",
+      "epic": "Analytics",
+      "title": "Election analytics lib (swing, margins, alliances, split voting)",
+      "agent": "B",
+      "status": "done",
+      "tests": [
+        "UT-analytics"
+      ]
+    },
+    {
+      "id": "S-08",
+      "epic": "UI",
+      "title": "Elections explorer page (tally, vote share, margin buckets)",
+      "agent": "C",
+      "status": "done",
+      "tests": [
+        "E2E-10"
+      ]
+    },
+    {
+      "id": "S-09",
+      "epic": "UI",
+      "title": "Alliance view toggle with caveat",
+      "agent": "C",
+      "status": "done",
+      "tests": [
+        "E2E-11"
+      ]
+    },
+    {
+      "id": "S-10",
+      "epic": "UI",
+      "title": "Constituency search (EN/TE) + profile with history and census",
+      "agent": "C",
+      "status": "done",
+      "tests": [
+        "E2E-12",
+        "E2E-14"
+      ]
+    },
+    {
+      "id": "S-11",
+      "epic": "UI",
+      "title": "Map layers with table fallback",
+      "agent": "C",
+      "status": "done",
+      "tests": [
+        "E2E-13"
+      ]
+    },
+    {
+      "id": "S-12",
+      "epic": "UI",
+      "title": "Telugu i18n toggle",
+      "agent": "C",
+      "status": "done",
+      "tests": [
+        "E2E-17"
+      ]
+    },
+    {
+      "id": "S-13",
+      "epic": "UI",
+      "title": "Survey validation, duplicate guard, n>=30 gating, demo badge",
+      "agent": "C",
+      "status": "done",
+      "tests": [
+        "E2E-15",
+        "E2E-16",
+        "E2E-18"
+      ]
+    },
+    {
+      "id": "S-14",
+      "epic": "UI",
+      "title": "Error/retry states and mobile layout",
+      "agent": "C",
+      "status": "done",
+      "tests": [
+        "E2E-20",
+        "E2E-22"
+      ]
+    },
+    {
+      "id": "S-15",
+      "epic": "Admin",
+      "title": "Admin data-refresh status page",
+      "agent": "C",
+      "status": "done",
+      "tests": [
+        "E2E-19"
+      ]
+    },
+    {
+      "id": "S-16",
+      "epic": "Quality",
+      "title": "Playwright harness, axe a11y, CI workflow",
+      "agent": "D",
+      "status": "todo",
+      "tests": [
+        "E2E-21"
+      ]
+    },
+    {
+      "id": "S-17",
+      "epic": "Quality",
+      "title": "Story tracker generator + CI gate",
+      "agent": "D",
+      "status": "todo",
+      "tests": [
+        "UT-tracker"
+      ]
+    },
+    {
+      "id": "S-18",
+      "epic": "Identity",
+      "title": "Phone OTP sign-up, HSM-keyed pseudonymous phone hash, number intelligence, 14-day age gate",
+      "agent": "A",
+      "status": "done",
+      "tests": [
+        "E2E-25",
+        "E2E-26"
+      ],
+      "phase": "2028-P1"
+    },
+    {
+      "id": "S-19",
+      "epic": "Identity",
+      "title": "Shared SIM: several adults each with a personal PIN, attempt limits and lockout",
+      "agent": "A",
+      "status": "done",
+      "tests": [
+        "E2E-27",
+        "E2E-28"
+      ],
+      "phase": "2028-P1"
+    },
+    {
+      "id": "S-20",
+      "epic": "Identity",
+      "title": "Trust tiers T0-T2 with two independent attestors and per-volunteer quotas",
+      "agent": "A",
+      "status": "done",
+      "tests": [
+        "E2E-29"
+      ],
+      "phase": "2028-P1"
+    },
+    {
+      "id": "S-21",
+      "epic": "Households",
+      "title": "Household roster: adult invite with notice, own PIN, expiry, decline/report",
+      "agent": "B",
+      "status": "done",
+      "tests": [
+        "E2E-30"
+      ],
+      "phase": "2028-P1"
+    },
+    {
+      "id": "S-22",
+      "epic": "Households",
+      "title": "Minor dependents: parental consent record, minimal data, erase at 18",
+      "agent": "B",
+      "status": "done",
+      "tests": [
+        "E2E-31"
+      ],
+      "phase": "2028-P1"
+    },
+    {
+      "id": "S-23",
+      "epic": "Geography",
+      "title": "LGD hierarchy, reviewed hamlet gazetteer, effective-dated village-to-constituency map",
+      "agent": "C",
+      "status": "done",
+      "tests": [
+        "E2E-32"
+      ],
+      "phase": "2028-P1"
+    },
+    {
+      "id": "S-24",
+      "epic": "Issues",
+      "title": "Issue reporting (Telugu, voice, photo, GPS, hamlet search) with dedupe and me-too limits",
+      "agent": "C",
+      "status": "done",
+      "tests": [
+        "E2E-33"
+      ],
+      "phase": "2028-P1"
+    },
+    {
+      "id": "S-25",
+      "epic": "Issues",
+      "title": "Issue workflow, SLA escalation, time-boxed citizen confirmation, jurisdiction routing",
+      "agent": "C",
+      "status": "done",
+      "tests": [
+        "E2E-34"
+      ],
+      "phase": "2028-P1"
+    },
+    {
+      "id": "S-26",
+      "epic": "Issues",
+      "title": "Department-level dashboards, officer rebuttal, open bulk issue feed",
+      "agent": "C",
+      "status": "done",
+      "tests": [
+        "E2E-35"
+      ],
+      "phase": "2028-P1"
+    },
+    {
+      "id": "S-27",
+      "epic": "Issues",
+      "title": "Moderation, appeals and takedown for issue reports",
+      "agent": "C",
+      "status": "done",
+      "tests": [
+        "E2E-36"
+      ],
+      "phase": "2028-P1"
+    },
+    {
+      "id": "S-28",
+      "epic": "Surveys",
+      "title": "Public survey registry: frozen wording, equal creation quotas, wording-panel review, cancellation log",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-37"
+      ],
+      "phase": "2028-P2"
+    },
+    {
+      "id": "S-29",
+      "epic": "Surveys",
+      "title": "Single-shot responses with server-side eligibility enforcement",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-38"
+      ],
+      "phase": "2028-P2"
+    },
+    {
+      "id": "S-30",
+      "epic": "Surveys",
+      "title": "Anonymous credential on app/web: no timestamps, random IDs, shuffled batches",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-39"
+      ],
+      "phase": "2028-P2"
+    },
+    {
+      "id": "S-31",
+      "epic": "Surveys",
+      "title": "Voice/assisted channel responses labelled platform-linkable and limited to issue/service topics",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-40"
+      ],
+      "phase": "2028-P2"
+    },
+    {
+      "id": "S-32",
+      "epic": "Surveys",
+      "title": "Publishing rules: fixed partition, complementary suppression, minority-option check, no live counts, query budget",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-41"
+      ],
+      "phase": "2028-P2"
+    },
+    {
+      "id": "S-33",
+      "epic": "Surveys",
+      "title": "Verified-quality score and post-stratification weights, weighted plus unweighted views",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-42"
+      ],
+      "phase": "2028-P2"
+    },
+    {
+      "id": "S-34",
+      "epic": "Surveys",
+      "title": "Election-choice surveys off by default, fail-closed blackout flag, no forecast in window",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-43"
+      ],
+      "phase": "2028-P3"
+    },
+    {
+      "id": "S-35",
+      "epic": "Consult",
+      "title": "Bill consultation: clause feedback, EN/TE plain-language summaries, 60-second audio",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-44"
+      ],
+      "phase": "2028-P2"
+    },
+    {
+      "id": "S-36",
+      "epic": "Consult",
+      "title": "Anti-astroturf, sampled AI-review disclosure, mandatory closing report with department response",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-45"
+      ],
+      "phase": "2028-P2"
+    },
+    {
+      "id": "S-37",
+      "epic": "Notify",
+      "title": "Verified sender onboarding, FIDO2 keys, two-person approval, HSM-signed payloads",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-46"
+      ],
+      "phase": "2028-P2"
+    },
+    {
+      "id": "S-38",
+      "epic": "Notify",
+      "title": "Categories, opt-in, caps, quiet hours, SMS fallback, anti-phish word",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-47"
+      ],
+      "phase": "2028-P2"
+    },
+    {
+      "id": "S-39",
+      "epic": "Notify",
+      "title": "MCC mode from district calendar, pre-cleared templates, self-declaration, public block log",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-48"
+      ],
+      "phase": "2028-P3"
+    },
+    {
+      "id": "S-40",
+      "epic": "Roles",
+      "title": "Role-based geo-scoped access (politician, journalist, officer, ECI liaison)",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-49"
+      ],
+      "phase": "2028-P2"
+    },
+    {
+      "id": "S-41",
+      "epic": "Elections",
+      "title": "Count-day feed (scrape or licensed, TCPD fallback), signed static snapshots, Form 20, affidavits",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-50"
+      ],
+      "phase": "2028-P3"
+    },
+    {
+      "id": "S-42",
+      "epic": "Platform",
+      "title": "Hash-chained audit log with external anchoring and privileged-read logging",
+      "agent": "A",
+      "status": "done",
+      "tests": [
+        "E2E-51"
+      ],
+      "phase": "2028-P1"
+    },
+    {
+      "id": "S-43",
+      "epic": "Platform",
+      "title": "Key management, store separation, retention, erasure and account deletion",
+      "agent": "A",
+      "status": "done",
+      "tests": [
+        "E2E-52",
+        "E2E-53"
+      ],
+      "phase": "2028-P1"
+    },
+    {
+      "id": "S-44",
+      "epic": "Compliance",
+      "title": "DPDP notice/consent artefacts, grievance officer, breach notification, intermediary duties",
+      "agent": "B",
+      "status": "done",
+      "tests": [
+        "E2E-54"
+      ],
+      "phase": "2028-P1",
+      "notes": "Engineering scope done: versioned notice (te/en) shown before data entry, version recorded, grievance contact visible, E2E-54 passing. Notice wording and grievance officer are DRAFT placeholders; counsel sign-off is tracked in RELEASE_GATE row 13, not here."
+    },
+    {
+      "id": "S-45",
+      "epic": "Channels",
+      "title": "IVR/missed-call pilot and PWA-lite (USSD deferred)",
+      "agent": "D",
+      "status": "done",
+      "tests": [
+        "E2E-55"
+      ],
+      "phase": "2028-P1"
+    },
+    {
+      "id": "S-46",
+      "epic": "Platform",
+      "title": "OTP budget cap, rate limits, queues and count-day degraded mode",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-56"
+      ],
+      "phase": "2028-P3"
+    },
+    {
+      "id": "S-47",
+      "epic": "Accessibility",
+      "title": "WCAG 2.2 AA and Telugu screen-reader acceptance tests",
+      "agent": "D",
+      "status": "done",
+      "tests": [
+        "E2E-57"
+      ],
+      "phase": "2028-P1"
+    },
+    {
+      "id": "S-48",
+      "epic": "Quality",
+      "title": "Threat model, independent red-team and pilot skew evaluation as release gates (checklist)",
+      "agent": "D",
+      "status": "in_progress",
+      "tests": [
+        "E2E-58"
+      ],
+      "phase": "2028-P1",
+      "notes": "In progress. Threat model and checklist exist. Evidence still required: independent red-team report (gate row 2), pilot skew report (row 3), reviewed threat model with commit hash (row 1). No such evidence exists in the repo yet."
+    },
+    {
+      "id": "S-49",
+      "epic": "Inclusion",
+      "title": "Assisted participation by SHG/volunteer pairs, issues only, separate segment (Phase 3, if approved)",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-59"
+      ],
+      "phase": "2028-P3"
+    }
   ]
 }

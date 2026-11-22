@@ -1,3 +1,5 @@
+import os from "node:os";
+import path from "node:path";
 import { defineConfig, devices } from '@playwright/test';
 
 const PORT = Number(process.env.PORT || 3000);
@@ -26,6 +28,6 @@ export default defineConfig({
     url: baseURL,
     reuseExistingServer: true,
     timeout: 120_000,
-    env: { PORT: String(PORT) },
+    env: { PORT: String(PORT), CIVIC_EXPOSE_DEV_OTP: "1", CIVIC_DB: process.env.CIVIC_DB || path.join(os.tmpdir(), `civic-e2e-${process.pid}-${Date.now()}.db`) },
   },
 });

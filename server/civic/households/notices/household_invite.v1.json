@@ -1,0 +1,10 @@
+{
+  "purpose": "household_invite",
+  "version": "v1",
+  "status": "DRAFT - legal wording not reviewed; needs counsel sign-off (DPDP Act 2023 / Rules) before any real use",
+  "title": { "en": "Invitation to join a household on People Pulse", "te": "పీపుల్ పల్స్‌లో కుటుంబంలో చేరడానికి ఆహ్వానం" },
+  "text": {
+    "en": "Someone who knows your phone number has invited you to join their household on People Pulse. WHAT: if you accept, we keep a link between your own account and that household, and your relation to the head. WHO: the household head sees only that you are a member. The head can NEVER see your answers. WHY: so that several adults on one phone or in one home can take part, each with their own PIN. Until you accept, we hold only a scrambled code of your number to match this invite, and it is deleted when the invite expires in 72 hours or you decline. Answering any survey will not affect your pension, ration card or any benefit. You can decline, report 'I did not agree to this', or leave at any time. Grievance contact: see the grievance officer page.",
+    "te": "మీ ఫోన్ నంబర్ తెలిసిన ఒకరు పీపుల్ పల్స్‌లో వారి కుటుంబంలో చేరమని మిమ్మల్ని ఆహ్వానించారు. ఏమిటి: మీరు అంగీకరిస్తే, మీ సొంత ఖాతాకు ఆ కుటుంబానికి మధ్య, కుటుంబ పెద్దతో మీ బంధుత్వానికి మధ్య ఒక లింక్ మేము ఉంచుతాము. ఎవరు చూస్తారు: మీరు సభ్యులని మాత్రమే కుటుంబ పెద్దకు తెలుస్తుంది. మీ సమాధానాలను పెద్ద ఎప్పటికీ చూడలేరు. ఎందుకు: ఒకే ఫోన్‌లో లేదా ఒకే ఇంట్లో ఉన్న పెద్దలు ప్రతి ఒక్కరూ తమ సొంత పిన్‌తో పాల్గొనడానికి. మీరు అంగీకరించే వరకు, ఈ ఆహ్వానాన్ని సరిపోల్చడానికి మీ నంబర్ యొక్క కోడ్ రూపం మాత్రమే ఉంచుతాము; 72 గంటల్లో ఆహ్వానం ముగిసినప్పుడు లేదా మీరు తిరస్కరించినప్పుడు అది తొలగించబడుతుంది. ఏ సర్వేకు సమాధానం ఇచ్చినా మీ పింఛను, రేషన్ కార్డు లేదా ఏ ప్రయోజనంపైనా ప్రభావం ఉండదు. మీరు తిరస్కరించవచ్చు, 'నేను దీనికి అంగీకరించలేదు' అని నివేదించవచ్చు, లేదా ఎప్పుడైనా వైదొలగవచ్చు. ఫిర్యాదుల కోసం: ఫిర్యాదుల అధికారి పేజీ చూడండి."
+  }
+}

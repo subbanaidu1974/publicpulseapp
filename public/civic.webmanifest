@@ -1,0 +1,10 @@
+{
+  "name": "People Pulse Civic",
+  "short_name": "Civic",
+  "start_url": "/?tab=civic",
+  "display": "standalone",
+  "background_color": "#F9F7F2",
+  "theme_color": "#121212",
+  "lang": "te",
+  "icons": []
+}

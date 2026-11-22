@@ -1,0 +1,10 @@
+{
+  "purpose": "minor_dependent",
+  "version": "v1",
+  "status": "DRAFT - legal wording not reviewed; needs counsel sign-off. The verifiable parental consent method under the DPDP Rules is [VERIFY].",
+  "title": { "en": "Parental consent for a child dependent", "te": "పిల్లల కోసం తల్లిదండ్రుల అంగీకారం" },
+  "text": {
+    "en": "You are adding a child under 18 as a dependent in your household. WHAT: we store only the child's year of birth and relation to you. We do not store a name. WHY: to count the household accurately. The child is never asked any survey question and never has an account. WHEN DELETED: the record is erased automatically when the child turns 18, or earlier if you remove it. By continuing you confirm you are the child's parent or lawful guardian and consent to this. We record your consent with its version and date.",
+    "te": "మీరు 18 ఏళ్ల లోపు పిల్లవాడిని మీ కుటుంబంలో ఆధారితునిగా చేరుస్తున్నారు. ఏమిటి: పిల్లవాడి పుట్టిన సంవత్సరం మరియు మీతో బంధుత్వం మాత్రమే నిల్వ చేస్తాము. పేరు నిల్వ చేయము. ఎందుకు: కుటుంబ సభ్యుల సంఖ్యను సరిగ్గా లెక్కించడానికి. పిల్లవాడిని ఏ సర్వే ప్రశ్నా అడగము, వారికి ఖాతా ఉండదు. ఎప్పుడు తొలగింపు: పిల్లవాడికి 18 ఏళ్లు వచ్చినప్పుడు ఈ రికార్డు ఆటోమేటిక్‌గా తొలగించబడుతుంది, లేదా మీరు తొలగిస్తే ముందే. కొనసాగించడం ద్వారా మీరు ఆ పిల్లవాడి తల్లిదండ్రులు లేదా చట్టబద్ధ సంరక్షకులని ధృవీకరిస్తూ దీనికి అంగీకరిస్తున్నారు. మీ అంగీకారాన్ని వెర్షన్ మరియు తేదీతో నమోదు చేస్తాము."
+  }
+}

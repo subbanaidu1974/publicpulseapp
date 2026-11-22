@@ -29,3 +29,43 @@ Layers: **API** = HTTP-level test (no browser), **UI** = Playwright browser.
 | E2E-22 | UI | Offline/slow data: API 500 on elections | Friendly error + retry, no blank page |
 | E2E-23 | Pipeline | Ingest from fixture CSV → snapshot | Normalised JSON equals golden file; re-run idempotent |
 | E2E-24 | Pipeline | Census ingest with missing API key | Falls back to CSV fixture, logs warning, exit 0 |
+
+## 2028 civic-platform scenarios (planned, see DESIGN_2028.md v2.1)
+
+| ID | Layer | Scenario | Expected |
+|---|---|---|---|
+| E2E-25 | API | Sign up with mobile OTP | Account at T0; stored phone value is a keyed hash, never the clear number in the DB or logs |
+| E2E-26 | API | Recently re-issued number; account under 14 days old | Flagged by number intelligence; not eligible for any survey |
+| E2E-27 | API | Two adults link to one SIM, each sets a PIN | Both accounts exist; each answers separately |
+| E2E-28 | API | 6 wrong PINs | Lockout after 5; SIM holder told of the lockout but never sees a PIN |
+| E2E-29 | API | One volunteer attests residence | Stays T1; two independent attestors move it to T2; per-volunteer daily quota enforced |
+| E2E-30 | UI | Head invites an adult | Invitee sees notice before any data is stored; invite expires at 72h; "I did not agree" report works; head never sees their answers |
+| E2E-31 | UI | Add a minor dependent | Consent recorded; only year of birth stored; no survey access; erased at 18 |
+| E2E-32 | API | Hamlet search to village to constituency at two boundary versions | Correct unit per effective date |
+| E2E-33 | UI | Report an issue (Telugu text, photo, GPS) near an existing one | Merged; me-too counts once per person and is rate limited |
+| E2E-34 | API | Officer marks resolved; reporter silent past the window | Sampled neighbour confirmation decides; out-of-jurisdiction issue is re-routed |
+| E2E-35 | API | Public issue metrics | Department-level by default; officer view needs jurisdiction tag and shows rebuttal field; bulk feed identical for every caller |
+| E2E-36 | UI | Report naming an individual | Held for review; appeal path works; takedown logged |
+| E2E-37 | API | Creator edits wording or cancels without a reason | Rejected; cancelled surveys stay in the public registry; quota enforced per party |
+| E2E-38 | API | Same person submits twice | Second rejected (single-shot) |
+| E2E-39 | API | Inspect response store and logs (app/web channel) | No timestamps, no person IDs, random UUIDs; has_responded and response on separate services with separate keys |
+| E2E-40 | API | Voice-channel respondent on a political survey | Refused; allowed on issue/service topics, labelled platform-linkable, separate stratum |
+| E2E-41 | API | Queries across village, mandal and constituency; request live counts | Hidden cells not derivable; minority option below threshold suppressed; live counts refused |
+| E2E-42 | API | Fetch results | Weighted and unweighted views, quality score, sample size and method link present |
+| E2E-43 | API | Election-choice survey during blackout flag; flag service down | Hidden/disabled; fail-closed when flag unknown |
+| E2E-44 | UI | Open a bill consultation | EN and తెలుగు plain-language summary, clause feedback, audio per affected group |
+| E2E-45 | API | 500 near-identical comments in a minute | Clustered and flagged, counted once per person; closing report states review coverage and department response |
+| E2E-46 | API | Unverified sender, or one without FIDO2, publishes | Blocked; verified sender needs a second approver; payload signature verifies against the pinned key |
+| E2E-47 | UI | User disables Service category, sets quiet hours | Not delivered; emergency still goes out via SMS fallback; no message asks for OTP or login |
+| E2E-48 | API | MCC calendar active; scheme announcement sent | Blocked and logged publicly; only pre-cleared templates with a self-declaration pass |
+| E2E-49 | API | Politician requests data outside own constituency | 403 |
+| E2E-50 | Pipeline | Count-day feed fixture; feed unavailable | Signed static snapshot served; fallback shown with delay label |
+| E2E-51 | API | Tamper with an audit-log entry; read sensitive data | Chain verification fails; the read is logged; external anchor mismatch detected |
+| E2E-52 | API | Account deletion request | Phone copy deleted, has_responded redacted, audit log redacted not removed |
+| E2E-53 | API | Retention job after survey close | Phone/residence data older than the retention window removed |
+| E2E-54 | UI | First sign-up | Telugu/English notice and consent shown and recorded with version; grievance contact visible |
+| E2E-55 | Pipeline | Missed call, Telugu IVR menu, voice-note issue | Issue created; reference SMS sent; PWA lite under size budget |
+| E2E-56 | API | OTP flood from one ASN | Capped; SMS budget not exhausted; degraded mode shows a notice |
+| E2E-57 | UI | Axe and Telugu screen-reader run on key flows | WCAG 2.2 AA with no critical failures; large touch targets |
+| E2E-58 | Process | Release gate checklist | Threat model, red-team report and pilot skew report attached before any election-adjacent survey (manual evidence, tracked, not automated) |
+| E2E-59 | UI | Volunteer records a phone-less adult's issue | Separate segment; excluded from surveys; random re-check logged |
