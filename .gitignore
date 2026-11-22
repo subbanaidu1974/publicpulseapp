@@ -12,3 +12,8 @@ config-settings.json
 playwright-report/
 test-results/
 .claude/
+
+# local civic dev databases and anchors
+data/civic*.db
+data/civic*.db-*
+data/civic-anchor*

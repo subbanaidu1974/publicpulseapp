@@ -19,6 +19,7 @@ import AdminPortal from "./components/AdminPortal";
 import HomeMap from "./components/HomeMap";
 import FAQPage from "./components/FAQPage";
 import ElectionsPage from "./components/ElectionsPage";
+import CivicHome from "./components/civic/CivicHome";
 import ConstituencySearch from "./components/ConstituencySearch";
 import MapLayers from "./components/MapLayers";
 import DataStatusPanel from "./components/DataStatusPanel";
@@ -798,6 +799,7 @@ function AppInner() {
         )}
 
         {currentTab === "elections" && <ElectionsPage />}
+        {currentTab === "civic" && <CivicHome />}
 
         {/* TAB 1: HOME SECTION */}
         {currentTab === "home" && (

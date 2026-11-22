@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import nodemailer from "nodemailer";
 import fs from "fs";
 import { createApiRouter, loadDatasets } from "./server/api";
+import { createCivicRouter } from "./server/civic";
 
 dotenv.config();
 
@@ -79,6 +80,7 @@ async function startServer() {
   app.use(express.json());
 
   // Public read API (elections, census) - JSON only
+  app.use("/api/v1/civic", createCivicRouter());
   app.use("/api/v1", createApiRouter(loadDatasets()));
 
   // API Route: Get dynamic OTP configurations (Super Admin only)

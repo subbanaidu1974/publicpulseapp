@@ -51,6 +51,7 @@ export default function Navbar({
     { id: "home", label: t("nav.home") },
     { id: "analytics", label: t("nav.analytics") },
     { id: "elections", label: t("nav.elections") },
+    { id: "civic", label: lang === "te" ? "పౌర" : "Civic" },
     { id: "constituencies", label: `${t("nav.constituencies")} (${config.assemblySeats})` },
     { id: "survey", label: t("nav.survey") },
     { id: "reports", label: t("nav.reports") },
@@ -224,7 +225,7 @@ export default function Navbar({
           <div className="flex flex-wrap py-1">
             {navItems.map((item) => (
               <button
-                key={item.id} data-testid={item.id === "elections" ? "nav-elections" : undefined}
+                key={item.id} data-testid={item.id === "elections" ? "nav-elections" : item.id === "civic" ? "nav-civic" : undefined}
                 onClick={() => handleNavClick(item.id)}
                 className={`px-3 py-3 text-[10px] sm:text-[11px] tracking-[0.15em] uppercase transition-all relative no-underline ${
                   currentTab === item.id
@@ -258,7 +259,7 @@ export default function Navbar({
         <div id="mobile-navigation" className="bg-[#F9F7F2] border-t border-black/30 px-2 pt-2 pb-4 space-y-1">
           {navItems.map((item) => (
             <button
-              key={item.id} data-testid={item.id === "elections" ? "nav-elections" : undefined}
+              key={item.id} data-testid={item.id === "elections" ? "nav-elections" : item.id === "civic" ? "nav-civic" : undefined}
               onClick={() => handleNavClick(item.id)}
               className={`w-full text-left block px-3 py-2.5 text-[11px] font-bold tracking-widest uppercase border-b border-black/5 ${
                 currentTab === item.id

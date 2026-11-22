@@ -1,0 +1,10 @@
+{
+  "purpose": "signup",
+  "version": "v1",
+  "status": "DRAFT - legal wording not reviewed; needs counsel sign-off (DPDP Act 2023 / Rules) before any real use",
+  "title": { "en": "How People Pulse uses your data", "te": "పీపుల్ పల్స్ మీ డేటాను ఎలా ఉపయోగిస్తుంది" },
+  "text": {
+    "en": "WHAT: your mobile number (kept as a keyed hash; an encrypted copy only to send OTPs and notices), your declared village, and your consent records. We never store Aadhaar. WHY: to let you report local issues and join opinion surveys, once per person. This is an opinion survey platform, not an election. WHO SEES: officials and creators see only aggregates, never your individual answers. Answering will not affect your pension, ration card or any benefit. YOUR RIGHTS: access, correction, erasure and complaint through the grievance officer. Withdrawing consent deletes your account data on the schedule in the retention table.",
+    "te": "ఏమిటి: మీ మొబైల్ నంబర్ (కీడ్ హాష్‌గా; OTPలు, నోటీసులు పంపడానికి మాత్రమే ఎన్‌క్రిప్టెడ్ కాపీ), మీరు ప్రకటించిన గ్రామం, మీ అంగీకార రికార్డులు. ఆధార్ ఎప్పుడూ నిల్వ చేయము. ఎందుకు: స్థానిక సమస్యలను నివేదించడానికి, ఒక్కొక్కరు ఒక్కసారి అభిప్రాయ సర్వేలలో పాల్గొనడానికి. ఇది అభిప్రాయ సర్వే వేదిక, ఎన్నిక కాదు. ఎవరు చూస్తారు: అధికారులు, రూపకర్తలు మొత్తం సంఖ్యలను మాత్రమే చూస్తారు, మీ వ్యక్తిగత సమాధానాలను కాదు. సమాధానం ఇవ్వడం వల్ల మీ పింఛను, రేషన్ కార్డు లేదా ఏ ప్రయోజనంపైనా ప్రభావం ఉండదు. మీ హక్కులు: ఫిర్యాదుల అధికారి ద్వారా చూడటం, సవరణ, తొలగింపు, ఫిర్యాదు. అంగీకారం ఉపసంహరిస్తే నిలుపుదల పట్టిక ప్రకారం మీ ఖాతా డేటా తొలగించబడుతుంది."
+  }
+}

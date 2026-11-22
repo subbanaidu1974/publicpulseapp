@@ -1,0 +1,35 @@
+{
+  "_label": "DEMO FIXTURE ONLY. Codes prefixed DEMO- are NOT real LGD codes. Names are real places but unit membership, hamlets and boundary versions are illustrative. Replace via scripts/import-lgd.ts.",
+  "units": [
+    { "lgd": "DEMO-S-AP", "level": "state", "en": "Andhra Pradesh", "te": "ఆంధ్ర ప్రదేశ్", "parent": null, "from": "2014-06-02", "to": null },
+    { "lgd": "DEMO-S-TG", "level": "state", "en": "Telangana", "te": "తెలంగాణ", "parent": null, "from": "2014-06-02", "to": null },
+    { "lgd": "DEMO-D-GNT", "level": "district", "en": "Guntur", "te": "గుంటూరు", "parent": "DEMO-S-AP", "from": "2014-06-02", "to": null },
+    { "lgd": "DEMO-D-KRS", "level": "district", "en": "Krishna", "te": "కృష్ణా", "parent": "DEMO-S-AP", "from": "2014-06-02", "to": null },
+    { "lgd": "DEMO-D-WGL", "level": "district", "en": "Warangal", "te": "వరంగల్", "parent": "DEMO-S-TG", "from": "2014-06-02", "to": null },
+    { "lgd": "DEMO-C-TNL", "level": "constituency", "en": "Tenali", "te": "తెనాలి", "parent": "DEMO-D-GNT", "from": "2014-06-02", "to": null },
+    { "lgd": "DEMO-C-PTR", "level": "constituency", "en": "Ponnur", "te": "పొన్నూరు", "parent": "DEMO-D-GNT", "from": "2014-06-02", "to": null },
+    { "lgd": "DEMO-C-WGE", "level": "constituency", "en": "Warangal East", "te": "వరంగల్ తూర్పు", "parent": "DEMO-D-WGL", "from": "2014-06-02", "to": null },
+    { "lgd": "DEMO-M-TNL", "level": "mandal", "en": "Tenali", "te": "తెనాలి", "parent": "DEMO-D-GNT", "from": "2014-06-02", "to": null },
+    { "lgd": "DEMO-M-KLP", "level": "mandal", "en": "Kolluru", "te": "కొల్లూరు", "parent": "DEMO-D-GNT", "from": "2014-06-02", "to": null },
+    { "lgd": "DEMO-M-HNK", "level": "mandal", "en": "Hanamkonda", "te": "హనుమకొండ", "parent": "DEMO-D-WGL", "from": "2014-06-02", "to": null },
+    { "lgd": "DEMO-V-ANM", "level": "village", "en": "Angalakuduru", "te": "అంగలకుదురు", "parent": "DEMO-M-TNL", "from": "2014-06-02", "to": null },
+    { "lgd": "DEMO-V-KLR", "level": "village", "en": "Kolluru", "te": "కొల్లూరు", "parent": "DEMO-M-KLP", "from": "2014-06-02", "to": null },
+    { "lgd": "DEMO-V-BPL", "level": "village", "en": "Bhimavaram Palem", "te": "భీమవరం పాలెం", "parent": "DEMO-M-KLP", "from": "2014-06-02", "to": null },
+    { "lgd": "DEMO-V-HNK", "level": "village", "en": "Hasanparthy", "te": "హసన్‌పర్తి", "parent": "DEMO-M-HNK", "from": "2014-06-02", "to": null }
+  ],
+  "hamlets": [
+    { "id": "DEMO-H-1", "en": "Harijanawada", "te": "హరిజనవాడ", "village": "DEMO-V-ANM" },
+    { "id": "DEMO-H-2", "en": "Ambedkar Colony", "te": "అంబేడ్కర్ కాలనీ", "village": "DEMO-V-ANM" },
+    { "id": "DEMO-H-3", "en": "Gandhi Nagar", "te": "గాంధీ నగర్", "village": "DEMO-V-KLR" },
+    { "id": "DEMO-H-4", "en": "Chinna Palem", "te": "చిన్న పాలెం", "village": "DEMO-V-BPL" },
+    { "id": "DEMO-H-5", "en": "Ambedkar Colony", "te": "అంబేడ్కర్ కాలనీ", "village": "DEMO-V-HNK" }
+  ],
+  "villageConstituency": [
+    { "village": "DEMO-V-ANM", "constituency": "DEMO-C-TNL", "from": "2014-06-02", "to": "2026-01-01" },
+    { "village": "DEMO-V-ANM", "constituency": "DEMO-C-PTR", "from": "2026-01-01", "to": null },
+    { "village": "DEMO-V-KLR", "constituency": "DEMO-C-TNL", "from": "2014-06-02", "to": null },
+    { "village": "DEMO-V-BPL", "constituency": "DEMO-C-TNL", "from": "2014-06-02", "to": null },
+    { "village": "DEMO-V-BPL", "constituency": "DEMO-C-PTR", "from": "2014-06-02", "to": null },
+    { "village": "DEMO-V-HNK", "constituency": "DEMO-C-WGE", "from": "2014-06-02", "to": null }
+  ]
+}

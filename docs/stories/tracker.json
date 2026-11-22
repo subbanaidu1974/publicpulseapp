@@ -187,8 +187,8 @@
       "id": "S-18",
       "epic": "Identity",
       "title": "Phone OTP sign-up, HSM-keyed pseudonymous phone hash, number intelligence, 14-day age gate",
-      "agent": "-",
-      "status": "todo",
+      "agent": "A",
+      "status": "done",
       "tests": [
         "E2E-25",
         "E2E-26"
@@ -199,8 +199,8 @@
       "id": "S-19",
       "epic": "Identity",
       "title": "Shared SIM: several adults each with a personal PIN, attempt limits and lockout",
-      "agent": "-",
-      "status": "todo",
+      "agent": "A",
+      "status": "done",
       "tests": [
         "E2E-27",
         "E2E-28"
@@ -211,8 +211,8 @@
       "id": "S-20",
       "epic": "Identity",
       "title": "Trust tiers T0-T2 with two independent attestors and per-volunteer quotas",
-      "agent": "-",
-      "status": "todo",
+      "agent": "A",
+      "status": "done",
       "tests": [
         "E2E-29"
       ],
@@ -222,8 +222,8 @@
       "id": "S-21",
       "epic": "Households",
       "title": "Household roster: adult invite with notice, own PIN, expiry, decline/report",
-      "agent": "-",
-      "status": "todo",
+      "agent": "B",
+      "status": "done",
       "tests": [
         "E2E-30"
       ],
@@ -233,8 +233,8 @@
       "id": "S-22",
       "epic": "Households",
       "title": "Minor dependents: parental consent record, minimal data, erase at 18",
-      "agent": "-",
-      "status": "todo",
+      "agent": "B",
+      "status": "done",
       "tests": [
         "E2E-31"
       ],
@@ -244,8 +244,8 @@
       "id": "S-23",
       "epic": "Geography",
       "title": "LGD hierarchy, reviewed hamlet gazetteer, effective-dated village-to-constituency map",
-      "agent": "-",
-      "status": "todo",
+      "agent": "C",
+      "status": "done",
       "tests": [
         "E2E-32"
       ],
@@ -255,8 +255,8 @@
       "id": "S-24",
       "epic": "Issues",
       "title": "Issue reporting (Telugu, voice, photo, GPS, hamlet search) with dedupe and me-too limits",
-      "agent": "-",
-      "status": "todo",
+      "agent": "C",
+      "status": "done",
       "tests": [
         "E2E-33"
       ],
@@ -266,8 +266,8 @@
       "id": "S-25",
       "epic": "Issues",
       "title": "Issue workflow, SLA escalation, time-boxed citizen confirmation, jurisdiction routing",
-      "agent": "-",
-      "status": "todo",
+      "agent": "C",
+      "status": "done",
       "tests": [
         "E2E-34"
       ],
@@ -277,8 +277,8 @@
       "id": "S-26",
       "epic": "Issues",
       "title": "Department-level dashboards, officer rebuttal, open bulk issue feed",
-      "agent": "-",
-      "status": "todo",
+      "agent": "C",
+      "status": "done",
       "tests": [
         "E2E-35"
       ],
@@ -288,8 +288,8 @@
       "id": "S-27",
       "epic": "Issues",
       "title": "Moderation, appeals and takedown for issue reports",
-      "agent": "-",
-      "status": "todo",
+      "agent": "C",
+      "status": "done",
       "tests": [
         "E2E-36"
       ],
@@ -453,8 +453,8 @@
       "id": "S-42",
       "epic": "Platform",
       "title": "Hash-chained audit log with external anchoring and privileged-read logging",
-      "agent": "-",
-      "status": "todo",
+      "agent": "A",
+      "status": "done",
       "tests": [
         "E2E-51"
       ],
@@ -464,8 +464,8 @@
       "id": "S-43",
       "epic": "Platform",
       "title": "Key management, store separation, retention, erasure and account deletion",
-      "agent": "-",
-      "status": "todo",
+      "agent": "A",
+      "status": "done",
       "tests": [
         "E2E-52",
         "E2E-53"
@@ -476,8 +476,8 @@
       "id": "S-44",
       "epic": "Compliance",
       "title": "DPDP notice/consent artefacts, grievance officer, breach notification, intermediary duties",
-      "agent": "-",
-      "status": "todo",
+      "agent": "B",
+      "status": "in_progress",
       "tests": [
         "E2E-54"
       ],
@@ -487,8 +487,8 @@
       "id": "S-45",
       "epic": "Channels",
       "title": "IVR/missed-call pilot and PWA-lite (USSD deferred)",
-      "agent": "-",
-      "status": "todo",
+      "agent": "D",
+      "status": "done",
       "tests": [
         "E2E-55"
       ],
@@ -509,8 +509,8 @@
       "id": "S-47",
       "epic": "Accessibility",
       "title": "WCAG 2.2 AA and Telugu screen-reader acceptance tests",
-      "agent": "-",
-      "status": "todo",
+      "agent": "D",
+      "status": "done",
       "tests": [
         "E2E-57"
       ],
@@ -520,8 +520,8 @@
       "id": "S-48",
       "epic": "Quality",
       "title": "Threat model, independent red-team and pilot skew evaluation as release gates (checklist)",
-      "agent": "-",
-      "status": "todo",
+      "agent": "D",
+      "status": "in_progress",
       "tests": [
         "E2E-58"
       ],

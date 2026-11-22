@@ -1,0 +1,9 @@
+{
+  "status": "DRAFT - placeholder contact. A real Grievance Officer / DPO must be appointed and counsel must confirm the duty (DPDP Act, IT Act s.79) [VERIFY]",
+  "name": "TO BE APPOINTED",
+  "email": "grievance@example.invalid",
+  "postalAddress": "TO BE FILLED BY OPERATOR",
+  "acknowledgeWithinDays": 3,
+  "resolveWithinDays": 30,
+  "languages": ["en", "te"]
+}
