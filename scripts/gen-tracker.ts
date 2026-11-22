@@ -10,6 +10,9 @@ export interface Story {
   agent: string;
   status: Status;
   tests: string[];
+  priority?: string;
+  wave?: string;
+  source?: string;
 }
 export interface Tracker {
   stories: Story[];
@@ -55,6 +58,29 @@ export function violations(rows: Row[]): Row[] {
   return rows.filter((r) => r.status === 'done' && !r.found);
 }
 
+/** Progress by epic and by wave/priority (only when stories carry those fields). */
+function breakdown(rows: Row[]): string[] {
+  const out: string[] = [];
+  const group = (key: (r: Row) => string | undefined, label: string) => {
+    const m = new Map<string, Record<Status, number>>();
+    for (const r of rows) {
+      const k = key(r);
+      if (!k) continue;
+      const c = m.get(k) ?? { done: 0, in_progress: 0, todo: 0, blocked: 0 };
+      c[r.status]++;
+      m.set(k, c);
+    }
+    if (!m.size) return;
+    out.push(`| ${label} | Done | In progress | Todo | Blocked | Total |`, "|---|---|---|---|---|---|");
+    for (const [k, c] of [...m].sort()) out.push(`| ${k} | ${c.done} | ${c.in_progress} | ${c.todo} | ${c.blocked} | ${c.done + c.in_progress + c.todo + c.blocked} |`);
+    out.push("");
+  };
+  group((r) => r.wave, "Wave");
+  group((r) => r.priority, "Priority");
+  group((r) => r.epic, "Epic");
+  return out;
+}
+
 export function render(rows: Row[]): string {
   const counts = Object.fromEntries(STATUSES.map((s) => [s, 0])) as Record<Status, number>;
   rows.forEach((r) => (counts[r.status] = (counts[r.status] ?? 0) + 1));
@@ -71,6 +97,7 @@ export function render(rows: Row[]): string {
     '|---|---|',
     ...STATUSES.map((s) => `| ${s} | ${counts[s]} |`),
     '',
+    ...breakdown(rows),
     '| Story | Epic | Title | Agent | Status | Tests | Tests found? |',
     '|---|---|---|---|---|---|---|',
     ...rows.map(

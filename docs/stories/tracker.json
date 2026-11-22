@@ -168,7 +168,7 @@
       "epic": "Quality",
       "title": "Playwright harness, axe a11y, CI workflow",
       "agent": "D",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-21"
       ]
@@ -178,7 +178,7 @@
       "epic": "Quality",
       "title": "Story tracker generator + CI gate",
       "agent": "D",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "UT-tracker"
       ]
@@ -555,6 +555,1345 @@
         "E2E-65"
       ],
       "phase": "2028-P1"
+    },
+    {
+      "id": "S-51",
+      "epic": "Security",
+      "title": "Delete /api/admin/config and header-trusted admin; secrets never returned or written at runtime",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-66"
+      ],
+      "priority": "P0",
+      "wave": "W1",
+      "source": "gap-audit: 88,99"
+    },
+    {
+      "id": "S-52",
+      "epic": "Security",
+      "title": "Delete /api/send-otp mail relay; never log OTPs or phones; remove TLS-verification bypass",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-67"
+      ],
+      "priority": "P0",
+      "wave": "W1",
+      "source": "gap-audit: 89,90"
+    },
+    {
+      "id": "S-53",
+      "epic": "Security",
+      "title": "Replace client-side legacy login/admin with server sessions (or remove it); no seeded accounts or role-switch",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-68"
+      ],
+      "priority": "P0",
+      "wave": "W1",
+      "source": "gap-audit: 1,2,13"
+    },
+    {
+      "id": "S-54",
+      "epic": "Security",
+      "title": "Security headers, CSP, HSTS, trust-proxy, CORS policy and public API rate limits/caching",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-69"
+      ],
+      "priority": "P0",
+      "wave": "W1",
+      "source": "gap-audit: 94,95,60"
+    },
+    {
+      "id": "S-55",
+      "epic": "Security",
+      "title": "Production startup guards: refuse dev key provider, dev OTP flag, DEMO geo seed, demo data when NODE_ENV=production",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-70"
+      ],
+      "priority": "P0",
+      "wave": "W1",
+      "source": "gap-audit: 91,93,55,15"
+    },
+    {
+      "id": "S-56",
+      "epic": "Security",
+      "title": "Webhook auth for missed-call/IVR (HMAC or allow-list); never return callId to caller; PIN by default",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-71"
+      ],
+      "priority": "P0",
+      "wave": "W1",
+      "source": "gap-audit: 46"
+    },
+    {
+      "id": "S-57",
+      "epic": "Security",
+      "title": "Scope JSON body parsers per router; 1 MB base64 photo accepted, global default kept small elsewhere",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-72"
+      ],
+      "priority": "P1",
+      "wave": "W1",
+      "source": "gap-audit: 42,96"
+    },
+    {
+      "id": "S-58",
+      "epic": "Security",
+      "title": "Secret scanning (gitleaks) and secrets-manager config; remove unused genai/nodemailer, pin engines, audit and Dependabot",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-73"
+      ],
+      "priority": "P1",
+      "wave": "W1",
+      "source": "gap-audit: 99,110,12"
+    },
+    {
+      "id": "S-59",
+      "epic": "Security",
+      "title": "Login/OTP hardening: per-phone+person+source keys, per-purpose OTPs, weak-PIN blocklist, logout, session list/revoke, shorter TTL",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-74"
+      ],
+      "priority": "P1",
+      "wave": "W4",
+      "source": "gap-audit: 36,57,58,59"
+    },
+    {
+      "id": "S-60",
+      "epic": "Security",
+      "title": "Trusted proxy and device attestation (Play Integrity/App Attest) for the app channel; edge-supplied ASN",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-75"
+      ],
+      "priority": "P2",
+      "wave": "W4",
+      "source": "gap-audit: 60"
+    },
+    {
+      "id": "S-61",
+      "epic": "Security",
+      "title": "Invite and SMS abuse caps: per-head daily invites, per-target-number cap, global SMS budget",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-76"
+      ],
+      "priority": "P1",
+      "wave": "W4",
+      "source": "gap-audit: 54"
+    },
+    {
+      "id": "S-62",
+      "epic": "Security",
+      "title": "Real number-intelligence vendor adapter with failure policy",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [
+        "E2E-77"
+      ],
+      "priority": "P1",
+      "wave": "W4",
+      "source": "gap-audit: 61"
+    },
+    {
+      "id": "S-63",
+      "epic": "Security",
+      "title": "Production SMS provider adapter (DLT templates, delivery receipts, cost budget)",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [
+        "E2E-78"
+      ],
+      "priority": "P0",
+      "wave": "W4",
+      "source": "gap-audit: 92"
+    },
+    {
+      "id": "S-64",
+      "epic": "Security",
+      "title": "KMS/HSM key provider, per-purpose keys and rotation/re-hash plan",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [
+        "E2E-79"
+      ],
+      "priority": "P0",
+      "wave": "W4",
+      "source": "gap-audit: 91"
+    },
+    {
+      "id": "S-65",
+      "epic": "Security",
+      "title": "Reconcile THREAT_MODEL and RELEASE_GATE with the code; fix claims (ASN, logs, keys, anchor)",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-80"
+      ],
+      "priority": "P1",
+      "wave": "W5",
+      "source": "gap-audit: 101"
+    },
+    {
+      "id": "S-66",
+      "epic": "Operations",
+      "title": "Job scheduler for retention purge, 18th-birthday erasure, invite expiry, audit anchoring and chain verification",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-81"
+      ],
+      "priority": "P0",
+      "wave": "W1",
+      "source": "gap-audit: 62,63"
+    },
+    {
+      "id": "S-67",
+      "epic": "Operations",
+      "title": "Observability: structured logs, request ids, /healthz and /readyz (DB + audit chain), metrics and alerts",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-82"
+      ],
+      "priority": "P1",
+      "wave": "W2",
+      "source": "gap-audit: 118"
+    },
+    {
+      "id": "S-68",
+      "epic": "Operations",
+      "title": "Encrypted scheduled backups, restore drill and key escrow runbook",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-83"
+      ],
+      "priority": "P1",
+      "wave": "W2",
+      "source": "gap-audit: 119"
+    },
+    {
+      "id": "S-69",
+      "epic": "Operations",
+      "title": "Deployment: Dockerfile, env/runbook, India-region hosting and TLS guide, E2E against production build",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-84"
+      ],
+      "priority": "P1",
+      "wave": "W2",
+      "source": "gap-audit: 120,113"
+    },
+    {
+      "id": "S-70",
+      "epic": "Operations",
+      "title": "CI upgrades: production build, ESLint, audit, secret scan, coverage thresholds, Windows matrix",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-85"
+      ],
+      "priority": "P1",
+      "wave": "W2",
+      "source": "gap-audit: 113,114"
+    },
+    {
+      "id": "S-71",
+      "epic": "Operations",
+      "title": "Tracker gate reads real test results (no skips) and verifies STORY_TRACKER.md is current",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-86"
+      ],
+      "priority": "P1",
+      "wave": "W2",
+      "source": "gap-audit: 111,112"
+    },
+    {
+      "id": "S-72",
+      "epic": "Operations",
+      "title": "Migration checksums, pre-migrate backup, rollback doc",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-87"
+      ],
+      "priority": "P2",
+      "wave": "W2",
+      "source": "gap-audit: 65"
+    },
+    {
+      "id": "S-73",
+      "epic": "Operations",
+      "title": "Async/worker scrypt, capacity plan and Postgres/PostGIS migration path",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-88"
+      ],
+      "priority": "P2",
+      "wave": "W4",
+      "source": "gap-audit: 66,86"
+    },
+    {
+      "id": "S-74",
+      "epic": "Operations",
+      "title": "Split identity, issue and survey stores with no cross-store joins",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-89"
+      ],
+      "priority": "P1",
+      "wave": "W4",
+      "source": "gap-audit: 52,86"
+    },
+    {
+      "id": "S-75",
+      "epic": "Operations",
+      "title": "Real lite entry page, 2G budget measurement and load tests (OTP flood, count-day)",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-90"
+      ],
+      "priority": "P1",
+      "wave": "W4",
+      "source": "gap-audit: 115"
+    },
+    {
+      "id": "S-76",
+      "epic": "Operations",
+      "title": "Scheduled data-refresh pipeline with freshness alerts and forecast-cache invalidation",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-91"
+      ],
+      "priority": "P2",
+      "wave": "W3",
+      "source": "gap-audit: 121,30"
+    },
+    {
+      "id": "S-77",
+      "epic": "Operations",
+      "title": "README, complete .env.example (all CIVIC_* vars) and docs check in CI",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-92"
+      ],
+      "priority": "P1",
+      "wave": "W2",
+      "source": "gap-audit: 122,12"
+    },
+    {
+      "id": "S-78",
+      "epic": "Geo data",
+      "title": "Fix boundary fetch: DataMeet India_AC shapefile, split TG from AP, re-key to ECI/LGD codes, validate 294 ACs",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-93"
+      ],
+      "priority": "P0",
+      "wave": "W2",
+      "source": "gap-audit: 20"
+    },
+    {
+      "id": "S-79",
+      "epic": "Geo data",
+      "title": "PC polygons from DataMeet 2019 simplified (CC0) with Wikidata QIDs; AP 25 / TG 17",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-94"
+      ],
+      "priority": "P1",
+      "wave": "W2",
+      "source": "gap-audit: 20"
+    },
+    {
+      "id": "S-80",
+      "epic": "Geo data",
+      "title": "LGD Parquet ingest: districts (AP 28, TG 33), mandals, blocks, villages, GPs, urban bodies; effective-dated, census codes kept",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-95"
+      ],
+      "priority": "P0",
+      "wave": "W2",
+      "source": "gap-audit: 55"
+    },
+    {
+      "id": "S-81",
+      "epic": "Geo data",
+      "title": "LGD village/ward to AC and PC mapping; flag ACs without rural rows; check part-mandal ACs against the 2008 ECI order",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-96"
+      ],
+      "priority": "P0",
+      "wave": "W2",
+      "source": "gap-audit: 56"
+    },
+    {
+      "id": "S-82",
+      "epic": "Geo data",
+      "title": "Reservation (SC/ST/GEN) and PC link per AC from 2008 constituency table",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-97"
+      ],
+      "priority": "P2",
+      "wave": "W2",
+      "source": "gap-audit: 25"
+    },
+    {
+      "id": "S-83",
+      "epic": "Geo data",
+      "title": "Telugu name gazetteer: Wikidata (districts, mandals, ACs), LGD TG villages, AP villages from OSM/Wikidata, gaps flagged",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-98"
+      ],
+      "priority": "P1",
+      "wave": "W2",
+      "source": "gap-audit: 18"
+    },
+    {
+      "id": "S-84",
+      "epic": "Geo data",
+      "title": "Census 2011 PCA ingest at district, mandal and village with LGD census-code crosswalk; remove demo census",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-99"
+      ],
+      "priority": "P0",
+      "wave": "W2",
+      "source": "gap-audit: 15"
+    },
+    {
+      "id": "S-85",
+      "epic": "Geo data",
+      "title": "Old-to-new district crosswalk (AP 13 to 26 to 28; TG 10 to 33) for comparable history",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-100"
+      ],
+      "priority": "P1",
+      "wave": "W2",
+      "source": "gap-audit: 17,32"
+    },
+    {
+      "id": "S-86",
+      "epic": "Geo data",
+      "title": "Electors by AC (CEO PDF parser, SSR 2025) with turnout, NOTA and gender fields in the API",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [
+        "E2E-101"
+      ],
+      "priority": "P1",
+      "wave": "W2",
+      "source": "gap-audit: 16,19"
+    },
+    {
+      "id": "S-87",
+      "epic": "Geo data",
+      "title": "Seats API carries district, electors, Telugu name for AP and LS (not only TG assembly)",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-102"
+      ],
+      "priority": "P0",
+      "wave": "W2",
+      "source": "gap-audit: 16,17,18"
+    },
+    {
+      "id": "S-88",
+      "epic": "Geo data",
+      "title": "District boundary polygons for AP 28 / TG 33 (dissolved from mandals or OSM)",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-103"
+      ],
+      "priority": "P1",
+      "wave": "W2",
+      "source": "gap-audit: 20"
+    },
+    {
+      "id": "S-89",
+      "epic": "Geo data",
+      "title": "Mandal boundary polygons with licence review (OSM ODbL or other)",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-104"
+      ],
+      "priority": "P2",
+      "wave": "W3",
+      "source": "gap-audit: 20"
+    },
+    {
+      "id": "S-90",
+      "epic": "Geo data",
+      "title": "Village boundary polygons: licence decision (SHRUG is CC BY-NC-SA) or alternative source",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [
+        "E2E-105"
+      ],
+      "priority": "P2",
+      "wave": "W3",
+      "source": "gap-audit: 20"
+    },
+    {
+      "id": "S-91",
+      "epic": "Geo data",
+      "title": "Polling-station reference list (number, name, location only); never ingest electoral-roll PDFs",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-106"
+      ],
+      "priority": "P2",
+      "wave": "W3",
+      "source": "gap-audit: DESIGN 8"
+    },
+    {
+      "id": "S-92",
+      "epic": "Geo data",
+      "title": "Boundary versioning and post-census delimitation readiness",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-107"
+      ],
+      "priority": "P2",
+      "wave": "W3",
+      "source": "gap-audit: DESIGN 3.8"
+    },
+    {
+      "id": "S-93",
+      "epic": "Geo data",
+      "title": "Per-dataset provenance manifest (source, licence, checksum, asOf) shown on API envelopes",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-108"
+      ],
+      "priority": "P1",
+      "wave": "W2",
+      "source": "gap-audit: 29"
+    },
+    {
+      "id": "S-94",
+      "epic": "Geo data",
+      "title": "Licence compliance register and attribution page (TCPD, DataMeet, ODbL, CC BY-SA, Esri)",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-109"
+      ],
+      "priority": "P0",
+      "wave": "W2",
+      "source": "gap-audit: 29"
+    },
+    {
+      "id": "S-95",
+      "epic": "Geo data",
+      "title": "LS-to-assembly segment mapping and split-voting endpoint",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-110"
+      ],
+      "priority": "P1",
+      "wave": "W3",
+      "source": "gap-audit: 22"
+    },
+    {
+      "id": "S-96",
+      "epic": "Public maps",
+      "title": "Real choropleth map (AC and district) replacing the tile grid; table fallback; self-hosted Leaflet CSS; tile policy",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-111"
+      ],
+      "priority": "P0",
+      "wave": "W3",
+      "source": "gap-audit: 10,20"
+    },
+    {
+      "id": "S-97",
+      "epic": "Public maps",
+      "title": "Drill-down map: state to district to constituency to mandal to village with population and issue overlays",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-112"
+      ],
+      "priority": "P1",
+      "wave": "W3",
+      "source": "gap-audit: DESIGN 3.4"
+    },
+    {
+      "id": "S-98",
+      "epic": "Public maps",
+      "title": "Constituency profile: boundary map, population, electors, history, current member, civic issue aggregates",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-113"
+      ],
+      "priority": "P0",
+      "wave": "W3",
+      "source": "gap-audit: 27"
+    },
+    {
+      "id": "S-99",
+      "epic": "Public maps",
+      "title": "Mandal and village profile pages (population, SC/ST, literacy, linked constituency, issues)",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-114"
+      ],
+      "priority": "P1",
+      "wave": "W3",
+      "source": "gap-audit: DESIGN 3.4"
+    },
+    {
+      "id": "S-100",
+      "epic": "Public maps",
+      "title": "Geo search API and constituency endpoints (/geo/units, /constituencies/:state/:acNo) in EN/Telugu",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-115"
+      ],
+      "priority": "P1",
+      "wave": "W3",
+      "source": "gap-audit: 33"
+    },
+    {
+      "id": "S-101",
+      "epic": "Public maps",
+      "title": "Hamlet gazetteer review workflow and real import replacing DEMO data",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-116"
+      ],
+      "priority": "P1",
+      "wave": "W3",
+      "source": "gap-audit: 55"
+    },
+    {
+      "id": "S-102",
+      "epic": "Public maps",
+      "title": "LGD-to-ECI constituency link table, effective-dated",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-117"
+      ],
+      "priority": "P1",
+      "wave": "W2",
+      "source": "gap-audit: 56"
+    },
+    {
+      "id": "S-103",
+      "epic": "People data",
+      "title": "Canonical party registry: aliases, Telugu names, hand-curated colours, founding year, website, Wikidata QID, merger history",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-118"
+      ],
+      "priority": "P0",
+      "wave": "W2",
+      "source": "gap-audit: 24"
+    },
+    {
+      "id": "S-104",
+      "epic": "People data",
+      "title": "Party flags and symbols with per-file licence/author/attribution; neutral text chip where no free file exists",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-119"
+      ],
+      "priority": "P1",
+      "wave": "W3",
+      "source": "gap-audit: DESIGN 4"
+    },
+    {
+      "id": "S-105",
+      "epic": "People data",
+      "title": "Per-year alliance dataset (AP 2014/2019/2024, TG 2014/2018/2023, LS years) with sources and pre-poll vs hindsight label",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-120"
+      ],
+      "priority": "P0",
+      "wave": "W2",
+      "source": "gap-audit: 21"
+    },
+    {
+      "id": "S-106",
+      "epic": "People data",
+      "title": "Party profile page: seats and vote-share history, alliances, leaders, symbol",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-121"
+      ],
+      "priority": "P1",
+      "wave": "W3",
+      "source": "gap-audit: DESIGN 4"
+    },
+    {
+      "id": "S-107",
+      "epic": "People data",
+      "title": "Party leaders and office holders (CM, deputy CM, speaker, party presidents, ministers), curated and dual-sourced with dates",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-122"
+      ],
+      "priority": "P1",
+      "wave": "W3",
+      "source": "gap-audit: DESIGN 5"
+    },
+    {
+      "id": "S-108",
+      "epic": "People data",
+      "title": "Current MLA/MP roster: ECI results + minimal sansad.in fields + by-election/defection overlay with citations",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-123"
+      ],
+      "priority": "P0",
+      "wave": "W3",
+      "source": "gap-audit: DESIGN 5"
+    },
+    {
+      "id": "S-109",
+      "epic": "People data",
+      "title": "Contestant profile: name, party, votes, position, sex, age, incumbency per election (TCPD/ECI)",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-124"
+      ],
+      "priority": "P0",
+      "wave": "W3",
+      "source": "gap-audit: DESIGN 4"
+    },
+    {
+      "id": "S-110",
+      "epic": "People data",
+      "title": "Winner photos from Wikimedia Commons with licence, author, attribution and takedown; initials avatar otherwise",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-125"
+      ],
+      "priority": "P1",
+      "wave": "W3",
+      "source": "gap-audit: DESIGN 4"
+    },
+    {
+      "id": "S-111",
+      "epic": "People data",
+      "title": "Affidavit link-outs (MyNeta/ECI) with neutral layout; no scraping; ADR written-consent request for any bulk use",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [
+        "E2E-126"
+      ],
+      "priority": "P1",
+      "wave": "W3",
+      "source": "gap-audit: DESIGN 4"
+    },
+    {
+      "id": "S-112",
+      "epic": "People data",
+      "title": "Party-switch / turncoat records, citation-only (Speaker/ECI/news)",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-127"
+      ],
+      "priority": "P2",
+      "wave": "W3",
+      "source": "gap-audit: DESIGN 4"
+    },
+    {
+      "id": "S-113",
+      "epic": "People data",
+      "title": "Correction and takedown channel for person data and photos",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-128"
+      ],
+      "priority": "P1",
+      "wave": "W3",
+      "source": "gap-audit: DESIGN 8"
+    },
+    {
+      "id": "S-114",
+      "epic": "People data",
+      "title": "MCC neutrality rules for candidate/party/leader pages: identical layout, no rankings, blackout hides promotions",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-129"
+      ],
+      "priority": "P1",
+      "wave": "W3",
+      "source": "gap-audit: DESIGN 3.5"
+    },
+    {
+      "id": "S-115",
+      "epic": "People data",
+      "title": "By-election and re-poll tracking",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-130"
+      ],
+      "priority": "P2",
+      "wave": "W3",
+      "source": "gap-audit: 23"
+    },
+    {
+      "id": "S-116",
+      "epic": "People data",
+      "title": "Pre-2014 undivided-AP history mapping and AP/TG LS 2014 split",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-131"
+      ],
+      "priority": "P2",
+      "wave": "W3",
+      "source": "gap-audit: 23"
+    },
+    {
+      "id": "S-117",
+      "epic": "People data",
+      "title": "Per-candidate and per-party assembly vs Lok Sabha comparison; incumbency analytics",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-132"
+      ],
+      "priority": "P2",
+      "wave": "W3",
+      "source": "gap-audit: DESIGN 4"
+    },
+    {
+      "id": "S-118",
+      "epic": "Analytics",
+      "title": "Calendar-driven, fail-closed election-window service (forecast, surveys, notifications)",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-133"
+      ],
+      "priority": "P0",
+      "wave": "W3",
+      "source": "gap-audit: 30"
+    },
+    {
+      "id": "S-119",
+      "epic": "Analytics",
+      "title": "Forecast product review: skill warning, calibration and cache invalidation",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-134"
+      ],
+      "priority": "P1",
+      "wave": "W3",
+      "source": "gap-audit: 31,30"
+    },
+    {
+      "id": "S-120",
+      "epic": "Analytics",
+      "title": "Turnout, NOTA and gender-turnout analytics page",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-135"
+      ],
+      "priority": "P1",
+      "wave": "W3",
+      "source": "gap-audit: 19"
+    },
+    {
+      "id": "S-121",
+      "epic": "Analytics",
+      "title": "Golden tests for real data (totals vs ECI by year); comparability notes for swing",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-136"
+      ],
+      "priority": "P1",
+      "wave": "W2",
+      "source": "gap-audit: 28,32"
+    },
+    {
+      "id": "S-122",
+      "epic": "Analytics",
+      "title": "Share cards with provenance and misinformation guardrails",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-137"
+      ],
+      "priority": "P2",
+      "wave": "W3",
+      "source": "gap-audit: DESIGN 4"
+    },
+    {
+      "id": "S-123",
+      "epic": "Legacy UI",
+      "title": "Retire staticData and the synthetic constituency profiler; Telangana parity for Home, Analytics and Constituencies",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-138"
+      ],
+      "priority": "P0",
+      "wave": "W1",
+      "source": "gap-audit: 3,4,8"
+    },
+    {
+      "id": "S-124",
+      "epic": "Legacy UI",
+      "title": "Retire the legacy survey/admin portal (or move behind Phase 2 anonymous surveys); drop fake counters and leader preference",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-139"
+      ],
+      "priority": "P0",
+      "wave": "W1",
+      "source": "gap-audit: 5,6,7,13"
+    },
+    {
+      "id": "S-125",
+      "epic": "Legacy UI",
+      "title": "Remove hard-coded reports, news, testimonials and hotlinked media",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-140"
+      ],
+      "priority": "P1",
+      "wave": "W1",
+      "source": "gap-audit: 9"
+    },
+    {
+      "id": "S-126",
+      "epic": "Legacy UI",
+      "title": "i18n completeness: key-parity test EN/TE, localised error codes, translate all hard-coded labels",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-141"
+      ],
+      "priority": "P1",
+      "wave": "W3",
+      "source": "gap-audit: 11,124,125"
+    },
+    {
+      "id": "S-127",
+      "epic": "Legacy UI",
+      "title": "Product naming, metadata, hreflang, Open Graph; README rewrite",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-142"
+      ],
+      "priority": "P2",
+      "wave": "W3",
+      "source": "gap-audit: 12,14,130"
+    },
+    {
+      "id": "S-128",
+      "epic": "Legacy UI",
+      "title": "Banned-wording copy lint (vote/ballot/result for surveys) in CI",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-143"
+      ],
+      "priority": "P1",
+      "wave": "W1",
+      "source": "gap-audit: 128"
+    },
+    {
+      "id": "S-129",
+      "epic": "Legacy UI",
+      "title": "Privacy policy, terms, third-party consent notice and who-sees-what screen",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-144"
+      ],
+      "priority": "P1",
+      "wave": "W3",
+      "source": "gap-audit: 107,108"
+    },
+    {
+      "id": "S-130",
+      "epic": "Legacy UI",
+      "title": "Self-hosted Telugu font subset; low-end Android test",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-145"
+      ],
+      "priority": "P2",
+      "wave": "W3",
+      "source": "gap-audit: 129"
+    },
+    {
+      "id": "S-131",
+      "epic": "Civic",
+      "title": "Login person-picker for multi-adult SIMs",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-146"
+      ],
+      "priority": "P0",
+      "wave": "W4",
+      "source": "gap-audit: 49"
+    },
+    {
+      "id": "S-132",
+      "epic": "Civic",
+      "title": "PIN recovery UI using OTP",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-147"
+      ],
+      "priority": "P1",
+      "wave": "W4",
+      "source": "gap-audit: 49"
+    },
+    {
+      "id": "S-133",
+      "epic": "Civic",
+      "title": "Residence declaration and hamlet search UI (T1)",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-148"
+      ],
+      "priority": "P1",
+      "wave": "W4",
+      "source": "gap-audit: 49"
+    },
+    {
+      "id": "S-134",
+      "epic": "Civic",
+      "title": "Attestation and volunteer screens (T2)",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-149"
+      ],
+      "priority": "P2",
+      "wave": "W4",
+      "source": "gap-audit: 49"
+    },
+    {
+      "id": "S-135",
+      "epic": "Civic",
+      "title": "Accept-invite screen: notice, own PIN, decline and report-not-agreed",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-150"
+      ],
+      "priority": "P0",
+      "wave": "W4",
+      "source": "gap-audit: 38"
+    },
+    {
+      "id": "S-136",
+      "epic": "Civic",
+      "title": "Volunteer enrolment: adult sets own PIN and proves phone control; context persisted in table",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-151"
+      ],
+      "priority": "P0",
+      "wave": "W4",
+      "source": "gap-audit: 39,40,41"
+    },
+    {
+      "id": "S-137",
+      "epic": "Civic",
+      "title": "Issue photo and voice upload wired to /issues/media with GPS",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-152"
+      ],
+      "priority": "P0",
+      "wave": "W4",
+      "source": "gap-audit: 48"
+    },
+    {
+      "id": "S-138",
+      "epic": "Civic",
+      "title": "WebP and HEIC photo support with EXIF stripping",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-153"
+      ],
+      "priority": "P2",
+      "wave": "W4",
+      "source": "gap-audit: 43"
+    },
+    {
+      "id": "S-139",
+      "epic": "Civic",
+      "title": "Issue detail page, feed filters by village/mandal/constituency, paginated bulk export",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-154"
+      ],
+      "priority": "P1",
+      "wave": "W4",
+      "source": "gap-audit: 51"
+    },
+    {
+      "id": "S-140",
+      "epic": "Civic",
+      "title": "Officer/moderator consoles and audited admin role grants with MFA; unify roles tables",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-155"
+      ],
+      "priority": "P0",
+      "wave": "W4",
+      "source": "gap-audit: 34,100"
+    },
+    {
+      "id": "S-141",
+      "epic": "Civic",
+      "title": "Verified government officer onboarding (letter and domain check)",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [
+        "E2E-156"
+      ],
+      "priority": "P1",
+      "wave": "W4",
+      "source": "gap-audit: 35"
+    },
+    {
+      "id": "S-142",
+      "epic": "Civic",
+      "title": "Moderation lexicon curation workflow, queue UI and false-positive metrics",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-157"
+      ],
+      "priority": "P1",
+      "wave": "W4",
+      "source": "gap-audit: 44"
+    },
+    {
+      "id": "S-143",
+      "epic": "Civic",
+      "title": "Erasure completeness for all issue tables and a dump-all-tables test",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-158"
+      ],
+      "priority": "P1",
+      "wave": "W4",
+      "source": "gap-audit: 68"
+    },
+    {
+      "id": "S-144",
+      "epic": "Civic",
+      "title": "Audit log: public redacted view, real external anchor sink, privileged-read calls wired",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-159"
+      ],
+      "priority": "P1",
+      "wave": "W4",
+      "source": "gap-audit: 63"
+    },
+    {
+      "id": "S-145",
+      "epic": "Civic",
+      "title": "Politician reply role, scheme tags and grievance-system adapter",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [
+        "E2E-160"
+      ],
+      "priority": "P2",
+      "wave": "W4",
+      "source": "gap-audit: 53"
+    },
+    {
+      "id": "S-146",
+      "epic": "Civic",
+      "title": "IVR upgrades: recording fetch, full category set, persisted call state, unified lockout",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-161"
+      ],
+      "priority": "P2",
+      "wave": "W4",
+      "source": "gap-audit: 45,47,50"
+    },
+    {
+      "id": "S-147",
+      "epic": "Civic",
+      "title": "Media hardening: encryption at rest, GPS rounding, AV scan, retention alignment",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-162"
+      ],
+      "priority": "P2",
+      "wave": "W4",
+      "source": "gap-audit: 104"
+    },
+    {
+      "id": "S-148",
+      "epic": "Civic",
+      "title": "Icon-led categories, trust-tier badges, category parity across web and IVR",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-163"
+      ],
+      "priority": "P2",
+      "wave": "W4",
+      "source": "gap-audit: 50,127"
+    },
+    {
+      "id": "S-149",
+      "epic": "Civic",
+      "title": "Household: recipient confirms head transfer; dependent caps; re-invite cooldown",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-164"
+      ],
+      "priority": "P3",
+      "wave": "W4",
+      "source": "gap-audit: 67"
+    },
+    {
+      "id": "S-150",
+      "epic": "Compliance",
+      "title": "Counsel-reviewed bilingual notices; grievance officer/DPO appointed; breach and CERT-In procedure",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [
+        "E2E-165"
+      ],
+      "priority": "P0",
+      "wave": "W5",
+      "source": "gap-audit: 103,126"
+    },
+    {
+      "id": "S-151",
+      "epic": "Compliance",
+      "title": "Recorded Telugu audio per dialect with linguist review",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [
+        "E2E-166"
+      ],
+      "priority": "P1",
+      "wave": "W5",
+      "source": "gap-audit: 126"
+    },
+    {
+      "id": "S-152",
+      "epic": "Compliance",
+      "title": "Operator, funding and legal-structure decision (design gate)",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [
+        "E2E-167"
+      ],
+      "priority": "P0",
+      "wave": "W5",
+      "source": "gap-audit: DESIGN 8.1"
+    },
+    {
+      "id": "S-153",
+      "epic": "Compliance",
+      "title": "Release gate owners, dates and evidence collection; red-team and pilot skew evaluation scheduled",
+      "agent": "-",
+      "status": "todo",
+      "tests": [
+        "E2E-168"
+      ],
+      "priority": "P0",
+      "wave": "W5",
+      "source": "gap-audit: 102"
     }
   ]
 }
