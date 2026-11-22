@@ -1,0 +1,22 @@
+{
+  "legend": "status: todo | in_progress | done | blocked. A story may be 'done' only if every id in tests[] exists as a tag (@E2E-xx / @UT-xx) in a spec file.",
+  "stories": [
+    {"id":"S-01","epic":"Foundation","title":"State as first-class dimension (AP, TG config, state switcher)","agent":"C","status":"done","tests":["E2E-01","E2E-09"]},
+    {"id":"S-02","epic":"Data","title":"Election results ingest (TCPD CSV -> normalized snapshot)","agent":"A","status":"done","tests":["E2E-23","UT-ingest"]},
+    {"id":"S-03","epic":"Data","title":"Census 2011 ingest (data.gov.in API w/ CSV fallback)","agent":"A","status":"done","tests":["E2E-24","UT-census"]},
+    {"id":"S-04","epic":"Data","title":"Boundaries fetch (DataMeet GeoJSON) + data quality gate","agent":"A","status":"done","tests":["E2E-08"]},
+    {"id":"S-05","epic":"API","title":"Public read API /api/v1 (states, elections, summary, swing, marginal, census)","agent":"B","status":"done","tests":["E2E-01","E2E-02","E2E-03","E2E-04","E2E-05","E2E-06"]},
+    {"id":"S-06","epic":"API","title":"API validation and error contract","agent":"B","status":"done","tests":["E2E-07"]},
+    {"id":"S-07","epic":"Analytics","title":"Election analytics lib (swing, margins, alliances, split voting)","agent":"B","status":"done","tests":["UT-analytics"]},
+    {"id":"S-08","epic":"UI","title":"Elections explorer page (tally, vote share, margin buckets)","agent":"C","status":"done","tests":["E2E-10"]},
+    {"id":"S-09","epic":"UI","title":"Alliance view toggle with caveat","agent":"C","status":"done","tests":["E2E-11"]},
+    {"id":"S-10","epic":"UI","title":"Constituency search (EN/TE) + profile with history and census","agent":"C","status":"done","tests":["E2E-12","E2E-14"]},
+    {"id":"S-11","epic":"UI","title":"Map layers with table fallback","agent":"C","status":"done","tests":["E2E-13"]},
+    {"id":"S-12","epic":"UI","title":"Telugu i18n toggle","agent":"C","status":"done","tests":["E2E-17"]},
+    {"id":"S-13","epic":"UI","title":"Survey validation, duplicate guard, n>=30 gating, demo badge","agent":"C","status":"done","tests":["E2E-15","E2E-16","E2E-18"]},
+    {"id":"S-14","epic":"UI","title":"Error/retry states and mobile layout","agent":"C","status":"done","tests":["E2E-20","E2E-22"]},
+    {"id":"S-15","epic":"Admin","title":"Admin data-refresh status page","agent":"C","status":"done","tests":["E2E-19"]},
+    {"id":"S-16","epic":"Quality","title":"Playwright harness, axe a11y, CI workflow","agent":"D","status":"todo","tests":["E2E-21"]},
+    {"id":"S-17","epic":"Quality","title":"Story tracker generator + CI gate","agent":"D","status":"todo","tests":["UT-tracker"]}
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "provenance": "demo",
+  "source": "pipeline/fixtures/census.demo.csv",
+  "districts": [
+    {
+      "state": "AP",
+      "district": "DEMO-District-A",
+      "censusYear": 2011,
+      "population": 2000000,
+      "literate": 1300000,
+      "scPop": 300000,
+      "stPop": 100000,
+      "males": 1010000,
+      "females": 990000,
+      "literacyPct": 65,
+      "scPct": 15,
+      "stPct": 5,
+      "sexRatio": 980,
+      "source": "pipeline/fixtures/census.demo.csv"
+    },
+    {
+      "state": "AP",
+      "district": "DEMO-District-B",
+      "censusYear": 2011,
+      "population": 3000000,
+      "literate": 2000000,
+      "scPop": 450000,
+      "stPop": 150000,
+      "males": 1500000,
+      "females": 1500000,
+      "literacyPct": 66.67,
+      "scPct": 15,
+      "stPct": 5,
+      "sexRatio": 1000,
+      "source": "pipeline/fixtures/census.demo.csv"
+    },
+    {
+      "state": "TG",
+      "district": "DEMO-District-H",
+      "censusYear": 2011,
+      "population": 4000000,
+      "literate": 3000000,
+      "scPop": 400000,
+      "stPop": 80000,
+      "males": 2060000,
+      "females": 1940000,
+      "literacyPct": 75,
+      "scPct": 10,
+      "stPct": 2,
+      "sexRatio": 942,
+      "source": "pipeline/fixtures/census.demo.csv"
+    },
+    {
+      "state": "TG",
+      "district": "DEMO-District-W",
+      "censusYear": 2011,
+      "population": 1500000,
+      "literate": 900000,
+      "scPop": 250000,
+      "stPop": 200000,
+      "males": 750000,
+      "females": 750000,
+      "literacyPct": 60,
+      "scPct": 16.67,
+      "stPct": 13.33,
+      "sexRatio": 1000,
+      "source": "pipeline/fixtures/census.demo.csv"
+    }
+  ]
+}

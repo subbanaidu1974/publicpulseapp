@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, FormEvent, useEffect, useMemo } from "react";
+import { useState, FormEvent, useEffect, useMemo, useRef } from "react";
 import { Vote, CheckCircle2, ChevronLeft, ChevronRight, ShieldCheck, Landmark, AlertCircle, HelpCircle } from "lucide-react";
 import { SurveyResponse, SurveyCategory } from "../types";
 import { DISTRICTS, CONSTITUENCIES, LEADERS, PARTIES } from "../data/staticData";
+import { DemoBadge } from "./ui";
 
 interface SurveyFormProps {
   onSubmitResponse: (response: SurveyResponse) => void;
@@ -95,12 +96,20 @@ function PartyFlag({ code, size = "md" }: { code: string; size?: "sm" | "md" | "
   );
 }
 
+/** Client-side duplicate guard: stores a one-way hash of the handset number, never the number itself. */
+const hashPhone = (p: string) => { let h = 5381; for (const c of "pp:" + p) h = ((h * 33) ^ c.charCodeAt(0)) >>> 0; return h.toString(16); };
+const SUB_KEY = "pp-survey-submitted-v1";
+const readSubs = (): string[] => { try { return JSON.parse(localStorage.getItem(SUB_KEY) ?? "[]"); } catch { return []; } };
+const hasSubmittedBefore = (p: string) => readSubs().includes(hashPhone(p));
+const rememberSubmission = (p: string) => { try { localStorage.setItem(SUB_KEY, JSON.stringify([...readSubs(), hashPhone(p)])); } catch { /* ignore */ } };
+const MIN_N = 30;
+
 export default function SurveyForm({ onSubmitResponse, selectedDistrictId, onSelectDistrict }: SurveyFormProps) {
   // Survey responses form states
   const [districtId, setDistrictId] = useState<string>(selectedDistrictId || "AP-12");
   const [constituencyId, setConstituencyId] = useState<string>("AC-091"); // default Mangalagiri
-  const [ageGroup, setAgeGroup] = useState<string>("26-35");
-  const [gender, setGender] = useState<string>("Male");
+  const [ageGroup, setAgeGroup] = useState<string>("");
+  const [gender, setGender] = useState<string>("");
   const [occupation, setOccupation] = useState<string>("Agriculture");
   const [primaryIssue, setPrimaryIssue] = useState<string>("Drinking Water Grid");
   const [favLeader, setFavLeader] = useState<string>(LEADERS[0]);
@@ -124,6 +133,9 @@ export default function SurveyForm({ onSubmitResponse, selectedDistrictId, onSel
   const [needsOtp, setNeedsOtp] = useState<boolean>(false);
   const [phone, setPhone] = useState<string>("");
   const [mobileError, setMobileError] = useState<string>("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [otpError, setOtpError] = useState<string>("");
+  const inFlight = useRef(false);
 
   const [constituencySearch, setConstituencySearch] = useState<string>("");
   const [sessionSubmissions, setSessionSubmissions] = useState<SurveyResponse[]>([]);
@@ -157,11 +169,18 @@ export default function SurveyForm({ onSubmitResponse, selectedDistrictId, onSel
 
   const requestOTP = (e?: FormEvent) => {
     if (e) e.preventDefault();
-    if (!phone || phone.length < 10) {
-      setMobileError("Please enter a valid 10-digit mobile number for secure validation.");
-      return;
-    }
-    setMobileError("");
+    const next: Record<string, string> = {};
+    if (!ageGroup) next.ageGroup = "Age segment is required.";
+    if (!gender) next.gender = "Gender is required.";
+    const digits = phone.replace(/[\s-]/g, "").replace(/^(\+91|91)(?=\d{10}$)/, "");
+    let phoneErr = "";
+    if (!digits) phoneErr = "Mobile number is required.";
+    else if (!/^[6-9]\d{9}$/.test(digits)) phoneErr = "Please enter a valid 10-digit Indian mobile number.";
+    else if (hasSubmittedBefore(digits)) phoneErr = "A response from this number was already submitted. Only one entry per handset is allowed.";
+    setErrors(next);
+    setMobileError(phoneErr);
+    if (next.ageGroup || next.gender) setActiveTab("demographics");
+    if (Object.keys(next).length > 0 || phoneErr) return;
     setIsVerifying(true);
     setTimeout(() => {
       setIsVerifying(false);
@@ -171,9 +190,24 @@ export default function SurveyForm({ onSubmitResponse, selectedDistrictId, onSel
 
   const verifyAndSubmit = (e?: FormEvent) => {
     if (e) e.preventDefault();
+    if (inFlight.current) return; // duplicate-submission guard (double click)
+    if (!/^\d{4}$/.test(verificationCodes)) {
+      setOtpError("Enter the 4-digit code.");
+      return;
+    }
+    const digits = phone.replace(/[\s-]/g, "").replace(/^(\+91|91)(?=\d{10}$)/, "");
+    if (hasSubmittedBefore(digits)) {
+      setNeedsOtp(false);
+      setMobileError("A response from this number was already submitted. Only one entry per handset is allowed.");
+      return;
+    }
+    inFlight.current = true;
+    setOtpError("");
     setIsVerifying(true);
     setTimeout(() => {
+      inFlight.current = false;
       setIsVerifying(false);
+      rememberSubmission(digits);
       const newResponse: SurveyResponse = {
         id: `SR-${(Math.floor(Math.random() * 50000) + 12000).toString()}`,
         timestamp: new Date().toISOString().slice(0, 16).replace("T", " "),
@@ -261,7 +295,7 @@ export default function SurveyForm({ onSubmitResponse, selectedDistrictId, onSel
   if (submitted) {
     return (
       <div className="space-y-12 max-w-4xl mx-auto">
-        <div id="survey-success-card" className="max-w-xl mx-auto bg-white p-8 border border-black/15 text-center space-y-6 font-serif">
+        <div id="survey-success-card" data-testid="survey-thanks" className="max-w-xl mx-auto bg-white p-8 border border-black/15 text-center space-y-6 font-serif">
           <div className="w-16 h-16 bg-black text-[#F9F7F2] rounded-full flex items-center justify-center mx-auto text-2xl">
             <CheckCircle2 className="w-8 h-8" />
           </div>
@@ -291,6 +325,16 @@ export default function SurveyForm({ onSubmitResponse, selectedDistrictId, onSel
               <div className="text-black font-semibold mt-0.5 font-serif italic">{votePreference} Target</div>
             </div>
           </div>
+
+          <div data-testid="survey-results-gate" className="bg-amber-50 border border-amber-700 p-4 text-left text-xs font-sans space-y-2 max-w-md mx-auto">
+            <div className="flex items-center gap-2"><strong>Survey results</strong><DemoBadge testId="demo-badge-inline" /></div>
+            {readSubs().length >= MIN_N ? (
+              <p>{readSubs().length} verified responses collected. Aggregate results are shown with sample size and margin of error on the Analytics page.</p>
+            ) : (
+              <p>Results are hidden until at least {MIN_N} responses are collected (currently {readSubs().length} on this device). Statewide figures elsewhere on this site are synthetic demo data, not survey predictions. <a href="#methodology" onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent("pp-nav", { detail: "methodology" })); }} className="underline font-bold">Methodology</a></p>
+            )}
+          </div>
+
 
           <div className="pt-2">
             <button
@@ -547,27 +591,33 @@ export default function SurveyForm({ onSubmitResponse, selectedDistrictId, onSel
                         <label className="block text-[10px] text-slate-500 uppercase font-sans font-bold mb-1">Age Segment</label>
                         <select
                           value={ageGroup}
-                          onChange={(e) => setAgeGroup(e.target.value)}
+                          onChange={(e) => { setAgeGroup(e.target.value); setErrors(p => ({ ...p, ageGroup: "" })); }}
+                          aria-invalid={!!errors.ageGroup}
                           className="w-full bg-white border border-black/20 text-xs text-black p-2.5 rounded-none focus:outline-none font-sans"
                         >
+                          <option value="">Select age segment</option>
                           <option value="18-25">18-25 (First-Timer)</option>
                           <option value="26-35">26-35 (Professional)</option>
                           <option value="36-50">36-50 (Household Lead)</option>
                           <option value="50+">50+ (Presidium Senior)</option>
                         </select>
+                        {errors.ageGroup && <span data-testid="survey-error-ageGroup" role="alert" className="text-[10px] text-[#8C3E3E] font-bold block mt-1">{errors.ageGroup}</span>}
                       </div>
 
                       <div>
                         <label className="block text-[10px] text-slate-500 uppercase font-sans font-bold mb-1">Gender Identifier</label>
                         <select
                           value={gender}
-                          onChange={(e) => setGender(e.target.value)}
+                          onChange={(e) => { setGender(e.target.value); setErrors(p => ({ ...p, gender: "" })); }}
+                          aria-invalid={!!errors.gender}
                           className="w-full bg-white border border-black/20 text-xs text-black p-2.5 rounded-none focus:outline-none font-sans"
                         >
+                          <option value="">Select gender</option>
                           <option value="Male">Male</option>
                           <option value="Female">Female</option>
                           <option value="Others">Others</option>
                         </select>
+                        {errors.gender && <span data-testid="survey-error-gender" role="alert" className="text-[10px] text-[#8C3E3E] font-bold block mt-1">{errors.gender}</span>}
                       </div>
 
                       <div>
@@ -776,7 +826,7 @@ export default function SurveyForm({ onSubmitResponse, selectedDistrictId, onSel
                             placeholder="e.g. 98480 33882"
                             className="w-full bg-white border border-black/20 text-xs text-black p-2.5 rounded-none focus:outline-none font-mono mt-1"
                           />
-                          {mobileError && <span className="text-[10px] text-[#8C3E3E] font-bold block mt-1">{mobileError}</span>}
+                          {mobileError && <span data-testid="survey-error-phone" role="alert" className="text-[10px] text-[#8C3E3E] font-bold block mt-1">{mobileError}</span>}
                         </div>
 
                         <div className="pt-3">
@@ -808,10 +858,11 @@ export default function SurveyForm({ onSubmitResponse, selectedDistrictId, onSel
                           type="text"
                           maxLength={4}
                           value={verificationCodes}
-                          onChange={(e) => setVerificationCodes(e.target.value)}
+                          onChange={(e) => { setVerificationCodes(e.target.value.replace(/D/g, "")); setOtpError(""); }}
                           placeholder="e.g. 1234"
                           className="bg-white border-2 border-black text-center text-2xl tracking-widest font-black text-black p-3 rounded-none focus:outline-none w-36 font-mono"
                         />
+                        {otpError && <span data-testid="survey-error-otp" role="alert" className="text-[10px] text-[#8C3E3E] font-bold block">{otpError}</span>}
 
                         <div className="flex justify-center space-x-3 pt-3">
                           <button
@@ -823,8 +874,9 @@ export default function SurveyForm({ onSubmitResponse, selectedDistrictId, onSel
                           </button>
                           <button
                             type="button"
+                            data-testid="survey-submit"
                             onClick={() => verifyAndSubmit()}
-                            disabled={verificationCodes.length < 4 || isVerifying}
+                            disabled={isVerifying}
                             className="bg-black hover:bg-slate-900 disabled:bg-slate-400 text-white text-xs font-sans font-black uppercase tracking-widest py-2 px-4 transition cursor-pointer"
                           >
                             {isVerifying ? "Verifying..." : "Confirm & Submit Poll"}

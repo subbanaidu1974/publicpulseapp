@@ -232,7 +232,7 @@ export default function DashboardWidgets({ selectedDistrict, surveyResponses }: 
           </h3>
         </div>
         
-        <div className="flex border border-black p-1 bg-white font-sans text-xs">
+        <div className="flex flex-wrap border border-black p-1 bg-white font-sans text-xs max-w-full">
           <button
             onClick={() => setActiveSegmentTab("overall")}
             className={`px-4 py-1.5 transition uppercase tracking-wider font-bold text-[10px] ${
