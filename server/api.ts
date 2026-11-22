@@ -8,6 +8,8 @@ import {
   aggregateAlliances, filterElection, marginBuckets, marginalSeats, seatResults, seatTally, swing, voteShare,
 } from "../src/lib/elections";
 import type { CandidateResult } from "../src/lib/elections";
+import { blackoutResponse, computeForecast } from "../src/lib/forecast";
+import type { ForecastResponse } from "../src/lib/forecast";
 import { normalizeTcpd } from "../pipeline/normalize";
 import { normalizeCensus } from "../pipeline/census";
 import type { CensusDistrict } from "../pipeline/census";
@@ -258,6 +260,22 @@ export function createApiRouter(data: Datasets): Router {
     const districts = data.census.filter(d => d.state === state);
     if (!districts.length) throw notFound(`No census data for ${state}`);
     res.json({ demo, state, censusYear: districts[0].censusYear ?? 2011, count: districts.length, districts });
+  });
+
+  const forecastCache = new Map<string, ForecastResponse>();
+  router.get("/elections/:state/forecast", (req, res) => {
+    const state = parseState(req.params.state)!;
+    // Fail closed during an election blackout window: no seats, no alliances.
+    if (process.env.FORECAST_BLACKOUT === "1") { res.set("Cache-Control", "no-store"); return res.json(blackoutResponse(state)); }
+    let f = forecastCache.get(state);
+    if (!f) {
+      const computed = computeForecast(data.elections, state);
+      if (!computed) throw notFound(`No assembly election data for ${state}`);
+      f = computed;
+      forecastCache.set(state, f);
+    }
+    res.set("Cache-Control", "public, max-age=300");
+    res.json(f);
   });
 
   // Unknown /api/v1 routes -> JSON 404

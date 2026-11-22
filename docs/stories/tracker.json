@@ -539,6 +539,22 @@
         "E2E-59"
       ],
       "phase": "2028-P3"
+    },
+    {
+      "id": "S-50",
+      "epic": "Analytics",
+      "title": "Public election analytics: seat/vote-share/swing trends, model-projection outlook panel with blackout, provenance banner",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-60",
+        "E2E-61",
+        "E2E-62",
+        "E2E-63",
+        "E2E-64",
+        "E2E-65"
+      ],
+      "phase": "2028-P1"
     }
   ]
 }

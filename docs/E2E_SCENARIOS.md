@@ -69,3 +69,9 @@ Layers: **API** = HTTP-level test (no browser), **UI** = Playwright browser.
 | E2E-57 | UI | Axe and Telugu screen-reader run on key flows | WCAG 2.2 AA with no critical failures; large touch targets |
 | E2E-58 | Process | Release gate checklist | Threat model, red-team report and pilot skew report attached before any election-adjacent survey (manual evidence, tracked, not automated) |
 | E2E-59 | UI | Volunteer records a phone-less adult's issue | Separate segment; excluded from surveys; random re-check logged |
+| E2E-60 | UI | Open Elections for TG with real data | Seat, vote-share and swing charts render for assembly and Lok Sabha with table fallback; provenance banner shows TCPD; no DEMO badge |
+| E2E-61 | UI | Forecast endpoint returns a projection | Disclaimer 'model projection from past results' visible; seat ranges, safe/lean/toss-up counts, toss-up table and back-test line shown; no 'poll' or 'prediction' wording outside the server disclaimer |
+| E2E-62 | UI | Forecast endpoint reports blackout | Only a blackout notice is shown; no alliances, seats or disclaimer-bearing projection |
+| E2E-63 | UI | Toggle to Telugu on Elections | Forecast, trend and provenance labels render in Telugu |
+| E2E-64 | UI | Axe on Elections with charts and forecast | No critical WCAG 2.x A/AA violations |
+| E2E-65 | UI | Elections at 375px | No horizontal page overflow |

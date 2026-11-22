@@ -44,8 +44,8 @@ export function useStateCtx(): Ctx {
 
 /** Election cycles offered in the pickers (newest first). */
 export const ELECTION_YEARS: Record<StateCode, Record<ElectionType, number[]>> = {
-  AP: { assembly: [2024, 2019, 2014], ls: [2024, 2019, 2014] },
-  TG: { assembly: [2023, 2018], ls: [2024, 2019, 2014] },
+  AP: { assembly: [2024, 2019, 2014], ls: [2024, 2019] },
+  TG: { assembly: [2023, 2018, 2014], ls: [2024, 2019] },
 };
 
 export function defaultYear(state: StateCode, type: ElectionType): number {
