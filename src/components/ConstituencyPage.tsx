@@ -196,6 +196,7 @@ export default function ConstituencyPage({ registeredUsersCount, loggedPollsCoun
             <div>
               <label className="block text-[8px] text-slate-500 uppercase tracking-wider font-sans font-bold mb-1">Filter by District</label>
               <select
+                aria-label="Filter by district"
                 value={selectedDistrictFilter}
                 onChange={(e) => setSelectedDistrictFilter(e.target.value)}
                 className="w-full bg-white border border-black/20 text-xs text-black p-2 rounded-none focus:outline-none focus:border-black font-sans"

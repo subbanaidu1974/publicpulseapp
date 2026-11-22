@@ -1,0 +1,29 @@
+State_Name,Year,Constituency_No,Constituency_Name,District_Name,Position,Candidate,Party,Votes,Valid_Votes,Electors
+Andhra_Pradesh,2019,1,DEMO-Alpur,DEMO-District-A,1,Demo Candidate A1,YSRCP,80000,150000,190000
+Andhra_Pradesh,2019,1,DEMO-Alpur,DEMO-District-A,2,Demo Candidate A2,TDP,60000,150000,190000
+Andhra_Pradesh,2019,1,DEMO-Alpur,DEMO-District-A,3,Demo Candidate A3,JnP,10000,150000,190000
+Andhra_Pradesh,2019,2,DEMO-Betapuram,DEMO-District-A,1,Demo Candidate B1,TDP,50000,119000,170000
+Andhra_Pradesh,2019,2,DEMO-Betapuram,DEMO-District-A,2,Demo Candidate B2,YSRCP,49000,119000,170000
+Andhra_Pradesh,2019,2,DEMO-Betapuram,DEMO-District-A,3,Demo Candidate B3,JnP,20000,119000,170000
+Andhra_Pradesh,2019,3,DEMO-Gammanagar,DEMO-District-B,1,Demo Candidate C1,YSRCP,70000,140000,180000
+Andhra_Pradesh,2019,3,DEMO-Gammanagar,DEMO-District-B,2,Demo Candidate C2,TDP,65000,140000,180000
+Andhra_Pradesh,2019,3,DEMO-Gammanagar,DEMO-District-B,3,Demo Candidate C3,INC,5000,140000,180000
+Andhra_Pradesh,2024,1,DEMO-Alpur,DEMO-District-A,1,Demo Candidate A4,TDP,90000,153000,200000
+Andhra_Pradesh,2024,1,DEMO-Alpur,DEMO-District-A,2,Demo Candidate A5,YSRCP,55000,153000,200000
+Andhra_Pradesh,2024,1,DEMO-Alpur,DEMO-District-A,3,Demo Candidate A6,JnP,8000,153000,200000
+Andhra_Pradesh,2024,2,DEMO-Betapuram,DEMO-District-A,1,Demo Candidate B4,JnP,70000,140000,190000
+Andhra_Pradesh,2024,2,DEMO-Betapuram,DEMO-District-A,2,Demo Candidate B5,YSRCP,40000,140000,190000
+Andhra_Pradesh,2024,2,DEMO-Betapuram,DEMO-District-A,3,Demo Candidate B6,TDP,30000,140000,190000
+Andhra_Pradesh,2024,3,DEMO-Gammanagar,DEMO-District-B,1,Demo Candidate C4,TDP,75000,143000,190000
+Andhra_Pradesh,2024,3,DEMO-Gammanagar,DEMO-District-B,2,Demo Candidate C5,YSRCP,62000,143000,190000
+Andhra_Pradesh,2024,3,DEMO-Gammanagar,DEMO-District-B,3,Demo Candidate C6,INC,6000,143000,190000
+Telangana,2023,1,DEMO-Hydra,DEMO-District-H,1,Demo Candidate H1,INC,60000,132000,200000
+Telangana,2023,1,DEMO-Hydra,DEMO-District-H,2,Demo Candidate H2,BRS,52000,132000,200000
+Telangana,2023,1,DEMO-Hydra,DEMO-District-H,3,Demo Candidate H3,BJP,20000,132000,200000
+Telangana,2023,2,DEMO-Oldcity,DEMO-District-H,1,Demo Candidate H4,AIMIM,55000,94000,150000
+Telangana,2023,2,DEMO-Oldcity,DEMO-District-H,2,Demo Candidate H5,BJP,30000,94000,150000
+Telangana,2023,2,DEMO-Oldcity,DEMO-District-H,3,Demo Candidate H6,INC,9000,94000,150000
+Telangana,2023,3,DEMO-Warnagal,DEMO-District-W,1,Demo Candidate W1,BRS,64000,139500,185000
+Telangana,2023,3,DEMO-Warnagal,DEMO-District-W,2,Demo Candidate W2,INC,63500,139500,185000
+Telangana,2023,3,DEMO-Warnagal,DEMO-District-W,3,Demo Candidate W3,BJP,12000,139500,185000
+Karnataka,2023,1,DEMO-Other,DEMO-X,1,Demo Skip,INC,1000,2000,5000

@@ -4,6 +4,7 @@ import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import nodemailer from "nodemailer";
 import fs from "fs";
+import { createApiRouter, loadDatasets } from "./server/api";
 
 dotenv.config();
 
@@ -76,6 +77,9 @@ async function startServer() {
 
   // Use JSON body parser for incoming API payloads
   app.use(express.json());
+
+  // Public read API (elections, census) - JSON only
+  app.use("/api/v1", createApiRouter(loadDatasets()));
 
   // API Route: Get dynamic OTP configurations (Super Admin only)
   app.get("/api/admin/config", (req, res) => {

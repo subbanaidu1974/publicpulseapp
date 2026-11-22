@@ -18,8 +18,15 @@ import ConstituencyPage from "./components/ConstituencyPage";
 import AdminPortal from "./components/AdminPortal";
 import HomeMap from "./components/HomeMap";
 import FAQPage from "./components/FAQPage";
+import ElectionsPage from "./components/ElectionsPage";
+import ConstituencySearch from "./components/ConstituencySearch";
+import MapLayers from "./components/MapLayers";
+import DataStatusPanel from "./components/DataStatusPanel";
+import { DemoBadge } from "./components/ui";
+import { StateProvider, useStateCtx, defaultYear } from "./state/StateContext";
+import { LangProvider, useT } from "./i18n";
 
-export default function App() {
+function AppInner() {
   const [theme, setTheme] = useState<"beige" | "dark" | "dark-beige" | "earth-yellow">(() => {
     const saved = localStorage.getItem("app-theme");
     if (saved === "beige" || saved === "dark" || saved === "dark-beige" || saved === "earth-yellow") {
@@ -54,6 +61,15 @@ export default function App() {
     initUserDatabase();
   }, []);
   const [currentTab, setCurrentTab] = useState<string>("home");
+  const { state: stateCode, config: stateCfg } = useStateCtx();
+  const { t, lang } = useT();
+  const isAP = stateCode === "AP";
+  useEffect(() => {
+    const on = (e: Event) => setCurrentTab(String((e as CustomEvent).detail));
+    window.addEventListener("pp-nav", on);
+    return () => window.removeEventListener("pp-nav", on);
+  }, []);
+  const stateDisplayName = lang === "te" ? stateCfg.nameTe : stateCfg.name;
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
     return localStorage.getItem("is-logged-in") === "true";
   });
@@ -772,7 +788,17 @@ export default function App() {
 
       {/* Main Container */}
       <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        
+
+        {!isAP && ["analytics", "survey", "reports", "methodology", "media"].includes(currentTab) && (
+          <div data-testid="ap-only-note" role="note" className="mb-6 border border-amber-700 bg-amber-100 text-amber-950 p-3 text-xs font-sans flex flex-wrap items-center gap-2">
+            <DemoBadge testId="demo-badge-inline" />
+            <span><strong>Andhra Pradesh only.</strong> {t("state.apOnly")}</span>
+            <button type="button" onClick={() => setCurrentTab("elections")} className="underline font-bold cursor-pointer">{t("nav.elections")}</button>
+          </div>
+        )}
+
+        {currentTab === "elections" && <ElectionsPage />}
+
         {/* TAB 1: HOME SECTION */}
         {currentTab === "home" && (
           <div className="space-y-16">
@@ -786,12 +812,12 @@ export default function App() {
                   </span>
                   
                   <h1 className="text-4xl sm:text-[76px] leading-[0.85] tracking-tighter italic font-serif font-normal text-black my-2">
-                    The Andhra <br />
+                    The {isAP ? "Andhra" : "Telangana"} <br />
                     <span className="ml-0 sm:ml-12">Opinion</span>
                   </h1>
 
                   <p className="text-sm sm:text-base text-justify text-[#121212]/90 font-serif leading-relaxed max-w-2xl pt-1">
-                    Exploring voter sentiment, public priorities, state governance feedback, and deep-lying electoral shifts across all 175 Assembly Constituencies. Written with statistical precision and objective clarity.
+                    Exploring voter sentiment, public priorities, state governance feedback, and deep-lying electoral shifts across all {stateCfg.assemblySeats} Assembly Constituencies. Written with statistical precision and objective clarity.
                   </p>
 
                   <div className="flex flex-wrap gap-4 pt-4">
@@ -833,10 +859,10 @@ export default function App() {
             {/* Hero Statistics counter display */}
             <div id="hero-statistics" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-6 relative">
               {[
-                { count: "175", label: "Assembly Constituencies" },
-                { count: "26", label: "State Districts" },
-                { count: "680+", label: "Surveyed Mandals" },
-                { count: "13,000+", label: "Gram Panchayats" },
+                { count: String(stateCfg.assemblySeats), label: "Assembly Constituencies" },
+                { count: isAP ? "26" : "33", label: "State Districts" },
+                { count: isAP ? "680+" : "n/a", label: "Surveyed Mandals" },
+                { count: isAP ? "13,000+" : "n/a", label: "Gram Panchayats" },
                 { count: loggedPollsCount.toLocaleString() + "+", label: "Logged Polls", isPolls: true },
                 { count: registeredUsersCount.toLocaleString() + "+", label: "Registered Users" },
                 { count: "95%", label: "Statistical Confidence" }
@@ -979,7 +1005,7 @@ export default function App() {
             
             <div className="bg-[#FAF8F5] text-black p-8 border-y border-black">
               <span className="text-[9px] uppercase tracking-[0.25em] font-sans font-black text-slate-500 block">Section 02 // Regional Analytics</span>
-              <h2 className="text-2xl font-serif italic text-black mt-1">Andhra Pradesh Statewide Analytics Console</h2>
+              <h2 className="text-2xl font-serif italic text-black mt-1">Andhra Pradesh Statewide Analytics Console <DemoBadge /></h2>
               <p className="text-xs text-slate-600 mt-2 max-w-2xl font-serif">
                 Use the visual geographic representation to pick any of the 26 districts of Andhra Pradesh. The tables below compile current public approval and regional priorities on-the-fly.
               </p>
@@ -991,6 +1017,8 @@ export default function App() {
               selectedDistrictId={selectedDistrictId}
               surveyResponses={surveyResponses}
             />
+
+            <MapLayers />
 
             {/* Statewide District Comparison Table */}
             <DistrictComparisonTable
@@ -1010,10 +1038,19 @@ export default function App() {
 
         {/* TAB 3: CONSTITUENCY PROFILER */}
         {currentTab === "constituencies" && (
-          <ConstituencyPage 
-            registeredUsersCount={registeredUsersCount}
-            loggedPollsCount={loggedPollsCount}
-          />
+          <div className="space-y-8">
+            <ConstituencySearch year={defaultYear(stateCode, "assembly")} type="assembly" />
+            {isAP ? (
+              <ConstituencyPage
+                registeredUsersCount={registeredUsersCount}
+                loggedPollsCount={loggedPollsCount}
+              />
+            ) : (
+              <div data-testid="ap-only-note" role="note" className="border border-amber-700 bg-amber-100 text-amber-950 p-3 text-xs font-sans">
+                <strong>Andhra Pradesh only.</strong> {t("state.apOnly")}
+              </div>
+            )}
+          </div>
         )}
 
         {/* TAB 4: SURVEY FORM */}
@@ -2374,6 +2411,8 @@ export default function App() {
 
         {/* TAB 10: ADMIN ACTIONS WORKSPACE */}
         {currentTab === "admin" && isLoggedIn && currentUserEmail.toLowerCase().trim() === "admin@peoplepulse.ap" ? (
+          <>
+          <DataStatusPanel />
           <AdminPortal
             currentUserRole={currentUserRole}
             setCurrentUserRole={setCurrentUserRole}
@@ -2381,6 +2420,7 @@ export default function App() {
             onApproveResponse={handleApproveResponse}
             onFlagResponse={handleFlagResponse}
           />
+          </>
         ) : currentTab === "admin" ? (
           <div className="bg-[#FAF8F5] text-black p-8 border border-black max-w-xl mx-auto text-center my-12 space-y-4">
             <ShieldAlert className="w-12 h-12 text-red-700 mx-auto animate-pulse" />
@@ -2442,5 +2482,15 @@ export default function App() {
       </footer>
 
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <LangProvider>
+      <StateProvider>
+        <AppInner />
+      </StateProvider>
+    </LangProvider>
   );
 }
