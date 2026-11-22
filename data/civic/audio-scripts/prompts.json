@@ -214,6 +214,66 @@
       "tone": "Warm close.",
       "pronunciation": [],
       "dtmf": { "accepts": [], "wording": "None; call ends." }
+    },
+    {
+      "id": "survey_notice",
+      "file": "audio/te/survey_notice.wav",
+      "textTe": {
+        "formal": "ఇది ఫోన్ ద్వారా అభిప్రాయ సేకరణ. మీ సమాధానం ప్లాట్‌ఫాం మీ ఖాతాతో ముడిపెట్టి చూడగలదు, మరియు యాప్ సమాధానాల నుండి వేరుగా లెక్కిస్తారు. మీరు ఒక్కసారే సమాధానం ఇవ్వగలరు; అది తుది సమాధానం.",
+        "plain": "ఇది ఫోన్ ద్వారా అభిప్రాయ సేకరణ. మీ సమాధానం మీ ఖాతాతో ముడిపడి ఉంటుంది, యాప్ సమాధానాలతో కలపకుండా విడిగా లెక్కిస్తారు. ఒక్కసారే చెప్పగలరు, మార్చలేరు.",
+        "machineDraft": true
+      },
+      "textEn": "This is a phone opinion survey. The platform can link your answer to your account, so it is counted apart from app answers. You can answer once, and your answer is final.",
+      "dialects": { "coastal": { "needed": true, "overrideTe": null }, "rayalaseema": { "needed": true, "overrideTe": null }, "telangana": { "needed": true, "overrideTe": null } },
+      "maxDurationSec": 25,
+      "tone": "Calm and plain. This line states the privacy guarantee that applies on the phone channel; never soften it or imply secrecy.",
+      "pronunciation": [],
+      "dtmf": { "accepts": [], "wording": "None; the first question follows immediately." }
+    },
+    {
+      "id": "survey_q",
+      "file": "audio/te/survey_q.wav",
+      "textTe": {
+        "formal": "ప్రశ్న.",
+        "plain": "ప్రశ్న.",
+        "machineDraft": true
+      },
+      "textEn": "Question.",
+      "dialects": { "coastal": { "needed": true, "overrideTe": null }, "rayalaseema": { "needed": true, "overrideTe": null }, "telangana": { "needed": true, "overrideTe": null } },
+      "maxDurationSec": 20,
+      "tone": "Neutral, even pace; the question and its options are read from the survey text without emphasis on any option.",
+      "pronunciation": [],
+      "dtmf": { "accepts": [], "wording": "The options read out with their digits; 1 to 9 selects an option." }
+    },
+    {
+      "id": "survey_none",
+      "file": "audio/te/survey_none.wav",
+      "textTe": {
+        "formal": "ప్రస్తుతం మీకు ఫోన్ ద్వారా సమాధానం ఇవ్వదగిన సర్వే లేదు.",
+        "plain": "ఇప్పుడు ఫోన్‌లో సమాధానం ఇవ్వదగిన సర్వే ఏదీ లేదు.",
+        "machineDraft": true
+      },
+      "textEn": "There is no survey you can answer by phone right now.",
+      "dialects": { "coastal": { "needed": true, "overrideTe": null }, "rayalaseema": { "needed": true, "overrideTe": null }, "telangana": { "needed": true, "overrideTe": null } },
+      "maxDurationSec": 8,
+      "tone": "Matter-of-fact, friendly.",
+      "pronunciation": [],
+      "dtmf": { "accepts": [], "wording": "None; call ends." }
+    },
+    {
+      "id": "survey_already",
+      "file": "audio/te/survey_already.wav",
+      "textTe": {
+        "formal": "ఈ సర్వేకు మీరు ఇప్పటికే సమాధానం ఇచ్చారు.",
+        "plain": "ఈ సర్వేకు మీరు ఇప్పటికే చెప్పారు.",
+        "machineDraft": true
+      },
+      "textEn": "You have already answered this survey.",
+      "dialects": { "coastal": { "needed": true, "overrideTe": null }, "rayalaseema": { "needed": true, "overrideTe": null }, "telangana": { "needed": true, "overrideTe": null } },
+      "maxDurationSec": 6,
+      "tone": "Matter-of-fact, friendly.",
+      "pronunciation": [],
+      "dtmf": { "accepts": [], "wording": "None; call ends." }
     }
   ]
 }

@@ -153,7 +153,7 @@ export function loadCensusReference(root: string, spec: string): CensusReference
   const gen = path.join(root, "data", "generated");
   let males = 0, females = 0;
   const labels: string[] = [];
-  let source = "";
+  let source: string;
   if (kind === "district") {
     const j = JSON.parse(fs.readFileSync(path.join(gen, "census.json"), "utf8")) as { districts: CensusDistrict[]; source?: string };
     source = `Census of India 2011 (data/generated/census.json): ${j.source ?? ""}`.trim();

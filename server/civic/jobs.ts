@@ -11,6 +11,7 @@ import { expirePendingEnrolments } from "./identity/enrolment";
 import { eraseDependentsAt18, expireInvites } from "./households/routes";
 import { purgeExpiredMedia } from "./issues/media";
 import { isIssueSweeperRunning, sweep } from "./issues/service";
+import { closeDueSurveys } from "./surveys/registry";
 
 const MIN = 60_000, HOUR = 3_600_000, DAY = 86_400_000;
 
@@ -31,6 +32,14 @@ let started = false;
 const short = (m: string) => m.replace(/\s+/g, " ").slice(0, 200);
 
 export function defaultJobs(): JobDef[] {
+  return [...baseJobs(), ...extraJobs];
+}
+
+/** Register an additional periodic job (call at module load; a name is registered once). */
+export function registerJob(def: JobDef): void { if (!extraJobs.some((j) => j.name === def.name)) extraJobs.push(def); }
+const extraJobs: JobDef[] = [];
+
+function baseJobs(): JobDef[] {
   return [
     { name: "purgeExpired", intervalMs: 6 * HOUR, run: (now) => purgeExpired(now) },
     { name: "eraseDependentsAt18", intervalMs: DAY, run: (now) => ({ erased: eraseDependentsAt18(now) }) },
@@ -51,6 +60,7 @@ export function defaultJobs(): JobDef[] {
         return { checked: v.checked };
       },
     },
+    { name: "closeDueSurveys", intervalMs: MIN, run: (now) => closeDueSurveys(now) }, // Pulse Surveys close at closes_at
     { name: "purgeExpiredMedia", intervalMs: HOUR, run: (now) => ({ purged: purgeExpiredMedia(now) }) },
     {
       name: "sweep", intervalMs: Math.max(1000, Number(process.env.CIVIC_SWEEP_INTERVAL_MS) || 10 * MIN), run: (now) => {

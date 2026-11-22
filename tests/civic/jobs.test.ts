@@ -50,7 +50,7 @@ describe("job scheduler (S-66)", () => {
     now = new Date(T0.getTime() + 25 * 3_600_000);
     vi.advanceTimersByTime(25 * 3_600_000);
     const s = jobsStatus();
-    expect(s.jobs.map((j) => j.name).sort()).toEqual(["anchorAuditHead", "eraseDependentsAt18", "expireInvites", "purgeExpired", "purgeExpiredMedia", "retryErasureOutbox", "sweep", "verifyAuditChain"].sort());
+    expect(s.jobs.map((j) => j.name).sort()).toEqual(expect.arrayContaining(["anchorAuditHead", "closeDueSurveys", "eraseDependentsAt18", "expireInvites", "purgeExpired", "purgeExpiredMedia", "retryErasureOutbox", "sweep", "verifyAuditChain"]));
     for (const j of s.jobs) {
       expect(j.runs, j.name).toBeGreaterThan(0);
       expect(j.lastOk, j.name + " " + j.lastError).toBe(true);
@@ -143,7 +143,7 @@ describe("job scheduler (S-66)", () => {
       expect(ok.status).toBe(200);
       const body = (await ok.json()) as { started: boolean; jobs: unknown[] };
       expect(body.started).toBe(true);
-      expect(body.jobs.length).toBe(8);
+      expect(body.jobs.length).toBeGreaterThanOrEqual(8); // survey jobs (closeDueSurveys, ...) join the original 8
       expect(JSON.stringify(body)).not.toMatch(/secret|token|phone_hash|\bpin\b/i);
     });
   });

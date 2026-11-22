@@ -5,6 +5,7 @@ import { geoRouter } from "./geo/routes";
 import { issuesRouter } from "./issues/routes";
 import { channelsRouter } from "./channels/routes";
 import { adminRouter, auditRouter } from "./admin/routes";
+import { surveysRouter } from "./surveys";
 import { getKeys, migrate, requireRole } from "./core";
 import { startIssueSweeper } from "./issues/service";
 import { assertProductionSafe } from "./guards";
@@ -45,6 +46,7 @@ export function createCivicRouter(): Router {
   r.use("/channels", channelsRouter);
   r.use("/admin", adminRouter);
   r.use("/audit", auditRouter);
+  r.use("/surveys", surveysRouter); // Pulse Surveys: registry, credential, published figures (server/civic/surveys)
   if (e2eSeedEnabled()) r.use("/e2e", createE2eSeedRouter()); // Playwright only: NODE_ENV!=production AND CIVIC_E2E_SEED=1 (server/civic/e2e-seed.ts)
   return r;
 }

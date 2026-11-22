@@ -1,0 +1,316 @@
+{
+ "schema": 1,
+ "_doc": "Configurable post-stratification targets for pulse surveys (docs/SURVEY_METHOD.md). Never invent numbers: a dimension with provenance placeholder, or with no areas, is NOT used for weighting and the published method note says so. Verified provenance values: census-2011, electoral-roll, verified-other. Add figures with source and asOf per area; override the file location with SURVEY_MARGINALS_FILE.",
+ "dimensions": {
+  "gender": {
+   "of": [
+    "gender"
+   ],
+   "categories": [
+    "F",
+    "M"
+   ],
+   "provenance": "census-2011",
+   "status": "available",
+   "note": "Sex share of the Census 2011 all-ages population (adult share differs slightly; treated as an approximation and stated in the method note). Targets are the shares among M and F respondents; other or undisclosed values are not adjusted. District keys use Census 2011 district codes; the LGD crosswalk is not built yet, so state keys are used unless a survey carries censusDistrictCode.",
+   "areas": {
+    "district:532": {
+     "shares": {
+      "M": 0.499627,
+      "F": 0.500373
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "TG / Adilabad (2011 district)"
+    },
+    "district:533": {
+     "shares": {
+      "M": 0.490191,
+      "F": 0.509809
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "TG / Nizamabad (2011 district)"
+    },
+    "district:534": {
+     "shares": {
+      "M": 0.498058,
+      "F": 0.501942
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "TG / Karimnagar (2011 district)"
+    },
+    "district:535": {
+     "shares": {
+      "M": 0.502105,
+      "F": 0.497895
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "TG / Medak (2011 district)"
+    },
+    "district:536": {
+     "shares": {
+      "M": 0.511897,
+      "F": 0.488103
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "TG / Hyderabad (2011 district)"
+    },
+    "district:537": {
+     "shares": {
+      "M": 0.509938,
+      "F": 0.490062
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "TG / Rangareddy (2011 district)"
+    },
+    "district:538": {
+     "shares": {
+      "M": 0.50589,
+      "F": 0.49411
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "TG / Mahbubnagar (2011 district)"
+    },
+    "district:539": {
+     "shares": {
+      "M": 0.504405,
+      "F": 0.495595
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "TG / Nalgonda (2011 district)"
+    },
+    "district:540": {
+     "shares": {
+      "M": 0.500852,
+      "F": 0.499148
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "TG / Warangal (2011 district)"
+    },
+    "district:541": {
+     "shares": {
+      "M": 0.497248,
+      "F": 0.502752
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "TG / Khammam (2011 district)"
+    },
+    "district:542": {
+     "shares": {
+      "M": 0.496368,
+      "F": 0.503632
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "AP / Srikakulam (2011 district)"
+    },
+    "district:543": {
+     "shares": {
+      "M": 0.49541,
+      "F": 0.50459
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "AP / Vizianagaram (2011 district)"
+    },
+    "district:544": {
+     "shares": {
+      "M": 0.498512,
+      "F": 0.501488
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "AP / Visakhapatnam (2011 district)"
+    },
+    "district:545": {
+     "shares": {
+      "M": 0.498553,
+      "F": 0.501447
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "AP / East Godavari (2011 district)"
+    },
+    "district:546": {
+     "shares": {
+      "M": 0.499094,
+      "F": 0.500906
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "AP / West Godavari (2011 district)"
+    },
+    "district:547": {
+     "shares": {
+      "M": 0.501921,
+      "F": 0.498079
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "AP / Krishna (2011 district)"
+    },
+    "district:548": {
+     "shares": {
+      "M": 0.499307,
+      "F": 0.500693
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "AP / Guntur (2011 district)"
+    },
+    "district:549": {
+     "shares": {
+      "M": 0.504721,
+      "F": 0.495279
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "AP / Prakasam (2011 district)"
+    },
+    "district:550": {
+     "shares": {
+      "M": 0.503778,
+      "F": 0.496222
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "AP / Sri Potti Sriramulu Nellore (2011 district)"
+    },
+    "district:551": {
+     "shares": {
+      "M": 0.503657,
+      "F": 0.496343
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "AP / Kadapa (2011 district)"
+    },
+    "district:552": {
+     "shares": {
+      "M": 0.503083,
+      "F": 0.496917
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "AP / Kurnool (2011 district)"
+    },
+    "district:553": {
+     "shares": {
+      "M": 0.505861,
+      "F": 0.494139
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "AP / Anantapur (2011 district)"
+    },
+    "district:554": {
+     "shares": {
+      "M": 0.50076,
+      "F": 0.49924
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "AP / Chittoor (2011 district)"
+    },
+    "state:AP": {
+     "shares": {
+      "M": 0.500904,
+      "F": 0.499096
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "AP"
+    },
+    "state:TG": {
+     "shares": {
+      "M": 0.503043,
+      "F": 0.496957
+     },
+     "source": "Census of India 2011, District Census Handbooks village and town directories (ORGI), via data/generated/census.json; share of males and females in the all-ages population",
+     "asOf": "2011-03-01",
+     "provenance": "census-2011",
+     "universe": "all ages (adult 18+ split is not available)",
+     "label": "TG"
+    }
+   }
+  },
+  "age_band_x_gender": {
+   "of": [
+    "age_band",
+    "gender"
+   ],
+   "categories": null,
+   "provenance": "placeholder",
+   "status": "missing",
+   "note": "Census 2011 files in this repository carry no age fields; the electoral roll age/gender file is not available. No figures are shipped. Weighting falls back to the dimensions that exist.",
+   "areas": {}
+  },
+  "phone_ownership": {
+   "of": [
+    "phone_ownership"
+   ],
+   "categories": null,
+   "provenance": "placeholder",
+   "status": "missing",
+   "note": "No verified source yet (NFHS/TRAI figures not ingested). Not used.",
+   "areas": {}
+  }
+ }
+}

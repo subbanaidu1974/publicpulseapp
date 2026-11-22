@@ -24,6 +24,7 @@ import { LangProvider, useT } from "./i18n";
 import ProfilePage from "./components/profiles/ProfilePage";
 import PlaceSearch from "./components/profiles/PlaceSearch";
 import { parseProfileHash } from "./api/profiles";
+import { isSurveysHash } from "./components/surveys/SurveysRoot";
 import PeoplePage, { isPeopleHash } from "./components/people/PeoplePage";
 import { PEOPLE_TEXT } from "./components/people/peopleText";
 
@@ -36,6 +37,7 @@ function initialTab(): string {
   try { if (/^#\/map(\/|$)/.test(window.location.hash)) return "map"; } catch { /* ignore */ }
   try { if (parseProfileHash(window.location.hash)) return "constituencies"; } catch { /* ignore */ }
   try { if (isPeopleHash(window.location.hash)) return "people"; } catch { /* ignore */ }
+  try { if (isSurveysHash(window.location.hash)) return "survey"; } catch { /* ignore */ }
   try { const q = new URLSearchParams(window.location.search); if (q.get("invite") || q.get("activate")) return "civic"; } catch { /* ignore */ }
   return "home";
 }
@@ -64,13 +66,14 @@ function AppInner() {
   };
   // People pages (#/people/...) live in the "people" tab; choosing another tab clears that hash.
   useEffect(() => {
-    const on = () => { if (isPeopleHash(window.location.hash)) setCurrentTabRaw("people"); };
+    const on = () => { if (isPeopleHash(window.location.hash)) setCurrentTabRaw("people"); else if (isSurveysHash(window.location.hash)) { closeProfile(); setCurrentTabRaw("survey"); } };
     window.addEventListener("hashchange", on);
     return () => window.removeEventListener("hashchange", on);
   }, []);
   const setCurrentTab = (tab: string) => {
     closeProfile();
     if (tab !== "people" && isPeopleHash(window.location.hash)) window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    if (tab !== "survey" && isSurveysHash(window.location.hash)) window.history.replaceState(null, "", window.location.pathname + window.location.search);
     setCurrentTabRaw(tab);
   };
   const [reopenConsent, setReopenConsent] = useState(false);

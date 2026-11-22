@@ -1,0 +1,70 @@
+{
+  "_label": "Pulse Survey registry policy (DESIGN_2028 3.3, decisions A2 equal-access quotas, A4 independent wording panel). Engineering defaults pending the same counsel and panel sign-off as docs/decisions. Read by server/civic/surveys (cached; restart to reload).",
+  "limits": {
+    "max_questions": 10,
+    "min_options": 2,
+    "max_options": 8,
+    "max_title_chars": 200,
+    "max_question_chars": 300,
+    "max_duration_days": 90,
+    "max_scope_units": 200,
+    "require_telugu_at_submit": true
+  },
+  "panel": {
+    "min_approvals": 2,
+    "min_reject_note_chars": 10,
+    "note": "Approvals count only for the CURRENT wording hash and only from distinct reviewers. A reviewer may not be the creator or share the creator's organisation (kind plus code). One rejection with notes returns the survey to draft."
+  },
+  "cancellation": {
+    "reason_codes": ["creator_withdrew", "wording_dispute", "legal_advice", "duplicate", "low_relevance", "election_window", "safety", "other"],
+    "min_reason_text_chars": 10,
+    "max_reason_text_chars": 500
+  },
+  "quota": {
+    "window_days": 30,
+    "count_as": { "election_choice": "political" },
+    "kinds": {
+      "party": {
+        "per": "org_code",
+        "allowed": ["issue_service", "bill", "political", "election_choice"],
+        "limits": { "political": 2, "bill": 2, "issue_service": 4 }
+      },
+      "government": {
+        "per": "department",
+        "needs_department": true,
+        "allowed": ["issue_service", "bill"],
+        "limits": { "bill": null, "issue_service": 4 }
+      },
+      "media": { "per": "creator", "allowed": ["issue_service", "bill", "political", "election_choice"], "limits": { "*": 1 } },
+      "academic": { "per": "creator", "allowed": ["issue_service", "bill", "political", "election_choice"], "limits": { "*": 1 } },
+      "civil_society": { "per": "creator", "allowed": ["issue_service", "bill", "political", "election_choice"], "limits": { "*": 1 } },
+      "platform": { "per": "creator", "allowed": ["issue_service", "bill"], "limits": {} }
+    },
+    "note": "A null limit is unlimited. The key '*' limits the total across topic classes. Quota is consumed when a survey is first submitted to review (not on draft). election_choice counts against the political quota."
+  },
+  "wording": {
+    "banned_framing_en": ["vote", "votes", "voted", "voting", "voter", "voters", "ballot", "ballots", "forecast", "forecasts", "exit poll", "who will win", "seat projection"],
+    "banned_framing_te": ["ఓటు", "వోటు", "ఓటర్", "బ్యాలెట్", "అంచనా ఫలితం"],
+    "leading_en": ["obviously", "clearly", "surely", "undoubtedly", "everyone knows", "don't you agree", "do you not agree", "isn't it true", "isn't it", "failed", "failure", "corrupt", "disastrous", "terrible", "shameful", "traitor", "anti-national", "great leader", "best ever", "worst ever", "ought to", "no sane person"],
+    "leading_te": ["స్పష్టంగా", "ఖచ్చితంగా", "అందరికీ తెలుసు", "అవినీతి", "విఫలమైన"],
+    "double_barrelled": {
+      "conjunctions": ["and", "as well as", "and also", "plus", "&"],
+      "stance_terms": ["support", "oppose", "approve", "disapprove", "agree", "disagree", "favour", "favor", "should", "must", "want", "need", "trust", "satisfied", "like", "prefer", "improve", "reduce", "increase", "ban", "allow"]
+    },
+    "party_preference": {
+      "verbs": ["prefer", "support", "choose", "back", "favour", "favor", "pick", "elect", "select"],
+      "nouns": ["party", "candidate", "parties", "candidates", "alliance", "manifesto"],
+      "party_codes_from": "data/reference/parties.json"
+    },
+    "severity": { "banned_framing": "block", "leading": "block", "double_barrelled": "block", "party_preference_in_non_election": "warn" }
+  },
+  "scale5_labels": [
+    { "en": "Strongly disagree", "te": "పూర్తిగా అంగీకరించను" },
+    { "en": "Disagree", "te": "అంగీకరించను" },
+    { "en": "Neutral", "te": "తటస్థం" },
+    { "en": "Agree", "te": "అంగీకరిస్తాను" },
+    { "en": "Strongly agree", "te": "పూర్తిగా అంగీకరిస్తాను" }
+  ],
+  "prefer_not_label": { "en": "Prefer not to say", "te": "చెప్పడానికి ఇష్టపడను" },
+  "disclaimer": { "en": "Opinion survey, not an election and not a forecast", "te": "ఇది అభిప్రాయ సర్వే మాత్రమే; ఎన్నిక కాదు, అంచనా కూడా కాదు" }
+}

@@ -32,12 +32,21 @@ export const STORE_TABLES: Record<StoreName, string[]> = {
     "migrations", "store_meta", "persons", "sessions", "consents", "roles", "otps", "rate_events", "attestations", "has_responded", "pin_failures",
     "survey_closures", "enrolments", "hh_household", "hh_member", "hh_invite", "hh_pin", "hh_invite_cooldown", "hh_transfer", "admin_mfa",
     "admin_mfa_recovery", "role_requests", "officer_role", "issue_links", "erasure_outbox", "people_requests", "people_takedowns", "sms_ledger", "provider_keys",
+    "cred_idem",
   ],
   issues: [
     "migrations", "issue", "issue_me_too", "issue_event", "issue_sample", "officer_rebuttal", "issue_appeal", "moderation_action", "lexicon_change",
     "issue_media", "admin_unit", "hamlet", "village_constituency", "ivr_call",
   ],
-  survey: ["migrations", "survey_meta"],
+  survey: [
+    "migrations", "survey_meta",
+    // registry (server/civic/surveys/registry.ts)
+    "surveys", "survey_questions", "survey_options", "survey_versions", "panel_reviews", "cancellations", "survey_registry_log", "survey_quota_events",
+    // published figures (server/civic/surveys/results.ts, budget.ts)
+    "survey_results", "survey_query_budget",
+    // anonymous credential + responses (server/civic/surveys/responses.ts, credential.ts)
+    "survey_signing_key", "spent_token", "survey_response", "survey_response_assisted", "response_journal",
+  ],
   audit: ["migrations", "audit_log", "audit_anchors"],
 };
 const OWNER = new Map<string, StoreName>();
