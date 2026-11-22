@@ -31,3 +31,14 @@ Release is blocked until all rows are checked and two named approvers (one of th
 
 - Approver 1: ____________  Date: ______
 - Approver 2 (independent): ____________  Date: ______
+
+## Evidence still required for S-48 (status: in progress, not done)
+
+S-48 stays open until the artefacts below exist and are linked here. As of this commit none exist; the threat model and this checklist are the only deliverables.
+
+- **Independent red-team / penetration test (row 2).** Needed: scope covering identity (OTP, PIN, device caps), household invites, IVR/SMS channels and the audit log; report from a party independent of the builders; every critical/high finding fixed or formally accepted; findings appended to `docs/THREAT_MODEL.md` with status.
+- **Pilot skew report (row 3).** Needed: 2-3 pilot mandals, response rates by gender, age band and phone ownership (including shared-SIM households), stated method and caveats, published before any result is shown. Pilot results must carry the non-representative caveat.
+- **Threat model review (row 1).** Needed: named reviewer, date and commit hash against which `docs/THREAT_MODEL.md` was checked.
+- **Two approvers (below), one independent of the build team.**
+
+Not evidence: passing automated tests (E2E-54, E2E-57), the draft notice text, or the placeholder grievance officer.

@@ -157,9 +157,15 @@ describe("workflow, SLA, confirmation (S-25)", () => {
     expect(sweep(at(10)).escalated).toEqual([]);
     expect(sweep(at(73)).escalated).toEqual([id]); // water SLA 72h: village -> mandal
     expect(getDb().prepare("SELECT jurisdiction_lgd j FROM issue WHERE id=?").get(id)).toMatchObject({ j: "DEMO-M-KLP" });
-    sweep(at(73 + 73)); sweep(at(73 + 146)); sweep(at(73 + 220)); // district, state, stays at top
-    expect(getDb().prepare("SELECT jurisdiction_lgd j, esc_level l FROM issue WHERE id=?").get(id)).toMatchObject({ j: "DEMO-S-AP", l: 3 });
-    expect(audits("issue.escalate").length).toBe(3);
+    const where = () => getDb().prepare("SELECT jurisdiction_lgd j, esc_level l FROM issue WHERE id=?").get(id);
+    sweep(at(73 + 73));
+    expect(where()).toMatchObject({ j: "DEMO-D-GNT", l: 2 });
+    sweep(at(73 + 146)); // district -> constituency liaison (Kolluru is in Tenali)
+    expect(where()).toMatchObject({ j: "DEMO-C-TNL", l: 3 });
+    sweep(at(73 + 220)); sweep(at(73 + 300)); sweep(at(73 + 400)); // state, then stays at the top
+    expect(where()).toMatchObject({ j: "DEMO-S-AP", l: 4 });
+    expect(audits("issue.escalate").length).toBe(4);
+    expect(audits("issue.escalate").map((r) => JSON.parse(r.meta).to_level)).toEqual(["mandal", "district", "constituency", "state"]);
     // district-level officer can act on an escalated issue
     expect((await call("POST", `/${id}/transition`, "off-district", { to: "Verified" })).status).toBe(200);
   });

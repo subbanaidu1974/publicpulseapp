@@ -1,7 +1,8 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import express, { Router } from "express";
 import type { Request, Response } from "express";
-import { audit, getDb, getKeys, getSms, recordConsent, registerErasureHook, registerMigration, requireAuth } from "../core";
+import { audit, getDb, getSms, recordConsent, registerErasureHook, registerMigration, requireAuth } from "../core";
+import { checkPin, createPerson, getPerson, hashPin, personsOnSim, phoneHash, rateAllow } from "../identity/service";
 import householdInviteV1 from "./notices/household_invite.v1.json";
 import minorDependentV1 from "./notices/minor_dependent.v1.json";
 import signupV1 from "./notices/signup.v1.json";
@@ -62,8 +63,35 @@ CREATE TABLE IF NOT EXISTS hh_pin (
 );
 `);
 
+// The invitee PIN lives once, in identity (persons.pin_hash, scrypt). hh_pin held a keyed hash that cannot be converted to
+// that format, so existing rows are not copied: a person with no identity PIN is flagged "pin_reset_required" and must set
+// one through identity sign-in. Pending invites were bound to a household-specific phone hash, so they are expired and must
+// be re-issued (invites are bound to the identity phone hash from now on).
+registerMigration("households_002_single_pin", `
+UPDATE persons SET flags = json_insert(flags, '$[#]', 'pin_reset_required')
+  WHERE pin_hash IS NULL AND id IN (SELECT person_id FROM hh_pin) AND flags NOT LIKE '%pin_reset_required%';
+DROP TABLE IF EXISTS hh_pin;
+UPDATE hh_invite SET status='expired', phone_hash=NULL WHERE status='pending';
+`);
+
 type Row = Record<string, unknown>;
 const db = () => getDb();
+let spSeq = 0;
+/** Run fn atomically. Uses a SAVEPOINT so it also nests inside a caller's transaction. Never call audit() inside: it opens its own transaction. */
+function tx<T>(fn: () => T): T {
+  const d = db();
+  const sp = `hh_sp_${++spSeq}`;
+  d.exec(`SAVEPOINT ${sp}`);
+  try {
+    const r = fn();
+    d.exec(`RELEASE ${sp}`);
+    return r;
+  } catch (e) {
+    d.exec(`ROLLBACK TO ${sp}`);
+    d.exec(`RELEASE ${sp}`);
+    throw e;
+  }
+}
 const fail = (res: Response, code: number, error: string) => { res.status(code).json({ error }); };
 
 /** Normalise an Indian mobile number to +91XXXXXXXXXX, or null if invalid. */
@@ -88,16 +116,26 @@ function expireStaleInvites(now: number): void {
   db().prepare("UPDATE hh_invite SET status='expired', phone_hash=NULL WHERE status='pending' AND expires_at <= ?").run(now);
 }
 
-/** Job: erase dependents who have turned (or are turning this calendar year) 18. Returns number erased. */
+/** Job: erase dependents who have turned (or are turning this calendar year) 18. All-or-nothing; audit entries follow the commit. Returns number erased. */
 export function eraseDependentsAt18(now: Date = new Date()): number {
   const cutoff = now.getFullYear() - 18; // born in or before this year: erase (conservative: never keep past 18th birthday)
-  const rows = db().prepare("SELECT id, household_id FROM hh_member WHERE status='dependent' AND year_of_birth <= ?").all(cutoff) as Row[];
-  const del = db().prepare("DELETE FROM hh_member WHERE id = ?");
-  for (const r of rows) {
-    del.run(r.id as string);
-    audit("system", "dependent_erased_at_18", String(r.household_id), {});
-  }
-  return rows.length;
+  const erased = tx(() => {
+    const rows = db().prepare("SELECT id, household_id FROM hh_member WHERE status='dependent' AND year_of_birth <= ?").all(cutoff) as Row[];
+    const del = db().prepare("DELETE FROM hh_member WHERE id = ?");
+    for (const r of rows) del.run(r.id as string);
+    return rows;
+  });
+  for (const r of erased) audit("system", "dependent_erased_at_18", String(r.household_id), {});
+  return erased.length;
+}
+
+/** Remove a household and everything hanging off it (members incl. dependents, invites). Atomic; the caller audits after commit. */
+function dissolveHousehold(householdId: string): void {
+  tx(() => {
+    db().prepare("DELETE FROM hh_member WHERE household_id = ?").run(householdId);
+    db().prepare("DELETE FROM hh_invite WHERE household_id = ?").run(householdId);
+    db().prepare("DELETE FROM hh_household WHERE id = ?").run(householdId);
+  });
 }
 
 /** Job: purge invites that expired (hash already nulled). */
@@ -176,7 +214,7 @@ householdRouter.post("/members/invite", async (req: Request, res: Response) => {
   const hid = h.household.id as string;
   const now = Date.now();
   expireStaleInvites(now);
-  const hash = getKeys().hmac("household_invite_phone", norm);
+  const hash = phoneHash(norm);
   if (db().prepare("SELECT 1 FROM hh_invite WHERE household_id=? AND phone_hash=? AND status='pending'").get(hid, hash)) return fail(res, 409, "already invited");
   const pending = (db().prepare("SELECT COUNT(*) AS c FROM hh_invite WHERE household_id=? AND status='pending'").get(hid) as { c: number }).c;
   if (pending >= MAX_PENDING_INVITES) return fail(res, 429, "too many pending invites");
@@ -205,23 +243,40 @@ function loadPendingInvite(inviteId: unknown): { invite?: Row; error?: [number, 
   return { invite };
 }
 
-householdRouter.post("/invites/accept", (req: Request, res: Response) => {
+householdRouter.post("/invites/accept", async (req: Request, res: Response) => {
   const pid = req.person!.id;
   const { inviteId, pin } = (req.body ?? {}) as { inviteId?: unknown; pin?: unknown };
   if (typeof pin !== "string" || !/^\d{4,6}$/.test(pin)) return fail(res, 400, "pin must be 4 to 6 digits");
   const { invite, error } = loadPendingInvite(inviteId);
   if (!invite) return fail(res, error![0], error![1]);
-  const hh = db().prepare("SELECT head_person_id FROM hh_household WHERE id = ?").get(invite.household_id as string) as Row;
+  const me = getPerson(pid);
+  // The code alone is not enough: the signed-in person's verified phone must be the number the invite was issued for.
+  if (!me || !me.phone_hash || !invite.phone_hash || me.phone_hash !== invite.phone_hash) {
+    audit(pid, "household_invite_phone_mismatch", String(invite.id), { householdId: invite.household_id });
+    return fail(res, 403, "this invite was not issued for your verified phone number");
+  }
+  const hh = db().prepare("SELECT head_person_id FROM hh_household WHERE id = ?").get(invite.household_id as string) as Row | undefined;
+  if (!hh) return fail(res, 404, "invite not found");
   if (hh.head_person_id === pid) return fail(res, 400, "cannot accept your own invite");
   if (householdOf(pid)) return fail(res, 409, "already in a household");
+  // One PIN, in identity. If the person already has one, accepting must prove it rather than overwrite it.
+  const hasPin = !!(me.pin_salt && me.pin_hash);
+  if (hasPin) {
+    const r = await checkPin(me, pin);
+    if (r !== "ok") return fail(res, r === "wrong" ? 403 : 423, r === "wrong" ? "wrong pin" : "pin locked");
+  }
   const notice = getNotice("household_invite")!;
   const consentId = recordConsent(pid, "household_invite", notice.version);
   const now = Date.now();
-  db().prepare("INSERT INTO hh_member (id, household_id, person_id, relation, status, consent_id, created_at) VALUES (?,?,?,?,?,?,?)")
-    .run(randomUUID(), invite.household_id as string, pid, invite.relation as string, "accepted", consentId, now);
-  db().prepare("INSERT OR REPLACE INTO hh_pin (person_id, pin_hash, set_at) VALUES (?,?,?)")
-    .run(pid, getKeys().hmac("household_pin", `${pid}:${pin}`), now);
-  db().prepare("UPDATE hh_invite SET status='accepted', phone_hash=NULL, accepted_person_id=? WHERE id=?").run(pid, invite.id as string);
+  tx(() => {
+    db().prepare("INSERT INTO hh_member (id, household_id, person_id, relation, status, consent_id, created_at) VALUES (?,?,?,?,?,?,?)")
+      .run(randomUUID(), invite.household_id as string, pid, invite.relation as string, "accepted", consentId, now);
+    if (!hasPin) {
+      const { salt, hash } = hashPin(pin);
+      db().prepare("UPDATE persons SET pin_salt = ?, pin_hash = ? WHERE id = ?").run(salt, hash, pid);
+    }
+    db().prepare("UPDATE hh_invite SET status='accepted', phone_hash=NULL, accepted_person_id=? WHERE id=?").run(pid, invite.id as string);
+  });
   audit(pid, "household_invite_accepted", String(invite.id), { consent: consentId });
   res.json({ ok: true, householdId: invite.household_id });
 });
@@ -279,10 +334,12 @@ householdRouter.post("/transfer-head", (req: Request, res: Response) => {
   const m = db().prepare("SELECT id FROM hh_member WHERE household_id=? AND person_id=? AND status='accepted'").get(h.household.id as string, to) as Row | undefined;
   if (!m) return fail(res, 400, "target must be an accepted adult member");
   // Old head becomes a regular member (relation 'other'); new head's member row is removed.
-  db().prepare("DELETE FROM hh_member WHERE id = ?").run(m.id as string);
-  db().prepare("UPDATE hh_household SET head_person_id = ? WHERE id = ?").run(to, h.household.id as string);
-  db().prepare("INSERT INTO hh_member (id, household_id, person_id, relation, status, created_at) VALUES (?,?,?,?,?,?)")
-    .run(randomUUID(), h.household.id as string, pid, "other", "accepted", Date.now());
+  tx(() => {
+    db().prepare("DELETE FROM hh_member WHERE id = ?").run(m.id as string);
+    db().prepare("UPDATE hh_household SET head_person_id = ? WHERE id = ?").run(to, h.household.id as string);
+    db().prepare("INSERT INTO hh_member (id, household_id, person_id, relation, status, created_at) VALUES (?,?,?,?,?,?)")
+      .run(randomUUID(), h.household.id as string, pid, "other", "accepted", Date.now());
+  });
   audit(pid, "household_head_transferred", String(h.household.id));
   res.json({ ok: true });
 });
@@ -300,23 +357,73 @@ householdRouter.delete("/members/:id", (req: Request, res: Response) => {
 });
 
 // Account erasure (DELETE /me in identity calls every registered hook): remove this person's household footprint.
+// Head dissolves the household: members (including dependents) and invites go in one transaction.
+householdRouter.delete("/", (req: Request, res: Response) => {
+  const pid = req.person!.id;
+  const h = householdOf(pid);
+  if (!h?.isHead) return fail(res, 403, "only the household head can delete the household");
+  const hid = h.household.id as string;
+  dissolveHousehold(hid);
+  audit(pid, "household_deleted", hid);
+  res.json({ ok: true });
+});
+
+// ---- Volunteer enrolment: a trusted volunteer enrols an adult, with the adult's notice shown first.
+export const enrolQuota = () => Number(process.env.CIVIC_ENROL_DAILY_QUOTA || 15);
+const ENROL_CONTEXTS = ["household", "shg"] as const;
+
+householdRouter.post("/volunteer/enrol", async (req: Request, res: Response) => {
+  const vid = req.person!.id;
+  const v = getPerson(vid);
+  if (!v || v.role !== "volunteer") return fail(res, 403, "only enrolled volunteers can enrol adults");
+  const b = (req.body ?? {}) as { phone?: unknown; pin?: unknown; noticeVersion?: unknown; noticeShown?: unknown; contextKind?: unknown; contextRef?: unknown; label?: unknown };
+  // Nothing is stored, and no quota is spent, until the notice is confirmed shown and the input is valid.
+  if (b.noticeShown !== true || typeof b.noticeVersion !== "string" || !getNotice("signup", b.noticeVersion)) return fail(res, 400, "the signup notice must be shown to the adult first (noticeShown and a valid noticeVersion)");
+  const norm = normalisePhone(b.phone);
+  if (!norm) return fail(res, 400, "invalid phone");
+  if (typeof b.pin !== "string" || !/^\d{4,6}$/.test(b.pin)) return fail(res, 400, "pin must be 4 to 6 digits");
+  if (typeof b.contextKind !== "string" || !(ENROL_CONTEXTS as readonly string[]).includes(b.contextKind)) return fail(res, 400, "contextKind must be household or shg");
+  if (b.contextRef !== undefined && (typeof b.contextRef !== "string" || b.contextRef.length > 64)) return fail(res, 400, "invalid contextRef");
+  if (b.label !== undefined && (typeof b.label !== "string" || b.label.length > 40)) return fail(res, 400, "invalid label");
+  if (personsOnSim(phoneHash(norm)).length > 0) {
+    audit(vid, "volunteer_enrol_refused", "enrol", { reason: "number_already_registered" });
+    return fail(res, 409, "this number already has an account");
+  }
+  if (!rateAllow(`enrol:${vid}`, enrolQuota(), 24 * 60 * 60 * 1000)) {
+    audit(vid, "volunteer_enrol_refused", "enrol", { reason: "quota" });
+    return fail(res, 429, "daily enrolment quota reached");
+  }
+  const notice = getNotice("signup", b.noticeVersion)!;
+  try {
+    await getSms().send(norm, `${notice.text.te}\n\n${notice.text.en}\n\n[DRAFT NOTICE ${notice.version}]`);
+  } catch {
+    return fail(res, 502, "could not deliver the notice to the adult");
+  }
+  // createPerson records the adult's signup consent and starts at T0; only identity's two-independent-attestor rule can raise the tier.
+  const p = createPerson({ phone: norm, pin: b.pin, label: typeof b.label === "string" ? b.label : undefined, consentVersion: notice.version });
+  audit(vid, "volunteer_enrolment", "person:" + p.id, { contextKind: b.contextKind, contextRef: b.contextRef ?? null, notice: notice.version, tier: p.tier });
+  res.status(201).json({ personId: p.id, tier: p.tier });
+});
+
+// Account erasure (DELETE /me in identity calls every registered hook): remove this person's household footprint, atomically.
 registerErasureHook("households", (personId) => {
   const d = db();
-  d.prepare("DELETE FROM hh_member WHERE person_id = ?").run(personId);
-  d.prepare("DELETE FROM hh_pin WHERE person_id = ?").run(personId);
-  d.prepare("UPDATE hh_invite SET accepted_person_id = NULL WHERE accepted_person_id = ?").run(personId);
-  // A departing head with no accepted adult members dissolves the household (and its dependents); otherwise the role must be transferred first.
-  const h = d.prepare("SELECT id FROM hh_household WHERE head_person_id = ?").get(personId) as { id: string } | undefined;
-  if (h) {
-    const others = d.prepare("SELECT COUNT(*) AS c FROM hh_member WHERE household_id = ? AND status='accepted'").get(h.id) as { c: number };
-    if (others.c === 0) {
-      d.prepare("DELETE FROM hh_member WHERE household_id = ?").run(h.id);
-      d.prepare("DELETE FROM hh_invite WHERE household_id = ?").run(h.id);
-      d.prepare("DELETE FROM hh_household WHERE id = ?").run(h.id);
-    } else {
-      const next = d.prepare("SELECT id, person_id FROM hh_member WHERE household_id = ? AND status='accepted' ORDER BY created_at LIMIT 1").get(h.id) as { id: string; person_id: string };
-      d.prepare("DELETE FROM hh_member WHERE id = ?").run(next.id);
-      d.prepare("UPDATE hh_household SET head_person_id = ? WHERE id = ?").run(next.person_id, h.id);
+  let dissolved: string | null = null;
+  tx(() => {
+    d.prepare("DELETE FROM hh_member WHERE person_id = ?").run(personId);
+    d.prepare("UPDATE hh_invite SET accepted_person_id = NULL WHERE accepted_person_id = ?").run(personId);
+    // A departing head with no accepted adult members dissolves the household (and its dependents); otherwise the role passes to the oldest adult member.
+    const h = d.prepare("SELECT id FROM hh_household WHERE head_person_id = ?").get(personId) as { id: string } | undefined;
+    if (h) {
+      const next = d.prepare("SELECT id, person_id FROM hh_member WHERE household_id = ? AND status='accepted' ORDER BY created_at LIMIT 1").get(h.id) as { id: string; person_id: string } | undefined;
+      if (!next) {
+        dissolveHousehold(h.id);
+        dissolved = h.id;
+      } else {
+        d.prepare("DELETE FROM hh_member WHERE id = ?").run(next.id);
+        d.prepare("UPDATE hh_household SET head_person_id = ? WHERE id = ?").run(next.person_id, h.id);
+      }
     }
-  }
+  });
+  if (dissolved) audit("system", "household_dissolved_on_erasure", dissolved);
 });

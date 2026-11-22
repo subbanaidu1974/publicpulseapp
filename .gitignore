@@ -17,3 +17,4 @@ test-results/
 data/civic*.db
 data/civic*.db-*
 data/civic-anchor*
+data/civic-media/

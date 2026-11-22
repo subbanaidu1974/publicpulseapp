@@ -9,7 +9,7 @@ import SignUpFlow from "./SignUpFlow";
 import { Btn } from "./ui";
 
 /** WCAG 2.2 AA target size: every control inside the civic tab (including Agent B components) gets at least 44px. */
-const TARGET_CSS = ".civic-root button,.civic-root select,.civic-root input:not([type=checkbox]):not([type=radio]),.civic-root textarea{min-height:44px;min-width:44px}.civic-root input[type=checkbox],.civic-root input[type=radio]{width:24px;height:24px}.civic-root label{min-height:24px}.civic-root .text-slate-500,.civic-root .text-slate-600,.civic-root .text-slate-700{color:#1e293b}";
+const TARGET_CSS = ".civic-root button,.civic-root select,.civic-root input:not([type=checkbox]):not([type=radio]),.civic-root textarea{min-height:44px;min-width:44px}.civic-root input[type=checkbox],.civic-root input[type=radio]{width:24px;height:24px}.civic-root label{min-height:24px}";
 
 type View = "choose" | "signup" | "login";
 

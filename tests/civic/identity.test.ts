@@ -3,7 +3,7 @@ import express from "express";
 import type { Server } from "http";
 import type { AddressInfo } from "net";
 import { audit, getDb, getKeys, migrate, resetDbForTests, smsOutbox, registerErasureHook, verifyAuditChain } from "../../server/civic/core";
-import { identityRouter, grantVolunteer, isSurveyEligible, markResponded, purgeExpired, DEV_NUMBER_FIXTURES } from "../../server/civic/identity/routes";
+import { identityRouter, grantVolunteer, isSurveyEligible, markResponded, markSurveyClosed, purgeExpired, networkPrefix, networkKeys, DEV_NUMBER_FIXTURES } from "../../server/civic/identity/routes";
 
 let server: Server;
 let base = "";
@@ -152,8 +152,71 @@ describe("identity: shared SIM (S-19)", () => {
     expect(members.text).not.toMatch(/pin/i);
     // A is unaffected; unlock after the window
     expect((await call("POST", "/login", { phone: PHONE, pin: "4821", person_id: a.id })).status).toBe(200);
-    getDb().prepare("UPDATE persons SET locked_until = ? WHERE id = ?").run(new Date(Date.now() - 1000).toISOString(), bId);
+    getDb().prepare("UPDATE pin_failures SET locked_until = ? WHERE person_id = ?").run(new Date(Date.now() - 1000).toISOString(), bId);
     expect((await call("POST", "/login", { phone: PHONE, pin: "7345", person_id: bId })).status).toBe(200);
+  });
+});
+
+describe("identity: lockout abuse resistance", () => {
+  const wrong = (phone: string, id: string, dev: string, pin = "0000") => call2("/login", { phone, pin, person_id: id }, { "x-device-id": dev });
+  async function call2(p: string, body: unknown, headers: Record<string, string>) {
+    const r = await fetch(base + p, { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body) });
+    return { status: r.status, json: (await r.json()) as Record<string, any> };
+  }
+
+  it("an attacker who locks their own device does not lock the owner out; a global ceiling rate-limits foreign sources", async () => {
+    process.env.CIVIC_PIN_GLOBAL_CEILING = "8";
+    try {
+      const a = await signup(PHONE, "4821");
+      expect((await wrap(PHONE, "4821", a.id, "owner-phone")).status).toBe(200); // owner source is now known
+      const st: number[] = [];
+      for (let i = 0; i < 5; i++) st.push((await wrong(PHONE, a.id, "attacker-1")).status);
+      expect(st).toEqual([401, 401, 401, 401, 423]);
+      expect((await wrong(PHONE, a.id, "owner-phone", "4821")).status).toBe(200); // owner unaffected
+      // attacker rotates devices: ceiling (8 wrong in the window) kicks in as a rate limit, not a lock
+      const more: number[] = [];
+      for (let i = 0; i < 5; i++) more.push((await wrong(PHONE, a.id, "attacker-" + (i + 2))).status);
+      expect(more).toContain(429);
+      // owner on a known device still gets in; a brand-new device is limited until a fresh OTP resets the PIN
+      expect((await wrong(PHONE, a.id, "owner-phone", "4821")).status).toBe(200);
+      expect((await wrong(PHONE, a.id, "owner-new-phone", "4821")).status).toBe(429);
+      const rq = await call("POST", "/signup/request", { phone: PHONE });
+      const rec = await call("POST", "/pin/recover", { phone: PHONE, otp: rq.json.dev_otp, new_pin: "2468", person_id: a.id });
+      expect(rec.status).toBe(200);
+      expect((await wrong(PHONE, a.id, "owner-new-phone", "2468")).status).toBe(200);
+      expect((await wrong(PHONE, a.id, "attacker-1", "4821")).status).toBe(401); // old PIN dead
+    } finally { delete process.env.CIVIC_PIN_GLOBAL_CEILING; }
+  });
+  const wrap = (phone: string, pin: string, id: string, dev: string) => wrong(phone, id, dev, pin);
+});
+
+describe("identity: per-network OTP cap", () => {
+  it("derives /24 and /48 prefixes and adds an x-asn bucket", () => {
+    expect(networkPrefix("203.0.113.77")).toBe("203.0.113.0/24");
+    expect(networkPrefix("::ffff:203.0.113.5")).toBe("203.0.113.0/24");
+    expect(networkPrefix("2001:db8:abcd:12::1")).toBe("2001:db8:abcd::/48");
+    expect(networkPrefix("2001:db8:abcd:ff::9")).toBe(networkPrefix("2001:0db8:abcd:1::2"));
+    expect(networkKeys("203.0.113.1", "AS64500")).toEqual(["net:203.0.113.0/24", "asn:AS64500"]);
+    expect(networkKeys("203.0.113.1")).toEqual(["net:203.0.113.0/24"]);
+  });
+
+  it("caps OTP requests per network across different phones (env-configurable)", async () => {
+    process.env.CIVIC_OTP_NET_LIMIT = "3";
+    try {
+      const codes: number[] = [];
+      for (let i = 0; i < 5; i++) codes.push((await call("POST", "/signup/request", { phone: "+91987654330" + i })).status);
+      expect(codes).toEqual([200, 200, 200, 429, 429]);
+    } finally { delete process.env.CIVIC_OTP_NET_LIMIT; }
+  });
+
+  it("rotating the spoofable x-asn header does not evade the prefix cap", async () => {
+    process.env.CIVIC_OTP_NET_LIMIT = "2";
+    try {
+      const req = (phone: string, asn: string) => fetch(base + "/signup/request", { method: "POST", headers: { "content-type": "application/json", "x-asn": asn }, body: JSON.stringify({ phone }) }).then((r) => r.status);
+      expect(await req("+919876543401", "AS1")).toBe(200);
+      expect(await req("+919876543402", "AS2")).toBe(200);
+      expect(await req("+919876543403", "AS3")).toBe(429);
+    } finally { delete process.env.CIVIC_OTP_NET_LIMIT; }
   });
 });
 
@@ -257,5 +320,44 @@ describe("identity: erasure and retention (S-43)", () => {
     expect(out.sessions).toBe(1); // 30-day session expired
     expect(verifyAuditChain().ok).toBe(true);
     expect((await call("POST", "/login", { phone: PHONE, pin: "4821" })).status).toBe(200);
+  });
+
+  it("retention runs from last activity / survey close, not creation", async () => {
+    const day = 86400000;
+    const a = await signup(PHONE);
+    const b = await signup(PHONE2);
+    await call("POST", "/residence", { residence: "Rayavaram" }, a.token);
+    markResponded(b.id, "S9");
+    // A was active 100 days from now; B responded to a survey that closed 150 days from now
+    getDb().prepare("UPDATE persons SET last_active_at = ?, residence_declared_at = ? WHERE id = ?").run(new Date(Date.now() + 100 * day).toISOString(), new Date(Date.now() - 400 * day).toISOString(), a.id);
+    getDb().prepare("UPDATE persons SET last_active_at = ? WHERE id = ?").run(new Date(Date.now() - 400 * day).toISOString(), b.id);
+    getDb().prepare("UPDATE persons SET created_at = ? WHERE id IN (?, ?)").run(new Date(Date.now() - 400 * day).toISOString(), a.id, b.id);
+    markSurveyClosed("S9", new Date(Date.now() + 150 * day));
+    expect(purgeExpired(new Date(Date.now() + 200 * day)).phone_copies).toBe(0); // both anchored within 180 days
+    const out = purgeExpired(new Date(Date.now() + 290 * day)); // A idle 190d; B closed 140d ago
+    expect(out.phone_copies).toBe(1);
+    const enc = (id: string) => (getDb().prepare("SELECT phone_enc FROM persons WHERE id = ?").get(id) as { phone_enc: string | null }).phone_enc;
+    expect(enc(a.id)).toBeNull(); expect(enc(b.id)).not.toBeNull();
+    expect(purgeExpired(new Date(Date.now() + 400 * day)).phone_copies).toBe(1); // B too, once its close date ages out
+  });
+
+  it("account deletion is atomic: a failing erasure hook rolls everything back", async () => {
+    const a = await signup(PHONE, "4821");
+    await call("POST", "/residence", { residence: "Rayavaram" }, a.token);
+    markResponded(a.id, "S1");
+    audit(a.id, "custom.event", "thing:" + a.id, { k: 1 });
+    registerErasureHook("test.zz_fail", () => { throw new Error("boom"); });
+    try {
+      const del = await call("DELETE", "/me", { pin: "4821" }, a.token);
+      expect(del.status).toBe(500);
+      const p = getDb().prepare("SELECT phone_hash, phone_enc, residence_enc, deleted_at FROM persons WHERE id = ?").get(a.id) as Record<string, unknown>;
+      expect(p.phone_hash).not.toBeNull(); expect(p.phone_enc).not.toBeNull(); expect(p.residence_enc).not.toBeNull(); expect(p.deleted_at).toBeNull();
+      expect((getDb().prepare("SELECT person_id FROM has_responded").get() as { person_id: string }).person_id).toBe(a.id); // earlier hook rolled back
+      expect((getDb().prepare("SELECT COUNT(*) AS c FROM audit_log WHERE redacted = 1").get() as { c: number }).c).toBe(0);
+      expect((getDb().prepare("SELECT COUNT(*) AS c FROM consents WHERE person_id = ?").get(a.id) as { c: number }).c).toBe(1);
+      expect((await call("GET", "/me", undefined, a.token)).status).toBe(200); // session survives
+      expect(verifyAuditChain().ok).toBe(true);
+    } finally { registerErasureHook("test.zz_fail", () => {}); }
+    expect((await call("DELETE", "/me", { pin: "4821" }, a.token)).status).toBe(200); // works once the hook is healthy
   });
 });

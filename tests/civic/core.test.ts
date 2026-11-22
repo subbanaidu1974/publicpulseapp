@@ -114,3 +114,63 @@ describe("core: audit log (S-42)", () => {
     expect(verifyAuditChain().ok).toBe(false);
   });
 });
+
+import express from "express";
+import { grantRole, hasRole, listRoles, requireRole, revokeRole, runInTransaction } from "../../server/civic/core";
+
+function mkPerson(id: string) {
+  getDb().prepare("INSERT INTO persons (id, created_at, eligible_from) VALUES (?, ?, ?)").run(id, new Date().toISOString(), new Date().toISOString());
+}
+
+describe("core: roles", () => {
+  it("only system or an admin can grant; grants are audited, scoped and revocable", () => {
+    mkPerson("admin1"); mkPerson("off1"); mkPerson("rando");
+    expect(() => grantRole("rando", "off1", "officer")).toThrow();
+    grantRole("system", "admin1", "admin");
+    grantRole("admin1", "off1", "officer", "village:123");
+    expect(hasRole("off1", "officer")).toBe(true);
+    expect(hasRole("off1", "officer", "village:123")).toBe(true);
+    expect(hasRole("off1", "officer", "village:999")).toBe(false);
+    expect(hasRole("off1", "moderator")).toBe(false);
+    grantRole("admin1", "off1", "moderator");
+    expect(hasRole("off1", "moderator", "anywhere")).toBe(true); // unscoped covers all
+    expect(listRoles("off1")).toEqual([{ role: "moderator", jurisdiction: null }, { role: "officer", jurisdiction: "village:123" }]);
+    const rows = getDb().prepare("SELECT action FROM audit_log WHERE action LIKE 'role.%'").all() as { action: string }[];
+    expect(rows.length).toBe(3);
+    expect(() => revokeRole("rando", "off1", "officer")).toThrow();
+    revokeRole("admin1", "off1", "officer");
+    expect(hasRole("off1", "officer")).toBe(false);
+    expect(verifyAuditChain().ok).toBe(true);
+  });
+
+  it("requireRole returns 401 without a session, 403 without the role, passes with it", async () => {
+    mkPerson("o2"); mkPerson("u2");
+    grantRole("system", "o2", "officer");
+    const app = express();
+    app.get("/x", requireRole("officer"), (req, res) => res.json({ id: req.person!.id, roles: req.person!.roles }));
+    const srv = await new Promise<import("http").Server>((r) => { const s = app.listen(0, "127.0.0.1", () => r(s)); });
+    try {
+      const url = `http://127.0.0.1:${(srv.address() as import("net").AddressInfo).port}/x`;
+      const get = (t?: string) => fetch(url, { headers: t ? { authorization: "Bearer " + t } : {} });
+      expect((await get()).status).toBe(401);
+      expect((await get(createSession("u2"))).status).toBe(403);
+      const ok = await get(createSession("o2"));
+      expect(ok.status).toBe(200);
+      expect((await ok.json()).roles).toEqual(["officer"]);
+    } finally { srv.close(); }
+  });
+});
+
+describe("core: transactions", () => {
+  it("runInTransaction rolls back everything incl. audit rows on throw, and nests via savepoints", () => {
+    const n = () => (getDb().prepare("SELECT COUNT(*) AS c FROM audit_log").get() as { c: number }).c;
+    expect(() => runInTransaction(() => { audit("a", "x.one", "o"); throw new Error("fail"); })).toThrow("fail");
+    expect(n()).toBe(0);
+    runInTransaction(() => {
+      audit("a", "x.keep", "o");
+      expect(() => runInTransaction(() => { audit("a", "x.drop", "o"); throw new Error("inner"); })).toThrow("inner");
+    });
+    expect(n()).toBe(1);
+    expect(verifyAuditChain().ok).toBe(true);
+  });
+});

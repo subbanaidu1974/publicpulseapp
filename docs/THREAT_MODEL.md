@@ -62,3 +62,13 @@ Single-store deployment; dev key provider; in-memory IVR call state (lost on res
 ## 7. Review cadence
 
 Re-read at each release gate and whenever a new channel, role, or data store is added. Findings from the independent red team must be appended here with status.
+
+## 8. Evidence still required (S-48)
+
+This model is the builders' own analysis. It has not been red-teamed and the pilot has not been measured. Before any election-adjacent release:
+
+1. Independent red-team report with all critical/high findings resolved or formally accepted, appended below with status (RELEASE_GATE row 2).
+2. Pilot skew report by gender, age and phone ownership for 2-3 mandals, backing threat 10 with data rather than assertion (row 3).
+3. Review of this document against the build, with reviewer and commit hash (row 1).
+
+Red-team findings: none yet recorded.

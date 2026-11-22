@@ -477,11 +477,12 @@
       "epic": "Compliance",
       "title": "DPDP notice/consent artefacts, grievance officer, breach notification, intermediary duties",
       "agent": "B",
-      "status": "in_progress",
+      "status": "done",
       "tests": [
         "E2E-54"
       ],
-      "phase": "2028-P1"
+      "phase": "2028-P1",
+      "notes": "Engineering scope done: versioned notice (te/en) shown before data entry, version recorded, grievance contact visible, E2E-54 passing. Notice wording and grievance officer are DRAFT placeholders; counsel sign-off is tracked in RELEASE_GATE row 13, not here."
     },
     {
       "id": "S-45",
@@ -525,7 +526,8 @@
       "tests": [
         "E2E-58"
       ],
-      "phase": "2028-P1"
+      "phase": "2028-P1",
+      "notes": "In progress. Threat model and checklist exist. Evidence still required: independent red-team report (gate row 2), pilot skew report (row 3), reviewed threat model with commit hash (row 1). No such evidence exists in the repo yet."
     },
     {
       "id": "S-49",

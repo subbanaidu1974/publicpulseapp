@@ -5,14 +5,15 @@ import type { AddressInfo } from "net";
 import { randomUUID } from "node:crypto";
 import { createSession, getDb, migrate, resetDbForTests, smsOutbox } from "../../server/civic/core";
 import { eraseDependentsAt18, householdRouter, INVITE_TTL_MS } from "../../server/civic/households/routes";
+import { grantVolunteer, phoneHash, verifyPin } from "../../server/civic/identity/service";
 
 let server: Server;
 let base: string;
 
-function person(): { id: string; token: string } {
+function person(phone?: string): { id: string; token: string } {
   const id = randomUUID();
   const now = new Date().toISOString();
-  getDb().prepare("INSERT INTO persons (id, created_at, eligible_from) VALUES (?,?,?)").run(id, now, now);
+  getDb().prepare("INSERT INTO persons (id, phone_hash, created_at, eligible_from) VALUES (?,?,?,?)").run(id, phone ? phoneHash(`+91${phone}`) : null, now, now);
   return { id, token: createSession(id) };
 }
 
@@ -42,7 +43,7 @@ const PHONE = "9876543210";
 
 describe("households: adult invite (S-21)", () => {
   it("@E2E-30 invitee gets the notice first, stores only a hash, accepts with own PIN; head never sees answers", async () => {
-    const head = person(); const spouse = person();
+    const head = person(); const spouse = person(PHONE);
     expect((await call(null, "GET", "/mine")).status).toBe(401);
     expect((await call(head.token, "POST", "/")).status).toBe(201);
     const inv = await call(head.token, "POST", "/members/invite", { phone: PHONE, relation: "spouse" });
@@ -73,8 +74,10 @@ describe("households: adult invite (S-21)", () => {
     expect((await call(spouse.token, "POST", "/invites/accept", { inviteId, pin: "4821" })).status).toBe(200);
     expect(db.prepare("SELECT COUNT(*) AS c FROM consents WHERE person_id=? AND purpose='household_invite'").get(spouse.id)).toEqual({ c: 1 });
     expect((db.prepare("SELECT phone_hash FROM hh_invite WHERE id=?").get(inviteId) as { phone_hash: string | null }).phone_hash).toBeNull();
-    const pin = db.prepare("SELECT pin_hash FROM hh_pin WHERE person_id=?").get(spouse.id) as { pin_hash: string };
+    const pin = db.prepare("SELECT pin_salt, pin_hash FROM persons WHERE id=?").get(spouse.id) as { pin_salt: string; pin_hash: string };
     expect(pin.pin_hash).not.toContain("4821");
+    expect(verifyPin("4821", pin.pin_salt, pin.pin_hash)).toBe(true); // stored once, in identity
+    expect(db.prepare("SELECT name FROM sqlite_master WHERE name='hh_pin'").get()).toBeUndefined();
     expect((await call(spouse.token, "POST", "/invites/accept", { inviteId, pin: "4821" })).status).toBe(409); // single use
 
     // Head roster: members and statuses only. No answers, no phone, no pin fields.
@@ -86,7 +89,7 @@ describe("households: adult invite (S-21)", () => {
   });
 
   it("@E2E-30 invite expires at 72h and can no longer be accepted", async () => {
-    const head = person(); const late = person();
+    const head = person(); const late = person("9123456780");
     await call(head.token, "POST", "/");
     const inv = await call(head.token, "POST", "/members/invite", { phone: "9123456780", relation: "parent" });
     const inviteId = inv.body.inviteId as string;
@@ -100,7 +103,7 @@ describe("households: adult invite (S-21)", () => {
   });
 
   it("@E2E-30 invitee can decline, or report 'I did not agree', which removes any membership", async () => {
-    const head = person(); const a = person(); const b = person();
+    const head = person(); const a = person("9000000001"); const b = person("9000000002");
     await call(head.token, "POST", "/");
     const i1 = (await call(head.token, "POST", "/members/invite", { phone: "9000000001", relation: "sibling" })).body.inviteId;
     expect((await call(a.token, "POST", "/invites/decline", { inviteId: i1 })).status).toBe(200);
@@ -117,7 +120,7 @@ describe("households: adult invite (S-21)", () => {
   });
 
   it("head role transfers to an adult member only; members cannot invite", async () => {
-    const head = person(); const m = person(); const outsider = person();
+    const head = person(); const m = person("9000000003"); const outsider = person();
     await call(head.token, "POST", "/");
     const id = (await call(head.token, "POST", "/members/invite", { phone: "9000000003", relation: "spouse" })).body.inviteId;
     await call(m.token, "POST", "/invites/accept", { inviteId: id, pin: "5555" });
@@ -157,7 +160,7 @@ describe("households: minor dependents (S-22)", () => {
   });
 
   it("@E2E-31 only the head may add dependents; dependents are erased at 18", async () => {
-    const head = person(); const m = person();
+    const head = person(); const m = person("9000000005");
     await call(head.token, "POST", "/");
     const inv = (await call(head.token, "POST", "/members/invite", { phone: "9000000005", relation: "spouse" })).body.inviteId;
     await call(m.token, "POST", "/invites/accept", { inviteId: inv, pin: "2468" });
@@ -200,5 +203,104 @@ describe("DPDP artefacts (S-44)", () => {
     expect((await call(p.token, "POST", "/consents", { purpose: "signup", version: "v7" })).status).toBe(400);
     expect((await call(null, "POST", "/consents", { purpose: "signup", version: "v1" })).status).toBe(401);
     expect(getDb().prepare("SELECT COUNT(*) AS c FROM consents WHERE person_id=? AND purpose='signup'").get(p.id)).toEqual({ c: 1 });
+  });
+});
+
+describe("households: invite bound to phone", () => {
+  it("rejects and audits acceptance by a person whose verified phone differs", async () => {
+    const head = person(); const wrong = person("9000000099"); const noPhone = person(); const right = person("9000000098");
+    await call(head.token, "POST", "/");
+    const id = (await call(head.token, "POST", "/members/invite", { phone: "9000000098", relation: "spouse" })).body.inviteId;
+    const count = () => (getDb().prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='household_invite_phone_mismatch'").get() as { c: number }).c;
+    const before = count();
+    expect((await call(wrong.token, "POST", "/invites/accept", { inviteId: id, pin: "1234" })).status).toBe(403);
+    expect((await call(noPhone.token, "POST", "/invites/accept", { inviteId: id, pin: "1234" })).status).toBe(403);
+    expect(count() - before).toBe(2);
+    expect(getDb().prepare("SELECT pin_hash FROM persons WHERE id=?").get(wrong.id)).toEqual({ pin_hash: null });
+    expect((await call(right.token, "POST", "/invites/accept", { inviteId: id, pin: "1234" })).status).toBe(200);
+  });
+
+  it("an existing identity PIN is verified, not overwritten", async () => {
+    const head = person(); const m = person("9000000097");
+    await call(head.token, "POST", "/");
+    const id = (await call(head.token, "POST", "/members/invite", { phone: "9000000097", relation: "parent" })).body.inviteId;
+    expect((await call(m.token, "POST", "/invites/accept", { inviteId: id, pin: "1111" })).status).toBe(200);
+    const id2 = (await call(head.token, "POST", "/members/invite", { phone: "9000000097", relation: "parent" })).body.inviteId;
+    const mid = (getDb().prepare("SELECT id FROM hh_member WHERE person_id=?").get(m.id) as { id: string }).id;
+    await call(m.token, "DELETE", `/members/${mid}`);
+    expect((await call(m.token, "POST", "/invites/accept", { inviteId: id2, pin: "2222" })).status).toBe(403);
+  });
+});
+
+describe("households: volunteer enrolment", () => {
+  const body = (phone: string, extra: Record<string, unknown> = {}) => ({ phone, pin: "4321", noticeShown: true, noticeVersion: "v1", contextKind: "shg", contextRef: "shg-12", ...extra });
+
+  it("only volunteers; notice must be shown before anything is stored", async () => {
+    const res = person("9111111110"); const vol = person("9111111111");
+    grantVolunteer(vol.id, "orgA");
+    expect((await call(res.token, "POST", "/volunteer/enrol", body("9222222221"))).status).toBe(403);
+    expect((await call(vol.token, "POST", "/volunteer/enrol", body("9222222221", { noticeShown: false }))).status).toBe(400);
+    expect((await call(vol.token, "POST", "/volunteer/enrol", body("9222222221", { noticeVersion: "v9" }))).status).toBe(400);
+    expect(getDb().prepare("SELECT COUNT(*) AS c FROM persons WHERE phone_hash=?").get(phoneHash("+919222222221"))).toEqual({ c: 0 });
+    expect(smsOutbox).toHaveLength(0);
+  });
+
+  it("enrols at T0 with notice SMS, consent and audit; never above T0, no attestations", async () => {
+    const vol = person("9111111112"); grantVolunteer(vol.id, "orgA");
+    const r = await call(vol.token, "POST", "/volunteer/enrol", body("9222222222"));
+    expect(r.status).toBe(201);
+    expect(r.body.tier).toBe("T0");
+    expect(smsOutbox).toHaveLength(1);
+    const db = getDb();
+    expect(db.prepare("SELECT tier FROM persons WHERE id=?").get(r.body.personId)).toEqual({ tier: "T0" });
+    expect(db.prepare("SELECT COUNT(*) AS c FROM attestations WHERE subject_id=?").get(r.body.personId)).toEqual({ c: 0 });
+    expect(db.prepare("SELECT COUNT(*) AS c FROM consents WHERE person_id=? AND purpose='signup'").get(r.body.personId)).toEqual({ c: 1 });
+    expect(db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='volunteer_enrolment' AND actor=?").get(vol.id)).toEqual({ c: 1 });
+    expect(JSON.stringify(db.prepare("SELECT meta FROM audit_log WHERE action='volunteer_enrolment'").all())).not.toContain("9222222222");
+    expect((await call(vol.token, "POST", "/volunteer/enrol", body("9222222222"))).status).toBe(409);
+  });
+
+  it("enforces the per-volunteer daily quota", async () => {
+    process.env.CIVIC_ENROL_DAILY_QUOTA = "2";
+    try {
+      const vol = person("9111111113"); grantVolunteer(vol.id);
+      expect((await call(vol.token, "POST", "/volunteer/enrol", body("9333333331"))).status).toBe(201);
+      expect((await call(vol.token, "POST", "/volunteer/enrol", body("9333333332"))).status).toBe(201);
+      expect((await call(vol.token, "POST", "/volunteer/enrol", body("9333333333"))).status).toBe(429);
+      expect(getDb().prepare("SELECT COUNT(*) AS c FROM persons WHERE phone_hash=?").get(phoneHash("+919333333333"))).toEqual({ c: 0 });
+    } finally { delete process.env.CIVIC_ENROL_DAILY_QUOTA; }
+  });
+});
+
+describe("households: atomic erasure and deletion", () => {
+  it("rolls back dependent erasure if it fails midway", async () => {
+    const head = person();
+    await call(head.token, "POST", "/");
+    const yr = new Date().getFullYear();
+    await call(head.token, "POST", "/dependents", { relation: "son", yearOfBirth: yr - 17, parentalConsentVersion: "v1" });
+    await call(head.token, "POST", "/dependents", { relation: "son", yearOfBirth: yr - 16, parentalConsentVersion: "v1" });
+    const db = getDb();
+    db.exec(`CREATE TRIGGER boom BEFORE DELETE ON hh_member WHEN OLD.year_of_birth = ${yr - 16} BEGIN SELECT RAISE(ABORT,'boom'); END`);
+    const cnt = () => (db.prepare("SELECT COUNT(*) AS c FROM hh_member WHERE status='dependent'").get() as { c: number }).c;
+    const start = cnt();
+    try {
+      expect(() => eraseDependentsAt18(new Date(yr + 5, 1, 1))).toThrow();
+      expect(cnt()).toBe(start);
+    } finally { db.exec("DROP TRIGGER boom"); }
+    expect(eraseDependentsAt18(new Date(yr + 5, 1, 1))).toBeGreaterThanOrEqual(2);
+  });
+
+  it("head deletes the household in one go; members cannot", async () => {
+    const head = person(); const m = person("9000000096");
+    await call(head.token, "POST", "/");
+    const id = (await call(head.token, "POST", "/members/invite", { phone: "9000000096", relation: "spouse" })).body.inviteId;
+    await call(m.token, "POST", "/invites/accept", { inviteId: id, pin: "3333" });
+    await call(head.token, "POST", "/dependents", { relation: "son", yearOfBirth: new Date().getFullYear() - 4, parentalConsentVersion: "v1" });
+    expect((await call(m.token, "DELETE", "/")).status).toBe(403);
+    expect((await call(head.token, "DELETE", "/")).status).toBe(200);
+    const db = getDb();
+    expect(db.prepare("SELECT COUNT(*) AS c FROM hh_household WHERE head_person_id=?").get(head.id)).toEqual({ c: 0 });
+    expect(db.prepare("SELECT COUNT(*) AS c FROM hh_member WHERE person_id=?").get(m.id)).toEqual({ c: 0 });
+    expect((await call(head.token, "GET", "/mine")).status).toBe(404);
   });
 });

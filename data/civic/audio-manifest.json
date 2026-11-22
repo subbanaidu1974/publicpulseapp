@@ -1,17 +1,90 @@
 {
   "version": 1,
   "note": "PLACEHOLDER manifest. Every file below must be replaced by human-recorded Telugu audio (TTS is weak); record coastal, Rayalaseema and Telangana variants. Text is the script to record.",
-  "dialects": ["coastal", "rayalaseema", "telangana"],
+  "dialects": [
+    "coastal",
+    "rayalaseema",
+    "telangana"
+  ],
   "status": "placeholder",
   "prompts": [
-    { "id": "welcome", "file": "audio/te/welcome.wav", "status": "placeholder", "textTe": "పీపుల్ పల్స్ కు స్వాగతం. సమస్య నమోదు చేయడానికి 1, మీ రిఫరెన్స్ స్థితికి 2, సేవల అభిప్రాయానికి 3 నొక్కండి. మేము ఎప్పుడూ OTP అడగము." },
-    { "id": "category", "file": "audio/te/category.wav", "status": "placeholder", "textTe": "సమస్య రకం: నీరు 1, రోడ్లు 2, విద్యుత్ 3, ఆరోగ్యం 4, పాఠశాల 5, ఇతరం 6." },
-    { "id": "record", "file": "audio/te/record.wav", "status": "placeholder", "textTe": "బీప్ తర్వాత మీ సమస్యను తెలుగులో చెప్పండి. ముగించడానికి # నొక్కండి." },
-    { "id": "confirm", "file": "audio/te/confirm.wav", "status": "placeholder", "textTe": "మీ సమస్య నమోదైంది. రిఫరెన్స్ నంబర్ SMS ద్వారా పంపాము." },
-    { "id": "status", "file": "audio/te/status.wav", "status": "placeholder", "textTe": "మీ చివరి రిఫరెన్స్ SMS ద్వారా పంపబడింది." },
-    { "id": "survey", "file": "audio/te/survey.wav", "status": "placeholder", "textTe": "మీ ఊరిలో తాగునీటి సరఫరా సంతృప్తికరంగా ఉందా? అవును 1, కాదు 2." },
-    { "id": "thanks", "file": "audio/te/thanks.wav", "status": "placeholder", "textTe": "ధన్యవాదాలు." },
-    { "id": "invalid", "file": "audio/te/invalid.wav", "status": "placeholder", "textTe": "క్షమించండి, ఆ ఎంపిక సరైనది కాదు. మళ్ళీ ప్రయత్నించండి." },
-    { "id": "goodbye", "file": "audio/te/goodbye.wav", "status": "placeholder", "textTe": "కాల్ చేసినందుకు ధన్యవాదాలు." }
+    {
+      "id": "welcome",
+      "file": "audio/te/welcome.wav",
+      "status": "placeholder",
+      "textTe": "పీపుల్ పల్స్ కు స్వాగతం. సమస్య నమోదు చేయడానికి 1, మీ రిఫరెన్స్ స్థితికి 2, సేవల అభిప్రాయానికి 3 నొక్కండి. మేము ఎప్పుడూ OTP అడగము."
+    },
+    {
+      "id": "category",
+      "file": "audio/te/category.wav",
+      "status": "placeholder",
+      "textTe": "సమస్య రకం: నీరు 1, రోడ్లు 2, విద్యుత్ 3, ఆరోగ్యం 4, పాఠశాల 5, ఇతరం 6."
+    },
+    {
+      "id": "record",
+      "file": "audio/te/record.wav",
+      "status": "placeholder",
+      "textTe": "బీప్ తర్వాత మీ సమస్యను తెలుగులో చెప్పండి. ముగించడానికి # నొక్కండి."
+    },
+    {
+      "id": "who",
+      "file": "audio/te/who.wav",
+      "status": "placeholder",
+      "textTe": "ఈ నంబర్ పై నమోదైన వారిలో మీరు ఎవరు? మీ వరుస సంఖ్యను నొక్కండి: మొదటి వ్యక్తికి 1, రెండవ వ్యక్తికి 2, మూడవ వ్యక్తికి 3, నాల్గవ వ్యక్తికి 4, ఐదవ వ్యక్తికి 5."
+    },
+    {
+      "id": "pin",
+      "file": "audio/te/pin.wav",
+      "status": "placeholder",
+      "textTe": "మీ వ్యక్తిగత పిన్ నమోదు చేసి # నొక్కండి. మీ పిన్ ను ఎవరికీ చెప్పకండి."
+    },
+    {
+      "id": "pinWrong",
+      "file": "audio/te/pinWrong.wav",
+      "status": "placeholder",
+      "textTe": "పిన్ సరైనది కాదు. మళ్ళీ ప్రయత్నించండి."
+    },
+    {
+      "id": "locked",
+      "file": "audio/te/locked.wav",
+      "status": "placeholder",
+      "textTe": "చాలా తప్పు ప్రయత్నాలు జరిగాయి. ఈ సైన్-ఇన్ 30 నిమిషాల పాటు ఆగిపోయింది."
+    },
+    {
+      "id": "confirm",
+      "file": "audio/te/confirm.wav",
+      "status": "placeholder",
+      "textTe": "మీ సమస్య నమోదైంది. రిఫరెన్స్ నంబర్ SMS ద్వారా పంపాము."
+    },
+    {
+      "id": "status",
+      "file": "audio/te/status.wav",
+      "status": "placeholder",
+      "textTe": "మీ చివరి రిఫరెన్స్ SMS ద్వారా పంపబడింది."
+    },
+    {
+      "id": "survey",
+      "file": "audio/te/survey.wav",
+      "status": "placeholder",
+      "textTe": "మీ ఊరిలో తాగునీటి సరఫరా సంతృప్తికరంగా ఉందా? అవును 1, కాదు 2."
+    },
+    {
+      "id": "thanks",
+      "file": "audio/te/thanks.wav",
+      "status": "placeholder",
+      "textTe": "ధన్యవాదాలు."
+    },
+    {
+      "id": "invalid",
+      "file": "audio/te/invalid.wav",
+      "status": "placeholder",
+      "textTe": "క్షమించండి, ఆ ఎంపిక సరైనది కాదు. మళ్ళీ ప్రయత్నించండి."
+    },
+    {
+      "id": "goodbye",
+      "file": "audio/te/goodbye.wav",
+      "status": "placeholder",
+      "textTe": "కాల్ చేసినందుకు ధన్యవాదాలు."
+    }
   ]
 }

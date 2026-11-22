@@ -2,6 +2,16 @@
  * CONTRACT between Phase 1 agents (see docs/DESIGN_2028.md). Owned by Agent A.
  * Exported signatures that existed in the frozen contract are unchanged; additions are marked "(addition)".
  *
+ * ROLES (addition; for the issues agent and other modules): roles live in the `roles` table keyed to person_id.
+ *   grantRole(grantedBy, personId, role, jurisdiction?)  grantedBy = an admin person id or "system" (ops); throws otherwise; audited.
+ *   revokeRole(revokedBy, personId, role)                audited.
+ *   hasRole(personId, role, jurisdiction?)               role = "admin" | "officer" | "moderator". A grant with a null jurisdiction covers
+ *                                                        every jurisdiction; a scoped grant covers only that exact scope string.
+ *   listRoles(personId)                                  [{role, jurisdiction}]
+ *   requireRole(role)                                    Express middleware (does requireAuth itself, then 403 if the role is missing).
+ *   runInTransaction(fn)                                 one DB transaction (nests via savepoints); audit() joins it.
+ * req.person.roles (set by requireAuth) lists the caller's role names.
+ *
  * Dev-only providers: key provider derives keys from an env master key; SMS provider logs to console.
  * Production must install real adapters via setKeyProvider / setSmsProvider (HSM/KMS, DLT-registered SMS).
  */
@@ -12,7 +22,7 @@ import path from "node:path";
 import type { NextFunction, Request, Response } from "express";
 
 export type Tier = "T0" | "T1" | "T2";
-export interface AuthedPerson { id: string; tier: Tier }
+export interface AuthedPerson { id: string; tier: Tier; roles?: string[] }
 
 declare module "express-serve-static-core" {
   interface Request { person?: AuthedPerson }
@@ -37,6 +47,25 @@ export function getDb(): DatabaseSync {
   db.exec("PRAGMA foreign_keys = ON;");
   if (file !== ":memory:") db.exec("PRAGMA journal_mode = WAL;");
   return db;
+}
+
+let txDepth = 0;
+/** (addition) Run fn in one transaction (outermost = BEGIN IMMEDIATE, nested = SAVEPOINT). Any throw rolls back everything inside. */
+export function runInTransaction<T>(fn: () => T): T {
+  const d = getDb();
+  const name = "sp_" + txDepth;
+  d.exec(txDepth === 0 ? "BEGIN IMMEDIATE" : "SAVEPOINT " + name);
+  txDepth++;
+  try {
+    const r = fn();
+    txDepth--;
+    d.exec(txDepth === 0 ? "COMMIT" : "RELEASE " + name);
+    return r;
+  } catch (e) {
+    txDepth--;
+    try { d.exec(txDepth === 0 ? "ROLLBACK" : `ROLLBACK TO ${name}; RELEASE ${name}`); } catch { /* already rolled back */ }
+    throw e;
+  }
 }
 
 const migrations: { id: string; sql: string }[] = [];
@@ -73,6 +102,7 @@ export function resetDbForTests(): void {
   keyProvider = null;
   smsProvider = null;
   smsOutbox.length = 0;
+  txDepth = 0;
   anchorSink = null; // erasure hooks are registered at module load, so they are kept
 }
 
@@ -257,7 +287,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
       `SELECT p.id AS id, p.tier AS tier, s.expires_at AS exp FROM sessions s JOIN persons p ON p.id = s.person_id
        WHERE s.token_hash = ? AND p.deleted_at IS NULL`).get(getKeys().hmac("session", m[1])) as { id: string; tier: Tier; exp: string } | undefined;
     if (!row || row.exp < new Date().toISOString()) { res.status(401).json({ error: "invalid or expired session" }); return; }
-    req.person = { id: row.id, tier: row.tier };
+    req.person = { id: row.id, tier: row.tier, roles: listRoles(row.id).map((r) => r.role) };
     next();
   } catch {
     res.status(401).json({ error: "authentication failed" });
@@ -297,8 +327,7 @@ export function audit(actor: string, action: string, object: string, meta?: Reco
   const d = getDb();
   const k = getKeys();
   const metaJson = canonicalJson(meta ?? {});
-  d.exec("BEGIN IMMEDIATE");
-  try {
+  runInTransaction(() => {
     const last = d.prepare("SELECT seq, hash FROM audit_log ORDER BY seq DESC LIMIT 1").get() as { seq: number; hash: string } | undefined;
     const seq = (last?.seq ?? 0) + 1;
     const prev = last?.hash ?? GENESIS;
@@ -306,11 +335,7 @@ export function audit(actor: string, action: string, object: string, meta?: Reco
     const row = { seq, ts, action, actor_d: k.hmac("audit", actor), object_d: k.hmac("audit", object), meta_d: k.hmac("audit", metaJson) };
     d.prepare(`INSERT INTO audit_log (seq, ts, actor, action, object, meta, actor_d, object_d, meta_d, redacted, prev_hash, hash)
                VALUES (?,?,?,?,?,?,?,?,?,0,?,?)`).run(seq, ts, actor, action, object, metaJson, row.actor_d, row.object_d, row.meta_d, prev, rowHash(prev, row));
-    d.exec("COMMIT");
-  } catch (e) {
-    d.exec("ROLLBACK");
-    throw e;
-  }
+  });
 }
 
 /** (addition) Log a privileged/sensitive read (who, what, why). Call this wherever an operator reads personal data. */
@@ -431,4 +456,70 @@ export function runErasureHooks(personId: string): string[] {
   const ran: string[] = [];
   for (const h of erasureHooks) { h.fn(personId); ran.push(h.name); }
   return ran;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Roles (admin / officer / moderator), keyed to person_id
+// ---------------------------------------------------------------------------------------------
+
+export type RoleName = "admin" | "officer" | "moderator";
+const ROLE_NAMES: RoleName[] = ["admin", "officer", "moderator"];
+
+registerMigration("core_002_roles", `
+CREATE TABLE roles (
+  person_id TEXT NOT NULL,
+  role TEXT NOT NULL,
+  jurisdiction TEXT NOT NULL DEFAULT '',
+  granted_by TEXT NOT NULL,
+  granted_at TEXT NOT NULL,
+  PRIMARY KEY (person_id, role, jurisdiction)
+);
+`);
+// Erasing a person removes the roles they hold.
+registerErasureHook("core.roles", (personId) => { getDb().prepare("DELETE FROM roles WHERE person_id = ?").run(personId); });
+
+/** Grant a role. `grantedBy` must be "system" (ops tooling) or a person holding the admin role. Always audited. jurisdiction = optional scope. */
+export function grantRole(grantedBy: string, personId: string, role: RoleName, jurisdiction?: string | null): void {
+  if (!ROLE_NAMES.includes(role)) throw new Error("unknown role");
+  if (grantedBy !== "system" && !hasRole(grantedBy, "admin")) throw new Error("only an admin can grant roles");
+  const d = getDb();
+  if (!d.prepare("SELECT 1 AS x FROM persons WHERE id = ? AND deleted_at IS NULL").get(personId)) throw new Error("person not found");
+  runInTransaction(() => {
+    d.prepare("INSERT OR REPLACE INTO roles (person_id, role, jurisdiction, granted_by, granted_at) VALUES (?,?,?,?,?)")
+      .run(personId, role, jurisdiction ?? "", grantedBy, new Date().toISOString());
+    audit(grantedBy, "role.grant", "person:" + personId, { role, jurisdiction: jurisdiction ?? "" });
+  });
+}
+
+/** Revoke a role (all scopes of it). Same authority rule as grantRole. */
+export function revokeRole(revokedBy: string, personId: string, role: RoleName): void {
+  if (revokedBy !== "system" && !hasRole(revokedBy, "admin")) throw new Error("only an admin can revoke roles");
+  runInTransaction(() => {
+    getDb().prepare("DELETE FROM roles WHERE person_id = ? AND role = ?").run(personId, role);
+    audit(revokedBy, "role.revoke", "person:" + personId, { role });
+  });
+}
+
+/** Does the person hold `role`? With `jurisdiction`, an unscoped grant or an exact-scope grant qualifies. */
+export function hasRole(personId: string, role: RoleName, jurisdiction?: string | null): boolean {
+  const rows = getDb().prepare(
+    "SELECT r.jurisdiction AS j FROM roles r JOIN persons p ON p.id = r.person_id WHERE r.person_id = ? AND r.role = ? AND p.deleted_at IS NULL").all(personId, role) as { j: string }[];
+  if (rows.length === 0) return false;
+  if (jurisdiction == null || jurisdiction === "") return true;
+  return rows.some((r) => r.j === "" || r.j === jurisdiction);
+}
+
+export function listRoles(personId: string): { role: RoleName; jurisdiction: string | null }[] {
+  const rows = getDb().prepare("SELECT role, jurisdiction FROM roles WHERE person_id = ? ORDER BY role, jurisdiction").all(personId) as { role: RoleName; jurisdiction: string }[];
+  return rows.map((r) => ({ role: r.role, jurisdiction: r.jurisdiction || null }));
+}
+
+/** Express middleware: authenticates (as requireAuth) and then requires the role; 403 JSON {error} otherwise. */
+export function requireRole(role: RoleName) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    requireAuth(req, res, () => {
+      if (!req.person || !hasRole(req.person.id, role)) { res.status(403).json({ error: "forbidden: " + role + " role required" }); return; }
+      next();
+    });
+  };
 }

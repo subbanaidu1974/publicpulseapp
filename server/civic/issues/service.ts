@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { audit, getDb, registerMigration } from "../core";
-import { ancestors, ensureGeo, getUnit } from "../geo/service";
+import { audit, getDb, hasRole, listRoles, registerMigration } from "../core";
+import { ancestors, ensureGeo, getUnit, villageConstituencies, type Unit } from "../geo/service";
+import { assessText, needsReview } from "./moderation";
+import { MediaError, attachMedia, claimMedia, purgeExpiredMedia } from "./media";
+
+export { assessText, needsReview };
 
 registerMigration("issues_001", `
 CREATE TABLE IF NOT EXISTS issue (
@@ -27,6 +31,11 @@ CREATE TABLE IF NOT EXISTS officer_role (
 );
 CREATE TABLE IF NOT EXISTS officer_rebuttal (id TEXT PRIMARY KEY, issue_id TEXT NOT NULL, officer_tag TEXT NOT NULL, text TEXT NOT NULL, at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS issue_appeal (id TEXT PRIMARY KEY, issue_id TEXT NOT NULL, person_id TEXT NOT NULL, reason TEXT, status TEXT NOT NULL, at TEXT NOT NULL, decided_at TEXT);
+`);
+
+registerMigration("issues_002", `
+ALTER TABLE issue ADD COLUMN moderation_reason TEXT;
+ALTER TABLE issue ADD COLUMN voice_ref TEXT;
 `);
 
 export const CATEGORIES: Record<string, { department: string; slaHours: number }> = {
@@ -56,31 +65,60 @@ export class HttpError extends Error {
   constructor(public status: number, message: string, public extra: Record<string, unknown> = {}) { super(message); }
 }
 
-// ---------- roles (Phase 1 stub: simple claim table, to be replaced by verified government onboarding) ----------
+// ---------- roles ----------
+// Officers carry a department, which core roles do not, so the local claim table (Phase 1 stub, to be replaced by verified
+// government onboarding) stays for officers and moderators. Roles granted through core (grantRole/hasRole/listRoles, admin-audited)
+// are honoured too: a core "moderator" may moderate; a core "officer" acts for any department within its jurisdiction scope
+// (unscoped = everywhere; a scope is an LGD code that covers its descendants and, for constituencies, its villages).
 export function grantRole(personId: string, role: "officer" | "moderator", department: string | null, jurisdictionLgd: string | null, label?: string): void {
   getDb().prepare("INSERT OR REPLACE INTO officer_role VALUES (?,?,?,?,?)").run(personId, role, department, jurisdictionLgd, label ?? `${department ?? "any"}@${jurisdictionLgd ?? "any"}`);
 }
 interface Role { role: string; department: string | null; jurisdiction_lgd: string | null; label: string }
-function roleOf(personId: string, role: string): Role | null {
-  return (getDb().prepare("SELECT * FROM officer_role WHERE person_id=? AND role=?").get(personId, role) as unknown as Role | undefined) ?? null;
+function roleOf(personId: string, role: string, scopeUnit?: string): Role | null {
+  const local = (getDb().prepare("SELECT * FROM officer_role WHERE person_id=? AND role=?").get(personId, role) as unknown as Role | undefined) ?? null;
+  if (local) return local;
+  if (role !== "officer" && role !== "moderator") return null;
+  try {
+    if (!hasRole(personId, role)) return null;
+    const scopes = listRoles(personId).filter(r => r.role === role).map(r => r.jurisdiction);
+    const pick = scopeUnit ? scopes.find(j => !j || inUnit(scopeUnit, j)) ?? scopes[0] : scopes[0];
+    return { role, department: null, jurisdiction_lgd: pick ?? null, label: `${role}@${pick ?? "any"}` };
+  } catch { return null; } // core roles table not migrated
 }
 /** Does this role's jurisdiction cover the village (unit is the village itself or an ancestor)? */
 function covers(r: Role, village: string): boolean {
   if (!r.jurisdiction_lgd) return true;
-  return ancestors(village).some(u => u.lgd === r.jurisdiction_lgd);
+  return inUnit(village, r.jurisdiction_lgd);
+}
+/** Is the village inside the unit: the unit is the village itself, an administrative ancestor, or a constituency it belongs to? */
+function inUnit(village: string, unit: string, now?: Date): boolean {
+  return ancestors(village, now).some(u => u.lgd === unit) || villageConstituencies(village, now).some(u => u.lgd === unit);
 }
 
-// ---------- moderation heuristics ----------
-const NAME_PATTERNS = [
-  /\b(mr|mrs|ms|sri|shri|smt|dr|ci|si|mro|mdo)\.?\s+[A-Za-z]{2,}/i,
-  /(శ్రీమతి|శ్రీ|డాక్టర్)\s*\S+/,
-  /\b(named|called|by the name)\b/i,
-  /\b(caste|religion)\b/i,
-];
-export function needsReview(text: string): boolean { return NAME_PATTERNS.some(p => p.test(text)); }
+/**
+ * Escalation chain, lowest first: village -> mandal -> district -> constituency liaison -> state.
+ * The constituency is the village's current constituency (if a village is split across two, the lowest LGD code is used);
+ * villages with no constituency link skip that step.
+ */
+export function escalationChain(village: string, now?: Date): Unit[] {
+  const admin = ancestors(village, now);
+  const cons = villageConstituencies(village, now).sort((a, b) => a.lgd.localeCompare(b.lgd))[0];
+  if (!cons) return admin;
+  const d = admin.findIndex(u => u.level === "district");
+  const at = d === -1 ? admin.length : d + 1;
+  return [...admin.slice(0, at), cons, ...admin.slice(at)];
+}
+
+// ---------- moderation: see ./moderation.ts (layered rules, hold-for-review default) ----------
+function placeNames(village: Unit, now: Date): string[] {
+  const names = ancestors(village.lgd, now).flatMap(u => [u.name_en, u.name_te ?? ""]);
+  const hamlets = getDb().prepare("SELECT name_en, name_te FROM hamlet WHERE village_lgd=?").all(village.lgd) as { name_en: string; name_te: string | null }[];
+  for (const h of hamlets) names.push(h.name_en, h.name_te ?? "");
+  return names.filter(Boolean);
+}
 
 // ---------- reporting ----------
-export interface ReportInput { category?: string; description_en?: string; description_te?: string; photo_ref?: string; lat?: number; lon?: number; village_lgd?: string }
+export interface ReportInput { category?: string; description_en?: string; description_te?: string; photo_ref?: string; voice_ref?: string; lat?: number; lon?: number; village_lgd?: string }
 const tokens = (s: string) => new Set((s.toLowerCase().match(/[\p{L}\p{M}\p{N}]+/gu) ?? []).filter(t => t.length > 1));
 const jaccard = (a: Set<string>, b: Set<string>) => { if (!a.size || !b.size) return 0; let i = 0; for (const t of a) if (b.has(t)) i++; return i / (a.size + b.size - i); };
 function meters(a: { lat: number; lon: number }, b: { lat: number; lon: number }) {
@@ -111,7 +149,18 @@ export function reportIssue(personId: string, b: ReportInput, now = clock.now())
     if (typeof b.lat !== "number" || typeof b.lon !== "number" || Math.abs(b.lat) > 90 || Math.abs(b.lon) > 180) throw new HttpError(400, "invalid GPS");
     lat = b.lat; lon = b.lon;
   }
-  if (b.photo_ref !== undefined && !(typeof b.photo_ref === "string" && /^[\w\-./]{1,200}$/.test(b.photo_ref))) throw new HttpError(400, "invalid photo_ref");
+  // photo_ref / voice_ref: "media:<id>" from POST /issues/media (owned by the reporter), or a legacy opaque key (e.g. IVR audio key)
+  const refOf = (v: unknown, kind: "photo" | "voice") => {
+    if (v === undefined) return { media: null as string | null, key: null as string | null };
+    if (typeof v !== "string") throw new HttpError(400, `invalid ${kind}_ref`);
+    if (v.startsWith("media:")) {
+      try { return { media: claimMedia(v, personId, kind) as string | null, key: v as string | null }; }
+      catch (e) { if (e instanceof MediaError) throw new HttpError(e.status, e.message); throw e; }
+    }
+    if (!/^[\w\-./]{1,200}$/.test(v)) throw new HttpError(400, `invalid ${kind}_ref`);
+    return { media: null as string | null, key: v as string | null };
+  };
+  const ph = refOf(b.photo_ref, "photo"), vo = refOf(b.voice_ref, "voice");
 
   // dedupe against open, visible issues in the same village and category
   const text = tokens(`${en} ${te}`);
@@ -125,14 +174,17 @@ export function reportIssue(personId: string, b: ReportInput, now = clock.now())
     }
   }
 
-  const held = needsReview(`${en} ${te}`);
+  const verdict = assessText(`${en}\n${te}`, { knownNames: placeNames(v, now) });
+  const held = verdict.verdict === "hold";
   const id = randomUUID();
   const t = iso(now);
-  db.prepare(`INSERT INTO issue (id,category,desc_en,desc_te,photo_ref,lat,lon,village_lgd,department,status,moderation,reporter_id,created_at,updated_at,sla_due,jurisdiction_lgd)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-    .run(id, b.category!, en || null, te || null, b.photo_ref ?? null, lat, lon, v.lgd, cat.department, "Reported", held ? "held" : "ok", personId, t, t, iso(addHours(now, cat.slaHours)), v.lgd);
+  db.prepare(`INSERT INTO issue (id,category,desc_en,desc_te,photo_ref,voice_ref,lat,lon,village_lgd,department,status,moderation,moderation_reason,reporter_id,created_at,updated_at,sla_due,jurisdiction_lgd)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    .run(id, b.category!, en || null, te || null, ph.key, vo.key, lat, lon, v.lgd, cat.department, "Reported", held ? "held" : "ok", held ? verdict.reasons.join(",") : null, personId, t, t, iso(addHours(now, cat.slaHours)), v.lgd);
+  if (ph.media) attachMedia(ph.media, id);
+  if (vo.media) attachMedia(vo.media, id);
   db.prepare("INSERT INTO issue_me_too VALUES (?,?,?,1)").run(id, personId, t);
-  audit(personId, held ? "issue.report_held" : "issue.report", `issue:${id}`, { category: b.category, village: v.lgd, held });
+  audit(personId, held ? "issue.report_held" : "issue.report", `issue:${id}`, { category: b.category, village: v.lgd, held, reasons: held ? verdict.reasons : undefined });
   if (!held) event(id, "reported", { status: "Reported", village_lgd: v.lgd, category: b.category, department: cat.department }, now);
   return { id, merged: false, held, status: "Reported" };
 }
@@ -189,7 +241,7 @@ const load = (id: string) => {
 export function transition(issueId: string, actor: string, b: TransitionInput, now = clock.now()) {
   const i = load(issueId);
   if (i.moderation !== "ok") throw new HttpError(409, "issue is under moderation");
-  const r = roleOf(actor, "officer");
+  const r = roleOf(actor, "officer", i.village_lgd);
   if (!r) throw new HttpError(403, "officer role required");
   if (!covers(r, i.village_lgd)) throw new HttpError(403, "outside your jurisdiction", { hint: "out_of_jurisdiction" });
 
@@ -241,7 +293,7 @@ export function confirm(issueId: string, personId: string, vote: string, now = c
 /** Periodic job: close confirmation windows and escalate overdue issues. Returns what changed. */
 export function sweep(now = clock.now()) {
   const db = getDb();
-  const out = { confirmed: [] as string[], reopened: [] as string[], escalated: [] as string[] };
+  const out = { confirmed: [] as string[], reopened: [] as string[], escalated: [] as string[], mediaPurged: 0 };
   const t = iso(now);
   for (const i of db.prepare("SELECT * FROM issue WHERE status='Resolved' AND confirm_deadline<=?").all(t) as any[]) {
     const votes = db.prepare("SELECT vote, COUNT(*) c FROM issue_sample WHERE issue_id=? AND vote IS NOT NULL GROUP BY vote").all(i.id) as { vote: string; c: number }[];
@@ -258,7 +310,7 @@ export function sweep(now = clock.now()) {
     }
   }
   for (const i of db.prepare("SELECT * FROM issue WHERE moderation='ok' AND status IN ('Reported','Verified','Assigned','InProgress','Reopened') AND sla_due<=?").all(t) as any[]) {
-    const chain = ancestors(i.village_lgd, now);
+    const chain = escalationChain(i.village_lgd, now);
     const level = Math.min(i.esc_level + 1, chain.length - 1);
     if (level === i.esc_level) { // already at the top: just re-arm the timer
       db.prepare("UPDATE issue SET sla_due=? WHERE id=?").run(iso(addHours(now, CATEGORIES[i.category].slaHours)), i.id);
@@ -270,8 +322,23 @@ export function sweep(now = clock.now()) {
     audit("system", "issue.escalate", `issue:${i.id}`, { to_level: chain[level].level, unit: chain[level].lgd });
     out.escalated.push(i.id);
   }
+  out.mediaPurged = purgeExpiredMedia(now);
   return out;
 }
+
+let sweepTimer: ReturnType<typeof setInterval> | null = null;
+/** Start the periodic sweep (SLA escalation and confirmation windows). Idempotent; a no-op when NODE_ENV=test or CIVIC_SWEEP=0. Returns true if a timer is running. */
+export function startIssueSweeper(intervalMs = Number(process.env.CIVIC_SWEEP_INTERVAL_MS) || 10 * 60_000): boolean {
+  if (process.env.NODE_ENV === "test" || process.env.CIVIC_SWEEP === "0") return false;
+  if (sweepTimer) return true;
+  sweepTimer = setInterval(() => {
+    try { sweep(); } catch (e) { console.error("[civic] issue sweep failed:", (e as Error).message); }
+  }, Math.max(1000, intervalMs));
+  sweepTimer.unref();
+  return true;
+}
+export function stopIssueSweeper(): void { if (sweepTimer) { clearInterval(sweepTimer); sweepTimer = null; } }
+export const isIssueSweeperRunning = () => sweepTimer !== null;
 
 // ---------- moderation ----------
 export function appeal(issueId: string, personId: string, reason: string | undefined, now = clock.now()) {
@@ -307,7 +374,7 @@ export function moderate(issueId: string, actor: string, decision: string, now =
 // ---------- officer rebuttal ----------
 export function rebuttal(issueId: string, actor: string, text: string, now = clock.now()) {
   const i = load(issueId);
-  const r = roleOf(actor, "officer");
+  const r = roleOf(actor, "officer", i.village_lgd);
   if (!r || !covers(r, i.village_lgd)) throw new HttpError(403, "officer role covering this village required");
   if (typeof text !== "string" || !text.trim() || text.length > 2000) throw new HttpError(400, "text required (max 2000 chars)");
   const id = randomUUID();
@@ -370,13 +437,13 @@ export function departmentMetrics(now = clock.now()) {
 }
 
 export function officerMetrics(actor: string, jurisdiction: string, now = clock.now()) {
-  const r = roleOf(actor, "officer");
+  const r = roleOf(actor, "officer", jurisdiction);
   if (!r) throw new HttpError(403, "officer role required");
   if (!jurisdiction) throw new HttpError(400, "jurisdiction (LGD code) required for officer-level metrics");
   const unit = getUnit(jurisdiction, now);
   if (!unit) throw new HttpError(404, "unknown jurisdiction");
   if (r.jurisdiction_lgd && !ancestors(jurisdiction, now).some(u => u.lgd === r.jurisdiction_lgd)) throw new HttpError(403, "jurisdiction not within your role");
-  const inJur = visible().filter(i => i.assigned_officer && ancestors(i.village_lgd, now).some(u => u.lgd === jurisdiction));
+  const inJur = visible().filter(i => i.assigned_officer && inUnit(i.village_lgd, jurisdiction, now));
   const tags = [...new Set(inJur.map(i => i.assigned_officer as string))];
   const officers = tags.map(tag => {
     const items = inJur.filter(i => i.assigned_officer === tag);

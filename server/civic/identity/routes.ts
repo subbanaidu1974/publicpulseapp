@@ -3,8 +3,8 @@ import express, { Router } from "express";
 import type { Request, Response } from "express";
 import { audit, createSession, getDb, getKeys, getSms, requireAuth, revokeSessions } from "../core";
 import {
-  E164_IN, OTP_TTL_MS, PIN_RE, attest, checkPin, createPerson, deleteAccount, getNumberIntelligence, getPerson, hashPin,
-  personsOnSim, phoneHash, publicPerson, rateAllow, verifyPin,
+  E164_IN, OTP_NET_WINDOW_MS, OTP_TTL_MS, PIN_RE, attest, checkPin, createPerson, deleteAccount, getNumberIntelligence, getPerson, hashPin,
+  isLockedAnywhere, networkKeys, otpNetworkLimit, personsOnSim, phoneHash, publicPerson, rateAllow, resetPin, touchActive, verifyPin,
 } from "./service";
 
 export * from "./service";
@@ -25,6 +25,9 @@ const wrap = (fn: (req: Request, res: Response) => Promise<void> | void) => asyn
 };
 const ipOf = (req: Request) => req.ip || req.socket.remoteAddress || "unknown";
 const deviceOf = (req: Request) => str(req.headers["x-device-id"]).slice(0, 64);
+const asnOf = (req: Request) => str(req.headers["x-asn"]).slice(0, 32);
+/** Caller identity for PIN lockout scoping: IP plus device id. */
+const sourceOf = (req: Request) => ipOf(req) + "|" + deviceOf(req);
 
 // Timing-equalising dummy hash for unknown phones.
 const DUMMY = hashPin("000000");
@@ -35,6 +38,10 @@ identityRouter.post("/signup/request", wrap(async (req, res) => {
   const hourlyBudget = Number(process.env.CIVIC_SMS_HOURLY_BUDGET || 2000);
   if (!rateAllow("sms:global", hourlyBudget, 60 * MIN)) return fail(res, 503, "sms capacity reached; try again later", { degraded: true });
   const dev = deviceOf(req);
+  // Per-network cap (IP prefix, plus x-asn when supplied) on top of the per-phone / per-IP / per-device caps.
+  for (const k of networkKeys(ipOf(req), asnOf(req))) {
+    if (!rateAllow("otp:" + k, otpNetworkLimit(), OTP_NET_WINDOW_MS)) return fail(res, 429, "too many OTP requests from this network; wait and retry");
+  }
   if (!rateAllow("otp:phone:" + phone, 3, 10 * MIN) || !rateAllow("otp:ip:" + ipOf(req), 10, 10 * MIN) || (dev && !rateAllow("otp:dev:" + dev, 5, 10 * MIN))) {
     return fail(res, 429, "too many OTP requests; wait and retry");
   }
@@ -94,8 +101,7 @@ identityRouter.post("/sim/link", requireAuth, wrap(async (req, res) => {
 identityRouter.get("/sim/members", requireAuth, wrap((req, res) => {
   const me = getPerson(req.person!.id);
   if (!me?.phone_hash) return fail(res, 404, "not found");
-  const now = new Date().toISOString();
-  res.json({ members: personsOnSim(me.phone_hash).map((m) => ({ person_id: m.id, label: m.label, locked: !!m.locked_until && m.locked_until > now, self: m.id === me.id })) });
+  res.json({ members: personsOnSim(me.phone_hash).map((m) => ({ person_id: m.id, label: m.label, locked: isLockedAnywhere(m.id), self: m.id === me.id })) });
 }));
 
 identityRouter.post("/login", wrap(async (req, res) => {
@@ -112,10 +118,34 @@ identityRouter.post("/login", wrap(async (req, res) => {
   } else if (cands.length > 1) {
     return fail(res, 400, "several adults share this number; send person_id", { code: "person_required" });
   }
-  const r = await checkPin(target, pin);
-  if (r === "ok") { audit(target.id, "login", "person:" + target.id, {}); return void res.json({ token: createSession(target.id), person: publicPerson(getPerson(target.id)!) }); }
-  if (r === "locked" || r === "just_locked") return fail(res, 423, "too many wrong PINs; this sign-in is locked for 30 minutes. The number's owner has been told.", { locked: true });
+  const r = await checkPin(target, pin, new Date(), sourceOf(req));
+  if (r === "limited") return fail(res, 429, "too many wrong PINs for this sign-in; wait and retry, or reset your PIN with a code sent to your number", { limited: true });
+  if (r === "ok") { touchActive(target.id); audit(target.id, "login", "person:" + target.id, {}); return void res.json({ token: createSession(target.id), person: publicPerson(getPerson(target.id)!) }); }
+  if (r === "locked" || r === "just_locked") return fail(res, 423, "too many wrong PINs from this device; sign-in from here is locked for 30 minutes. The number's owner has been told and can reset the PIN with a code.", { locked: true });
   fail(res, 401, "wrong phone or PIN");
+}));
+
+/** Owner recovery: a fresh OTP on the number (from /signup/request) resets the PIN of a person on that number and clears all locks. */
+identityRouter.post("/pin/recover", wrap(async (req, res) => {
+  const phone = str(req.body?.phone), otp = str(req.body?.otp), pin = str(req.body?.new_pin), personId = str(req.body?.person_id);
+  if (!E164_IN.test(phone) || !/^\d{6}$/.test(otp)) return fail(res, 400, "invalid phone or otp");
+  if (!PIN_RE.test(pin)) return fail(res, 400, "PIN must be 4 to 6 digits");
+  if (!rateAllow("recover:ip:" + ipOf(req), 20, 15 * MIN)) return fail(res, 429, "too many attempts; wait and retry");
+  const d = getDb();
+  const ph = phoneHash(phone);
+  const row = d.prepare("SELECT code_hash, expires_at, attempts FROM otps WHERE phone_hash = ?").get(ph) as { code_hash: string; expires_at: string; attempts: number } | undefined;
+  if (!row || row.expires_at < new Date().toISOString() || row.attempts >= 5) return fail(res, 400, "code expired or invalid; request a new one");
+  const given = Buffer.from(getKeys().hmac("otp", otp), "hex"), want = Buffer.from(row.code_hash, "hex");
+  if (!crypto.timingSafeEqual(given, want)) {
+    d.prepare("UPDATE otps SET attempts = attempts + 1 WHERE phone_hash = ?").run(ph);
+    return fail(res, 400, "code expired or invalid; request a new one");
+  }
+  d.prepare("DELETE FROM otps WHERE phone_hash = ?").run(ph);
+  const cands = personsOnSim(ph);
+  const target = personId ? cands.find((c) => c.id === personId) : cands.length === 1 ? cands[0] : undefined;
+  if (!target) return fail(res, 400, cands.length > 1 ? "several adults share this number; send person_id" : "no account on this number", cands.length > 1 ? { code: "person_required" } : {});
+  resetPin(target.id, pin);
+  res.json({ ok: true });
 }));
 
 identityRouter.get("/me", requireAuth, wrap((req, res) => {
@@ -134,6 +164,7 @@ identityRouter.post("/residence", requireAuth, wrap((req, res) => {
   d.prepare("UPDATE persons SET residence_enc = ?, residence_unit = ?, residence_declared_at = ?, tier = 'T1' WHERE id = ?")
     .run(getKeys().encrypt("residence", residence), unit, new Date().toISOString(), p.id);
   if (p.tier === "T2") d.prepare("DELETE FROM attestations WHERE subject_id = ?").run(p.id); // moved: earlier confirmations no longer apply
+  touchActive(p.id);
   audit(p.id, "residence.declare", "person:" + p.id, { unit: unit ?? "" });
   res.json({ person: publicPerson(getPerson(p.id)!) });
 }));

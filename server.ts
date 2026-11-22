@@ -74,7 +74,7 @@ getDynamicConfig();
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   // Use JSON body parser for incoming API payloads
   app.use(express.json());
