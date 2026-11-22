@@ -1,6 +1,7 @@
 /**
- * Restore drill (S-68). Usage: tsx scripts/restore-drill.ts [--file data/backups/civic-....db.enc] [--dir data/backups]
- * Restores the newest (or given) backup into a temp DB, compares row counts with the manifest and runs verifyAuditChain on it.
+ * Restore drill (S-68, S-74). Usage: tsx scripts/restore-drill.ts [--file data/backups/civic-<stamp>.manifest.json] [--dir data/backups]
+ * Restores the newest (or given) backup SET into temp store files, compares each store's row counts with the manifest, checks that no store holds
+ * another store's tables and runs verifyAuditChain on the restored audit store.
  * Exit 0 only when everything matches. Never prints key material. Run with the SAME key provider as the source (audit digests are keyed).
  */
 import "dotenv/config";
@@ -18,7 +19,7 @@ if (!file) { console.error(`restore-drill: no backup found in ${dir}`); process.
 try {
   const r = restoreDrill({ file, key: resolveBackupKey() });
   if (r.ok) {
-    console.log(`restore-drill: OK ${path.basename(file)} tables=${Object.keys(r.tables).length} auditChecked=${r.audit?.checked ?? 0}`);
+    console.log(`restore-drill: OK ${path.basename(file)} stores=${Object.keys(r.manifest?.stores ?? {}).length} tables=${Object.keys(r.tables).length} auditChecked=${r.audit?.checked ?? 0}`);
   } else {
     console.error(`restore-drill: FAILED ${path.basename(file)}`);
     r.problems.forEach((p) => console.error("  - " + p));

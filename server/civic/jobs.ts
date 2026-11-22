@@ -5,8 +5,9 @@
  * verifyAuditChain breakage raises an alarm: an audit entry plus `alarm` in the status until a later verification passes.
  * The issue `sweep` job defers to startIssueSweeper when that timer is running, so the sweep is never double-run.
  */
-import { anchorAuditHead, audit, verifyAuditChain } from "./core";
+import { anchorAuditHead, audit, drainErasureOutbox, pendingErasureCount, verifyAuditChain } from "./core";
 import { purgeExpired } from "./identity/service";
+import { expirePendingEnrolments } from "./identity/enrolment";
 import { eraseDependentsAt18, expireInvites } from "./households/routes";
 import { purgeExpiredMedia } from "./issues/media";
 import { isIssueSweeperRunning, sweep } from "./issues/service";
@@ -33,7 +34,9 @@ export function defaultJobs(): JobDef[] {
   return [
     { name: "purgeExpired", intervalMs: 6 * HOUR, run: (now) => purgeExpired(now) },
     { name: "eraseDependentsAt18", intervalMs: DAY, run: (now) => ({ erased: eraseDependentsAt18(now) }) },
-    { name: "expireInvites", intervalMs: HOUR, run: (now) => { expireInvites(now.getTime()); return {}; } },
+    { name: "expireInvites", intervalMs: HOUR, run: (now) => { expireInvites(now.getTime()); return { pendingEnrolmentsExpired: expirePendingEnrolments(now) }; } },
+    // S-74: the second step of account erasure (issue-store unlinking, audit redaction) is retried until it succeeds.
+    { name: "retryErasureOutbox", intervalMs: 5 * MIN, run: () => { const r = drainErasureOutbox(); return { done: r.done, failed: r.failed, pending: pendingErasureCount() }; } },
     { name: "anchorAuditHead", intervalMs: HOUR, run: () => { const a = anchorAuditHead(); return a ? { seq: a.seq } : { seq: null }; } },
     {
       name: "verifyAuditChain", intervalMs: HOUR, run: (now) => {

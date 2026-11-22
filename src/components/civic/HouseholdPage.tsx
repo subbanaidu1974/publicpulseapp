@@ -6,7 +6,8 @@ const API = "/api/v1/civic/households";
 
 interface Member { id: string; relation: string; status: string; isHead: boolean; isYou: boolean; personId?: string; yearOfBirth?: number }
 interface Invite { id: string; relation: string; status: string; expiresAt: number }
-interface Roster { id: string; isHead: boolean; members: Member[]; invites: Invite[] }
+interface PendingTransfer { id: string; role: "sender" | "recipient"; expiresAt: number; toPersonId?: string }
+interface Roster { id: string; isHead: boolean; members: Member[]; invites: Invite[]; pendingTransfer?: PendingTransfer | null }
 
 const ADULT_RELATIONS = ["spouse", "parent", "son", "daughter", "sibling", "relative", "other"];
 const DEPENDENT_RELATIONS = ["son", "daughter", "grandchild", "sibling", "ward", "other"];
@@ -34,7 +35,7 @@ export default function HouseholdPage({ token }: { token?: string | null }) {
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw Object.assign(new Error(j.error ?? String(r.status)), { status: r.status });
+    if (!r.ok) throw Object.assign(new Error(typeof j.error === "string" ? j.error : String(r.status)), { status: r.status, code: j.code as string | undefined, retryAt: j.retryAt as number | undefined });
     return j;
   }, [auth]);
 
@@ -44,9 +45,22 @@ export default function HouseholdPage({ token }: { token?: string | null }) {
   }, [call]);
   useEffect(() => { void load(); }, [load]);
 
+  /** Server error codes get plain-language copy; anything else shows the server's own message. */
+  const explain = (e: Error & { code?: string; retryAt?: number }): string => {
+    switch (e.code) {
+      case "dependents_cap": return c("c.hh.depCap");
+      case "invite_daily_cap": return c("c.hh.capDaily");
+      case "invite_target_cap": return c("c.hh.capTarget");
+      case "invite_cooldown": return `${c("c.hh.cooldown")} ${e.retryAt ? new Date(e.retryAt).toLocaleString() : ""}`.trim();
+      case "sms_budget": return c("c.hh.smsBudget");
+      case "transfer_pending": return c("c.hh.xferPending");
+      case "transfer_expired": return c("c.hh.xferExpired");
+      default: return e.message === "already invited" ? c("c.hh.already") : e.message;
+    }
+  };
   const act = async (fn: () => Promise<unknown>, ok: string) => {
     setErr(null); setMsg(null);
-    try { await fn(); setMsg(ok); await load(); } catch (e) { setErr((e as Error).message); }
+    try { await fn(); setMsg(ok); await load(); } catch (e) { setErr(explain(e as Error & { code?: string; retryAt?: number })); await load(); }
   };
 
   const btn = "border border-black bg-black text-white px-4 py-1.5 uppercase tracking-widest text-xs font-black cursor-pointer disabled:opacity-60";
@@ -73,6 +87,23 @@ export default function HouseholdPage({ token }: { token?: string | null }) {
 
       {roster && (
         <>
+          {roster.pendingTransfer && (
+            <section data-testid="transfer-pending" data-role={roster.pendingTransfer.role} aria-label={c("c.hh.askHead")} className="border border-black bg-amber-50 p-4 space-y-3">
+              <p className="text-sm font-sans">
+                {roster.pendingTransfer.role === "sender" ? c("c.hh.xferSender") : c("c.hh.xferRecipient")} {new Date(roster.pendingTransfer.expiresAt).toLocaleString()}
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {roster.pendingTransfer.role === "recipient" ? (
+                  <>
+                    <button data-testid="transfer-accept" type="button" className={btn} onClick={() => act(() => call("POST", "/transfer-head/accept", { transferId: roster.pendingTransfer!.id }), c("c.hh.xferAccepted"))}>{c("c.hh.xferAccept")}</button>
+                    <button data-testid="transfer-decline" type="button" className={ghost} onClick={() => act(() => call("POST", "/transfer-head/decline", { transferId: roster.pendingTransfer!.id }), c("c.hh.xferDeclined"))}>{c("c.hh.xferDecline")}</button>
+                  </>
+                ) : (
+                  <button data-testid="transfer-cancel" type="button" className={ghost} onClick={() => act(() => call("POST", "/transfer-head/cancel", { transferId: roster.pendingTransfer!.id }), c("c.hh.xferCancelled"))}>{c("c.hh.xferCancel")}</button>
+                )}
+              </div>
+            </section>
+          )}
           <section aria-labelledby="hh-roster" data-testid="household-roster" className="space-y-2">
             <h3 id="hh-roster" className="text-xs uppercase tracking-widest font-sans font-black">{c("h.members")}</h3>
             <ul className="divide-y divide-black/20 border border-black bg-white">
@@ -86,8 +117,8 @@ export default function HouseholdPage({ token }: { token?: string | null }) {
                   <span className="flex gap-2 items-center">
                     <span className="text-slate-800">{labelFor(c, "s", m.status)}</span>
                     {roster.isHead && m.status === "accepted" && !m.isHead && m.personId && (
-                      <button data-testid="household-transfer" type="button" className={ghost} onClick={() => act(() => call("POST", "/transfer-head", { toPersonId: m.personId }), c("h.transferred"))}>
-                        {c("h.makeHead")}
+                      <button data-testid="household-transfer" type="button" className={ghost} disabled={!!roster.pendingTransfer} onClick={() => act(() => call("POST", "/transfer-head", { toPersonId: m.personId }), c("c.hh.xferSent"))}>
+                        {c("c.hh.askHead")}
                       </button>
                     )}
                     {!m.isHead && (roster.isHead || m.isYou) && (

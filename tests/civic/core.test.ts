@@ -4,8 +4,7 @@ import path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   FileAnchorSink, anchorAuditHead, audit, auditPrivilegedRead, createSession, getDb, getKeys, getSms, migrate, registerMigration,
-  requireAuth, resetDbForTests, setAnchorSink, smsOutbox, DevKeyProvider, verifyAuditChain, recordConsent, redactAuditFor,
-} from "../../server/civic/core";
+  requireAuth, resetDbForTests, setAnchorSink, smsOutbox, DevKeyProvider, verifyAuditChain, recordConsent, redactAuditFor, getStore } from "../../server/civic/core";
 
 beforeEach(() => { resetDbForTests(); migrate(); });
 
@@ -69,21 +68,21 @@ describe("core: audit log (S-42)", () => {
   it("@E2E-51 tampering with an entry breaks chain verification; deleting rows too", () => {
     audit("a", "x.one", "obj:1", { n: 1 }); audit("b", "x.two", "obj:2", { n: 2 }); audit("c", "x.three", "obj:3");
     expect(verifyAuditChain()).toMatchObject({ ok: true, checked: 3 });
-    getDb().prepare("UPDATE audit_log SET meta = '{\"n\":99}' WHERE seq = 2").run();
+    getStore("audit").prepare("UPDATE audit_log SET meta = '{\"n\":99}' WHERE seq = 2").run();
     expect(verifyAuditChain()).toMatchObject({ ok: false, brokenAt: 2 });
     resetDbForTests(); migrate();
     audit("a", "x.one", "obj:1"); audit("b", "x.two", "obj:2"); audit("c", "x.three", "obj:3");
-    getDb().prepare("UPDATE audit_log SET action = 'x.changed' WHERE seq = 2").run();
+    getStore("audit").prepare("UPDATE audit_log SET action = 'x.changed' WHERE seq = 2").run();
     expect(verifyAuditChain().ok).toBe(false);
     resetDbForTests(); migrate();
     audit("a", "x.one", "obj:1"); audit("b", "x.two", "obj:2"); audit("c", "x.three", "obj:3");
-    getDb().prepare("DELETE FROM audit_log WHERE seq = 2").run();
+    getStore("audit").prepare("DELETE FROM audit_log WHERE seq = 2").run();
     expect(verifyAuditChain()).toMatchObject({ ok: false, brokenAt: 2 });
   });
 
   it("@E2E-51 a privileged read is itself logged", () => {
     auditPrivilegedRead("officer-7", "person:abc", "grievance review");
-    const row = getDb().prepare("SELECT actor, action, object, meta FROM audit_log WHERE action = 'read.sensitive'").get() as { actor: string; object: string; meta: string };
+    const row = getStore("audit").prepare("SELECT actor, action, object, meta FROM audit_log WHERE action = 'read.sensitive'").get() as { actor: string; object: string; meta: string };
     expect(row.actor).toBe("officer-7");
     expect(row.object).toBe("person:abc");
     expect(JSON.parse(row.meta)).toEqual({ purpose: "grievance review" });
@@ -97,7 +96,7 @@ describe("core: audit log (S-42)", () => {
     const rec = anchorAuditHead();
     expect(rec!.seq).toBe(4);
     expect(verifyAuditChain().ok).toBe(true);
-    getDb().prepare("DELETE FROM audit_log WHERE seq > 2").run(); // attacker drops the tail; remaining chain is valid
+    getStore("audit").prepare("DELETE FROM audit_log WHERE seq > 2").run(); // attacker drops the tail; remaining chain is valid
     const v = verifyAuditChain();
     expect(v.ok).toBe(false);
     expect(v.anchorMismatch).toBe(4);
@@ -109,8 +108,8 @@ describe("core: audit log (S-42)", () => {
     recordConsent("p9", "signup", "v1");
     expect(redactAuditFor("p9")).toBe(2);
     expect(verifyAuditChain().ok).toBe(true);
-    expect(JSON.stringify(getDb().prepare("SELECT * FROM audit_log").all())).not.toContain("p9");
-    getDb().prepare("UPDATE audit_log SET redacted = 1, actor = '[redacted]' WHERE seq = 2").run();
+    expect(JSON.stringify(getStore("audit").prepare("SELECT * FROM audit_log").all())).not.toContain("p9");
+    getStore("audit").prepare("UPDATE audit_log SET redacted = 1, actor = '[redacted]' WHERE seq = 2").run();
     expect(verifyAuditChain().ok).toBe(false);
   });
 });
@@ -135,7 +134,7 @@ describe("core: roles", () => {
     grantRole("admin1", "off1", "moderator");
     expect(hasRole("off1", "moderator", "anywhere")).toBe(true); // unscoped covers all
     expect(listRoles("off1")).toEqual([{ role: "moderator", jurisdiction: null }, { role: "officer", jurisdiction: "village:123" }]);
-    const rows = getDb().prepare("SELECT action FROM audit_log WHERE action LIKE 'role.%'").all() as { action: string }[];
+    const rows = getStore("audit").prepare("SELECT action FROM audit_log WHERE action LIKE 'role.%'").all() as { action: string }[];
     expect(rows.length).toBe(3);
     expect(() => revokeRole("rando", "off1", "officer")).toThrow();
     revokeRole("admin1", "off1", "officer");
@@ -163,7 +162,7 @@ describe("core: roles", () => {
 
 describe("core: transactions", () => {
   it("runInTransaction rolls back everything incl. audit rows on throw, and nests via savepoints", () => {
-    const n = () => (getDb().prepare("SELECT COUNT(*) AS c FROM audit_log").get() as { c: number }).c;
+    const n = () => (getStore("audit").prepare("SELECT COUNT(*) AS c FROM audit_log").get() as { c: number }).c;
     expect(() => runInTransaction(() => { audit("a", "x.one", "o"); throw new Error("fail"); })).toThrow("fail");
     expect(n()).toBe(0);
     runInTransaction(() => {

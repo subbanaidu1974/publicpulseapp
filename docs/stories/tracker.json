@@ -667,7 +667,7 @@
       "epic": "Security",
       "title": "Login/OTP hardening: per-phone+person+source keys, per-purpose OTPs, weak-PIN blocklist, logout, session list/revoke, shorter TTL",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-74"
       ],
@@ -680,20 +680,21 @@
       "epic": "Security",
       "title": "Trusted proxy and device attestation (Play Integrity/App Attest) for the app channel; edge-supplied ASN",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-75"
       ],
       "priority": "P2",
       "wave": "W4",
-      "source": "gap-audit: 60"
+      "source": "gap-audit: 60",
+      "notes": "Attestation verifier is a dev stub; no production guard yet for it or a missing anchor secret."
     },
     {
       "id": "S-61",
       "epic": "Security",
       "title": "Invite and SMS abuse caps: per-head daily invites, per-target-number cap, global SMS budget",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-76"
       ],
@@ -849,7 +850,7 @@
       "epic": "Operations",
       "title": "Async/worker scrypt, capacity plan and Postgres/PostGIS migration path",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-88"
       ],
@@ -862,26 +863,28 @@
       "epic": "Operations",
       "title": "Split identity, issue and survey stores with no cross-store joins",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-89"
       ],
       "priority": "P1",
       "wave": "W4",
-      "source": "gap-audit: 52,86"
+      "source": "gap-audit: 52,86",
+      "notes": "Four stores on one host/volume/operator; release-gate row 5 stays unchecked pending reviewer sign-off."
     },
     {
       "id": "S-75",
       "epic": "Operations",
       "title": "Real lite entry page, 2G budget measurement and load tests (OTP flood, count-day)",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-90"
       ],
       "priority": "P1",
       "wave": "W4",
-      "source": "gap-audit: 115"
+      "source": "gap-audit: 115",
+      "notes": "Measured on simulated 2G only (about 3 s to a usable form); a real low-end phone is still needed for the release gate."
     },
     {
       "id": "S-76",
@@ -1610,7 +1613,7 @@
       "epic": "Civic",
       "title": "Login person-picker for multi-adult SIMs",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-146"
       ],
@@ -1623,7 +1626,7 @@
       "epic": "Civic",
       "title": "PIN recovery UI using OTP",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-147"
       ],
@@ -1636,7 +1639,7 @@
       "epic": "Civic",
       "title": "Residence declaration and hamlet search UI (T1)",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-148"
       ],
@@ -1649,20 +1652,21 @@
       "epic": "Civic",
       "title": "Attestation and volunteer screens (T2)",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-149"
       ],
       "priority": "P2",
       "wave": "W4",
-      "source": "gap-audit: 49"
+      "source": "gap-audit: 49",
+      "notes": "Attestation explainer is volunteer-only; no change-PIN screen yet."
     },
     {
       "id": "S-135",
       "epic": "Civic",
       "title": "Accept-invite screen: notice, own PIN, decline and report-not-agreed",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-150"
       ],
@@ -1675,20 +1679,21 @@
       "epic": "Civic",
       "title": "Volunteer enrolment: adult sets own PIN and proves phone control; context persisted in table",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-151"
       ],
       "priority": "P0",
       "wave": "W4",
-      "source": "gap-audit: 39,40,41"
+      "source": "gap-audit: 39,40,41",
+      "notes": "Re-check sampler exists but nothing schedules it yet."
     },
     {
       "id": "S-137",
       "epic": "Civic",
       "title": "Issue photo and voice upload wired to /issues/media with GPS",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-152"
       ],
@@ -1701,39 +1706,42 @@
       "epic": "Civic",
       "title": "WebP and HEIC photo support with EXIF stripping",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-153"
       ],
       "priority": "P2",
       "wave": "W4",
-      "source": "gap-audit: 43"
+      "source": "gap-audit: 43",
+      "notes": "WebP/HEIC/AVIF refused with convert_on_client; the client re-encodes to JPEG (no server image library added)."
     },
     {
       "id": "S-139",
       "epic": "Civic",
       "title": "Issue detail page, feed filters by village/mandal/constituency, paginated bulk export",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-154"
       ],
       "priority": "P1",
       "wave": "W4",
-      "source": "gap-audit: 51"
+      "source": "gap-audit: 51",
+      "notes": "Owner appeal view missing: public detail always sets can_appeal=false and GET /issues/mine/:id is not routed."
     },
     {
       "id": "S-140",
       "epic": "Civic",
       "title": "Officer/moderator consoles and audited admin role grants with MFA; unify roles tables",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-155"
       ],
       "priority": "P0",
       "wave": "W4",
-      "source": "gap-audit: 34,100"
+      "source": "gap-audit: 34,100",
+      "notes": "Roles unified in core with dual-control and TOTP; verified government onboarding (S-141) still blocked."
     },
     {
       "id": "S-141",
@@ -1753,7 +1761,7 @@
       "epic": "Civic",
       "title": "Moderation lexicon curation workflow, queue UI and false-positive metrics",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-157"
       ],
@@ -1766,7 +1774,7 @@
       "epic": "Civic",
       "title": "Erasure completeness for all issue tables and a dump-all-tables test",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-158"
       ],
@@ -1779,7 +1787,7 @@
       "epic": "Civic",
       "title": "Audit log: public redacted view, real external anchor sink, privileged-read calls wired",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-159"
       ],
@@ -1805,7 +1813,7 @@
       "epic": "Civic",
       "title": "IVR upgrades: recording fetch, full category set, persisted call state, unified lockout",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-161"
       ],
@@ -1818,7 +1826,7 @@
       "epic": "Civic",
       "title": "Media hardening: encryption at rest, GPS rounding, AV scan, retention alignment",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-162"
       ],
@@ -1831,7 +1839,7 @@
       "epic": "Civic",
       "title": "Icon-led categories, trust-tier badges, category parity across web and IVR",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-163"
       ],
@@ -1844,7 +1852,7 @@
       "epic": "Civic",
       "title": "Household: recipient confirms head transfer; dependent caps; re-invite cooldown",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-164"
       ],

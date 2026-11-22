@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getDb, grantRole as grantCoreRole, migrate, resetDbForTests } from "../../server/civic/core";
+import { getDb, grantRole as grantCoreRole, migrate, resetDbForTests, getStore } from "../../server/civic/core";
 import { createPerson } from "../../server/civic/identity/service";
 import { loadDemoGeo } from "../../server/civic/geo/service";
 import { createCivicRouter } from "../../server/civic/index";
@@ -37,10 +37,10 @@ describe("scheduled sweep (S-25)", () => {
     expect(vi.getTimerCount()).toBe(1);
     clock.now = () => at(10);
     vi.advanceTimersByTime(60_000);
-    expect((getDb().prepare("SELECT esc_level l FROM issue WHERE id=?").get(id) as any).l).toBe(0);
+    expect((getStore("issues").prepare("SELECT esc_level l FROM issue WHERE id=?").get(id) as any).l).toBe(0);
     clock.now = () => at(80); // past the 72 h SLA
     vi.advanceTimersByTime(60_000);
-    expect((getDb().prepare("SELECT esc_level l FROM issue WHERE id=?").get(id) as any).l).toBe(1);
+    expect((getStore("issues").prepare("SELECT esc_level l FROM issue WHERE id=?").get(id) as any).l).toBe(1);
     // a failing sweep is logged, not thrown, and the timer keeps running
     const err = vi.spyOn(console, "error").mockImplementation(() => {});
     clock.now = () => { throw new Error("boom"); };
@@ -78,16 +78,16 @@ describe("escalation includes the constituency liaison (S-25)", () => {
     expect(escalationChain("DEMO-V-ANM", new Date("2025-06-01")).find((u) => u.level === "constituency")!.lgd).toBe("DEMO-C-TNL");
     expect(escalationChain("DEMO-V-ANM", new Date("2026-06-01")).find((u) => u.level === "constituency")!.lgd).toBe("DEMO-C-PTR");
     // no constituency link: the step is skipped
-    getDb().prepare("DELETE FROM village_constituency WHERE village_lgd='DEMO-V-HNK'").run();
+    getStore("issues").prepare("DELETE FROM village_constituency WHERE village_lgd='DEMO-V-HNK'").run();
     expect(escalationChain("DEMO-V-HNK").map((u) => u.level)).toEqual(["village", "mandal", "district", "state"]);
   });
 
   it("escalates village -> mandal -> district -> constituency -> state, audited, re-arming at the top", () => {
     const id = reportIssue("rep", { category: "electricity", village_lgd: "DEMO-V-KLR", description_en: "Transformer burnt out" }, T0).id; // 48 h SLA
-    const lvl = () => getDb().prepare("SELECT jurisdiction_lgd j, esc_level l FROM issue WHERE id=?").get(id) as any;
+    const lvl = () => getStore("issues").prepare("SELECT jurisdiction_lgd j, esc_level l FROM issue WHERE id=?").get(id) as any;
     const steps = [[49, "DEMO-M-KLP", 1], [98, "DEMO-D-GNT", 2], [147, "DEMO-C-TNL", 3], [196, "DEMO-S-AP", 4], [245, "DEMO-S-AP", 4]] as const;
     for (const [h, j, l] of steps) { sweep(at(h)); expect(lvl()).toMatchObject({ j, l }); }
-    const rows = getDb().prepare("SELECT meta FROM audit_log WHERE action='issue.escalate' ORDER BY seq").all() as any[];
+    const rows = getStore("audit").prepare("SELECT meta FROM audit_log WHERE action='issue.escalate' ORDER BY seq").all() as any[];
     expect(rows.map((r) => JSON.parse(r.meta).to_level)).toEqual(["mandal", "district", "constituency", "state"]);
   });
 

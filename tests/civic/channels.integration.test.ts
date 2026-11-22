@@ -1,8 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { reporterPseudonym } from "../../server/civic/core/pseudonyms";
 import express from "express";
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import { getDb, migrate, resetDbForTests, smsOutbox } from "../../server/civic/core";
+import { getDb, migrate, resetDbForTests, smsOutbox, getStore } from "../../server/civic/core";
 import { loadDemoGeo } from "../../server/civic/geo/service";
 import { issuesRouter } from "../../server/civic/issues/routes";
 import { createPerson } from "../../server/civic/identity/service";
@@ -50,19 +51,19 @@ describe("channels with the real issues and identity modules (@E2E-55)", () => {
     await chanPost("/ivr", { callId: mc.callId, digits: "1" });
     const done = await chanPost("/ivr", { callId: mc.callId, recording: "voice/real-1.wav" });
     expect(done.body.state).toBe("done");
-    const row = getDb().prepare("SELECT category, village_lgd, photo_ref, reporter_id FROM issue WHERE id = ?").get(done.body.referenceId) as any;
-    expect(row).toMatchObject({ category: "water", village_lgd: "DEMO-V-KLR", photo_ref: "voice/real-1.wav", reporter_id: p.id });
+    const row = getStore("issues").prepare("SELECT category, village_lgd, photo_ref, reporter_id FROM issue WHERE id = ?").get(done.body.referenceId) as any;
+    expect(row).toMatchObject({ category: "water", village_lgd: "DEMO-V-KLR", photo_ref: "voice/real-1.wav", reporter_id: reporterPseudonym(done.body.referenceId, p.id) });
     const sms = smsOutbox.filter((m) => m.to === "+919876500001").at(-1)!;
     expect(sms.text).toContain(done.body.referenceId);
   });
 
   it("unregistered caller: no issue, an SMS pointing to the app, and no leak", async () => {
-    const before = (getDb().prepare("SELECT COUNT(*) c FROM issue").get() as any).c;
+    const before = (getStore("issues").prepare("SELECT COUNT(*) c FROM issue").get() as any).c;
     const { body: mc } = await chanPost("/missed-call", { from: "9876500002" });
     for (const d of ["", "1", "2"]) await chanPost("/ivr", d ? { callId: mc.callId, digits: d } : { callId: mc.callId });
     const done = await chanPost("/ivr", { callId: mc.callId, recording: "voice/x.wav" });
     expect(done.body.error).toBe("not_registered");
-    expect((getDb().prepare("SELECT COUNT(*) c FROM issue").get() as any).c).toBe(before);
+    expect((getStore("issues").prepare("SELECT COUNT(*) c FROM issue").get() as any).c).toBe(before);
     expect(smsOutbox.at(-1)!.text).toMatch(/sign up/i);
   });
 

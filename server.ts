@@ -5,7 +5,7 @@ import { createApiRouter, loadDatasets } from "./server/api";
 import { createCivicRouter } from "./server/civic";
 import { buildApiApp } from "./server/security";
 import { installConsole, log, obsRouter, requestContext } from "./server/obs";
-import { migrationStatus, getDb } from "./server/civic/core";
+import { migrationStatus, pingStores } from "./server/civic/core";
 import { demoProvenance } from "./server/civic/guards";
 import { jobsStatus } from "./server/civic/jobs";
 
@@ -30,7 +30,7 @@ async function startServer() {
   if (process.env.TRUST_PROXY) app.set("trust proxy", /^\d+$/.test(process.env.TRUST_PROXY) ? Number(process.env.TRUST_PROXY) : process.env.TRUST_PROXY);
   app.use(requestContext());
   app.use(obsRouter({
-    dbPing: () => { getDb().prepare("SELECT 1").get(); },
+    dbPing: () => { pingStores(); },
     migrations: migrationStatus,
     jobs: jobsStatus,
     demoProvenance,
@@ -45,10 +45,20 @@ async function startServer() {
       server: { middlewareMode: true },
       appType: "spa",
     });
+    // /lite is its own page (S-75): never the SPA shell.
+    app.get(["/lite", "/lite/"], async (req, res, next) => {
+      try {
+        const raw = await (await import("fs")).promises.readFile(path.join(process.cwd(), "lite.html"), "utf8");
+        res.status(200).type("html").send(await vite.transformIndexHtml(req.originalUrl, raw));
+      } catch (e) { next(e); }
+    });
     app.use(vite.middlewares);
   } else {
     log.info("[Prod Server] Serving production static asset bundles...");
     const distPath = path.join(process.cwd(), "dist");
+    app.get(["/lite", "/lite/"], (_req, res) => { res.setHeader("Cache-Control", "no-cache"); res.sendFile(path.join(distPath, "lite.html")); });
+    // hashed build assets never change: cache them hard; everything else revalidates
+    app.use("/assets", express.static(path.join(distPath, "assets"), { immutable: true, maxAge: "1y" }));
     app.use(express.static(distPath));
     app.get("*", (_req, res) => {
       res.sendFile(path.join(distPath, "index.html"));

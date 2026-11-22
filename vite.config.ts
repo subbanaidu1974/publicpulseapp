@@ -11,6 +11,12 @@ export default defineConfig(() => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    build: {
+      // The polyfill is a separate request shared by both pages; on 2G that is a wasted 300 ms round trip for /lite. Every browser that runs type=module has native modulepreload or ignores the hint.
+      modulePreload: { polyfill: false },
+      // Two pages: the full app and the separately built, framework-free /lite entry (S-75). No shared chunks beyond what Rollup finds.
+      rollupOptions: { input: { main: path.resolve(__dirname, "index.html"), lite: path.resolve(__dirname, "lite.html") } },
+    },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.

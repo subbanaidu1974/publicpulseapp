@@ -1,26 +1,67 @@
 import express, { Router, type NextFunction, type Request, type RequestHandler, type Response } from "express";
-import { getDb, requireAuth } from "../core";
+import { getStore, requireAuth } from "../core";
 import * as svc from "./service";
-import { MediaError, getMedia, maxUploadBody, parseMultipart, readMediaFile, storeMedia } from "./media";
+import { MediaError, getMedia, maxUploadBody, ownsMedia, parseMultipart, readMediaFile, storeMedia } from "./media";
+import * as pub from "./public";
+import * as cur from "./curation";
 
 /** Build the router; `auth` is injectable so tests can run without the identity service. */
 export function createIssuesRouter(auth: RequestHandler = requireAuth): Router {
   const r = Router();
   const wrap = (fn: (req: Request, res: Response) => unknown) => (req: Request, res: Response, next: NextFunction) => {
-    try { const out = fn(req, res); if (out !== undefined) res.json(out); }
-    catch (e) {
+    const fail = (e: unknown) => {
       if (e instanceof svc.HttpError) return res.status(e.status).json({ error: e.message, ...e.extra });
       if (e instanceof MediaError) return res.status(e.status).json({ error: e.message, ...e.extra });
       next(e);
-    }
+    };
+    try {
+      const out = fn(req, res);
+      if (out instanceof Promise) out.then(v => { if (v !== undefined) res.json(v); }, fail);
+      else if (out !== undefined) res.json(out);
+    } catch (e) { fail(e); }
   };
   const pid = (req: Request) => req.person!.id;
 
   // Public: identical for every caller, no reporter identity, no auth dependence.
+  // Filters: village, mandal, district, constituency (LGD codes), category, status. Cursor: `cursor` (or legacy `since`) = last seq seen;
+  // response carries next_cursor (null at the end) and has_more.
   r.get("/feed", wrap((req, res) => {
     res.set("Cache-Control", "public, max-age=60");
-    return svc.feed(Number(req.query.since) || 0, Number(req.query.limit) || 200);
+    return pub.feedPage(req.query);
   }));
+
+  // Canonical categories (id, EN/TE labels, icon, IVR digit) and trust-tier badge labels: one source for web and IVR.
+  r.get("/categories", wrap((_req, res) => { res.set("Cache-Control", "public, max-age=3600"); return pub.categoriesPayload(); }));
+
+  // Bulk export: identical for every caller, no personal fields, rate limited per address. ?format=ndjson (default) | csv, same filters
+  // as the list, ?cursor= continues; the next cursor is in the X-Next-Cursor header.
+  r.get("/export", (req, res, next) => {
+    const gate = pub.exportRateAllow(req.ip ?? "-");
+    if (!gate.ok) { res.set("Retry-After", String(gate.retryAfterSec)); return void res.status(429).json({ error: "export rate limit reached", retry_after_seconds: gate.retryAfterSec }); }
+    wrap((_rq, rs) => {
+      const csv = String(req.query.format ?? "ndjson") === "csv";
+      const { rows, next_cursor } = pub.exportRows(req.query);
+      rs.set({ "Content-Type": csv ? "text/csv; charset=utf-8" : "application/x-ndjson; charset=utf-8", "Cache-Control": "public, max-age=300", "X-Content-Type-Options": "nosniff", "Content-Disposition": `attachment; filename="issues.${csv ? "csv" : "ndjson"}"` });
+      if (next_cursor) rs.set("X-Next-Cursor", next_cursor);
+      rs.send(csv ? pub.toCsv(rows) : pub.toNdjson(rows));
+    })(req, res, next);
+  });
+
+  // Public list of visible issues, newest first. Same filters as the feed (+ created_since), cursor pagination.
+  r.get("/", wrap((req, res) => { res.set("Cache-Control", "public, max-age=60"); return pub.listIssues(req.query); }));
+
+  // Moderator tools (role moderator or admin): held queue with rule-id reasons, metrics, lexicon versioning and reviewed changes.
+  r.get("/moderation/queue", auth, wrap(req => cur.heldQueue(pid(req), { status: String(req.query.status ?? ""), limit: Number(req.query.limit), cursor: req.query.cursor as string | undefined })));
+  r.get("/moderation/metrics", auth, wrap(req => cur.moderationMetrics(pid(req), { since: req.query.since as string | undefined })));
+  r.get("/moderation/lexicon", auth, wrap(req => cur.lexiconInfo(pid(req))));
+  // UI-friendly aliases: {term, action: add|remove, list?} proposes a change; /moderation/lexicon/:id/review {decision: approve|reject}.
+  r.post("/moderation/lexicon", auth, wrap((req, res) => { res.status(201); return cur.proposeChange(pid(req), { op: req.body?.action === "remove" ? "retire" : "add", list: req.body?.list ?? "abuse.en", term: req.body?.term, note: req.body?.note }); }));
+  r.post("/moderation/lexicon/:id/review", auth, wrap(req => cur.reviewChange(pid(req), req.params.id, String(req.body?.decision))));
+  r.get("/officer/queue", auth, wrap(req => svc.officerQueue(pid(req), Number(req.query.limit) || 100)));
+  r.post("/:id/escalate", auth, wrap(req => svc.moderate(req.params.id, pid(req), "escalate", svc.clock.now(), typeof req.body?.note === "string" ? req.body.note : undefined)));
+  r.get("/moderation/lexicon/changes", auth, wrap(req => cur.listChanges(pid(req), req.query.status as string | undefined)));
+  r.post("/moderation/lexicon/changes", auth, wrap((req, res) => { res.status(201); return cur.proposeChange(pid(req), req.body ?? {}); }));
+  r.post("/moderation/lexicon/changes/:id/review", auth, wrap(req => cur.reviewChange(pid(req), req.params.id, String(req.body?.decision))));
 
   r.get("/metrics", (req, res, next) => {
     if (String(req.query.level ?? "department") === "department") return wrap(() => svc.departmentMetrics())(req, res, next);
@@ -59,8 +100,8 @@ export function createIssuesRouter(auth: RequestHandler = requireAuth): Router {
   // Owner always; others only when the file is attached to a publicly visible issue.
   r.get("/media/:id", auth, (req, res) => {
     const m = getMedia(req.params.id);
-    const issue = m?.issue_id ? (getDb().prepare("SELECT moderation FROM issue WHERE id=?").get(m.issue_id) as { moderation: string } | undefined) : undefined;
-    const allowed = !!m && (m.owner_id === req.person!.id || issue?.moderation === "ok");
+    const issue = m?.issue_id ? (getStore("issues").prepare("SELECT moderation FROM issue WHERE id=?").get(m.issue_id) as { moderation: string } | undefined) : undefined;
+    const allowed = !!m && (ownsMedia(m, req.person!.id) || issue?.moderation === "ok");
     const buf = allowed ? readMediaFile(m!) : null;
     if (!m || !buf) return void res.status(404).json({ error: "not found" });
     res.set({ "Content-Type": m.mime, "X-Content-Type-Options": "nosniff", "Cache-Control": "private, max-age=3600", "Content-Disposition": "inline", "Content-Security-Policy": "default-src 'none'" });
@@ -72,8 +113,10 @@ export function createIssuesRouter(auth: RequestHandler = requireAuth): Router {
   r.post("/:id/transition", auth, wrap(req => svc.transition(req.params.id, pid(req), req.body ?? {})));
   r.post("/:id/confirm", auth, wrap(req => svc.confirm(req.params.id, pid(req), String(req.body?.vote))));
   r.post("/:id/appeal", auth, wrap((req, res) => { res.status(201); return svc.appeal(req.params.id, pid(req), req.body?.reason); }));
-  r.post("/:id/moderate", auth, wrap(req => svc.moderate(req.params.id, pid(req), String(req.body?.decision))));
+  r.post("/:id/moderate", auth, wrap(req => svc.moderate(req.params.id, pid(req), String(req.body?.decision), svc.clock.now(), typeof req.body?.note === "string" ? req.body.note : undefined)));
   r.post("/:id/rebuttal", auth, wrap((req, res) => { res.status(201); return svc.rebuttal(req.params.id, pid(req), req.body?.text); }));
+  // Public detail (no reporter identity). Registered last so it never shadows the fixed paths above.
+  r.get("/:id", wrap((req, res) => { res.set("Cache-Control", "public, max-age=30"); return pub.publicIssue(req.params.id); }));
   return r;
 }
 

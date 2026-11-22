@@ -25,3 +25,5 @@ data/raw/
 # CI report artefacts
 vitest.json
 playwright.json
+data/_old-dev-db/
+data/civic-media/

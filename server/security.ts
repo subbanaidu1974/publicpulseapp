@@ -87,6 +87,19 @@ export function compression(minBytes = 1024): RequestHandler {
       gz.on("data", (c: Buffer) => origWrite(c));
       gz.on("end", () => origEnd());
     };
+    // Static-file servers (sirv/send) set status and headers in one writeHead() call before any write: move those headers onto the
+    // response first so the decision can see them and so setting Content-Encoding afterwards does not hit "headers already sent".
+    const origWriteHead = res.writeHead.bind(res) as (...a: unknown[]) => typeof res;
+    res.writeHead = ((status: number, a?: unknown, b?: unknown) => {
+      const hdrs = (typeof a === "object" && a !== null ? a : b) as Record<string, string | number | string[]> | unknown[] | undefined;
+      if (!decided && hdrs && !Array.isArray(hdrs)) {
+        for (const [k, v] of Object.entries(hdrs)) if (v !== undefined) res.setHeader(k, v as string);
+        res.statusCode = status;
+        decide();
+        return origWriteHead(status);
+      }
+      return origWriteHead(status, a, b);
+    }) as typeof res.writeHead;
     res.write = ((chunk: unknown, ...args: unknown[]) => {
       if (!decided) decide(chunk);
       return gz ? gz.write(chunk as Buffer) : (origWrite as (...a: unknown[]) => boolean)(chunk, ...args);

@@ -46,7 +46,7 @@ describe("channels: missed call, Telugu IVR, voice-note issue (@E2E-55)", () => 
     expect(menu.body.xml).toContain("<Gather");
 
     expect((await post("/ivr", { callId, digits: "1" })).body.state).toBe("category");
-    const bad = await post("/ivr", { callId, digits: "9" });
+    const bad = await post("/ivr", { callId, digits: "0" });
     expect(bad.body.state).toBe("category");
     expect(bad.body.prompts[0].id).toBe("invalid");
     const rec = await post("/ivr", { callId, digits: "1" });

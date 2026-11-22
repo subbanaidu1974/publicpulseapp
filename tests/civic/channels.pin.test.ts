@@ -1,8 +1,9 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { reporterPseudonym } from "../../server/civic/core/pseudonyms";
 import express from "express";
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import { getDb, migrate, resetDbForTests, smsOutbox } from "../../server/civic/core";
+import { getDb, migrate, resetDbForTests, smsOutbox, getStore } from "../../server/civic/core";
 import { loadDemoGeo } from "../../server/civic/geo/service";
 import { issuesRouter } from "../../server/civic/issues/routes";
 import { createPerson, isLockedAnywhere } from "../../server/civic/identity/service";
@@ -19,7 +20,7 @@ const post = async (p: string, body: unknown) => {
   return { status: r.status, body: (await r.json()) as any };
 };
 const fails = (id: string) => ((getDb().prepare("SELECT COALESCE(SUM(failed),0) f FROM pin_failures WHERE person_id=?").get(id) as any).f as number);
-const issueCount = () => (getDb().prepare("SELECT COUNT(*) c FROM issue").get() as any).c as number;
+const issueCount = () => (getStore("issues").prepare("SELECT COUNT(*) c FROM issue").get() as any).c as number;
 async function newCall(from = LOCAL) {
   const { body } = await post("/missed-call", { from });
   return body.callId as string;
@@ -80,8 +81,8 @@ describe("IVR on a shared SIM: which adult, then personal PIN (S-45)", () => {
     await post("/ivr", { callId, digits: "2" });
     const done = await post("/ivr", { callId, recording: "voice/shared-1.wav" });
     expect(done.body.state).toBe("done");
-    const row = getDb().prepare("SELECT reporter_id, village_lgd, category FROM issue WHERE id=?").get(done.body.referenceId) as any;
-    expect(row).toMatchObject({ reporter_id: b.id, village_lgd: "DEMO-V-BPL", category: "roads" });
+    const row = getStore("issues").prepare("SELECT reporter_id, village_lgd, category FROM issue WHERE id=?").get(done.body.referenceId) as any;
+    expect(row).toMatchObject({ reporter_id: reporterPseudonym(done.body.referenceId, b.id), village_lgd: "DEMO-V-BPL", category: "roads" });
     expect(smsOutbox.at(-1)!.text).toContain(done.body.referenceId);
   });
 
@@ -94,7 +95,7 @@ describe("IVR on a shared SIM: which adult, then personal PIN (S-45)", () => {
     expect((await post("/ivr", { callId, digits: PIN_A })).body.state).toBe("category");
     await post("/ivr", { callId, digits: "1" });
     const done = await post("/ivr", { callId, recording: "voice/shared-2.wav" });
-    expect((getDb().prepare("SELECT reporter_id FROM issue WHERE id=?").get(done.body.referenceId) as any).reporter_id).toBe(a.id);
+    expect((getStore("issues").prepare("SELECT reporter_id FROM issue WHERE id=?").get(done.body.referenceId) as any).reporter_id).toBe(reporterPseudonym(done.body.referenceId, a.id));
   });
 
   it("cannot skip the steps: a recording before the PIN files nothing", async () => {
@@ -146,7 +147,7 @@ describe("IVR on a shared SIM: which adult, then personal PIN (S-45)", () => {
     // no PIN digits anywhere in outgoing texts or replies
     for (const m of smsOutbox) for (const pin of [PIN_A, PIN_B, "1111", "2222", "3333", "4444", "5555"]) expect(m.text).not.toContain(pin);
     expect(JSON.stringify(refused.body)).not.toMatch(/4821|7345/);
-    const audits = getDb().prepare("SELECT meta, object, action FROM audit_log WHERE action LIKE 'ivr_pin%' OR action='pin.lockout'").all() as any[];
+    const audits = getStore("audit").prepare("SELECT meta, object, action FROM audit_log WHERE action LIKE 'ivr_pin%' OR action='pin.lockout'").all() as any[];
     expect(JSON.stringify(audits)).not.toMatch(/4821|7345|1111|2222|3333|4444|5555/);
   });
 

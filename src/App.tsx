@@ -36,6 +36,7 @@ function initialTab(): string {
   try { if (/^#\/map(\/|$)/.test(window.location.hash)) return "map"; } catch { /* ignore */ }
   try { if (parseProfileHash(window.location.hash)) return "constituencies"; } catch { /* ignore */ }
   try { if (isPeopleHash(window.location.hash)) return "people"; } catch { /* ignore */ }
+  try { const q = new URLSearchParams(window.location.search); if (q.get("invite") || q.get("activate")) return "civic"; } catch { /* ignore */ }
   return "home";
 }
 

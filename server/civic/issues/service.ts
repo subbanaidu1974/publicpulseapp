@@ -1,10 +1,17 @@
 import { randomUUID } from "node:crypto";
-import { audit, getDb, hasRole, listRoles, registerMigration } from "../core";
+import { audit, getDb, getKeys, getStore, hasRole, listRoles, registerErasureHook, registerErasureSubjects, registerMigration, registerStoreErasureHook } from "../core";
+import { actorPseudonym, linkPerson, pseudonymsOf, randomVillageReporters, reporterPseudonym } from "../core/pseudonyms";
+import { rateAllow } from "../identity/service";
 import { ancestors, ensureGeo, getUnit, villageConstituencies, type Unit } from "../geo/service";
 import { assessText, needsReview } from "./moderation";
-import { MediaError, attachMedia, claimMedia, purgeExpiredMedia } from "./media";
+import { MediaError, attachMedia, claimMedia, purgeExpiredMedia, retentionPolicy, roundCoord } from "./media";
+import { CATEGORY_MAP } from "./categories";
+import { pruneIvrCalls } from "../channels/callstore";
 
 export { assessText, needsReview };
+
+/** The issues store (S-74): no persons.id; people appear as keyed pseudonyms (server/civic/core/pseudonyms.ts). */
+const idb = () => getStore("issues");
 
 registerMigration("issues_001", `
 CREATE TABLE IF NOT EXISTS issue (
@@ -25,36 +32,47 @@ CREATE TABLE IF NOT EXISTS issue_event (
   village_lgd TEXT, category TEXT, department TEXT, at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS issue_sample (issue_id TEXT NOT NULL, person_id TEXT NOT NULL, vote TEXT, PRIMARY KEY (issue_id, person_id));
-CREATE TABLE IF NOT EXISTS officer_role (
-  person_id TEXT NOT NULL, role TEXT NOT NULL, department TEXT, jurisdiction_lgd TEXT, label TEXT,
-  PRIMARY KEY (person_id, role)
-);
 CREATE TABLE IF NOT EXISTS officer_rebuttal (id TEXT PRIMARY KEY, issue_id TEXT NOT NULL, officer_tag TEXT NOT NULL, text TEXT NOT NULL, at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS issue_appeal (id TEXT PRIMARY KEY, issue_id TEXT NOT NULL, person_id TEXT NOT NULL, reason TEXT, status TEXT NOT NULL, at TEXT NOT NULL, decided_at TEXT);
-`);
+`, "issues");
 
 registerMigration("issues_002", `
 ALTER TABLE issue ADD COLUMN moderation_reason TEXT;
 ALTER TABLE issue ADD COLUMN voice_ref TEXT;
-`);
+`, "issues");
 
-export const CATEGORIES: Record<string, { department: string; slaHours: number }> = {
-  water: { department: "Rural Water Supply", slaHours: 72 },
-  roads: { department: "Roads and Buildings", slaHours: 168 },
-  electricity: { department: "Energy", slaHours: 48 },
-  health: { department: "Health", slaHours: 48 },
-  education: { department: "School Education", slaHours: 168 },
-  agriculture: { department: "Agriculture and Irrigation", slaHours: 120 },
-  welfare: { department: "Social Welfare", slaHours: 168 },
-  law_order: { department: "Police", slaHours: 24 },
-  other: { department: "General Administration", slaHours: 168 },
-};
+registerMigration("issues_003", `
+ALTER TABLE issue ADD COLUMN gps_enc TEXT;
+ALTER TABLE issue ADD COLUMN gps_exact_until TEXT;
+ALTER TABLE issue ADD COLUMN mod_escalated INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE officer_rebuttal ADD COLUMN author_id TEXT;
+CREATE TABLE IF NOT EXISTS moderation_action (
+  id TEXT PRIMARY KEY, issue_id TEXT NOT NULL, actor_id TEXT NOT NULL, decision TEXT NOT NULL, note TEXT, reasons TEXT, at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS moderation_action_issue ON moderation_action(issue_id);
+CREATE TABLE IF NOT EXISTS lexicon_change (
+  id TEXT PRIMARY KEY, op TEXT NOT NULL, list TEXT NOT NULL, term TEXT NOT NULL, status TEXT NOT NULL, proposer_id TEXT NOT NULL,
+  approvals TEXT NOT NULL DEFAULT '[]', rejected_by TEXT, note TEXT, created_at TEXT NOT NULL, decided_at TEXT, applied_version INTEGER
+);
+`, "issues");
+
+// officer_role is a role table keyed to persons, so it lives in the identity store (the issues store only ever sees pseudonyms).
+registerMigration("issues_identity_001_officer_role", `
+CREATE TABLE IF NOT EXISTS officer_role (
+  person_id TEXT NOT NULL, role TEXT NOT NULL, department TEXT, jurisdiction_lgd TEXT, label TEXT,
+  PRIMARY KEY (person_id, role)
+);
+`, "identity");
+
+/** The nine canonical categories (see ./categories.ts, also served at GET /issues/categories). */
+export const CATEGORIES: Record<string, { department: string; slaHours: number }> = CATEGORY_MAP;
 
 export const MIN_CELL = 30;
 export const ME_TOO_PER_DAY = Number(process.env.CIVIC_ME_TOO_PER_DAY ?? 5);
 export const CONFIRM_WINDOW_HOURS = 72;
 export const SAMPLE_SIZE = 5;
 export const DEDUPE_METERS = 300;
+export const gpsExactDays = () => Number(process.env.CIVIC_GPS_EXACT_DAYS || retentionPolicy().gps_exact_days);
 
 /** Injectable clock (tests move time forward). */
 export const clock = { now: (): Date => new Date() };
@@ -73,8 +91,8 @@ export class HttpError extends Error {
 export function grantRole(personId: string, role: "officer" | "moderator", department: string | null, jurisdictionLgd: string | null, label?: string): void {
   getDb().prepare("INSERT OR REPLACE INTO officer_role VALUES (?,?,?,?,?)").run(personId, role, department, jurisdictionLgd, label ?? `${department ?? "any"}@${jurisdictionLgd ?? "any"}`);
 }
-interface Role { role: string; department: string | null; jurisdiction_lgd: string | null; label: string }
-function roleOf(personId: string, role: string, scopeUnit?: string): Role | null {
+export interface Role { role: string; department: string | null; jurisdiction_lgd: string | null; label: string }
+export function roleOf(personId: string, role: string, scopeUnit?: string): Role | null {
   const local = (getDb().prepare("SELECT * FROM officer_role WHERE person_id=? AND role=?").get(personId, role) as unknown as Role | undefined) ?? null;
   if (local) return local;
   if (role !== "officer" && role !== "moderator") return null;
@@ -91,7 +109,7 @@ function covers(r: Role, village: string): boolean {
   return inUnit(village, r.jurisdiction_lgd);
 }
 /** Is the village inside the unit: the unit is the village itself, an administrative ancestor, or a constituency it belongs to? */
-function inUnit(village: string, unit: string, now?: Date): boolean {
+export function inUnit(village: string, unit: string, now?: Date): boolean {
   return ancestors(village, now).some(u => u.lgd === unit) || villageConstituencies(village, now).some(u => u.lgd === unit);
 }
 
@@ -112,7 +130,7 @@ export function escalationChain(village: string, now?: Date): Unit[] {
 // ---------- moderation: see ./moderation.ts (layered rules, hold-for-review default) ----------
 function placeNames(village: Unit, now: Date): string[] {
   const names = ancestors(village.lgd, now).flatMap(u => [u.name_en, u.name_te ?? ""]);
-  const hamlets = getDb().prepare("SELECT name_en, name_te FROM hamlet WHERE village_lgd=?").all(village.lgd) as { name_en: string; name_te: string | null }[];
+  const hamlets = idb().prepare("SELECT name_en, name_te FROM hamlet WHERE village_lgd=?").all(village.lgd) as { name_en: string; name_te: string | null }[];
   for (const h of hamlets) names.push(h.name_en, h.name_te ?? "");
   return names.filter(Boolean);
 }
@@ -128,14 +146,14 @@ function meters(a: { lat: number; lon: number }, b: { lat: number; lon: number }
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 function event(issueId: string, type: string, i: { status?: string; village_lgd?: string; category?: string; department?: string } | null, now: Date) {
-  getDb().prepare("INSERT INTO issue_event (issue_id,type,status,village_lgd,category,department,at) VALUES (?,?,?,?,?,?,?)")
+  idb().prepare("INSERT INTO issue_event (issue_id,type,status,village_lgd,category,department,at) VALUES (?,?,?,?,?,?,?)")
     .run(issueId, type, i?.status ?? null, i?.village_lgd ?? null, i?.category ?? null, i?.department ?? null, iso(now));
 }
 const OPEN = ["Reported", "Verified", "Assigned", "InProgress", "Reopened"];
 
 export function reportIssue(personId: string, b: ReportInput, now = clock.now()) {
   ensureGeo();
-  const db = getDb();
+  const db = idb();
   const cat = CATEGORIES[String(b.category)];
   if (!cat) throw new HttpError(400, "unknown category", { categories: Object.keys(CATEGORIES) });
   const en = typeof b.description_en === "string" ? b.description_en.trim() : "";
@@ -178,34 +196,42 @@ export function reportIssue(personId: string, b: ReportInput, now = clock.now())
   const held = verdict.verdict === "hold";
   const id = randomUUID();
   const t = iso(now);
+  const me = reporterPseudonym(id, personId); // the issues store never sees the person id
   db.prepare(`INSERT INTO issue (id,category,desc_en,desc_te,photo_ref,voice_ref,lat,lon,village_lgd,department,status,moderation,moderation_reason,reporter_id,created_at,updated_at,sla_due,jurisdiction_lgd)
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-    .run(id, b.category!, en || null, te || null, ph.key, vo.key, lat, lon, v.lgd, cat.department, "Reported", held ? "held" : "ok", held ? verdict.reasons.join(",") : null, personId, t, t, iso(addHours(now, cat.slaHours)), v.lgd);
+    .run(id, b.category!, en || null, te || null, ph.key, vo.key, lat, lon, v.lgd, cat.department, "Reported", held ? "held" : "ok", held ? verdict.reasons.join(",") : null, me, t, t, iso(addHours(now, cat.slaHours)), v.lgd);
   if (ph.media) attachMedia(ph.media, id);
   if (vo.media) attachMedia(vo.media, id);
-  db.prepare("INSERT INTO issue_me_too VALUES (?,?,?,1)").run(id, personId, t);
+  if (lat !== null && lon !== null) { // S-147: public coordinates are rounded (~111 m); the exact point is kept encrypted, internal, and expires
+    db.prepare("UPDATE issue SET lat=?, lon=?, gps_enc=?, gps_exact_until=? WHERE id=?")
+      .run(roundCoord(lat), roundCoord(lon), getKeys().encrypt("issue-gps", JSON.stringify({ lat, lon })), iso(addHours(now, gpsExactDays() * 24)), id);
+  }
+  db.prepare("INSERT INTO issue_me_too VALUES (?,?,?,1)").run(id, me, t);
+  linkPerson(personId, "issue", id, v.lgd, now); // identity store: encrypted way back (my issues, erasure, neighbour sampling)
   audit(personId, held ? "issue.report_held" : "issue.report", `issue:${id}`, { category: b.category, village: v.lgd, held, reasons: held ? verdict.reasons : undefined });
   if (!held) event(id, "reported", { status: "Reported", village_lgd: v.lgd, category: b.category, department: cat.department }, now);
   return { id, merged: false, held, status: "Reported" };
 }
 
 function meTooCore(issueId: string, personId: string, now: Date, viaDedupe = false) {
-  const db = getDb();
+  const db = idb();
+  const me = reporterPseudonym(issueId, personId);
   const support = () => (db.prepare("SELECT COUNT(*) c FROM issue_me_too WHERE issue_id=?").get(issueId) as { c: number }).c;
-  if (db.prepare("SELECT 1 FROM issue_me_too WHERE issue_id=? AND person_id=?").get(issueId, personId)) return { counted: false, support: support() };
-  const dayStart = iso(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())));
-  const used = (db.prepare("SELECT COUNT(*) c FROM issue_me_too WHERE person_id=? AND self=0 AND at>=?").get(personId, dayStart) as { c: number }).c;
-  if (used >= ME_TOO_PER_DAY) {
+  if (db.prepare("SELECT 1 FROM issue_me_too WHERE issue_id=? AND person_id=?").get(issueId, me)) return { counted: false, support: support() };
+  // The per-person daily cap is counted in the identity store (the issues store cannot tell two issues' supporters are one person).
+  const dayStartMs = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  if (!rateAllow("metoo:" + personId, ME_TOO_PER_DAY, Math.max(1, now.getTime() - dayStartMs), now.getTime())) {
     if (viaDedupe) return { counted: false, support: support() };
     throw new HttpError(429, "daily me-too limit reached", { limit: ME_TOO_PER_DAY });
   }
-  db.prepare("INSERT INTO issue_me_too VALUES (?,?,?,0)").run(issueId, personId, iso(now));
+  db.prepare("INSERT INTO issue_me_too VALUES (?,?,?,0)").run(issueId, me, iso(now));
+  linkPerson(personId, "issue", issueId, null, now);
   audit(personId, "issue.me_too", `issue:${issueId}`);
   return { counted: true, support: support() };
 }
 
 export function meToo(issueId: string, personId: string, now = clock.now()) {
-  const i = getDb().prepare("SELECT status, moderation FROM issue WHERE id=?").get(issueId) as any;
+  const i = idb().prepare("SELECT status, moderation FROM issue WHERE id=?").get(issueId) as any;
   if (!i || i.moderation !== "ok") throw new HttpError(404, "issue not found");
   return meTooCore(issueId, personId, now);
 }
@@ -216,12 +242,19 @@ const NEXT: Record<string, string[]> = {
 };
 export interface TransitionInput { to?: string; action?: string; department?: string; note?: string }
 
+/** `reporter` is the reporter's pseudonym for this issue. Supporters are drawn from the issue's own pseudonyms; the village fallback asks the identity store's link ledger. */
 function sampleNeighbours(issueId: string, village: string, reporter: string) {
-  const db = getDb();
-  const pick = (sql: string, ...p: any[]) => (db.prepare(sql).all(...p) as { person_id: string }[]).map(r => r.person_id);
-  const ids = new Set<string>(pick("SELECT person_id FROM issue_me_too WHERE issue_id=? AND person_id<>? ORDER BY RANDOM() LIMIT ?", issueId, reporter, SAMPLE_SIZE));
-  if (ids.size < SAMPLE_SIZE)
-    for (const p of pick("SELECT DISTINCT reporter_id person_id FROM issue WHERE village_lgd=? AND id<>? AND reporter_id<>? ORDER BY RANDOM() LIMIT ?", village, issueId, reporter, SAMPLE_SIZE)) if (ids.size < SAMPLE_SIZE) ids.add(p);
+  const db = idb();
+  const ids = new Set<string>((db.prepare("SELECT person_id FROM issue_me_too WHERE issue_id=? AND person_id<>? ORDER BY RANDOM() LIMIT ?").all(issueId, reporter, SAMPLE_SIZE) as { person_id: string }[]).map(r => r.person_id));
+  if (ids.size < SAMPLE_SIZE) {
+    for (const person of randomVillageReporters(village, SAMPLE_SIZE * 4)) {
+      if (ids.size >= SAMPLE_SIZE) break;
+      const ps = reporterPseudonym(issueId, person);
+      if (ps === reporter || ids.has(ps)) continue;
+      linkPerson(person, "issue", issueId); // so account erasure also reaches this sample row
+      ids.add(ps);
+    }
+  }
   const ins = db.prepare("INSERT OR IGNORE INTO issue_sample VALUES (?,?,NULL)");
   for (const p of ids) ins.run(issueId, p);
 }
@@ -229,11 +262,11 @@ function sampleNeighbours(issueId: string, village: string, reporter: string) {
 function setStatus(i: any, to: string, now: Date, extra: Record<string, unknown> = {}) {
   const sets = ["status=?", "updated_at=?"], vals: any[] = [to, iso(now)];
   for (const [k, v] of Object.entries(extra)) { sets.push(`${k}=?`); vals.push(v as any); }
-  getDb().prepare(`UPDATE issue SET ${sets.join(",")} WHERE id=?`).run(...vals, i.id);
+  idb().prepare(`UPDATE issue SET ${sets.join(",")} WHERE id=?`).run(...vals, i.id);
   event(i.id, "status", { status: to, village_lgd: i.village_lgd, category: i.category, department: i.department }, now);
 }
 const load = (id: string) => {
-  const i = getDb().prepare("SELECT * FROM issue WHERE id=?").get(id) as any;
+  const i = idb().prepare("SELECT * FROM issue WHERE id=?").get(id) as any;
   if (!i) throw new HttpError(404, "issue not found");
   return i;
 };
@@ -249,7 +282,7 @@ export function transition(issueId: string, actor: string, b: TransitionInput, n
     const dep = Object.values(CATEGORIES).find(c => c.department === b.department)?.department;
     if (!dep) throw new HttpError(400, "department required (known department name)", { departments: [...new Set(Object.values(CATEGORIES).map(c => c.department))] });
     if (!OPEN.includes(i.status)) throw new HttpError(409, "issue not open");
-    getDb().prepare("UPDATE issue SET department=?, status='Verified', assigned_officer=NULL, updated_at=?, jurisdiction_lgd=?, esc_level=0, sla_due=? WHERE id=?")
+    idb().prepare("UPDATE issue SET department=?, status='Verified', assigned_officer=NULL, updated_at=?, jurisdiction_lgd=?, esc_level=0, sla_due=? WHERE id=?")
       .run(dep, iso(now), i.village_lgd, iso(addHours(now, CATEGORIES[i.category].slaHours)), i.id);
     event(i.id, "rerouted", { status: "Verified", village_lgd: i.village_lgd, category: i.category, department: dep }, now);
     audit(actor, "issue.reroute", `issue:${i.id}`, { from: i.department, to: dep });
@@ -278,13 +311,14 @@ export function confirm(issueId: string, personId: string, vote: string, now = c
   const i = load(issueId);
   if (i.status !== "Resolved") throw new HttpError(409, "issue is not awaiting confirmation");
   if (now.toISOString() > i.confirm_deadline) throw new HttpError(409, "confirmation window closed");
-  if (personId === i.reporter_id) {
+  const me = reporterPseudonym(i.id, personId);
+  if (me === i.reporter_id) {
     if (vote === "confirm") setStatus(i, "Confirmed", now, { confirm_basis: "reporter" });
     else setStatus(i, "Reopened", now, { sla_due: iso(addHours(now, CATEGORIES[i.category].slaHours)), confirm_basis: null });
     audit(personId, "issue.confirmation", `issue:${i.id}`, { vote, basis: "reporter" });
     return { status: vote === "confirm" ? "Confirmed" : "Reopened", basis: "reporter" };
   }
-  const row = getDb().prepare("UPDATE issue_sample SET vote=? WHERE issue_id=? AND person_id=?").run(vote, i.id, personId);
+  const row = idb().prepare("UPDATE issue_sample SET vote=? WHERE issue_id=? AND person_id=?").run(vote, i.id, me);
   if (!row.changes) throw new HttpError(403, "not sampled for this confirmation");
   audit(personId, "issue.confirmation", `issue:${i.id}`, { vote, basis: "neighbour" });
   return { status: "Resolved", recorded: true };
@@ -292,7 +326,7 @@ export function confirm(issueId: string, personId: string, vote: string, now = c
 
 /** Periodic job: close confirmation windows and escalate overdue issues. Returns what changed. */
 export function sweep(now = clock.now()) {
-  const db = getDb();
+  const db = idb();
   const out = { confirmed: [] as string[], reopened: [] as string[], escalated: [] as string[], mediaPurged: 0 };
   const t = iso(now);
   for (const i of db.prepare("SELECT * FROM issue WHERE status='Resolved' AND confirm_deadline<=?").all(t) as any[]) {
@@ -323,6 +357,8 @@ export function sweep(now = clock.now()) {
     out.escalated.push(i.id);
   }
   out.mediaPurged = purgeExpiredMedia(now);
+  try { pruneIvrCalls(Date.now()); } catch { /* call-state table not available */ }
+  db.prepare("UPDATE issue SET gps_enc=NULL, gps_exact_until=NULL WHERE gps_enc IS NOT NULL AND gps_exact_until<=?").run(t);
   return out;
 }
 
@@ -343,30 +379,49 @@ export const isIssueSweeperRunning = () => sweepTimer !== null;
 // ---------- moderation ----------
 export function appeal(issueId: string, personId: string, reason: string | undefined, now = clock.now()) {
   const i = load(issueId);
-  if (i.reporter_id !== personId || i.moderation === "ok") throw new HttpError(404, "no moderated issue of yours with that id");
-  const open = getDb().prepare("SELECT id FROM issue_appeal WHERE issue_id=? AND status='pending'").get(issueId);
+  const me = reporterPseudonym(issueId, personId);
+  if (i.reporter_id !== me || i.moderation === "ok") throw new HttpError(404, "no moderated issue of yours with that id");
+  const open = idb().prepare("SELECT id FROM issue_appeal WHERE issue_id=? AND status='pending'").get(issueId);
   if (open) throw new HttpError(409, "appeal already pending");
   const id = randomUUID();
-  getDb().prepare("INSERT INTO issue_appeal VALUES (?,?,?,?,?,?,NULL)").run(id, issueId, personId, (reason ?? "").slice(0, 1000), "pending", iso(now));
+  idb().prepare("INSERT INTO issue_appeal VALUES (?,?,?,?,?,?,NULL)").run(id, issueId, me, (reason ?? "").slice(0, 1000), "pending", iso(now));
   audit(personId, "issue.appeal", `issue:${issueId}`, { appeal: id });
   return { appeal_id: id, status: "pending" };
 }
 
-export function moderate(issueId: string, actor: string, decision: string, now = clock.now()) {
-  if (!roleOf(actor, "moderator")) throw new HttpError(403, "moderator role required");
+const DECISION_ALIAS: Record<string, string> = { approve: "release", reject: "takedown" };
+export const isModerator = (actor: string) => !!roleOf(actor, "moderator") || safeHasRole(actor, "admin");
+function safeHasRole(actor: string, role: "admin"): boolean { try { return hasRole(actor, role); } catch { return false; } }
+
+/** Moderator decision on a held or taken-down issue. approve=release, reject=takedown, escalate hands it to an admin. Every call is audited and recorded for the curation metrics. */
+export function moderate(issueId: string, actor: string, rawDecision: string, now = clock.now(), note?: string) {
+  if (!isModerator(actor)) throw new HttpError(403, "moderator role required");
+  const decision = DECISION_ALIAS[rawDecision] ?? rawDecision;
   const i = load(issueId);
-  const db = getDb();
+  const db = idb();
+  if (i.mod_escalated && !safeHasRole(actor, "admin") && decision !== "escalate") throw new HttpError(403, "escalated to an admin", { hint: "admin_required" });
+  const record = () => db.prepare("INSERT INTO moderation_action (id,issue_id,actor_id,decision,note,reasons,at) VALUES (?,?,?,?,?,?,?)")
+    .run(randomUUID(), i.id, actorPseudonym(actor), rawDecision === "approve" || decision === "release" ? "approve" : rawDecision === "reject" || decision === "takedown" ? "reject" : decision, (note ?? "").slice(0, 500) || null, i.moderation_reason ?? null, iso(now));
+  if (decision === "escalate") {
+    if (i.moderation === "ok") throw new HttpError(409, "already visible");
+    db.prepare("UPDATE issue SET mod_escalated=1, updated_at=? WHERE id=?").run(iso(now), i.id);
+    audit(actor, "issue.moderation_escalate", `issue:${i.id}`);
+    record();
+    return { id: i.id, decision: "escalate" };
+  }
   if (decision === "release") {
     if (i.moderation === "ok") throw new HttpError(409, "already visible");
     db.prepare("UPDATE issue SET moderation='ok', updated_at=? WHERE id=?").run(iso(now), i.id);
     event(i.id, "reported", { status: i.status, village_lgd: i.village_lgd, category: i.category, department: i.department }, now);
     audit(actor, "issue.release", `issue:${i.id}`);
+    record();
   } else if (decision === "takedown") {
     db.prepare("UPDATE issue SET moderation='taken_down', updated_at=? WHERE id=?").run(iso(now), i.id);
     event(i.id, "taken_down", null, now);
     audit(actor, "issue.takedown", `issue:${i.id}`, { previous: i.moderation });
-  } else if (decision !== "uphold") throw new HttpError(400, "decision must be release, takedown or uphold");
-  else audit(actor, "issue.uphold", `issue:${i.id}`);
+    record();
+  } else if (decision !== "uphold") throw new HttpError(400, "decision must be approve, reject, escalate, release, takedown or uphold");
+  else { audit(actor, "issue.uphold", `issue:${i.id}`); record(); }
   db.prepare("UPDATE issue_appeal SET status=?, decided_at=? WHERE issue_id=? AND status='pending'").run(decision, iso(now), i.id);
   return { id: i.id, decision };
 }
@@ -378,14 +433,14 @@ export function rebuttal(issueId: string, actor: string, text: string, now = clo
   if (!r || !covers(r, i.village_lgd)) throw new HttpError(403, "officer role covering this village required");
   if (typeof text !== "string" || !text.trim() || text.length > 2000) throw new HttpError(400, "text required (max 2000 chars)");
   const id = randomUUID();
-  getDb().prepare("INSERT INTO officer_rebuttal VALUES (?,?,?,?,?)").run(id, i.id, i.assigned_officer ?? r.label, text.trim(), iso(now));
+  idb().prepare("INSERT INTO officer_rebuttal (id,issue_id,officer_tag,text,at,author_id) VALUES (?,?,?,?,?,?)").run(id, i.id, i.assigned_officer ?? r.label, text.trim(), iso(now), actorPseudonym(actor));
   audit(actor, "issue.rebuttal", `issue:${i.id}`, { id });
   return { id };
 }
 
 // ---------- public outputs ----------
 export function feed(since = 0, limit = 200) {
-  const rows = getDb().prepare(`SELECT e.seq, e.issue_id, e.type, e.status, e.village_lgd, e.category, e.department, e.at
+  const rows = idb().prepare(`SELECT e.seq, e.issue_id, e.type, e.status, e.village_lgd, e.category, e.department, e.at
     FROM issue_event e JOIN issue i ON i.id=e.issue_id WHERE e.seq>? AND (i.moderation='ok' OR e.type='taken_down') ORDER BY e.seq LIMIT ?`)
     .all(since, Math.min(Math.max(limit, 1), 500)) as any[];
   return { events: rows, next: rows.length ? rows[rows.length - 1].seq : since };
@@ -401,7 +456,7 @@ function summarise(items: any[]) {
     resolution_rate: Math.round((resolved.length / items.length) * 100) / 100, median_response_hours: median(hrs),
   };
 }
-const visible = () => getDb().prepare("SELECT * FROM issue WHERE moderation='ok'").all() as any[];
+const visible = () => idb().prepare("SELECT * FROM issue WHERE moderation='ok'").all() as any[];
 
 /** Department-level metrics. Cells under MIN_CELL are never shown: they roll up to the parent unit; if the state is still too small the cell is masked. */
 export function departmentMetrics(now = clock.now()) {
@@ -447,9 +502,67 @@ export function officerMetrics(actor: string, jurisdiction: string, now = clock.
   const tags = [...new Set(inJur.map(i => i.assigned_officer as string))];
   const officers = tags.map(tag => {
     const items = inJur.filter(i => i.assigned_officer === tag);
-    const reb = getDb().prepare("SELECT text, at FROM officer_rebuttal WHERE officer_tag=? ORDER BY at DESC LIMIT 5").all(tag) as any[];
+    const reb = idb().prepare("SELECT text, at FROM officer_rebuttal WHERE officer_tag=? ORDER BY at DESC LIMIT 5").all(tag) as any[];
     const base = { officer_tag: tag, jurisdiction: { lgd: unit.lgd, level: unit.level, name: unit.name_en }, rebuttals: reb, rebuttal_field: "open" };
     return items.length >= MIN_CELL ? { ...base, masked: false, ...summarise(items) } : { ...base, masked: true, note: `fewer than ${MIN_CELL} reports` };
   });
   return { level: "officer", jurisdiction: unit.lgd, officers };
+}
+
+// ---------- S-143 / S-74: erasure completeness ----------
+// Account deletion (identity deleteAccount) must leave no person id, phone hash or personal link in ANY store. The issues store holds only
+// keyed pseudonyms, so its hooks receive the person's pseudonyms (collected from the identity link ledger BEFORE it is wiped) and run after
+// the identity transaction commits, from the erasure outbox (idempotent; retried by the retryErasureOutbox job). Issues are a public
+// record, so the issue row stays but loses its reporter link and the exact GPS point; support counts survive through pseudonymised rows.
+// issue_media registers its own hook in ./media. The IVR call-state hook lives in channels. officer_role (identity store) is erased by the
+// identity hook below.
+const erasedTag = () => "erased:" + randomUUID().replace(/-/g, "").slice(0, 16);
+const inList = (n: number) => Array.from({ length: n }, () => "?").join(",");
+/** Run `fn` over chunks of at most 500 pseudonyms (SQLite variable limit). */
+const chunks = (subjects: string[], fn: (c: string[]) => void) => { for (let i = 0; i < subjects.length; i += 500) fn(subjects.slice(i, i + 500)); };
+
+registerErasureSubjects("issues", (personId) => pseudonymsOf(personId));
+registerErasureHook("issues.links", (personId) => { getDb().prepare("DELETE FROM issue_links WHERE person_id=?").run(personId); }); // identity store: the encrypted way back
+registerStoreErasureHook("issues", "issues.reporter", (subjects) => chunks(subjects, (c) => {
+  idb().prepare(`UPDATE issue SET reporter_id='erased', gps_enc=NULL, gps_exact_until=NULL WHERE reporter_id IN (${inList(c.length)})`).run(...c);
+}));
+registerStoreErasureHook("issues", "issues.me_too", (subjects) => {
+  const d = idb();
+  chunks(subjects, (c) => {
+    for (const r of d.prepare(`SELECT issue_id, person_id FROM issue_me_too WHERE person_id IN (${inList(c.length)})`).all(...c) as { issue_id: string; person_id: string }[])
+      d.prepare("UPDATE issue_me_too SET person_id=?, self=0 WHERE issue_id=? AND person_id=?").run(erasedTag(), r.issue_id, r.person_id);
+  });
+});
+registerStoreErasureHook("issues", "issues.samples", (subjects) => chunks(subjects, (c) => { idb().prepare(`DELETE FROM issue_sample WHERE person_id IN (${inList(c.length)})`).run(...c); }));
+registerStoreErasureHook("issues", "issues.appeals", (subjects) => chunks(subjects, (c) => {
+  idb().prepare(`UPDATE issue_appeal SET person_id='erased', reason=NULL WHERE person_id IN (${inList(c.length)})`).run(...c);
+}));
+registerErasureHook("issues.officer", (personId) => { getDb().prepare("DELETE FROM officer_role WHERE person_id=?").run(personId); });
+registerStoreErasureHook("issues", "issues.officer_rebuttal", (subjects) => chunks(subjects, (c) => {
+  idb().prepare(`UPDATE officer_rebuttal SET author_id=NULL WHERE author_id IN (${inList(c.length)})`).run(...c);
+}));
+registerStoreErasureHook("issues", "issues.moderation", (subjects) => {
+  const d = idb();
+  chunks(subjects, (c) => {
+    const ph = inList(c.length);
+    d.prepare(`UPDATE moderation_action SET actor_id='erased', note=NULL WHERE actor_id IN (${ph})`).run(...c);
+    d.prepare(`UPDATE lexicon_change SET proposer_id='erased' WHERE proposer_id IN (${ph})`).run(...c);
+    d.prepare(`UPDATE lexicon_change SET rejected_by='erased' WHERE rejected_by IN (${ph})`).run(...c);
+  });
+  for (const r of d.prepare("SELECT id, approvals FROM lexicon_change WHERE approvals <> '[]'").all() as { id: string; approvals: string }[]) {
+    const list = JSON.parse(r.approvals) as string[];
+    if (!list.some(x => subjects.includes(x))) continue;
+    d.prepare("UPDATE lexicon_change SET approvals=? WHERE id=?").run(JSON.stringify(list.map(x => (subjects.includes(x) ? "erased" : x))), r.id);
+  }
+});
+
+// ---------- officer queue ----------
+/** Open, visible issues an officer may act on: inside their jurisdiction and (when the role has one) their department. */
+export function officerQueue(actor: string, limit = 100) {
+  const r = roleOf(actor, "officer");
+  if (!r) throw new HttpError(403, "officer role required");
+  const rows = idb().prepare("SELECT * FROM issue WHERE moderation='ok' AND status IN ('Reported','Verified','Assigned','InProgress','Reopened') ORDER BY sla_due LIMIT 1000").all() as any[];
+  const items = rows.filter(i => covers(r, i.village_lgd) && (!r.department || r.department === i.department)).slice(0, Math.min(Math.max(limit, 1), 200))
+    .map(i => ({ id: i.id, category: i.category, department: i.department, status: i.status, village_lgd: i.village_lgd, created_at: i.created_at, sla_due: i.sla_due, esc_level: i.esc_level, overdue: i.sla_due < iso(clock.now()), description_en: i.desc_en, description_te: i.desc_te, support: (idb().prepare("SELECT COUNT(*) c FROM issue_me_too WHERE issue_id=?").get(i.id) as { c: number }).c }));
+  return { role: { department: r.department, jurisdiction_lgd: r.jurisdiction_lgd }, items };
 }

@@ -1,0 +1,14 @@
+{
+  "_label": "Issue-data retention windows (S-147). Aligned with docs/RETENTION.md row 'Issue reports' (public record; reporter link removed on account deletion); the periods below are engineering proposals pending the same counsel sign-off as that table. Environment variables override each value.",
+  "ref": "docs/RETENTION.md",
+  "media_days": 180,
+  "gps_exact_days": 30,
+  "ivr_call_state_minutes": 15,
+  "unattached_media_hours": 24,
+  "notes": {
+    "media_days": "Encrypted photo/voice files are purged this many days after upload, and on account deletion (CIVIC_MEDIA_RETENTION_DAYS).",
+    "gps_exact_days": "The exact (unrounded) GPS point is kept only encrypted and internal, and is cleared after this many days; public display always uses the rounded point (CIVIC_GPS_EXACT_DAYS).",
+    "ivr_call_state_minutes": "Persisted IVR call state (encrypted caller number) is dropped after this long (TTL).",
+    "unattached_media_hours": "Uploads never attached to a report are removed after this long."
+  }
+}

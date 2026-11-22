@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import os from "node:os";
-import { getDb, migrate, resetDbForTests } from "../../server/civic/core";
+import { getDb, migrate, resetDbForTests, getStore } from "../../server/civic/core";
 import { loadDemoGeo } from "../../server/civic/geo/service";
 import { assessText, resetLexiconCache, toWords } from "../../server/civic/issues/moderation";
 import { appeal, clock, grantRole, moderate, reportIssue } from "../../server/civic/issues/service";
@@ -102,20 +102,20 @@ describe("moderation through the service: hold, appeal, release, takedown", () =
   it("holds an evasive report, records rule ids (not text), supports appeal then release", () => {
     const r = rep("the m.r.o took a b-r-i-b-e") as any;
     expect(r.held).toBe(true);
-    const row = getDb().prepare("SELECT moderation, moderation_reason FROM issue WHERE id=?").get(r.id) as any;
+    const row = getStore("issues").prepare("SELECT moderation, moderation_reason FROM issue WHERE id=?").get(r.id) as any;
     expect(row.moderation).toBe("held");
     expect(row.moderation_reason).toContain("accusation");
     expect(row.moderation_reason).not.toMatch(/bribe/i);
     expect(appeal(r.id, "rep", "I describe the failure").status).toBe("pending");
     expect(moderate(r.id, "mod-1", "release").decision).toBe("release");
-    expect((getDb().prepare("SELECT moderation FROM issue WHERE id=?").get(r.id) as any).moderation).toBe("ok");
+    expect((getStore("issues").prepare("SELECT moderation FROM issue WHERE id=?").get(r.id) as any).moderation).toBe("ok");
   });
 
   it("takedown still works on a held report; a place name does not trigger the name heuristic", () => {
     const r = rep("Ramesh garu is rude") as any;
     expect(r.held).toBe(true);
     moderate(r.id, "mod-1", "takedown");
-    expect((getDb().prepare("SELECT moderation FROM issue WHERE id=?").get(r.id) as any).moderation).toBe("taken_down");
+    expect((getStore("issues").prepare("SELECT moderation FROM issue WHERE id=?").get(r.id) as any).moderation).toBe("taken_down");
     const ok = rep("Pipe burst at Bhimavaram Palem Gandhi Nagar junction") as any;
     expect(ok.held).toBe(false);
   });

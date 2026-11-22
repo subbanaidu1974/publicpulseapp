@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import express from "express";
 import type { Server } from "http";
 import type { AddressInfo } from "net";
-import { audit, getDb, getKeys, migrate, resetDbForTests, smsOutbox, registerErasureHook, verifyAuditChain } from "../../server/civic/core";
+import { audit, getDb, getKeys, migrate, resetDbForTests, smsOutbox, registerErasureHook, verifyAuditChain, getStore } from "../../server/civic/core";
 import { identityRouter, grantVolunteer, isSurveyEligible, markResponded, markSurveyClosed, purgeExpired, networkPrefix, networkKeys, DEV_NUMBER_FIXTURES } from "../../server/civic/identity/routes";
 
 let server: Server;
@@ -60,7 +60,7 @@ describe("identity: sign-up (S-18)", () => {
     expect(getKeys().decrypt("phone", row.phone_enc)).toBe(PHONE);
     expect(row.pin_hash).not.toContain("4821");
     // clear number and OTP appear nowhere in any table or any log line
-    const dump = JSON.stringify(["persons", "otps", "sessions", "audit_log", "consents", "rate_events", "attestations"].map((t) => getDb().prepare(`SELECT * FROM ${t}`).all()));
+    const dump = JSON.stringify(["persons", "otps", "sessions", "audit_log", "consents", "rate_events", "attestations"].map((t) => (t === "audit_log" ? getStore("audit") : getDb()).prepare(`SELECT * FROM ${t}`).all()));
     expect(dump).not.toContain(PHONE);
     expect(dump).not.toContain(PHONE.slice(3));
     const logged = JSON.stringify([log.mock.calls, info.mock.calls, warn.mock.calls, err.mock.calls]);
@@ -158,7 +158,9 @@ describe("identity: shared SIM (S-19)", () => {
 });
 
 describe("identity: lockout abuse resistance", () => {
-  const wrong = (phone: string, id: string, dev: string, pin = "0000") => call2("/login", { phone, pin, person_id: id }, { "x-device-id": dev });
+  beforeEach(() => { process.env.CIVIC_TRUSTED_EDGE_IPS = "127.0.0.1,::1"; }); // the test client plays the trusted edge, so its device ids are believed
+  afterEach(() => { delete process.env.CIVIC_TRUSTED_EDGE_IPS; });
+  const wrong = (phone: string, id: string, dev: string, pin = "0000") => call2("/login", { phone, pin, person_id: id }, { "x-device-id": dev, "x-edge-verified": "1" });
   async function call2(p: string, body: unknown, headers: Record<string, string>) {
     const r = await fetch(base + p, { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body) });
     return { status: r.status, json: (await r.json()) as Record<string, any> };
@@ -240,7 +242,7 @@ describe("identity: trust tiers (S-20)", () => {
     expect(me.json.person.tier).toBe("T2");
     expect(me.text).not.toContain(v1.id); expect(me.text).not.toContain(v2.id);
     // attestor identity is in the audit log
-    const rows = getDb().prepare("SELECT actor FROM audit_log WHERE action = 'attest.residence'").all() as { actor: string }[];
+    const rows = getStore("audit").prepare("SELECT actor FROM audit_log WHERE action = 'attest.residence'").all() as { actor: string }[];
     expect(rows.map((r) => r.actor)).toEqual([v1.id, v2.id]);
     expect(verifyAuditChain().ok).toBe(true);
 
@@ -273,7 +275,7 @@ describe("identity: erasure and retention (S-43)", () => {
     await call("POST", "/residence", { residence: "Rayavaram" }, a.token);
     markResponded(a.id, "S1"); markResponded(a.id, "S2");
     audit(a.id, "custom.event", "thing:" + a.id, { k: 1 });
-    const before = (getDb().prepare("SELECT COUNT(*) AS c FROM audit_log").get() as { c: number }).c;
+    const before = (getStore("audit").prepare("SELECT COUNT(*) AS c FROM audit_log").get() as { c: number }).c;
 
     expect((await call("DELETE", "/me", { pin: "9999" }, a.token)).status).toBe(401);
     const del = await call("DELETE", "/me", { pin: "4821" }, a.token);
@@ -288,7 +290,7 @@ describe("identity: erasure and retention (S-43)", () => {
     expect(hr).toHaveLength(2);
     for (const r of hr) expect(r.person_id.startsWith("redacted:")).toBe(true);
     // audit rows are redacted, not removed; nothing references the id; chain verifies
-    const rows = getDb().prepare("SELECT actor, object, meta, redacted FROM audit_log").all() as { actor: string; object: string; meta: string; redacted: number }[];
+    const rows = getStore("audit").prepare("SELECT actor, object, meta, redacted FROM audit_log").all() as { actor: string; object: string; meta: string; redacted: number }[];
     expect(rows.length).toBeGreaterThanOrEqual(before);
     expect(JSON.stringify(rows)).not.toContain(a.id);
     expect(rows.filter((r) => r.redacted).length).toBeGreaterThan(0);
@@ -296,11 +298,11 @@ describe("identity: erasure and retention (S-43)", () => {
     // old session is dead; the number can sign up again
     expect((await call("GET", "/me", undefined, a.token)).status).toBe(401);
     expect((await call("POST", "/login", { phone: PHONE, pin: "4821" })).status).toBe(401);
-    await signup(PHONE, "1357");
+    await signup(PHONE, "5739");
     expect(verifyAuditChain().ok).toBe(true);
     // re-marking a redacted row as unredacted without its audit.redact record is detected
-    const seq = (getDb().prepare("SELECT seq FROM audit_log WHERE redacted = 1 LIMIT 1").get() as { seq: number }).seq;
-    getDb().prepare("DELETE FROM audit_log WHERE action = 'audit.redact'").run();
+    const seq = (getStore("audit").prepare("SELECT seq FROM audit_log WHERE redacted = 1 LIMIT 1").get() as { seq: number }).seq;
+    getStore("audit").prepare("DELETE FROM audit_log WHERE action = 'audit.redact'").run();
     expect(verifyAuditChain().ok).toBe(false);
     expect(seq).toBeGreaterThan(0);
   });
@@ -308,7 +310,7 @@ describe("identity: erasure and retention (S-43)", () => {
   it("@E2E-53 retention job removes phone copies and residence data older than the window, keeps the rest", async () => {
     const a = await signup(PHONE);
     await call("POST", "/residence", { residence: "Rayavaram" }, a.token);
-    const inWindow = purgeExpired(new Date(Date.now() + 10 * 86400000));
+    const inWindow = purgeExpired(new Date(Date.now() + 5 * 86400000));
     expect(inWindow.phone_copies).toBe(0); expect(inWindow.residence).toBe(0);
     const row = () => getDb().prepare("SELECT phone_enc, residence_enc, phone_hash, phone_purged_at FROM persons WHERE id = ?").get(a.id) as Record<string, unknown>;
     expect(row().phone_enc).not.toBeNull();
@@ -353,7 +355,7 @@ describe("identity: erasure and retention (S-43)", () => {
       const p = getDb().prepare("SELECT phone_hash, phone_enc, residence_enc, deleted_at FROM persons WHERE id = ?").get(a.id) as Record<string, unknown>;
       expect(p.phone_hash).not.toBeNull(); expect(p.phone_enc).not.toBeNull(); expect(p.residence_enc).not.toBeNull(); expect(p.deleted_at).toBeNull();
       expect((getDb().prepare("SELECT person_id FROM has_responded").get() as { person_id: string }).person_id).toBe(a.id); // earlier hook rolled back
-      expect((getDb().prepare("SELECT COUNT(*) AS c FROM audit_log WHERE redacted = 1").get() as { c: number }).c).toBe(0);
+      expect((getStore("audit").prepare("SELECT COUNT(*) AS c FROM audit_log WHERE redacted = 1").get() as { c: number }).c).toBe(0);
       expect((getDb().prepare("SELECT COUNT(*) AS c FROM consents WHERE person_id = ?").get(a.id) as { c: number }).c).toBe(1);
       expect((await call("GET", "/me", undefined, a.token)).status).toBe(200); // session survives
       expect(verifyAuditChain().ok).toBe(true);

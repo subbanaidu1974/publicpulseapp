@@ -6,7 +6,7 @@ import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
 import express from "express";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { getDb, migrate, resetDbForTests } from "../../server/civic/core";
+import { getDb, getStore, migrate, resetDbForTests } from "../../server/civic/core";
 import { buildRealGeoDataset, hasRealGeo, lgdCode, rawLgd } from "../../server/civic/geo/real";
 import { geoRouter } from "../../server/civic/geo/routes";
 import { ancestors, electionConstituency, getUnit, importGeo, resetAcLinkForTests, villageConstituencies } from "../../server/civic/geo/service";
@@ -46,7 +46,7 @@ describe("@E2E-95 real LGD import into the civic geo tables (S-80)", () => {
     const { data } = buildRealGeoDataset(ROOT);
     importGeo(data);
     const again = importGeo(data);
-    const c = (t: string) => (getDb().prepare(`SELECT COUNT(*) c FROM ${t}`).get() as { c: number }).c;
+    const c = (t: string) => (getStore("issues").prepare(`SELECT COUNT(*) c FROM ${t}`).get() as { c: number }).c;
     expect(c("admin_unit")).toBe(again.units);
     expect(c("village_constituency")).toBe(again.links);
     expect(c("hamlet")).toBe(0);
