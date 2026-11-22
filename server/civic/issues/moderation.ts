@@ -17,8 +17,10 @@
 import fs from "node:fs";
 import path from "node:path";
 
+export interface LexiconChange { version: number; date: string; op: "add" | "retire" | "initial"; list?: string; term?: string; change_id?: string; approvals?: number; note?: string }
 export interface Lexicon {
   version: number;
+  changelog?: LexiconChange[];
   honorifics: { en: string[]; te: string[] };
   roleTitles: { en: string[]; te: string[] };
   personSuffix: { en: string[]; te: string[] };
@@ -36,7 +38,9 @@ export interface Assessment { verdict: "ok" | "hold"; reasons: string[]; signals
 export interface AssessOptions { knownNames?: string[]; lexicon?: Lexicon }
 
 let cached: Lexicon | null = null;
-export function loadLexicon(file = path.resolve(process.cwd(), "data/civic/moderation-lexicon.json")): Lexicon {
+/** Lexicon file: CIVIC_LEXICON_FILE, else data/civic/moderation-lexicon.json. Curation (./curation) edits this file and bumps its version. */
+export const lexiconPath = () => path.resolve(process.env.CIVIC_LEXICON_FILE || path.join(process.cwd(), "data/civic/moderation-lexicon.json"));
+export function loadLexicon(file = lexiconPath()): Lexicon {
   return JSON.parse(fs.readFileSync(file, "utf8")) as Lexicon;
 }
 export function resetLexiconCache(): void { cached = null; }

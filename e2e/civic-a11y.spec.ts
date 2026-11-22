@@ -110,3 +110,53 @@ test('@E2E-57 keyboard: sign-up and the report form work without a mouse', async
   }
   expect(reached).toBe(true);
 });
+
+/** Touch-target check scoped to one screen (the signed-in page also holds other teams' forms). */
+async function assertTouchTargetsIn(page: Page, testId: string) {
+  const small = await page.evaluate((id) => {
+    const out: string[] = [];
+    document.querySelectorAll(`[data-testid="${id}"] button, [data-testid="${id}"] input:not([type=hidden]), [data-testid="${id}"] select`).forEach((el) => {
+      const r = (el as HTMLElement).getBoundingClientRect();
+      const isCheck = el instanceof HTMLInputElement && (el.type === 'checkbox' || el.type === 'radio');
+      if (r.width && r.height && (r.width < (isCheck ? 24 : 44) - 0.5 || r.height < (isCheck ? 24 : 44) - 0.5)) out.push(`${el.tagName}[${el.getAttribute('data-testid') ?? ''}] ${Math.round(r.width)}x${Math.round(r.height)}`);
+    });
+    return out;
+  }, testId);
+  expect(small, `small targets in ${testId}: ${small.join(', ')}`).toEqual([]);
+}
+
+for (const lang of ['en', 'te'] as const) {
+  test(`@E2E-57 @E2E-163 axe and touch targets on identity screens: picker, recovery, residence, invite, volunteer (${lang})`, async ({ page, request }) => {
+    const members = [{ person_id: 'a', label: 'Asha', locked: false }, { person_id: 'b', label: 'RK', locked: true }];
+    await page.route('**/identity/login', (route) => route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'x', code: 'person_required', members }) }));
+    await openCivic(page, lang);
+    await page.getByTestId('civic-login-btn').click();
+    await page.getByTestId('li-phone').fill('9876543210');
+    await page.getByTestId('li-pin').fill('4821');
+    await page.getByTestId('li-submit').click();
+    await expect(page.getByTestId('li-picker')).toBeVisible();
+    expect(await axe(page), 'login picker').toEqual([]);
+    await assertTouchTargets(page);
+    await page.getByTestId('li-forgot').click();
+    await expect(page.getByTestId('recover-flow')).toBeVisible();
+    expect(await axe(page), 'recovery').toEqual([]);
+    await assertTouchTargets(page);
+    await openCivicSignedIn(page, request, lang);
+    await expect(page.getByTestId('tier-badge')).toBeVisible();
+    if (await page.getByTestId('res-change').isVisible()) await page.getByTestId('res-change').click();
+    await expect(page.getByTestId('residence-flow')).toBeVisible();
+    expect(await axe(page), 'tier badge and residence').toEqual([]);
+    await assertTouchTargetsIn(page, 'residence-flow');
+    await page.goto('/?invite=bogus-code');
+    await expect(page.getByTestId('inv-gone')).toBeVisible();
+    expect(await axe(page), 'invite not found').toEqual([]);
+    const vol = await request.post('/api/v1/civic/e2e/person', { data: { roles: [{ role: 'volunteer' }] } });
+    const volToken = (await vol.json()).token as string;
+    await page.addInitScript((t) => { try { sessionStorage.setItem('civic-token', t); } catch { /* ignore */ } }, volToken);
+    await openCivic(page, lang);
+    await expect(page.getByTestId('civic-signed-in')).toBeVisible();
+    await expect(page.getByTestId('attestation')).toBeVisible();
+    expect(await axe(page), 'volunteer screen').toEqual([]);
+    await assertTouchTargetsIn(page, 'attestation');
+  });
+}

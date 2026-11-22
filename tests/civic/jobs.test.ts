@@ -2,14 +2,14 @@ import express from "express";
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { audit, createSession, getDb, grantRole, migrate, resetDbForTests, setAnchorSink, type AnchorRecord } from "../../server/civic/core";
+import { audit, createSession, getDb, grantRole, migrate, resetDbForTests, setAnchorSink, type AnchorRecord, getStore } from "../../server/civic/core";
 import { createPerson } from "../../server/civic/identity/service";
 import { createCivicRouter } from "../../server/civic/index";
 import { defaultJobs, jobsStatus, resetJobsForTests, runAllJobs, runJob, startJobs, stopJobs } from "../../server/civic/jobs";
 
 const T0 = new Date("2026-06-01T10:00:00Z");
 const ENV = { NODE_ENV: process.env.NODE_ENV, CIVIC_JOBS: process.env.CIVIC_JOBS };
-const auditActions = () => (getDb().prepare("SELECT action, object FROM audit_log").all() as { action: string; object: string }[]);
+const auditActions = () => (getStore("audit").prepare("SELECT action, object FROM audit_log").all() as { action: string; object: string }[]);
 
 beforeEach(() => { resetDbForTests(); migrate(); resetJobsForTests(); });
 afterEach(() => {
@@ -50,7 +50,7 @@ describe("job scheduler (S-66)", () => {
     now = new Date(T0.getTime() + 25 * 3_600_000);
     vi.advanceTimersByTime(25 * 3_600_000);
     const s = jobsStatus();
-    expect(s.jobs.map((j) => j.name).sort()).toEqual(["anchorAuditHead", "eraseDependentsAt18", "expireInvites", "purgeExpired", "purgeExpiredMedia", "sweep", "verifyAuditChain"].sort());
+    expect(s.jobs.map((j) => j.name).sort()).toEqual(["anchorAuditHead", "eraseDependentsAt18", "expireInvites", "purgeExpired", "purgeExpiredMedia", "retryErasureOutbox", "sweep", "verifyAuditChain"].sort());
     for (const j of s.jobs) {
       expect(j.runs, j.name).toBeGreaterThan(0);
       expect(j.lastOk, j.name + " " + j.lastError).toBe(true);
@@ -98,7 +98,7 @@ describe("job scheduler (S-66)", () => {
     audit("system", "a.one", "o"); audit("system", "a.two", "o");
     runJob("verifyAuditChain", T0);
     expect(jobsStatus().alarm).toBeNull();
-    getDb().prepare("UPDATE audit_log SET meta = '{\"n\":99}' WHERE seq = 1").run();
+    getStore("audit").prepare("UPDATE audit_log SET meta = '{\"n\":99}' WHERE seq = 1").run();
     runJob("verifyAuditChain", T0);
     const s = jobsStatus();
     expect(s.alarm).toMatchObject({ kind: "audit_chain_broken" });
@@ -143,7 +143,7 @@ describe("job scheduler (S-66)", () => {
       expect(ok.status).toBe(200);
       const body = (await ok.json()) as { started: boolean; jobs: unknown[] };
       expect(body.started).toBe(true);
-      expect(body.jobs.length).toBe(7);
+      expect(body.jobs.length).toBe(8);
       expect(JSON.stringify(body)).not.toMatch(/secret|token|phone_hash|\bpin\b/i);
     });
   });

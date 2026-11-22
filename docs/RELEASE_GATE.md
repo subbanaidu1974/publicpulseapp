@@ -10,7 +10,7 @@ Scope: DESIGN_2028 section 3.8 item 8, section 3.9 (pilot first), section 3.10 (
 | 2 | Independent red-team and penetration test report | Report from a party independent of the builders; all critical and high findings fixed or formally accepted | | | [ ] |
 | 3 | Pilot skew report (2-3 mandals): response by gender, age, phone ownership | Published report with method | | | [ ] |
 | 4 | Keys in HSM/KMS with per-purpose keys, rotation and dual-control break-glass | Configuration evidence and drill record | | | [ ] |
-| 5 | Identity, issue and survey data in separate stores with no cross-store joins | Architecture diagram and schema check | | | [ ] |
+| 5 | Identity, issue and survey data in separate stores with no cross-store joins | Architecture diagram and schema check. Built (S-74, E2E-89): four separate SQLite files (identity, issues, survey placeholder, audit), layout and diagram in `docs/STORES.md`; the schema check is automated in `tests/civic/stores.test.ts` (no ATTACH, no SQL statement naming tables of two stores, every store holds only its own tables, the issues store holds no `persons.id`). Still needed here: reviewer sign-off on the diagram, and the production deployment evidence (separate volumes or hosts per store, per-store access control) | | | [ ] |
 | 6 | Audit log head anchored externally with independent witnesses | Witness agreements and anchor samples | | | [ ] |
 | 7 | OTP-send budget, per-ASN/device caps and degraded mode load-tested (E2E-56) | Load test results | | | [ ] |
 | 8 | Sender security (FIDO2, signed payloads, anti-phish word, kill-switch), if notifications are in scope | Test record | | | [ ] |

@@ -15,10 +15,13 @@
 import { Router, json } from "express";
 import type { Request, Response } from "express";
 import { audit, createSession, getSms } from "../core";
+import { MediaError, storeMedia, voiceMaxBytes } from "../issues/media";
+import { IVR_CATEGORY_DIGITS, ivrCategoryPrompt } from "../issues/categories";
+import { sqliteCallStore, type Call, type CallStore, type IvrState } from "./callstore";
 import { createWebhookAuth, webhookAuthConfigured } from "./webhook";
 import { checkPin, getPerson, personsOnSim, phoneHash, rateAllow, type PinResult } from "../identity/service";
 
-export type IvrState = "welcome" | "who" | "pin" | "category" | "record" | "confirm" | "status" | "survey" | "done" | "goodbye";
+export type { IvrState };
 export type IvrExpect = "digit" | "recording" | "none";
 
 export interface IvrPrompt { id: string; audioKey: string; textTe: string; textEn: string }
@@ -37,8 +40,12 @@ export interface IvrReply {
   adults?: number;
 }
 
-export class ChannelError extends Error { constructor(public code: "not_registered" | "pin_required" | "no_village") { super(code); } }
-export interface IssueSinkInput { channel: "ivr"; category: string; phone: string; audioKey?: string; text?: string; villageLgd?: string; /** the adult who passed the PIN step */ personId?: string }
+export class ChannelError extends Error { constructor(public code: "not_registered" | "pin_required" | "no_village" | "recording_rejected") { super(code); } }
+export interface IssueSinkInput {
+  channel: "ivr"; category: string; phone: string; audioKey?: string; text?: string; villageLgd?: string; /** the adult who passed the PIN step */ personId?: string;
+  /** Aggregator recording URL (host allow-listed by the router); the default sink fetches it and stores it through the media route. */
+  recordingUrl?: string;
+}
 export interface ChannelDeps {
   createIssue: (input: IssueSinkInput) => Promise<{ id: string }>;
   sendSms: (to: string, text: string) => Promise<void>;
@@ -52,7 +59,7 @@ export interface ChannelDeps {
 /** Prompt catalogue. Audio files are PLACEHOLDERS; human-recorded Telugu audio replaces them (data/civic/audio-manifest.json). */
 export const PROMPTS: Record<string, { textTe: string; textEn: string }> = {
   welcome: { textTe: "పీపుల్ పల్స్ కు స్వాగతం. సమస్య నమోదు చేయడానికి 1, మీ రిఫరెన్స్ స్థితికి 2, సేవల అభిప్రాయానికి 3 నొక్కండి. మేము ఎప్పుడూ OTP అడగము.", textEn: "Welcome to People Pulse. Press 1 to report an issue, 2 for reference status, 3 for a service feedback question. We never ask for your OTP." },
-  category: { textTe: "సమస్య రకం: నీరు 1, రోడ్లు 2, విద్యుత్ 3, ఆరోగ్యం 4, పాఠశాల 5, ఇతరం 6.", textEn: "Issue type: water 1, roads 2, electricity 3, health 4, school 5, other 6." },
+  category: ivrCategoryPrompt(), // all nine web categories, generated from the single source (issues/categories.ts)
   record: { textTe: "బీప్ తర్వాత మీ సమస్యను తెలుగులో చెప్పండి. ముగించడానికి # నొక్కండి.", textEn: "After the beep, describe your issue in Telugu. Press # to finish." },
   who: { textTe: "ఈ నంబర్ పై నమోదైన వారిలో మీరు ఎవరు? మీ వరుస సంఖ్యను నొక్కండి: మొదటి వ్యక్తికి 1, రెండవ వ్యక్తికి 2, మూడవ వ్యక్తికి 3, నాల్గవ వ్యక్తికి 4, ఐదవ వ్యక్తికి 5.", textEn: "Which adult on this number are you? Press your position number: 1 for the first person, 2 for the second, 3 for the third, 4 for the fourth, 5 for the fifth." },
   pin: { textTe: "మీ వ్యక్తిగత పిన్ నమోదు చేసి # నొక్కండి. మీ పిన్ ను ఎవరికీ చెప్పకండి.", textEn: "Enter your personal PIN, then press hash. Never tell your PIN to anyone." },
@@ -66,11 +73,11 @@ export const PROMPTS: Record<string, { textTe: string; textEn: string }> = {
   goodbye: { textTe: "కాల్ చేసినందుకు ధన్యవాదాలు.", textEn: "Thank you for calling." },
 };
 
-export const CATEGORIES: Record<string, string> = { "1": "water", "2": "roads", "3": "electricity", "4": "health", "5": "education", "6": "other" };
+/** Key pressed -> category id; the same nine categories as the web app (S-148). */
+export const CATEGORIES: Record<string, string> = IVR_CATEGORY_DIGITS;
 
 const prompt = (id: string): IvrPrompt => ({ id, audioKey: `audio/te/${id}.wav`, ...PROMPTS[id] });
 
-interface Call { callId: string; phone: string; state: IvrState; category?: string; referenceId?: string; lastRef?: string; createdAt: number; turns: number; adults?: string[]; personId?: string; needsPin?: boolean; verified?: boolean }
 const PIN_RE = /^\d{4,6}$/;
 /** S-56: PIN is required for every caller unless explicitly disabled with CIVIC_IVR_PIN_ALWAYS=0 (default on). */
 const pinAlways = () => process.env.CIVIC_IVR_PIN_ALWAYS !== "0";
@@ -78,6 +85,39 @@ const AGG_ID_RE = /^[\w.-]{6,64}$/;
 
 /** Opaque storage keys only: no leading slash, no traversal segments. */
 const validKey = (k: string): boolean => /^[\w./-]{1,200}$/.test(k) && !k.startsWith("/") && !k.split("/").includes("..");
+// ---- aggregator recording URLs (S-146) ----
+/** Hosts the aggregator serves recordings from: CIVIC_IVR_RECORDING_HOSTS, comma separated, exact or "*.example.com". Empty = URLs refused. */
+const recordingHosts = () => (process.env.CIVIC_IVR_RECORDING_HOSTS ?? "").split(",").map((h) => h.trim().toLowerCase()).filter(Boolean);
+export const isUrlRef = (v: string): boolean => /^https?:\/\//i.test(v);
+/** https only, no credentials, default port, host on the allow-list. Returns the normalised URL or null. */
+export function allowedRecordingUrl(raw: string): string | null {
+  let u: URL;
+  try { u = new URL(raw); } catch { return null; }
+  if (u.protocol !== "https:" || u.username || u.password || (u.port && u.port !== "443") || raw.length > 600) return null;
+  const host = u.hostname.toLowerCase();
+  const ok = recordingHosts().some((h) => (h.startsWith("*.") ? host.endsWith(h.slice(1)) && host.length > h.length - 1 : host === h));
+  return ok ? u.toString() : null;
+}
+export type RecordingFetcher = (url: string, maxBytes: number) => Promise<Buffer>;
+/** Default fetcher: no redirects (a redirect could leave the allow-list), 10 s timeout, streamed with a hard byte cap. */
+const defaultRecordingFetcher: RecordingFetcher = async (url, maxBytes) => {
+  const res = await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(10_000), headers: { accept: "audio/*" } });
+  if (!res.ok || !res.body) throw new MediaError(502, "recording not available");
+  const declared = Number(res.headers.get("content-length"));
+  if (declared > maxBytes) throw new MediaError(413, "recording too large");
+  const chunks: Buffer[] = [];
+  let n = 0;
+  for await (const c of res.body as unknown as AsyncIterable<Uint8Array>) {
+    n += c.length;
+    if (n > maxBytes) throw new MediaError(413, "recording too large");
+    chunks.push(Buffer.from(c));
+  }
+  return Buffer.concat(chunks);
+};
+let recordingFetcher: RecordingFetcher = defaultRecordingFetcher;
+/** Install a fetcher (tests, or an aggregator SDK that needs a signed request). */
+export function setRecordingFetcher(f: RecordingFetcher | null): void { recordingFetcher = f ?? defaultRecordingFetcher; }
+
 const PHONE_RE = /^[6-9]\d{9}$/;
 const normPhone = (p: unknown): string | null => {
   if (typeof p !== "string") return null;
@@ -96,7 +136,6 @@ function renderXml(reply: Omit<IvrReply, "xml">): string {
 
 const MISSED_CALL_PER_PHONE_PER_HOUR = 3;
 const MISSED_CALL_BUDGET_PER_HOUR = Number(process.env.CIVIC_CALLBACK_BUDGET_PER_HOUR || 500);
-const CALL_TTL_MS = 15 * 60_000;
 const MAX_TURNS = 20;
 
 export function defaultDeps(): ChannelDeps {
@@ -118,6 +157,19 @@ export function defaultDeps(): ChannelDeps {
       if (!who) throw new ChannelError(people.length === 0 || input.personId ? "not_registered" : "pin_required");
       const village = input.villageLgd ?? who.residence_unit;
       if (!village) throw new ChannelError("no_village");
+      let audioKey = input.audioKey;
+      if (input.recordingUrl) {
+        // fetch the aggregator recording, then run it through the same intake as web uploads (size cap, content sniff, scan, encryption)
+        const url = allowedRecordingUrl(input.recordingUrl);
+        if (!url) throw new ChannelError("recording_rejected");
+        try {
+          const buf = await recordingFetcher(url, voiceMaxBytes());
+          audioKey = (await storeMedia(who.id, buf, undefined, new Date(), { expectKind: "voice" })).ref;
+        } catch (e) {
+          if (e instanceof MediaError && e.status < 500) throw new ChannelError("recording_rejected");
+          throw e;
+        }
+      }
       const token = createSession(who.id);
       const base = process.env.CIVIC_INTERNAL_BASE || `http://127.0.0.1:${process.env.PORT || 3000}`;
       const res = await fetch(`${base}/api/v1/civic/issues`, {
@@ -125,8 +177,8 @@ export function defaultDeps(): ChannelDeps {
         headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
         body: JSON.stringify({
           category: input.category, village_lgd: village,
-          description_en: input.text || `Voice note reported by phone (${input.category}). Audio: ${input.audioKey ?? "none"}`,
-          photo_ref: input.audioKey,
+          description_en: input.text || `Voice note reported by phone (${input.category}). Audio: ${audioKey ?? "none"}`,
+          ...(audioKey?.startsWith("media:") ? { voice_ref: audioKey } : { photo_ref: audioKey }), // media refs are voice notes; legacy opaque keys keep the old field
         }),
       });
       if (!res.ok) throw new Error(`issues module responded ${res.status}`);
@@ -137,19 +189,18 @@ export function defaultDeps(): ChannelDeps {
   };
 }
 
-export function createChannelsRouter(deps: ChannelDeps = defaultDeps()): Router {
+export function createChannelsRouter(deps: ChannelDeps = defaultDeps(), opts: { store?: CallStore } = {}): Router {
   const r = Router();
   r.use(json({ limit: "16kb", verify: (req, _res, buf) => { (req as Request & { rawBody?: Buffer }).rawBody = buf; } }));
   const webhookAuth = createWebhookAuth(() => deps.now());
-  const calls = new Map<string, Call>();
+  const store = opts.store ?? sqliteCallStore; // persisted (sqlite, TTL): calls survive a restart
+  const dead = new Set<string>(); // calls ended during this request: not saved again
+  const drop = (id: string) => { dead.add(id); store.delete(id); };
   const perPhone = new Map<string, number[]>();
   const budget: number[] = [];
   let seq = 0;
 
-  const prune = () => {
-    const t = deps.now();
-    for (const [k, c] of calls) if (t - c.createdAt > CALL_TTL_MS) calls.delete(k);
-  };
+  const prune = () => { try { store.prune(deps.now()); } catch { /* best effort; get() also enforces the TTL */ } };
   const within = (arr: number[], ms: number) => { const t = deps.now(); while (arr.length && t - arr[0] > ms) arr.shift(); return arr; };
   const safeAudit = (action: string, object: string, meta?: Record<string, unknown>) => { try { audit("channels", action, object, meta); } catch { /* audit must not break a call */ } };
 
@@ -172,9 +223,9 @@ export function createChannelsRouter(deps: ChannelDeps = defaultDeps()): Router 
     const agg = req.body?.aggregatorCallId;
     if (webhookAuthConfigured() && !(typeof agg === "string" && AGG_ID_RE.test(agg))) return void res.status(400).json({ error: "aggregator_call_id_required" });
     if (agg !== undefined && !(typeof agg === "string" && AGG_ID_RE.test(agg))) return void res.status(400).json({ error: "invalid_aggregator_call_id" });
-    if (typeof agg === "string" && calls.has(agg)) return void res.status(409).json({ error: "duplicate_call" });
+    if (typeof agg === "string" && store.has(agg, deps.now())) return void res.status(409).json({ error: "duplicate_call" });
     const callId = typeof agg === "string" ? agg : `c${deps.now().toString(36)}${(++seq).toString(36)}`;
-    calls.set(callId, { callId, phone, state: "welcome", createdAt: deps.now(), turns: 0 });
+    store.put({ callId, phone, state: "welcome", createdAt: deps.now(), turns: 0 });
     safeAudit("missed_call", callId);
     // The adapter dials back; the callback is free to the citizen. No OTP, no SMS is sent at this stage.
     res.status(202).json({ status: "callback_queued", callId, callbackTo: `${phone.slice(0, 2)}******${phone.slice(-2)}` });
@@ -183,9 +234,11 @@ export function createChannelsRouter(deps: ChannelDeps = defaultDeps()): Router 
   r.post("/ivr", webhookAuth, async (req: Request, res: Response) => {
     prune();
     const callId = typeof req.body?.callId === "string" ? req.body.callId : "";
-    const c = calls.get(callId);
+    const c = store.get(callId, deps.now());
     if (!c) return void res.status(404).json({ error: "unknown_call" });
-    if (++c.turns > MAX_TURNS) { calls.delete(callId); return void res.json(reply(c, "goodbye", "none", ["goodbye"])); }
+    const sendJson = res.json.bind(res);
+    res.json = ((b: unknown) => { if (!dead.has(c.callId)) store.put(c); dead.delete(c.callId); return sendJson(b); }) as typeof res.json; // persist the new state before the reply leaves
+    if (++c.turns > MAX_TURNS) { drop(callId); return void res.json(reply(c, "goodbye", "none", ["goodbye"])); }
     const digits = typeof req.body?.digits === "string" ? req.body.digits.slice(0, 8) : undefined;
     const recording = typeof req.body?.recording === "string" ? req.body.recording : undefined;
 
@@ -219,7 +272,7 @@ export function createChannelsRouter(deps: ChannelDeps = defaultDeps()): Router 
           if (!c.personId || !deps.checkPin) return void res.json(reply(c, "goodbye", "none", ["goodbye"]));
           if (digits === undefined) return void res.json(reply(c, "pin", "digit", ["pin"], { sensitive: true }));
           if (!PIN_RE.test(digits)) return void res.json(reply(c, "pin", "digit", ["invalid", "pin"], { sensitive: true }));
-          if (!rateAllow("ivr:pin:" + c.phone, 20, 15 * 60_000, deps.now())) { calls.delete(c.callId); return void res.json(reply(c, "goodbye", "none", ["locked"], { error: "too_many_attempts" })); }
+          if (!rateAllow("ivr:pin:" + c.phone, 20, 15 * 60_000, deps.now())) { drop(c.callId); return void res.json(reply(c, "goodbye", "none", ["locked"], { error: "too_many_attempts" })); }
           const r = await deps.checkPin(c.personId, digits, "ivr:" + c.phone);
           if (r === "ok") {
             c.verified = true;
@@ -228,7 +281,7 @@ export function createChannelsRouter(deps: ChannelDeps = defaultDeps()): Router 
           }
           safeAudit(r === "wrong" ? "ivr_pin_wrong" : "ivr_pin_locked", c.callId);
           if (r === "wrong") return void res.json(reply(c, "pin", "digit", ["pinWrong", "pin"], { sensitive: true }));
-          calls.delete(c.callId); // locked (the number's holder was told by checkPin when it tripped)
+          drop(c.callId); // locked (the number's holder was told by checkPin when it tripped)
           return void res.json(reply(c, "goodbye", "none", ["locked", "goodbye"], { error: r === "limited" ? "pin_limited" : "pin_locked" }));
         }
         case "category": {
@@ -240,9 +293,10 @@ export function createChannelsRouter(deps: ChannelDeps = defaultDeps()): Router 
         }
         case "record": {
           if (!recording) return void res.json(reply(c, "record", "recording", ["record"]));
-          if (!validKey(recording)) return void res.status(400).json({ error: "invalid_recording_key" });
+          const byUrl = isUrlRef(recording);
+          if (byUrl ? !allowedRecordingUrl(recording) : !validKey(recording)) return void res.status(400).json({ error: byUrl ? "invalid_recording_host" : "invalid_recording_key" });
           if (c.needsPin && !c.verified) return void res.json(reply(c, "goodbye", "none", ["goodbye"]));
-          const issue = await deps.createIssue({ channel: "ivr", category: c.category ?? "other", phone: c.phone, audioKey: recording, ...(c.verified ? { personId: c.personId } : {}) });
+          const issue = await deps.createIssue({ channel: "ivr", category: c.category ?? "other", phone: c.phone, ...(byUrl ? { recordingUrl: recording } : { audioKey: recording }), ...(c.verified ? { personId: c.personId } : {}) });
           c.lastRef = issue.id;
           await deps.sendSms(c.phone, `People Pulse: your issue reference is ${issue.id}. We never ask for OTP or bank details.`);
           safeAudit("ivr_issue", issue.id, { category: c.category });
@@ -270,8 +324,9 @@ export function createChannelsRouter(deps: ChannelDeps = defaultDeps()): Router 
   r.post("/voice-note", webhookAuth, async (req: Request, res: Response) => {
     const phone = normPhone(req.body?.from);
     const audioKey = typeof req.body?.audioKey === "string" && validKey(req.body.audioKey) ? req.body.audioKey : null;
+    const recordingUrl = typeof req.body?.recordingUrl === "string" ? allowedRecordingUrl(req.body.recordingUrl) : null;
     const category = typeof req.body?.category === "string" && Object.values(CATEGORIES).includes(req.body.category) ? req.body.category : "other";
-    if (!phone || !audioKey) return void res.status(400).json({ error: "invalid_request" });
+    if (!phone || (!audioKey && !recordingUrl)) return void res.status(400).json({ error: "invalid_request" });
     try {
       let personId: string | undefined;
       if (pinAlways() && deps.listAdults && deps.checkPin) {
@@ -284,7 +339,7 @@ export function createChannelsRouter(deps: ChannelDeps = defaultDeps()): Router 
           personId = adults[0].id;
         }
       }
-      const issue = await deps.createIssue({ channel: "ivr", category, phone, audioKey, ...(personId ? { personId } : {}) });
+      const issue = await deps.createIssue({ channel: "ivr", category, phone, ...(recordingUrl ? { recordingUrl } : { audioKey: audioKey! }), ...(personId ? { personId } : {}) });
       await deps.sendSms(phone, `People Pulse: your issue reference is ${issue.id}. We never ask for OTP or bank details.`);
       res.status(201).json({ referenceId: issue.id });
     } catch (e) {

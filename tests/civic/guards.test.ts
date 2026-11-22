@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DevKeyProvider, getDb, migrate, resetDbForTests, setKeyProvider, setSmsProvider } from "../../server/civic/core";
+import { DevKeyProvider, getDb, migrate, resetDbForTests, setKeyProvider, setSmsProvider, getStore } from "../../server/civic/core";
 import { ensureGeo } from "../../server/civic/geo/service";
 import { setNumberIntelligence } from "../../server/civic/identity/service";
 import { assertProductionSafe, isLocalHost } from "../../server/civic/guards";
@@ -83,10 +83,10 @@ describe("production startup guards (S-55)", () => {
   it("@E2E-70 ensureGeo does not seed DEMO geography in production", () => {
     productionReady();
     ensureGeo();
-    expect((getDb().prepare("SELECT COUNT(*) c FROM admin_unit").get() as { c: number }).c).toBe(0);
+    expect((getStore("issues").prepare("SELECT COUNT(*) c FROM admin_unit").get() as { c: number }).c).toBe(0);
     process.env.NODE_ENV = "test";
     ensureGeo();
-    expect((getDb().prepare("SELECT COUNT(*) c FROM admin_unit").get() as { c: number }).c).toBeGreaterThan(0);
+    expect((getStore("issues").prepare("SELECT COUNT(*) c FROM admin_unit").get() as { c: number }).c).toBeGreaterThan(0);
   });
 
   it("@E2E-70 unset NODE_ENV is non-production but warns loudly; dev OTP needs a localhost host", () => {

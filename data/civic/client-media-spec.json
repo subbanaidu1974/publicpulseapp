@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "story": "S-138",
+  "purpose": "Spec for the UI agent: re-encode photos the server refuses with 415 code 'convert_on_client' (WebP, HEIC/HEIF, AVIF) to JPEG on the device, which also drops EXIF/XMP, then upload the JPEG to POST /api/v1/civic/issues/media.",
+  "server_contract": {
+    "accepts": ["image/jpeg", "image/png"],
+    "refuses_with": { "status": 415, "body": { "code": "convert_on_client", "detected": "image/webp | image/heic | image/avif", "convert_to": "image/jpeg" } },
+    "limits": { "max_bytes_default": 2097152, "max_side_px_default": 6000, "max_pixels_default": 25000000 }
+  },
+  "helper": {
+    "name": "reencodeToJpeg",
+    "signature": "reencodeToJpeg(file: File | Blob, opts?: { maxSide?: number; quality?: number; maxBytes?: number }): Promise<Blob>",
+    "defaults": { "maxSide": 2048, "quality": 0.82, "maxBytes": 1900000 },
+    "steps": [
+      "Always run it for any file whose type or magic bytes are not JPEG/PNG, and optionally for every photo (it strips metadata for free).",
+      "Decode with createImageBitmap(file, { imageOrientation: 'from-image' }) so the EXIF orientation is applied before the metadata is discarded. Fall back to an HTMLImageElement + object URL where createImageBitmap rejects the format.",
+      "Scale so the longer side is <= maxSide (never upscale), draw onto an OffscreenCanvas or <canvas> (fill white first so transparent pixels do not turn black), then canvas.toBlob('image/jpeg', quality) / convertToBlob.",
+      "If the blob is larger than maxBytes lower quality by 0.1 (floor 0.5) and retry; then lower maxSide by 25% and retry. Give up after 5 attempts and show 'photo too large'.",
+      "Canvas output carries no EXIF, XMP or GPS. Never read or send the original file after this point.",
+      "HEIC: Safari and Chrome on recent iOS/Android decode it natively through createImageBitmap. Where decode fails (older desktop Chrome/Firefox) show 'This photo format is not supported here, choose a JPEG or take a new photo' and do NOT bundle a WASM HEIC decoder without a licence review.",
+      "Upload the resulting Blob as the raw request body with Content-Type: image/jpeg."
+    ],
+    "errors_to_handle": {
+      "415 convert_on_client": "run the helper once and retry the upload automatically; do not loop",
+      "422 dimensions_too_large": "lower maxSide and retry once",
+      "413 too_large": "lower quality/maxSide and retry once",
+      "422 scan_rejected": "show 'this file was rejected'; do not retry"
+    }
+  },
+  "gps_note": "Photos are not used for location. The report form sends lat/lon separately; the server keeps the exact point encrypted and internal and shows only a ~100 m rounded point publicly."
+}

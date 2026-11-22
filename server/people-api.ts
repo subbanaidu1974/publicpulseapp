@@ -215,7 +215,7 @@ export function createPeopleRouter(data: { elections: CandidateResult[] }, opts:
     const list = db().prepare(`SELECT * FROM people_requests ${status ? "WHERE status = ?" : ""} ORDER BY created_at DESC LIMIT 200`).all(...(status ? [status] : [])) as Record<string, unknown>[];
     const now = Date.now();
     const out = list.map(r => {
-      let contact: string | null = null;
+      let contact: string | null;
       try { contact = r.contact_enc ? getKeys().decrypt("people_contact", String(r.contact_enc)) : null; } catch { contact = null; }
       const { contact_enc: _c, ...rest } = r;
       return { ...rest, contact, overdue: r.status === "open" && Date.parse(String(r.sla_due)) < now };

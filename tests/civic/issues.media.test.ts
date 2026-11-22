@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
-import { getDb, migrate, resetDbForTests, runErasureHooks } from "../../server/civic/core";
+import { getDb, migrate, resetDbForTests, runErasureHooks, getStore } from "../../server/civic/core";
 import { loadDemoGeo } from "../../server/civic/geo/service";
 import { createIssuesRouter } from "../../server/civic/issues/routes";
 import { clock, sweep } from "../../server/civic/issues/service";
@@ -102,16 +102,17 @@ describe("photo and voice intake (S-24)", () => {
     expect(files).toEqual([`${r.body.id}.jpg`]);
     const onDisk = fs.readFileSync(path.join(dir, files[0]));
     expect(onDisk.toString("latin1")).not.toMatch(/SECRET/);
-    expect(onDisk.length).toBe(r.body.bytes);
-    const row = getDb().prepare("SELECT * FROM issue_media WHERE id=?").get(r.body.id) as any;
+    expect(onDisk.length).toBe(r.body.bytes + 32); // encrypted at rest: magic(4) + iv(12) + tag(16) + ciphertext
+    expect(onDisk.subarray(0, 4).toString()).toBe("PPM1");
+    const row = getStore("issues").prepare("SELECT * FROM issue_media WHERE id=?").get(r.body.id) as any;
     expect(row.file).toBe(`${r.body.id}.jpg`);
     expect(row).not.toHaveProperty("original_name");
     expect(Date.parse(row.retain_until) - Date.parse(row.created_at)).toBe(180 * 86400_000);
     expect(path.resolve(dir)).not.toContain(path.resolve("data", "civic.db"));
     const rep = await call("POST", "/", "p1", { category: "roads", village_lgd: "DEMO-V-KLR", description_en: "Big pothole", photo_ref: r.body.ref });
     expect(rep.status).toBe(201);
-    expect(getDb().prepare("SELECT photo_ref, voice_ref FROM issue WHERE id=?").get(rep.body.id)).toMatchObject({ photo_ref: r.body.ref, voice_ref: null });
-    expect((getDb().prepare("SELECT issue_id FROM issue_media WHERE id=?").get(r.body.id) as any).issue_id).toBe(rep.body.id);
+    expect(getStore("issues").prepare("SELECT photo_ref, voice_ref FROM issue WHERE id=?").get(rep.body.id)).toMatchObject({ photo_ref: r.body.ref, voice_ref: null });
+    expect((getStore("issues").prepare("SELECT issue_id FROM issue_media WHERE id=?").get(r.body.id) as any).issue_id).toBe(rep.body.id);
     // already attached: cannot be reused
     expect((await call("POST", "/", "p1", { category: "roads", village_lgd: "DEMO-V-KLR", description_en: "Another one elsewhere", photo_ref: r.body.ref })).status).toBe(400);
   });
@@ -138,7 +139,7 @@ describe("photo and voice intake (S-24)", () => {
     expect(fs.readFileSync(path.join(dir, stored(mp3.body.id)[0])).toString("latin1")).not.toContain("SECRET-TAG");
     const rep = await call("POST", "/", "p1", { category: "water", village_lgd: "DEMO-V-KLR", description_te: "నీరు రావడం లేదు", voice_ref: v.body.ref });
     expect(rep.status).toBe(201);
-    expect(getDb().prepare("SELECT voice_ref, photo_ref FROM issue WHERE id=?").get(rep.body.id)).toMatchObject({ voice_ref: v.body.ref, photo_ref: null });
+    expect(getStore("issues").prepare("SELECT voice_ref, photo_ref FROM issue WHERE id=?").get(rep.body.id)).toMatchObject({ voice_ref: v.body.ref, photo_ref: null });
     // a voice file is not a photo
     expect((await call("POST", "/", "p1", { category: "water", village_lgd: "DEMO-V-KLR", description_en: "x y z not duplicate", photo_ref: mp3.body.ref })).status).toBe(400);
   });
@@ -197,7 +198,7 @@ describe("photo and voice intake (S-24)", () => {
 
     runErasureHooks("p9");
     expect(stored(mine.body.id)).toEqual([]);
-    expect(getDb().prepare("SELECT COUNT(*) c FROM issue_media WHERE owner_id='p9'").get()).toMatchObject({ c: 0 });
+    expect(getStore("issues").prepare("SELECT COUNT(*) c FROM issue_media WHERE owner_id='p9'").get()).toMatchObject({ c: 0 });
 
     expect(sweep(new Date(T0.getTime() + 181 * 86400_000)).mediaPurged).toBe(1); // retention elapsed
     expect(stored(a.body.id)).toEqual([]);

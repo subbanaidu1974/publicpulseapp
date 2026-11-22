@@ -1,8 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { reporterPseudonym } from "../../server/civic/core/pseudonyms";
 import express from "express";
 import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
-import { getDb, migrate, resetDbForTests } from "../../server/civic/core";
+import { getDb, migrate, resetDbForTests, getStore } from "../../server/civic/core";
 import { loadDemoGeo } from "../../server/civic/geo/service";
 import { createIssuesRouter, issuesRouter } from "../../server/civic/issues/routes";
 import { clock, grantRole, sweep, CONFIRM_WINDOW_HOURS, ME_TOO_PER_DAY } from "../../server/civic/issues/service";
@@ -19,7 +20,7 @@ async function call(method: string, p: string, who?: string, body?: unknown) {
   return { status: r.status, body: (await r.json()) as any };
 }
 const report = (who: string, b: object) => call("POST", "/", who, { category: "water", village_lgd: "DEMO-V-KLR", description_en: "No drinking water supply", ...b });
-const audits = (action: string) => (getDb().prepare("SELECT * FROM audit_log WHERE action=?").all(action) as any[]);
+const audits = (action: string) => (getStore("audit").prepare("SELECT * FROM audit_log WHERE action=?").all(action) as any[]);
 
 beforeAll(async () => {
   const app = express();
@@ -113,8 +114,8 @@ describe("workflow, SLA, confirmation (S-25)", () => {
     // skipping a step is refused
     expect((await call("POST", `/${id}/transition`, "off-kolluru", { to: "Resolved" })).status).toBe(409);
     for (const to of ["Verified", "Assigned", "InProgress", "Resolved"]) await call("POST", `/${id}/transition`, "off-kolluru", { to });
-    const sample = (getDb().prepare("SELECT person_id FROM issue_sample WHERE issue_id=?").all(id) as any[]).map(r => r.person_id);
-    expect(sample.sort()).toEqual(neighbours);
+    const sample = (getStore("issues").prepare("SELECT person_id FROM issue_sample WHERE issue_id=?").all(id) as any[]).map(r => r.person_id);
+    expect(sample.sort()).toEqual(neighbours.map((n) => reporterPseudonym(id, n)).sort()); // pseudonyms: the issues store holds no person ids
     // an outsider cannot vote; two neighbours confirm, one says reopen; reporter says nothing
     expect((await call("POST", `/${id}/confirm`, "stranger", { vote: "confirm" })).status).toBe(403);
     await call("POST", `/${id}/confirm`, "n1", { vote: "confirm" });
@@ -122,7 +123,7 @@ describe("workflow, SLA, confirmation (S-25)", () => {
     await call("POST", `/${id}/confirm`, "n3", { vote: "reopen" });
     expect(sweep(at(CONFIRM_WINDOW_HOURS - 1)).confirmed).toEqual([]); // window still open
     expect(sweep(at(CONFIRM_WINDOW_HOURS + 1)).confirmed).toEqual([id]);
-    const row = getDb().prepare("SELECT status, confirm_basis FROM issue WHERE id=?").get(id) as any;
+    const row = getStore("issues").prepare("SELECT status, confirm_basis FROM issue WHERE id=?").get(id) as any;
     expect(row).toMatchObject({ status: "Confirmed", confirm_basis: "neighbours" });
     expect(audits("issue.confirmation_closed")).toHaveLength(1);
   });
@@ -133,7 +134,7 @@ describe("workflow, SLA, confirmation (S-25)", () => {
     expect(r.body.status).toBe("Reopened");
     const id2 = await resolved("rep3");
     sweep(at(CONFIRM_WINDOW_HOURS + 1));
-    expect(getDb().prepare("SELECT confirm_basis b FROM issue WHERE id=?").get(id2)).toMatchObject({ b: "lapsed_unverified" });
+    expect(getStore("issues").prepare("SELECT confirm_basis b FROM issue WHERE id=?").get(id2)).toMatchObject({ b: "lapsed_unverified" });
   });
 
   it("@E2E-34 out-of-jurisdiction issue is re-routed to the right department", async () => {
@@ -156,8 +157,8 @@ describe("workflow, SLA, confirmation (S-25)", () => {
     const id = (await report("rep", {})).body.id as string;
     expect(sweep(at(10)).escalated).toEqual([]);
     expect(sweep(at(73)).escalated).toEqual([id]); // water SLA 72h: village -> mandal
-    expect(getDb().prepare("SELECT jurisdiction_lgd j FROM issue WHERE id=?").get(id)).toMatchObject({ j: "DEMO-M-KLP" });
-    const where = () => getDb().prepare("SELECT jurisdiction_lgd j, esc_level l FROM issue WHERE id=?").get(id);
+    expect(getStore("issues").prepare("SELECT jurisdiction_lgd j FROM issue WHERE id=?").get(id)).toMatchObject({ j: "DEMO-M-KLP" });
+    const where = () => getStore("issues").prepare("SELECT jurisdiction_lgd j, esc_level l FROM issue WHERE id=?").get(id);
     sweep(at(73 + 73));
     expect(where()).toMatchObject({ j: "DEMO-D-GNT", l: 2 });
     sweep(at(73 + 146)); // district -> constituency liaison (Kolluru is in Tenali)
@@ -173,7 +174,7 @@ describe("workflow, SLA, confirmation (S-25)", () => {
 
 describe("metrics, rebuttal, feed (S-26)", () => {
   function bulk(n: number, village: string, dept = "Rural Water Supply", extra: Partial<{ officer: string; status: string }> = {}) {
-    const ins = getDb().prepare(`INSERT INTO issue (id,category,desc_en,village_lgd,department,status,moderation,reporter_id,created_at,updated_at,assigned_officer,resolved_at,confirm_basis)
+    const ins = getStore("issues").prepare(`INSERT INTO issue (id,category,desc_en,village_lgd,department,status,moderation,reporter_id,created_at,updated_at,assigned_officer,resolved_at,confirm_basis)
       VALUES (?,?,?,?,?,?,'ok',?,?,?,?,?,?)`);
     for (let i = 0; i < n; i++) {
       const done = extra.status === "Confirmed";

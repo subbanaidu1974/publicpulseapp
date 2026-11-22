@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import express from "express";
 import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
-import { createSession, getDb, grantRole, migrate, resetDbForTests, verifyAuditChain } from "../../server/civic/core";
+import { createSession, getDb, grantRole, migrate, resetDbForTests, verifyAuditChain, getStore } from "../../server/civic/core";
 import { geoRouter } from "../../server/civic/geo/routes";
 import { ensureGeo, importGeo, loadDemoGeo, search } from "../../server/civic/geo/service";
 import type { GeoDataset } from "../../server/civic/geo/service";
@@ -81,7 +81,7 @@ describe("@E2E-116 hamlet gazetteer review", () => {
   it("approve and reject write audit entries and the chain still verifies", async () => {
     await call("POST", "/hamlets/H-1/approve", mod);
     await call("POST", "/hamlets/H-2/reject", mod, { note: "not a place" });
-    const rows = getDb().prepare("SELECT action, object, actor FROM audit_log WHERE action LIKE 'geo.hamlet.%' ORDER BY seq").all() as any[];
+    const rows = getStore("audit").prepare("SELECT action, object, actor FROM audit_log WHERE action LIKE 'geo.hamlet.%' ORDER BY seq").all() as any[];
     expect(rows.map(r => r.action)).toEqual(["geo.hamlet.approve", "geo.hamlet.reject"]);
     expect(rows.map(r => r.object)).toEqual(["hamlet:H-1", "hamlet:H-2"]);
     expect(rows[0].actor).toBe("mod1");
@@ -98,7 +98,7 @@ describe("@E2E-116 hamlet gazetteer review", () => {
     resetDbForTests(); migrate();
     process.env.NODE_ENV = "production";
     ensureGeo();
-    expect((getDb().prepare("SELECT COUNT(*) c FROM admin_unit").get() as { c: number }).c).toBe(0);
+    expect((getStore("issues").prepare("SELECT COUNT(*) c FROM admin_unit").get() as { c: number }).c).toBe(0);
     expect(() => loadDemoGeo()).toThrow(/DEMO geography in production/);
     expect(() => importGeo({ ...real(), hamlets: [{ id: "DEMO-H-1", en: "x", village: "V-1" }] })).toThrow(/DEMO/);
     expect(() => importGeo(real())).not.toThrow(); // real data is fine

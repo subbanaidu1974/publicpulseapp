@@ -1,9 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
-import { audit, getDb, registerMigration } from "../core";
+import { audit, getStore, registerMigration } from "../core";
 import { isProductionEnv } from "../guards";
 import { AcLink } from "../../../pipeline/geo/link";
 import type { StateCode } from "../../../src/lib/states";
+
+/** The issues store (S-74): administrative geography and hamlets live with the issue data, apart from identity. */
+const getDb = () => getStore("issues");
 
 registerMigration("geo_001", `
 CREATE TABLE IF NOT EXISTS admin_unit (
@@ -18,7 +21,7 @@ CREATE TABLE IF NOT EXISTS village_constituency (
   village_lgd TEXT NOT NULL, constituency_lgd TEXT NOT NULL, valid_from TEXT NOT NULL, valid_to TEXT,
   PRIMARY KEY (village_lgd, constituency_lgd, valid_from)
 );
-`);
+`, "issues");
 
 export const LEVELS = ["state", "district", "constituency", "mandal", "village"] as const;
 export interface GeoDataset {

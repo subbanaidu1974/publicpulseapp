@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { civicApi, tokenStore, type Session } from "../../api/civic";
+import { civicApi, civicIdentityApi, tokenStore, type Session } from "../../api/civic";
 import { useCivicT } from "./civicText";
 import ConsentNotice from "./ConsentNotice";
 import GrievanceContact from "./GrievanceContact";
@@ -16,6 +16,7 @@ export default function SignUpFlow({ onDone }: { onDone: (s: Session) => void })
   const [otp, setOtp] = useState("");
   const [pin, setPin] = useState("");
   const [devOtp, setDevOtp] = useState<string | null>(null);
+  const [already, setAlready] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -39,11 +40,12 @@ export default function SignUpFlow({ onDone }: { onDone: (s: Session) => void })
           <Field id="su-phone" label={c("c.phone")}>
             <TextInput id="su-phone" data-testid="su-phone" type="tel" inputMode="numeric" autoComplete="tel-national" maxLength={10} value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} />
           </Field>
-          <Btn data-testid="su-send-otp" disabled={busy || phone.length !== 10} onClick={() => run(async () => { const r = await civicApi.requestOtp(phone); setDevOtp(r.devOtp ?? null); setStep("otp"); })}>{c("c.sendOtp")}</Btn>
+          <Btn data-testid="su-send-otp" disabled={busy || phone.length !== 10} onClick={() => run(async () => { const r = await civicIdentityApi.requestCode(phone); setDevOtp(r.devOtp ?? null); setAlready(r.alreadySent); setStep("otp"); })}>{c("c.sendOtp")}</Btn>
         </>
       )}
       {step === "otp" && (
         <>
+          {already && <p role="status" data-testid="su-already" className="border border-black p-3 text-sm">{c("c.recover.already")}</p>}
           {devOtp && <p data-testid="dev-otp" className="text-xs font-mono border border-dashed border-black p-2">{c("c.devOtp")}: {devOtp}</p>}
           <Field id="su-otp" label={c("c.otp")}>
             <TextInput id="su-otp" data-testid="su-otp" inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} />

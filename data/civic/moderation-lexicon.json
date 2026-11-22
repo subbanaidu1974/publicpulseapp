@@ -1,6 +1,9 @@
 {
   "_label": "Moderation lexicon for issue reports (S-27). Matching is on NORMALISED text (lowercase, leetspeak folded, separators merged, repeated letters and common Telugu transliteration variants collapsed), so list plain forms. Telugu terms are matched as word prefixes (suffixes attach). Any match HOLDS the report for human review; nothing here auto-rejects. Curate with moderators and counsel; this starter list is intentionally small.",
   "version": 1,
+  "changelog": [
+    { "version": 1, "date": "2026-03-01", "op": "initial", "note": "Starter lexicon (S-27). Later changes go through the reviewed curation workflow (S-142): every add needs an independent reviewer, every retirement two." }
+  ],
   "honorifics": {
     "_note": "A title followed by a name-like word names an individual.",
     "en": [

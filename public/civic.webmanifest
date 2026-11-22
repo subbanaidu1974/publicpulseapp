@@ -1,7 +1,8 @@
 {
-  "name": "People Pulse Civic",
-  "short_name": "Civic",
-  "start_url": "/?tab=civic",
+  "name": "People Pulse Lite",
+  "short_name": "Pulse Lite",
+  "start_url": "/lite?source=pwa",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#F9F7F2",
   "theme_color": "#121212",

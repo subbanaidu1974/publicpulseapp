@@ -63,7 +63,7 @@ docker compose up -d --build
 
 - Multi-stage on `node:24-bookworm-slim` (engines are `>=22.13`; `node:sqlite` needs 22.5+). Production dependencies only; Vite is loaded lazily and only in dev.
 - Runs as the non-root `node` user. The healthcheck calls `/healthz`.
-- All state is under `/var/lib/pulse` (one volume): `civic.db` (and WAL files), `media/`, `anchors/audit-anchors.jsonl`, `backups/`. Back the volume up at the infrastructure level as well, and keep the anchor file somewhere an attacker with the DB cannot rewrite (see `docs/THREAT_MODEL.md`).
+- All state is under `/var/lib/pulse` (one volume): the four store files `civic.identity.db`, `civic.issues.db`, `civic.survey.db`, `civic.audit.db` (and WAL files; a pre-split `civic.db` is imported once and kept read-only as a backup; `docs/STORES.md`), `media/`, `anchors/audit-anchors.jsonl`, `backups/`. Back the volume up at the infrastructure level as well, and keep the anchor file somewhere an attacker with the DB cannot rewrite (see `docs/THREAT_MODEL.md`).
 - Run one replica. SQLite is single-writer; scaling out needs the Postgres move (E2E-88).
 - The image contains `dist/scripts/backup.cjs` and `dist/scripts/restore-drill.cjs`: `docker compose exec app node dist/scripts/backup.cjs`.
 

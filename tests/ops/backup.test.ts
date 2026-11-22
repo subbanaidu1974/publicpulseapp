@@ -4,8 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
-import { audit, getDb, migrate, migrationStatus, registerMigration, resetDbForTests } from "../../server/civic/core";
-import { createBackup, decryptBuffer, encryptBuffer, latestBackup, openBackup, resolveBackupKey, restoreBackup, restoreDrill, rotateBackups } from "../../server/civic/backup";
+import { audit, getDb, migrate, migrationStatus, registerMigration, resetDbForTests, getStore } from "../../server/civic/core";
+import { createBackup, decryptBuffer, encryptBuffer, latestBackup, openBackup, resolveBackupKey, restoreBackup, restoreBackupSet, restoreDrill, rotateBackups } from "../../server/civic/backup";
 
 let dir: string;
 let dbFile: string;
@@ -33,20 +33,33 @@ describe("UT-backup", () => {
     const bdir = path.join(dir, "backups");
     const b = createBackup({ dir: bdir, key: KEY });
     expect(fs.existsSync(b.file)).toBe(true);
-    expect(b.manifest.sha256).toMatch(/^[0-9a-f]{64}$/);
-    expect(b.manifest.tables.persons).toBe(1);
-    expect(b.manifest.tables.audit_log).toBeGreaterThanOrEqual(2);
+    // S-74: one encrypted file per store, one manifest listing all of them
+    expect(Object.keys(b.manifest.stores).sort()).toEqual(["audit", "identity", "issues", "survey"]);
+    expect(fs.readdirSync(bdir).filter((f) => f.endsWith(".db.enc"))).toHaveLength(4);
+    for (const e of Object.values(b.manifest.stores)) expect(e.sha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(b.manifest.stores.identity.tables.persons).toBe(1);
+    expect(b.manifest.stores.audit.tables.audit_log).toBeGreaterThanOrEqual(2);
+    expect(b.manifest.stores.identity.tables.audit_log).toBeUndefined(); // the audit chain is not in the identity file
+    expect(b.manifest.stores.issues.tables.persons).toBeUndefined();
+    expect(b.manifest.auditHead).toMatchObject({ seq: expect.any(Number) });
     expect(fs.readFileSync(b.file).subarray(0, 16).toString()).not.toContain("SQLite format");
     const out = path.join(dir, "restored.db");
-    restoreBackup({ file: b.file, key: KEY, dest: out });
+    restoreBackup({ file: b.file, key: KEY, dest: out }); // one store file on its own
     const r = new DatabaseSync(out, { readOnly: true });
     expect((r.prepare("SELECT COUNT(*) c FROM persons").get() as { c: number }).c).toBe(1);
     r.close();
+    const set = restoreBackupSet({ file: b.manifestFile, key: KEY, destDir: path.join(dir, "set") });
+    expect(Object.keys(set.files).sort()).toEqual(["audit", "identity", "issues", "survey"]);
+    const ra = new DatabaseSync(set.files.audit, { readOnly: true });
+    expect((ra.prepare("SELECT COUNT(*) c FROM audit_log").get() as { c: number }).c).toBeGreaterThanOrEqual(2);
+    ra.close();
     const drill = restoreDrill({ file: b.file, key: KEY });
     expect(drill.problems).toEqual([]);
     expect(drill.ok).toBe(true);
     expect(drill.audit?.ok).toBe(true);
     expect(process.env.CIVIC_DB).toBe(dbFile); // the drill leaves the process pointing at the source DB
+    expect(process.env.CIVIC_AUDIT_DB).toBeUndefined();
+    expect((getDb().prepare("SELECT COUNT(*) c FROM persons").get() as { c: number }).c).toBe(1);
   });
 
   it("@E2E-83 tamper detection: flipped byte, wrong key, wrong manifest hash and truncation all fail", () => {
@@ -65,7 +78,7 @@ describe("UT-backup", () => {
   });
 
   it("@E2E-83 restore drill fails when the audit chain inside the backup was tampered with", () => {
-    getDb().exec("UPDATE audit_log SET meta = '{\"a\":999}' WHERE seq = 1");
+    getStore("audit").exec("UPDATE audit_log SET meta = '{\"a\":999}' WHERE seq = 1");
     const b = createBackup({ dir: path.join(dir, "backups"), key: KEY });
     const drill = restoreDrill({ file: b.file, key: KEY });
     expect(drill.ok).toBe(false);
@@ -76,8 +89,8 @@ describe("UT-backup", () => {
     const bdir = path.join(dir, "backups");
     for (let i = 0; i < 4; i++) createBackup({ dir: bdir, key: KEY, keep: 99, now: new Date(Date.UTC(2026, 0, 1 + i)) });
     const dropped = rotateBackups(bdir, 2);
-    expect(dropped).toHaveLength(2);
-    expect(fs.readdirSync(bdir).filter((f) => f.endsWith(".enc"))).toHaveLength(2);
+    expect(dropped).toHaveLength(8); // two sets of four store files
+    expect(fs.readdirSync(bdir).filter((f) => f.endsWith(".enc"))).toHaveLength(8);
     expect(fs.readdirSync(bdir).filter((f) => f.endsWith(".json"))).toHaveLength(2);
     expect(latestBackup(bdir)).toContain("20260104");
   });

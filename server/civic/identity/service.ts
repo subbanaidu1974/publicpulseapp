@@ -3,7 +3,10 @@
  * AES-GCM encrypted copy used solely to send OTP/lockout SMS. No Aadhaar, no voice data, no clear phone anywhere.
  */
 import crypto from "node:crypto";
-import { audit, getDb, getKeys, getSms, recordConsent, redactAuditFor, registerErasureHook, registerMigration, runErasureHooks, runInTransaction } from "../core";
+import {
+  audit, collectErasureSubjects, drainErasureOutbox, enqueueStoreErasure, getDb, getKeys, getSms, recordConsent, registerErasureHook, registerMigration,
+  runIdentityErasureHooks, runInTransaction,
+} from "../core";
 import type { Tier } from "../core";
 
 registerMigration("identity_001", `
@@ -51,6 +54,41 @@ CREATE TABLE survey_closures (
 );
 `);
 
+// Wave 4 (S-59 per-purpose OTP rows, S-136 enrolments). otps gets a purpose column and a (phone_hash, purpose) key so a signup code, a
+// recovery code and an enrolment activation code for the same number never overwrite each other.
+registerMigration("identity_003_otp_purpose_enrolments", `
+ALTER TABLE otps RENAME TO otps_old;
+CREATE TABLE otps (
+  phone_hash TEXT NOT NULL,
+  purpose TEXT NOT NULL DEFAULT 'signup',
+  code_hash TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (phone_hash, purpose)
+);
+INSERT INTO otps (phone_hash, purpose, code_hash, expires_at, attempts) SELECT phone_hash, 'signup', code_hash, expires_at, attempts FROM otps_old;
+DROP TABLE otps_old;
+CREATE TABLE enrolments (
+  id TEXT PRIMARY KEY,
+  volunteer_id TEXT NOT NULL,
+  context_kind TEXT NOT NULL,
+  context_ref TEXT,
+  label TEXT,
+  person_id TEXT,
+  code_hash TEXT,
+  notice_version TEXT,
+  status TEXT NOT NULL CHECK (status IN ('pending','activated','expired','cancelled','legacy')),
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  activated_at TEXT,
+  recheck_state TEXT,
+  recheck_at TEXT
+);
+CREATE INDEX idx_enrolments_person ON enrolments(person_id);
+CREATE INDEX idx_enrolments_volunteer ON enrolments(volunteer_id, created_at);
+-- (Pre-split releases backfilled 'legacy' enrolments from the audit log here. Legacy databases are now handled by server/civic/core/legacy.ts; a fresh identity store has nothing to backfill.)
+`);
+
 export const OTP_TTL_MS = 5 * 60 * 1000;
 export const AGE_GATE_DAYS = 14;
 export const LOCKOUT_AFTER = 5;
@@ -62,6 +100,15 @@ const DAY = 86400000;
 
 export const E164_IN = /^\+91[6-9]\d{9}$/;
 export const PIN_RE = /^\d{4,6}$/;
+
+// ---------------------------------------------------------------------------------------------
+// SMS budget (shared by OTP, invites and enrolment activation)
+// ---------------------------------------------------------------------------------------------
+
+export const smsHourlyBudget = () => Number(process.env.CIVIC_SMS_HOURLY_BUDGET || 2000);
+/** Spend one SMS from the global hourly budget (key "sms:global", shared by every SMS-sending flow). False = budget exhausted: answer 429/503 + degraded. */
+export function smsBudgetAllow(now = Date.now()): boolean { return rateAllow("sms:global", smsHourlyBudget(), 60 * 60 * 1000, now); }
+export const DEGRADED_NOTICE = "SMS capacity is reached for this hour. Existing sessions keep working; try again later.";
 
 // ---------------------------------------------------------------------------------------------
 // Number intelligence
@@ -138,12 +185,73 @@ export const otpNetworkLimit = () => Number(process.env.CIVIC_OTP_NET_LIMIT || 6
 export const OTP_NET_WINDOW_MS = 10 * 60 * 1000;
 
 // ---------------------------------------------------------------------------------------------
+// OTP rows (one per phone and purpose; a valid code is never replaced by another request)
+// ---------------------------------------------------------------------------------------------
+
+export type OtpPurpose = "signup" | "recovery" | "enrol";
+export const OTP_PURPOSES: OtpPurpose[] = ["signup", "recovery", "enrol"];
+export const OTP_MAX_ATTEMPTS = 5;
+
+/** Milliseconds left on a still-usable code for (phone, purpose), or 0. A code with 5 failed tries counts as burned (0). */
+export function otpRemainingMs(phone: string, purpose: OtpPurpose, now = Date.now()): number {
+  const row = getDb().prepare("SELECT expires_at, attempts FROM otps WHERE phone_hash = ? AND purpose = ?").get(getKeys().hmac("phone", phone), purpose) as { expires_at: string; attempts: number } | undefined;
+  if (!row || row.attempts >= OTP_MAX_ATTEMPTS) return 0;
+  return Math.max(0, new Date(row.expires_at).getTime() - now);
+}
+/** Store a fresh code (hashed) for (phone, purpose), replacing an expired or burned one. */
+export function storeOtp(phone: string, purpose: OtpPurpose, code: string, now = Date.now()): void {
+  getDb().prepare("INSERT OR REPLACE INTO otps (phone_hash, purpose, code_hash, expires_at, attempts) VALUES (?,?,?,?,0)")
+    .run(getKeys().hmac("phone", phone), purpose, getKeys().hmac("otp", code), new Date(now + OTP_TTL_MS).toISOString());
+}
+/** Check a code for (phone, purpose): constant-time, 5 tries, single use (deleted on success). */
+export function consumeOtp(phone: string, purpose: OtpPurpose, code: string, now = new Date()): boolean {
+  const d = getDb();
+  const ph = getKeys().hmac("phone", phone);
+  const row = d.prepare("SELECT code_hash, expires_at, attempts FROM otps WHERE phone_hash = ? AND purpose = ?").get(ph, purpose) as { code_hash: string; expires_at: string; attempts: number } | undefined;
+  if (!row || row.expires_at < now.toISOString() || row.attempts >= OTP_MAX_ATTEMPTS) return false;
+  const given = Buffer.from(getKeys().hmac("otp", code), "hex"), want = Buffer.from(row.code_hash, "hex");
+  if (given.length !== want.length || !crypto.timingSafeEqual(given, want)) {
+    d.prepare("UPDATE otps SET attempts = attempts + 1 WHERE phone_hash = ? AND purpose = ?").run(ph, purpose);
+    return false;
+  }
+  d.prepare("DELETE FROM otps WHERE phone_hash = ? AND purpose = ?").run(ph, purpose);
+  return true;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Login rate limits (S-59): keyed on phone + person_id + source, so flooding a phone cannot lock the owner out
+// ---------------------------------------------------------------------------------------------
+
+export const loginSourceLimit = () => Number(process.env.CIVIC_LOGIN_SOURCE_LIMIT || 10);
+export const loginPhoneCeiling = () => Number(process.env.CIVIC_LOGIN_PHONE_CEILING || 100);
+export const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+/** Per-(phone, person, source) attempt budget. Only that source is slowed; other sources of the same phone are untouched. */
+export function loginSourceAllow(phone: string, personId: string, source: string): boolean {
+  return rateAllow(`login:src:${phone}|${personId}|${source}`, loginSourceLimit(), LOGIN_WINDOW_MS);
+}
+export function loginSourceReset(phone: string, personId: string, source: string): void { rateReset(`login:src:${phone}|${personId}|${source}`); }
+/**
+ * Global per-phone ceiling: a pure rate limit (never a lock). Sources that have already signed in successfully as one of `personIds` bypass it,
+ * so an attacker flooding a phone from many sources slows other NEW sources but never the owner's known devices.
+ */
+export function loginCeilingAllow(phone: string, personIds: string[], source: string, now = Date.now()): boolean {
+  const known = personIds.length > 0 && !!getDb().prepare(
+    `SELECT 1 AS x FROM pin_failures WHERE source_key = ? AND ok_at IS NOT NULL AND person_id IN (${personIds.map(() => "?").join(",")})`)
+    .get(getKeys().hmac("pinsrc", source), ...personIds);
+  if (known) return true;
+  return rateAllow("login:phone:" + phone, loginPhoneCeiling(), LOGIN_WINDOW_MS, now);
+}
+
+// ---------------------------------------------------------------------------------------------
 // PIN hashing (scrypt)
 // ---------------------------------------------------------------------------------------------
 
+const SCRYPT_PARAMS = { N: 16384, r: 8, p: 1 };
+
+/** Synchronous scrypt (blocks the event loop ~50 ms). Kept for scripts, module-load constants and old callers; request paths use hashPinAsync. */
 export function hashPin(pin: string, saltHex?: string): { salt: string; hash: string } {
   const salt = saltHex ? Buffer.from(saltHex, "hex") : crypto.randomBytes(16);
-  const hash = crypto.scryptSync(pin, salt, 32, { N: 16384, r: 8, p: 1 }).toString("hex");
+  const hash = crypto.scryptSync(pin, salt, 32, SCRYPT_PARAMS).toString("hex");
   return { salt: salt.toString("hex"), hash };
 }
 export function verifyPin(pin: string, saltHex: string, hashHex: string): boolean {
@@ -151,6 +259,55 @@ export function verifyPin(pin: string, saltHex: string, hashHex: string): boolea
   const a = Buffer.from(hash, "hex"), b = Buffer.from(hashHex, "hex");
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
+
+// S-73: async scrypt runs on the libuv threadpool, so the event loop keeps serving other requests while PINs hash. A small semaphore
+// (CIVIC_SCRYPT_CONCURRENCY, default 4 = the default threadpool size) stops a login burst from starving fs/dns work on the same pool.
+let scryptActive = 0;
+const scryptWaiters: (() => void)[] = [];
+const scryptLimit = () => Math.max(1, Number(process.env.CIVIC_SCRYPT_CONCURRENCY || 4));
+async function scryptSlot<T>(fn: () => Promise<T>): Promise<T> {
+  if (scryptActive >= scryptLimit()) await new Promise<void>((r) => scryptWaiters.push(r)); // slot is handed over, count unchanged
+  else scryptActive++;
+  try { return await fn(); } finally {
+    const next = scryptWaiters.shift();
+    if (next) next(); else scryptActive--;
+  }
+}
+const scryptAsync = (pin: string, salt: Buffer) =>
+  scryptSlot(() => new Promise<Buffer>((res, rej) => crypto.scrypt(pin, salt, 32, SCRYPT_PARAMS, (e, k) => (e ? rej(e) : res(k)))));
+/** Same output format as hashPin (hex salt + hex scrypt N=16384 r=8 p=1), computed off the event loop. */
+export async function hashPinAsync(pin: string, saltHex?: string): Promise<{ salt: string; hash: string }> {
+  const salt = saltHex ? Buffer.from(saltHex, "hex") : crypto.randomBytes(16);
+  return { salt: salt.toString("hex"), hash: (await scryptAsync(pin, salt)).toString("hex") };
+}
+/** Constant-time compare of a PIN against a stored salt+hash, computed off the event loop. */
+export async function verifyPinAsync(pin: string, saltHex: string, hashHex: string): Promise<boolean> {
+  const a = await scryptAsync(pin, Buffer.from(saltHex, "hex")), b = Buffer.from(hashHex, "hex");
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Weak-PIN blocklist (S-59)
+// ---------------------------------------------------------------------------------------------
+
+export type WeakPinReason = "common" | "repeated" | "sequential" | "year_like" | "date_like";
+const COMMON_PINS = new Set(["0000", "1234", "2580", "0852", "1357", "1590", "6969", "1004", "4200", "123456", "654321", "000000", "112233", "121212", "159753", "789456"]);
+/** Why a PIN is too guessable, or null when acceptable. Applies wherever a person chooses a PIN (sign-up, recovery, change, activation, invite acceptance). */
+export function weakPinReason(pin: string): WeakPinReason | null {
+  if (!PIN_RE.test(pin)) return null; // format errors are reported separately
+  if (COMMON_PINS.has(pin)) return "common";
+  if (/^(\d)\1+$/.test(pin)) return "repeated";
+  for (let n = 1; n <= pin.length / 2; n++) if (pin.length % n === 0 && pin.slice(0, n).repeat(pin.length / n) === pin) return "repeated"; // 1212, 123123
+  const diffs = [...pin].slice(1).map((c, i) => (Number(c) - Number(pin[i]) + 10) % 10);
+  if (diffs.every((x) => x === 1) || diffs.every((x) => x === 9)) return "sequential"; // 2345, 7890, 9876, 3210
+  if (pin.length === 4 && /^(19[4-9]\d|20[0-2]\d)$/.test(pin)) return "year_like";
+  if (pin.length === 6) {
+    const dd = Number(pin.slice(0, 2)), mm = Number(pin.slice(2, 4));
+    if (dd >= 1 && dd <= 31 && mm >= 1 && mm <= 12) return "date_like"; // DDMMYY
+  }
+  return null;
+}
+export const WEAK_PIN_MESSAGE = "that PIN is too easy to guess (no repeated digits, runs like 1234, or birth years); choose another";
 
 // ---------------------------------------------------------------------------------------------
 // Persons
@@ -172,9 +329,16 @@ export function personsOnSim(hash: string): PersonRow[] {
 }
 
 export function createPerson(opts: { phone: string; pin: string; label?: string; flags?: string[]; consentVersion: string; now?: Date }): PersonRow {
+  return insertPerson(opts, hashPin(opts.pin));
+}
+/** (S-73) Same as createPerson but hashes the PIN off the event loop. Request handlers use this one. */
+export async function createPersonAsync(opts: { phone: string; pin: string; label?: string; flags?: string[]; consentVersion: string; now?: Date }): Promise<PersonRow> {
+  return insertPerson(opts, await hashPinAsync(opts.pin));
+}
+function insertPerson(opts: { phone: string; label?: string; flags?: string[]; consentVersion: string; now?: Date }, h: { salt: string; hash: string }): PersonRow {
   const now = opts.now ?? new Date();
   const id = crypto.randomUUID();
-  const { salt, hash } = hashPin(opts.pin);
+  const { salt, hash } = h;
   const flags = opts.flags ?? [];
   getDb().prepare(
     `INSERT INTO persons (id, tier, phone_hash, phone_enc, pin_salt, pin_hash, label, flags, created_at, eligible_from)
@@ -186,7 +350,10 @@ export function createPerson(opts: { phone: string; pin: string; label?: string;
   return getPerson(id)!;
 }
 
-const BLOCKING_FLAGS = ["recently_reissued", "voip"];
+/** "pending_activation" = enrolled by a volunteer but the adult has not yet proven phone control and set their own PIN (S-136). */
+export const PENDING_FLAG = "pending_activation";
+const BLOCKING_FLAGS = ["recently_reissued", "voip", PENDING_FLAG];
+export const isPendingActivation = (p: Pick<PersonRow, "flags">): boolean => (JSON.parse(p.flags) as string[]).includes(PENDING_FLAG);
 /** Eligibility for any Pulse Survey: past the 14-day age gate, no blocking number-intelligence flag, not deleted. */
 export function isSurveyEligible(personId: string, now: Date = new Date()): boolean {
   const p = getPerson(personId);
@@ -232,7 +399,7 @@ export async function checkPin(p: PersonRow, pin: string, now = new Date(), sour
   const ceilingKey = "pin:person:" + p.id;
   if (!row?.ok_at && rateCount(ceilingKey, PIN_CEILING_WINDOW_MS, t) >= pinCeiling()) return "limited";
   let failed = row && !row.locked_until ? row.failed : 0; // an expired lock starts a fresh streak
-  if (p.pin_salt && p.pin_hash && verifyPin(pin, p.pin_salt, p.pin_hash)) {
+  if (!isPendingActivation(p) && p.pin_salt && p.pin_hash && await verifyPinAsync(pin, p.pin_salt, p.pin_hash)) {
     d.prepare(
       `INSERT INTO pin_failures (person_id, source_key, failed, locked_until, ok_at, updated_at) VALUES (?,?,0,NULL,?,?)
        ON CONFLICT(person_id, source_key) DO UPDATE SET failed = 0, locked_until = NULL, ok_at = excluded.ok_at, updated_at = excluded.updated_at`)
@@ -273,6 +440,19 @@ export function resetPin(personId: string, newPin: string): void {
   });
 }
 
+/** (S-73) resetPin with the PIN hashed off the event loop. Also revokes every session (S-59: recovery/PIN change signs out all devices). */
+export async function resetPinAsync(personId: string, newPin: string): Promise<void> {
+  const h = await hashPinAsync(newPin);
+  runInTransaction(() => {
+    const d = getDb();
+    d.prepare("UPDATE persons SET pin_salt = ?, pin_hash = ?, failed_pins = 0, locked_until = NULL, flags = (SELECT json_group_array(value) FROM json_each(persons.flags) WHERE value <> 'pin_reset_required') WHERE id = ? AND deleted_at IS NULL").run(h.salt, h.hash, personId);
+    d.prepare("DELETE FROM pin_failures WHERE person_id = ?").run(personId);
+    rateReset("pin:person:" + personId);
+    d.prepare("DELETE FROM sessions WHERE person_id = ?").run(personId);
+    audit(personId, "pin.recover", "person:" + personId, {});
+  });
+}
+
 /** Mark recent activity (anchors the retention window). */
 export function touchActive(personId: string, now: Date = new Date()): void {
   getDb().prepare("UPDATE persons SET last_active_at = ? WHERE id = ?").run(now.toISOString(), personId);
@@ -300,6 +480,10 @@ export function attest(attestorId: string, subjectId: string, now = new Date()):
   const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
   const used = (d.prepare("SELECT COUNT(*) AS c FROM attestations WHERE attestor_id = ? AND ts >= ?").get(attestorId, dayStart) as { c: number }).c;
   if (used >= attestQuota()) return { ok: false, status: 429, error: "daily attestation quota reached" };
+  // S-136: whoever enrolled the person (the volunteer, or anyone from that volunteer's organisation) is not an independent attestor.
+  const enr = d.prepare(`SELECT e.volunteer_id AS vid, v.org AS org FROM enrolments e LEFT JOIN persons v ON v.id = e.volunteer_id
+                         WHERE e.person_id = ? AND e.status IN ('activated','legacy') ORDER BY e.created_at DESC LIMIT 1`).get(subjectId) as { vid: string; org: string | null } | undefined;
+  if (enr && (enr.vid === attestorId || (a.org && enr.org === a.org))) return { ok: false, status: 409, error: "attestors must be independent of the volunteer who enrolled this person" };
   const existing = d.prepare(
     `SELECT a.attestor_id AS aid, p.phone_hash AS ph, p.org AS org FROM attestations a LEFT JOIN persons p ON p.id = a.attestor_id WHERE a.subject_id = ?`)
     .all(subjectId) as unknown as { aid: string; ph: string | null; org: string | null }[];
@@ -350,21 +534,33 @@ registerErasureHook("identity.attestations", (personId) => {
   d.prepare("UPDATE attestations SET attestor_id = 'redacted' WHERE attestor_id = ?").run(personId);
 });
 
-/** Erase an account. Every hook, the person-row wipe and the audit redaction run in ONE transaction: any failure rolls all of it back. */
-export function deleteAccount(personId: string): { hooks: string[]; audit_rows_redacted: number } {
-  return runInTransaction(() => {
+/**
+ * Erase an account (S-74: stores are separate, so this is staged).
+ * Stage 1, ONE identity-store transaction (all or nothing): the person's pseudonyms in other stores are read, every identity hook and the
+ * person-row wipe run, and the cross-store erasure outbox entry is written. Any failure rolls all of it back.
+ * Stage 2, after commit: the issues store is unlinked and the audit log redacted from the outbox. Both steps are idempotent; if one fails
+ * the outbox row stays and the `retryErasureOutbox` job finishes it (`pending_cross_store` is true until then).
+ */
+export function deleteAccount(personId: string): { hooks: string[]; audit_rows_redacted: number; pending_cross_store: boolean } {
+  let outboxId = "";
+  let identityHooks: string[] = [];
+  runInTransaction(() => {
     const d = getDb();
-    const hooks = runErasureHooks(personId);
+    const subjects = collectErasureSubjects(personId); // before the hooks delete the identity-side links
+    identityHooks = runIdentityErasureHooks(personId);
     d.prepare("DELETE FROM consents WHERE person_id = ?").run(personId);
     d.prepare("DELETE FROM sessions WHERE person_id = ?").run(personId);
     d.prepare(
       `UPDATE persons SET phone_hash = NULL, phone_enc = NULL, pin_salt = NULL, pin_hash = NULL, label = NULL, residence_enc = NULL,
          residence_unit = NULL, residence_declared_at = NULL, flags = '[]', tier = 'T0', role = 'resident', org = NULL, last_active_at = NULL, deleted_at = ? WHERE id = ?`)
       .run(new Date().toISOString(), personId);
-    const redacted = redactAuditFor(personId);
-    audit("system", "account.delete", "person:deleted", { hooks });
-    return { hooks, audit_rows_redacted: redacted };
+    outboxId = enqueueStoreErasure(personId, subjects);
   });
+  const r = drainErasureOutbox(outboxId);
+  const hooks = [...identityHooks, ...r.storeHooks];
+  const pending = r.done === 0;
+  audit("system", "account.delete", "person:deleted", { hooks, pending_cross_store: pending });
+  return { hooks, audit_rows_redacted: r.auditRedacted, pending_cross_store: pending };
 }
 
 export const retentionDays = () => Number(process.env.CIVIC_RETENTION_DAYS || 180);

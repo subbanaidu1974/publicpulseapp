@@ -63,6 +63,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: E2E (includes the production-build smoke test, e2e/ops.spec.ts)
         run: npx playwright test --reporter=list,html,json
+      - name: Offline shell and 2G e2e against the production build
+        run: E2E_BUILT=1 npx playwright test e2e/lite.spec.ts --project=chromium -g "offline|first usable"
         env:
           CI: 'true'
           PLAYWRIGHT_JSON_OUTPUT_NAME: playwright.json

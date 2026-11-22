@@ -100,7 +100,7 @@ test.describe('production build', () => {
       expect(page.status).toBe(200);
       const html = await page.text();
       expect(html).toContain('id="root"');
-      expect(html).toMatch(/\/assets\/index-.*\.js/); // hashed production bundle, not the Vite dev client
+      expect(html).toMatch(/\/assets\/[\w-]+\.js/); // hashed production bundle, not the Vite dev client
       expect(html).not.toContain('@vite/client');
       expect(page.headers.get('content-security-policy')).toMatch(/script-src 'self'(;|$)/);
       const api = await fetch(base + '/api/v1/health', { headers: { 'x-request-id': 'e2e-ops-req-0002' } });
