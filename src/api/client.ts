@@ -17,6 +17,7 @@ export interface StateInfo {
   assemblySeats?: number;
   lsSeats?: number;
   years?: number[];
+  elections?: { year: number; type: ElectionType }[];
 }
 
 export interface Seat {
@@ -40,13 +41,23 @@ export interface Seat {
 export interface AllianceRow { name: string; seats: number; parties?: string[]; voteShare?: number }
 
 export interface Summary extends Envelope {
+  totalSeats?: number;
   tally: Record<string, number>;
   voteShare: Record<string, number>;
   alliances: unknown | null;
   marginBuckets: Record<string, number>;
 }
 
-export interface DataStatusRow { name: string; rows: number; provenance: string; generatedAt: string }
+export interface DataStatusRow { name: string; rows: number; provenance: string; generatedAt: string | null }
+
+export interface SwingResult extends Envelope { from: number; to: number; type: ElectionType; swing: Record<string, number> }
+
+export interface ForecastSeat { acNo: number; acName: string; district?: string; leader: string; runnerUp: string; marginPct: number; winProbLeader: number; class: "safe" | "lean" | "toss-up" | string }
+export interface ForecastAlliance { alliance: string; seatsMedian: number; seatsP10: number; seatsP90: number; majorityProb: number }
+export interface Forecast {
+  state: StateCode; basedOn?: unknown; method?: string; disclaimer?: string; blackout?: boolean;
+  seats?: ForecastSeat[]; alliances?: ForecastAlliance[]; backtest?: unknown;
+}
 
 export interface CensusRow { district?: string; name?: string; censusYear?: number; population?: number; literacy?: number; literacyPct?: number; scPct?: number; stPct?: number; [k: string]: unknown }
 
@@ -91,6 +102,14 @@ export const api = {
     const r = await get<any>(`/elections/${state}/marginal`, { year, type, threshold });
     return { seats: arr<Seat>(r, "seats", "marginal", "results"), demo: !!r?.demo };
   },
+  swing(state: StateCode, type: ElectionType, from: number, to: number) {
+    return get<SwingResult>(`/elections/${state}/swing`, { type, from, to });
+  },
+  /** Forecast endpoint may not exist yet: 404 resolves to null so the UI can show a quiet "unavailable" state. */
+  async forecast(state: StateCode): Promise<Forecast | null> {
+    try { return await get<Forecast>(`/elections/${state}/forecast`); }
+    catch (e) { if (e instanceof ApiError && e.status === 404) return null; throw e; }
+  },
   async census(state: StateCode): Promise<{ rows: CensusRow[]; demo: boolean }> {
     const r = await get<any>(`/census/${state}/districts`);
     return { rows: arr<CensusRow>(r, "districts", "rows", "data"), demo: !!r?.demo };
@@ -124,4 +143,11 @@ export function normaliseAlliances(raw: unknown): AllianceRow[] {
     );
   }
   return [];
+}
+
+/** True when the elections dataset is real (TCPD/ECI) rather than demo seed data. */
+export function electionsProvenance(rows: DataStatusRow[]): { provenance: string; real: boolean; generatedAt: string | null } {
+  const r = rows.find((x) => x.name === "elections");
+  const provenance = r?.provenance ?? "unknown";
+  return { provenance, real: !!r && !/demo|unknown/i.test(provenance), generatedAt: r?.generatedAt ?? null };
 }

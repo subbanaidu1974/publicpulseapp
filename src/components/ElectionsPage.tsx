@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { api, normaliseAlliances } from "../api/client";
+import { api, electionsProvenance, normaliseAlliances } from "../api/client";
 import { useApi } from "../api/useApi";
 import { ElectionType, ALLIANCES } from "../lib/states";
 import { defaultYear, ELECTION_YEARS, useStateCtx } from "../state/StateContext";
 import { useT } from "../i18n";
 import { Bar, DemoBadge, ErrorBanner, fmt, Loading, partyColor } from "./ui";
 import ConstituencySearch from "./ConstituencySearch";
+import TrendCharts from "./TrendCharts";
+import ForecastPanel from "./ForecastPanel";
 
 export default function ElectionsPage() {
   const { state, config } = useStateCtx();
@@ -25,6 +27,10 @@ export default function ElectionsPage() {
   const yr = ELECTION_YEARS[state][type].includes(year) ? year : defaultYear(state, type);
   const summary = useApi(() => api.summary(state, yr, type), [state, yr, type]);
   const marginal = useApi(() => api.marginal(state, yr, type, 2), [state, yr, type]);
+
+  const status = useApi(() => api.dataStatus(), []);
+  const prov = status.data ? electionsProvenance(status.data.rows) : null;
+  const showDemo = prov ? !prov.real : !!summary.data?.demo;
 
   const s = summary.data;
   const allianceRows = normaliseAlliances(s?.alliances);
@@ -69,6 +75,19 @@ export default function ElectionsPage() {
         </div>
       </div>
 
+      {prov && (
+        <div data-testid="provenance-banner" className={`border p-3 text-xs font-sans flex flex-wrap gap-x-4 gap-y-1 items-center ${prov.real ? "border-emerald-800 bg-emerald-50 text-emerald-950" : "border-amber-700 bg-amber-50 text-amber-950"}`}>
+          <strong>{prov.real ? t("prov.real") : t("prov.demo")}</strong>
+          <span>{t("prov.banner")}: {s?.source ?? "ECI / TCPD Lok Dhaba"}</span>
+          <span data-testid="provenance-value">{t("prov.provenance")}: {prov.provenance}</span>
+          {prov.generatedAt && <span>{t("prov.updated")}: {prov.generatedAt.slice(0, 10)}</span>}
+        </div>
+      )}
+
+      <ForecastPanel state={state} />
+
+      <TrendCharts state={state} />
+
       {summary.error && <ErrorBanner message={summary.error} onRetry={() => { summary.retry(); marginal.retry(); }} />}
       {summary.loading && <Loading />}
 
@@ -76,7 +95,7 @@ export default function ElectionsPage() {
         <div className="space-y-8">
           <div className="flex flex-wrap items-center gap-3 text-xs font-sans">
             <span data-testid="elections-source" className="font-mono">{t("common.source")}: {source} &middot; {yr} {t(type === "ls" ? "type.ls" : "type.assembly")}</span>
-            {s.demo && <DemoBadge />}
+            {showDemo && <DemoBadge />}
           </div>
 
           {alliance && (

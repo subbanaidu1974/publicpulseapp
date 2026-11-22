@@ -24,7 +24,7 @@ export function validateElections(rows: CandidateResult[], enforceSeatCounts: bo
   const seen = new Set<string>();
   const seats = new Map<string, CandidateResult[]>();
   for (const r of rows) {
-    const id = `${r.state}|${r.year}|${r.type}|${r.acNo}|${r.candidate}`;
+    const id = `${r.state}|${r.year}|${r.type}|${r.acNo}|${r.position}|${r.candidate}`;
     if (seen.has(id)) errs.push(`duplicate candidate row: ${id}`);
     seen.add(id);
     if (!(r.votes >= 0)) errs.push(`negative/invalid votes: ${id}`);

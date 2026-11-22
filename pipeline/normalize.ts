@@ -70,6 +70,9 @@ export function normalizeTcpd(csv: string, type: ElectionType, provenance: Prove
   for (const r of parseCsv(csv)) {
     const state = STATE_MAP[(r.State_Name ?? "").trim().toUpperCase()];
     if (!state) continue;
+    // TCPD marks by-elections / repolls with Poll_No > 0: keep only the general election round.
+    const poll = (r.Poll_No ?? "").trim();
+    if (poll !== "" && Number(poll) !== 0) continue;
     const year = toInt(r.Year), acNo = toInt(r.Constituency_No), votes = toInt(r.Votes);
     const position = toInt(r.Position), validVotes = toInt(r.Valid_Votes);
     const candidate = (r.Candidate ?? "").trim();

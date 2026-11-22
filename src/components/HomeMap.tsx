@@ -191,9 +191,10 @@ export default function HomeMap({ theme, onSelectDistrict }: HomeMapProps) {
       // Editorial (dynamic matching theme context)
       const isDarkTheme = theme === "dark" || theme === "dark-beige";
       tileUrl = isDarkTheme
-        ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
-      attribution = "Map tiles by CARTO, under CC BY 3.0. Data by OpenStreetMap, under ODbL.";
+        ? "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+        : "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}";
+      // CARTO basemaps now require an API key; Esri's gray canvas tiles work without one.
+      attribution = "Tiles © Esri — Esri, HERE, Garmin, OpenStreetMap contributors, and the GIS user community";
     }
 
     L.tileLayer(tileUrl, {
