@@ -14,6 +14,7 @@ import IssueReport from "./IssueReport";
 import LoginFlow from "./LoginFlow";
 import SignUpFlow from "./SignUpFlow";
 import { Btn } from "./ui";
+import { SurveysLink } from "../surveys/SurveysRoot";
 
 /** WCAG 2.2 AA target size: every control inside the civic tab (including Agent B components) gets at least 44px. */
 const TARGET_CSS = ".civic-root button,.civic-root select,.civic-root input:not([type=checkbox]):not([type=radio]),.civic-root textarea{min-height:44px;min-width:44px}.civic-root input[type=checkbox],.civic-root input[type=radio]{width:24px;height:24px}.civic-root label{min-height:24px}";
@@ -79,6 +80,7 @@ export default function CivicHome() {
           <HouseholdPage token={session.token} />
           <IssueReport onSent={() => setTick((n) => n + 1)} />
           <IssueFeed refreshKey={tick} />
+          <SurveysLink />
           <ConsolesHub />
         </>
       )}

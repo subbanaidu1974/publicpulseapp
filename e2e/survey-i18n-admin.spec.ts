@@ -14,16 +14,14 @@ function sourceFiles(dir: string, out: string[] = []): string[] {
 const SRC = sourceFiles(path.join(process.cwd(), 'src')).concat(path.join(process.cwd(), 'index.html'));
 
 test.describe('survey (retired legacy flow)', () => {
-  test('@E2E-139 survey tab is an honest coming-soon page that links to Civic', async ({ page }) => {
+  test('@E2E-139 the survey tab is the Pulse Survey registry: opinion survey notice, no election wording, no tallies', async ({ page }) => {
     await openHome(page, 'AP');
     await gotoTab(page, /survey/i);
-    const soon = page.getByTestId('survey-coming-soon');
-    await expect(soon).toBeVisible();
-    await expect(soon).toContainText(/later phase/i);
-    await expect(page.locator('main form, main select, main input')).toHaveCount(0);
+    await expect(page.getByTestId('surveys-root')).toBeVisible();
+    await expect(page.getByTestId('survey-disclaimer')).toContainText(/not an election and not a forecast/i);
+    await expect(page.getByTestId('survey-protection')).toBeVisible();
     const body = (await page.locator('main').innerText()).toLowerCase();
     expect(body).not.toMatch(/\b(ballot|poll|polls|vote)\b/);
-    await page.getByTestId('survey-to-civic').click();
   });
 
   test('@E2E-139 no legacy counters, localStorage tallies or leader-preference questions in source', async () => {

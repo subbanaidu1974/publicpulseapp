@@ -85,6 +85,30 @@
       "file": "audio/te/goodbye.wav",
       "status": "placeholder",
       "textTe": "కాల్ చేసినందుకు ధన్యవాదాలు."
+    },
+    {
+      "id": "survey_notice",
+      "file": "audio/te/survey_notice.wav",
+      "status": "placeholder",
+      "textTe": "ఇది ఫోన్ ద్వారా అభిప్రాయ సేకరణ. మీ సమాధానం ప్లాట్‌ఫాం మీ ఖాతాతో ముడిపెట్టి చూడగలదు, మరియు యాప్ సమాధానాల నుండి వేరుగా లెక్కిస్తారు. మీరు ఒక్కసారే సమాధానం ఇవ్వగలరు; అది తుది సమాధానం."
+    },
+    {
+      "id": "survey_q",
+      "file": "audio/te/survey_q.wav",
+      "status": "placeholder",
+      "textTe": "ప్రశ్న."
+    },
+    {
+      "id": "survey_none",
+      "file": "audio/te/survey_none.wav",
+      "status": "placeholder",
+      "textTe": "ప్రస్తుతం మీకు ఫోన్ ద్వారా సమాధానం ఇవ్వదగిన సర్వే లేదు."
+    },
+    {
+      "id": "survey_already",
+      "file": "audio/te/survey_already.wav",
+      "status": "placeholder",
+      "textTe": "ఈ సర్వేకు మీరు ఇప్పటికే సమాధానం ఇచ్చారు."
     }
   ]
 }

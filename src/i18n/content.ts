@@ -37,8 +37,8 @@ export const FAQS: FaqItem[] = [
     id: "surveys",
     q: { en: "Are there opinion surveys on this site?", te: "ఈ సైట్‌లో అభిప్రాయ సర్వేలు ఉన్నాయా?" },
     a: {
-      en: "Not yet. Pulse surveys are planned for a later phase and will only publish figures once enough responses exist. No survey numbers are shown today.",
-      te: "ఇంకా లేవు. పల్స్ సర్వేలు తర్వాతి దశలో వస్తాయి; తగినన్ని స్పందనలు వచ్చాకే గణాంకాలు ప్రచురిస్తాము. ప్రస్తుతం ఏ సర్వే సంఖ్యలూ చూపబడవు.",
+      en: "Yes. Pulse Surveys are listed in a public registry with their frozen wording. Each verified person can answer once, and answers sent from the app or web cannot be linked to you by the platform. Figures are published after a survey closes, with the method. They are opinion surveys, not elections and not forecasts.",
+      te: "ఉన్నాయి. పల్స్ సర్వేలు స్థిరమైన పదాలతో బహిరంగ రిజిస్టర్‌లో ఉంటాయి. ధృవీకరించబడిన ప్రతి వ్యక్తి ఒక్కసారి సమాధానం ఇవ్వవచ్చు; యాప్ లేదా వెబ్ నుంచి పంపిన సమాధానాలను వేదిక మీకు అనుసంధానించలేదు. సర్వే ముగిసిన తర్వాత పద్ధతితో పాటు గణాంకాలు ప్రచురిస్తాము. ఇవి అభిప్రాయ సర్వేలు మాత్రమే, ఎన్నికలు కావు, ముందస్తు అంచనాలు కావు.",
     },
   },
   {
@@ -121,8 +121,8 @@ export const METHODOLOGY: MethItem[] = [
     id: "surveys",
     h: { en: "Surveys", te: "సర్వేలు" },
     p: {
-      en: "No opinion survey is run or shown yet. When pulse surveys start, this page will describe sampling, weighting and the minimum response count before any figure is published.",
-      te: "ఇంకా ఏ అభిప్రాయ సర్వే నిర్వహించబడటం లేదు, చూపబడటం లేదు. పల్స్ సర్వేలు మొదలైనప్పుడు, ఏదైనా సంఖ్యను ప్రచురించే ముందు నమూనా, బరువు, కనీస స్పందనల సంఖ్య ఈ పేజీలో వివరిస్తాము.",
+      en: "Pulse Surveys are opinion surveys, not elections and not forecasts. Answers come from verified people who chose to take part, so this is not a random sample and no classical margin of error is printed. Figures appear once, after a survey closes and a delay, never live or in part, and always show the number of responses, the effective sample size, a verified-quality score with its parts, and the weighted and unweighted figures side by side. Weighting uses only published reference figures that exist today (the Census 2011 sex share by state and district); where none exists the two views are the same and the page says so. Areas with fewer than 30 responses are hidden and rolled into the larger area, counts are rounded to the nearest 5, and figures can be broken down by one thing at a time only. App and web answers are anonymous by design; phone and volunteer-assisted answers can be linked by the platform, so they are kept and reported separately.",
+      te: "పల్స్ సర్వేలు అభిప్రాయ సర్వేలు మాత్రమే; ఇవి ఎన్నికలు కావు, ముందస్తు అంచనాలు కావు. స్వచ్ఛందంగా పాల్గొన్న ధృవీకరించబడిన వ్యక్తుల సమాధానాలు మాత్రమే ఉంటాయి, కాబట్టి ఇది యాదృచ్ఛిక నమూనా కాదు, సంప్రదాయ దోష పరిమితి ముద్రించము. సర్వే ముగిసి, ఆలస్యం గడిచాక ఒక్కసారి మాత్రమే గణాంకాలు వస్తాయి; ప్రత్యక్షంగా లేదా పాక్షికంగా ఎప్పుడూ రావు. వాటితో పాటు స్పందనల సంఖ్య, ప్రభావవంతమైన నమూనా పరిమాణం, భాగాలతో కూడిన ధృవీకరించిన నాణ్యత స్కోరు, బరువు వేసిన మరియు వేయని గణాంకాలు పక్కపక్కనే చూపబడతాయి. ఈరోజు ఉన్న ప్రచురిత ఆధార గణాంకాలనే (రాష్ట్రం, జిల్లా వారీగా జనగణన 2011 లింగ నిష్పత్తి) బరువుకు వాడతాము; ఏదీ లేకపోతే రెండూ ఒకటే అని పేజీ చెబుతుంది. 30 కంటే తక్కువ స్పందనలున్న ప్రాంతాలు దాచబడి పెద్ద ప్రాంతంలో కలుస్తాయి, సంఖ్యలు సమీప 5కు చుట్టబడతాయి, ఒక్కసారికి ఒక అంశం ప్రకారమే విభజన సాధ్యం. యాప్, వెబ్ సమాధానాలు రూపకల్పనలోనే అజ్ఞాతం; ఫోన్, వాలంటీర్ సహాయంతో వచ్చినవాటిని వేదిక అనుసంధానించగలదు కాబట్టి వాటిని వేరుగా ఉంచి వేరుగా చూపుతాము.",
     },
   },
 ];

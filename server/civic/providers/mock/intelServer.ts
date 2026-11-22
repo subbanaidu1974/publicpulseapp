@@ -30,7 +30,7 @@ export async function startMockIntelServer(secret = "mock-intel-secret"): Promis
       if (s.mode === "timeout") { hanging.add(res); return; }
       if (s.mode === "error500") { res.writeHead(500).end("{}"); return; }
       if (s.mode === "garbage") { res.writeHead(200).end("nope"); return; }
-      let msisdn = "";
+      let msisdn: string;
       try { msisdn = (JSON.parse(raw) as { msisdn: string }).msisdn; } catch { res.writeHead(400).end("{}"); return; }
       res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(s.answers.get(msisdn) ?? s.defaults));
     });

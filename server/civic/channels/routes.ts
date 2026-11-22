@@ -19,6 +19,7 @@ import { MediaError, storeMedia, voiceMaxBytes } from "../issues/media";
 import { IVR_CATEGORY_DIGITS, ivrCategoryPrompt } from "../issues/categories";
 import { sqliteCallStore, type Call, type CallStore, type IvrState } from "./callstore";
 import { createWebhookAuth, webhookAuthConfigured } from "./webhook";
+import { ivrSurveyStep, isSurveyIntent, type IvrSurveyStep } from "../surveys/assisted";
 import { checkPin, getPerson, personsOnSim, phoneHash, rateAllow, type PinResult } from "../identity/service";
 
 export type { IvrState };
@@ -68,6 +69,10 @@ export const PROMPTS: Record<string, { textTe: string; textEn: string }> = {
   confirm: { textTe: "మీ సమస్య నమోదైంది. రిఫరెన్స్ నంబర్ SMS ద్వారా పంపాము.", textEn: "Your issue is recorded. The reference was sent by SMS." },
   status: { textTe: "మీ చివరి రిఫరెన్స్ SMS ద్వారా పంపబడింది.", textEn: "Your reference was re-sent by SMS." },
   survey: { textTe: "మీ ఊరిలో తాగునీటి సరఫరా సంతృప్తికరంగా ఉందా? అవును 1, కాదు 2.", textEn: "Is drinking water supply in your village satisfactory? Yes 1, No 2." },
+  survey_notice: { textTe: "ఇది ఫోన్ ద్వారా అభిప్రాయ సేకరణ. మీ సమాధానం ప్లాట్‌ఫాం మీ ఖాతాతో ముడిపెట్టి చూడగలదు, మరియు యాప్ సమాధానాల నుండి వేరుగా లెక్కిస్తారు. మీరు ఒక్కసారే సమాధానం ఇవ్వగలరు; అది తుది సమాధానం.", textEn: "This is a phone opinion survey. The platform can link your answer to your account, so it is counted apart from app answers. You can answer once, and your answer is final." },
+  survey_q: { textTe: "ప్రశ్న.", textEn: "Question." },
+  survey_none: { textTe: "ప్రస్తుతం మీకు ఫోన్ ద్వారా సమాధానం ఇవ్వదగిన సర్వే లేదు.", textEn: "There is no survey you can answer by phone right now." },
+  survey_already: { textTe: "ఈ సర్వేకు మీరు ఇప్పటికే సమాధానం ఇచ్చారు.", textEn: "You have already answered this survey." },
   thanks: { textTe: "ధన్యవాదాలు.", textEn: "Thank you." },
   invalid: { textTe: "క్షమించండి, ఆ ఎంపిక సరైనది కాదు. మళ్ళీ ప్రయత్నించండి.", textEn: "Sorry, that choice is not valid. Please try again." },
   goodbye: { textTe: "కాల్ చేసినందుకు ధన్యవాదాలు.", textEn: "Thank you for calling." },
@@ -210,6 +215,24 @@ export function createChannelsRouter(deps: ChannelDeps = defaultDeps(), opts: { 
     return { ...base, xml: renderXml(base) };
   };
 
+  /** Turn one assisted-survey step into an IVR reply (the question text is dynamic, so its prompt is built here). */
+  const surveyReply = (c: Call, step: IvrSurveyStep): IvrReply => {
+    if (step.kind === "ask") {
+      c.category = step.state;
+      const q = step.question;
+      const scale = q.digits.every((d) => d.label_en === d.digit); // a 1-5 scale question
+      const opts = (l: "te" | "en") => scale ? (l === "te" ? "1 నుండి 5 వరకు నొక్కండి: 1 తక్కువ, 5 ఎక్కువ" : "Press 1 to 5, where 1 is lowest and 5 is highest")
+        : q.digits.map((d) => (l === "te" ? (d.label_te ?? d.label_en) : d.label_en) + " " + d.digit).join(", ");
+      const dyn: IvrPrompt = { id: "survey_q", audioKey: "audio/te/survey_q.wav", textEn: `${q.text_en} ${opts("en")}.`, textTe: `${q.text_te ?? q.text_en} ${opts("te")}.` };
+      const lead = step.notice ? [prompt("survey_notice")] : [];
+      return reply(c, "survey", "digit", [], { prompts: [...lead, dyn] });
+    }
+    safeAudit("ivr_survey_assisted", c.callId, { result: step.kind });
+    if (step.kind === "done") return reply(c, "done", "none", ["thanks", "goodbye"]);
+    if (step.kind === "refused" && step.code === "already_responded") return reply(c, "done", "none", ["survey_already", "goodbye"]);
+    return reply(c, "done", "none", ["survey_none", "goodbye"]);
+  };
+
   r.post("/missed-call", webhookAuth, async (req: Request, res: Response) => {
     const phone = normPhone(req.body?.from);
     if (!phone) return void res.status(400).json({ error: "invalid_number" });
@@ -258,7 +281,17 @@ export function createChannelsRouter(deps: ChannelDeps = defaultDeps(), opts: { 
             if (c.lastRef) await deps.sendSms(c.phone, `People Pulse: your issue reference is ${c.lastRef}. We never ask for OTP or bank details.`);
             return void res.json(reply(c, "status", "none", ["status", "goodbye"]));
           }
-          if (digits === "3") return void res.json(reply(c, "survey", "digit", ["survey"]));
+          if (digits === "3") {
+            // Identified callers get the real (assisted, platform-linkable) survey after their personal PIN; others get the legacy stub.
+            const adults = deps.listAdults ? await deps.listAdults(c.phone) : [];
+            if (!adults.length) return void res.json(reply(c, "survey", "digit", ["survey"]));
+            c.adults = adults.map((a) => a.id);
+            c.category = "svy"; // survey intent; the PIN is ALWAYS required for a survey, whatever CIVIC_IVR_PIN_ALWAYS says
+            c.needsPin = true;
+            if (adults.length > 1) return void res.json(reply(c, "who", "digit", ["who"], { adults: adults.length }));
+            c.personId = adults[0].id;
+            return void res.json(reply(c, "pin", "digit", ["pin"], { sensitive: true }));
+          }
           return void res.json(reply(c, "welcome", "digit", ["invalid", "welcome"]));
         }
         case "who": {
@@ -277,6 +310,7 @@ export function createChannelsRouter(deps: ChannelDeps = defaultDeps(), opts: { 
           if (r === "ok") {
             c.verified = true;
             safeAudit("ivr_pin_ok", c.callId);
+            if (isSurveyIntent(c.category)) return void res.json(surveyReply(c, ivrSurveyStep(c.personId!, "svy", undefined, new Date(deps.now()))));
             return void res.json(reply(c, "category", "digit", ["category"]));
           }
           safeAudit(r === "wrong" ? "ivr_pin_wrong" : "ivr_pin_locked", c.callId);
@@ -303,6 +337,7 @@ export function createChannelsRouter(deps: ChannelDeps = defaultDeps(), opts: { 
           return void res.json(reply(c, "done", "none", ["confirm", "goodbye"], { referenceId: issue.id }));
         }
         case "survey": {
+          if (c.verified && c.personId && isSurveyIntent(c.category)) return void res.json(surveyReply(c, ivrSurveyStep(c.personId, c.category!, digits, new Date(deps.now()))));
           if (digits !== "1" && digits !== "2") return void res.json(reply(c, "survey", "digit", ["invalid", "survey"]));
           safeAudit("ivr_survey_answer", c.callId);
           return void res.json(reply(c, "done", "none", ["thanks", "goodbye"]));

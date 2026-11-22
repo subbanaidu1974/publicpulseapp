@@ -302,77 +302,84 @@
       "epic": "Surveys",
       "title": "Public survey registry: frozen wording, equal creation quotas, wording-panel review, cancellation log",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-37"
       ],
-      "phase": "2028-P2"
+      "phase": "2028-P2",
+      "notes": "Registry, frozen wording with DB triggers, 2-reviewer wording panel with conflict rules, equal per-party quotas and a public append-only cancellation log are built, with screens. Wording heuristics are defaults needing panel/counsel review."
     },
     {
       "id": "S-29",
       "epic": "Surveys",
       "title": "Single-shot responses with server-side eligibility enforcement",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-38"
       ],
-      "phase": "2028-P2"
+      "phase": "2028-P2",
+      "notes": "Server-side eligibility (adult, 14-day account, T1 residence in scope, number risk) and single-shot via has_responded in the identity store; idempotent 10-minute retry for the same request. No UI-less reissue route."
     },
     {
       "id": "S-30",
       "epic": "Surveys",
       "title": "Anonymous credential on app/web: no timestamps, random IDs, shuffled batches",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-39"
       ],
-      "phase": "2028-P2"
+      "phase": "2028-P2",
+      "notes": "RSABSSA-SHA384-PSS blind signatures implemented in-house (server + browser) with shared vectors; responses stored without timestamps, uuid keys, shuffled batches, separate store from has_responded. NEEDS INDEPENDENT CRYPTOGRAPHIC REVIEW before real use; key class (tier/quality) is visible at issuance by design."
     },
     {
       "id": "S-31",
       "epic": "Surveys",
       "title": "Voice/assisted channel responses labelled platform-linkable and limited to issue/service topics",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-40"
       ],
-      "phase": "2028-P2"
+      "phase": "2028-P2",
+      "notes": "Voice/assisted channel: server-side blinding, platform-linkable label, separate stratum, issue/service/bill topics only; IVR survey menu asks for the personal PIN. New IVR prompts are placeholders pending recorded audio."
     },
     {
       "id": "S-32",
       "epic": "Surveys",
       "title": "Publishing rules: fixed partition, complementary suppression, minority-option check, no live counts, query budget",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-41"
       ],
-      "phase": "2028-P2"
+      "phase": "2028-P2",
+      "notes": "Fixed partition, k=30 suppression with roll-up, complementary suppression (property-tested), minority-option merge, count rounding, no live counts (publish after close + 24h), one immutable snapshot per survey, query budget."
     },
     {
       "id": "S-33",
       "epic": "Surveys",
       "title": "Verified-quality score and post-stratification weights, weighted plus unweighted views",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-42"
       ],
-      "phase": "2028-P2"
+      "phase": "2028-P2",
+      "notes": "Raking weights capped at 5x, design effect/effective n, documented quality score, weighted and unweighted together, one-dimension breakdowns only. Only Census 2011 sex share is weighted (state level: no district crosswalk); age and phone-ownership marginals are absent, not invented."
     },
     {
       "id": "S-34",
       "epic": "Surveys",
       "title": "Election-choice surveys off by default, fail-closed blackout flag, no forecast in window",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-43"
       ],
-      "phase": "2028-P3"
+      "phase": "2028-P3",
+      "notes": "Election-choice surveys off by default; need CIVIC_ELECTION_CHOICE_SURVEYS=1 and a confirmed-open election window; unknown/blackout fail closed and hide existing surveys. The real election calendar is still empty."
     },
     {
       "id": "S-35",
@@ -529,7 +536,7 @@
         "E2E-58"
       ],
       "phase": "2028-P1",
-      "notes": "Traceability test and red-team scope/pilot skew tooling exist; red-team report, pilot skew report, review sign-off and two approvers do not."
+      "notes": "Traceability test and red-team scope/pilot skew tooling exist; red-team report, pilot skew report, review sign-off and two approvers do not. Survey credential crypto review is now an additional required item."
     },
     {
       "id": "S-49",

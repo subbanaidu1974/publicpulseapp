@@ -83,7 +83,8 @@ describe("store separation: no cross-store SQL", () => {
     expect(tablesOf(getStore("identity"))).not.toContain("issue");
     expect(tablesOf(getStore("identity"))).not.toContain("audit_log");
     expect(tablesOf(getStore("audit")).sort()).toEqual(["audit_anchors", "audit_log", "migrations"]);
-    expect(tablesOf(getStore("survey")).sort()).toEqual(["migrations", "survey_meta"]);
+    expect(tablesOf(getStore("survey"))).toEqual(expect.arrayContaining(["migrations", "survey_meta"]));
+    for (const t of tablesOf(getStore("survey"))) expect(STORE_TABLES.survey).toContain(t); // every survey-store table (registry, credential, responses) is on the allow-list
     // a table in the wrong store is caught
     getStore("issues").exec("CREATE TABLE persons (id TEXT)");
     expect(() => assertStorePlacement()).toThrow(/store separation violated.*persons/);

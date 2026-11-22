@@ -14,7 +14,7 @@ export default function MethodologyPage() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {METHODOLOGY.map((i) => (
-          <div key={i.id} className="bg-[#FAF8F5] border border-black/20 p-5">
+          <div key={i.id} id={i.id} className="bg-[#FAF8F5] border border-black/20 p-5">
             <h3 className="text-sm font-sans font-black uppercase tracking-widest mb-2">{i.h[lang]}</h3>
             <p className="text-xs font-serif leading-relaxed">{i.p[lang]}</p>
           </div>

@@ -766,8 +766,8 @@ export function drainErasureOutbox(only?: string): OutboxResult {
 // dual-control admin API (server/civic/admin); the functions below are the primitive layer (admin or "system" only).
 // ---------------------------------------------------------------------------------------------
 
-export type RoleName = "admin" | "officer" | "moderator" | "politician" | "journalist" | "eci_liaison" | "geo_reviewer" | "volunteer";
-export const ROLE_NAMES: RoleName[] = ["admin", "officer", "moderator", "politician", "journalist", "eci_liaison", "geo_reviewer", "volunteer"];
+export type RoleName = "admin" | "officer" | "moderator" | "politician" | "journalist" | "eci_liaison" | "geo_reviewer" | "volunteer" | "survey_panel";
+export const ROLE_NAMES: RoleName[] = ["admin", "officer", "moderator", "politician", "journalist", "eci_liaison", "geo_reviewer", "volunteer", "survey_panel"];
 
 registerMigration("core_002_roles", `
 CREATE TABLE roles (
