@@ -5,9 +5,10 @@ import type { CandidateResult } from "../src/lib/elections";
 import type { ElectionType } from "../src/lib/states";
 import { normalizeCensus } from "./census";
 import { normalizeTcpd, sortResults } from "./normalize";
-import type { CensusSnapshot, ElectionSnapshot } from "./quality";
+import type { CensusProvenance, CensusSnapshot, ElectionSnapshot } from "./quality";
 
-export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+// In the bundled CJS server `import.meta.url` is undefined: fall back to the working directory (the server reads data/ from cwd).
+export const ROOT = typeof import.meta.url === "string" ? resolve(dirname(fileURLToPath(import.meta.url)), "..") : process.cwd();
 export const GENERATED = process.env.PIPELINE_OUT_DIR ? resolve(process.env.PIPELINE_OUT_DIR) : resolve(ROOT, "data/generated");
 export const FIXTURES = resolve(ROOT, "pipeline/fixtures");
 
@@ -26,6 +27,6 @@ export function buildElectionSnapshot(
   return { schema: 1, provenance, source, results };
 }
 
-export function buildCensusSnapshot(csv: string, provenance: "data.gov.in" | "demo", source: string): CensusSnapshot {
+export function buildCensusSnapshot(csv: string, provenance: CensusProvenance, source: string): CensusSnapshot {
   return { schema: 1, provenance, source, districts: normalizeCensus(csv, source) };
 }

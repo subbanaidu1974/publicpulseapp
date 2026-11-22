@@ -1,5 +1,6 @@
 import type { CandidateResult } from "../src/lib/elections";
 import { STATES } from "../src/lib/states";
+import { geomErrors } from "./geo/geometry";
 import type { CensusDistrict } from "./census";
 
 /** Shape of data/generated/elections.json */
@@ -10,10 +11,12 @@ export interface ElectionSnapshot {
   results: CandidateResult[];
 }
 
+export type CensusProvenance = "data.gov.in" | "census-dchb-2011" | "manual-csv" | "demo";
+
 /** Shape of data/generated/census.json */
 export interface CensusSnapshot {
   schema: 1;
-  provenance: "data.gov.in" | "demo";
+  provenance: CensusProvenance;
   source: string;
   districts: CensusDistrict[];
 }
@@ -63,13 +66,46 @@ export function validateCensus(rows: CensusDistrict[]): string[] {
     seen.add(id);
     if (d.population <= 0) errs.push(`non-positive population: ${id}`);
     if (d.males + d.females !== d.population) errs.push(`males+females != population: ${id}`);
-    if (d.literate > d.population || d.scPop > d.population || d.stPop > d.population) errs.push(`subgroup exceeds population: ${id}`);
+    if ((d.literate ?? 0) > d.population || d.scPop > d.population || d.stPop > d.population) errs.push(`subgroup exceeds population: ${id}`);
   }
   return errs;
 }
 
-export function validateGeoJson(g: any, label: string): string[] {
+export interface GeoJsonRules {
+  /** feature property holding the numeric constituency id (e.g. acNo, pcNo) */
+  idProp?: string;
+  /** exact number of features required (seat count) */
+  expectedCount?: number;
+  /** ids that must all appear (ID-join against elections.json); extras are also errors */
+  joinIds?: Iterable<number>;
+}
+
+/** Returns violations (empty = pass). With rules it also checks geometry validity, unique ids, seat count and ID-join. */
+export function validateGeoJson(g: any, label: string, rules: GeoJsonRules = {}): string[] {
   if (!g || g.type !== "FeatureCollection" || !Array.isArray(g.features) || g.features.length === 0)
     return [`${label}: not a non-empty FeatureCollection`];
-  return [];
+  const errs: string[] = [];
+  const { idProp, expectedCount, joinIds } = rules;
+  if (expectedCount !== undefined && g.features.length !== expectedCount)
+    errs.push(`${label}: expected ${expectedCount} features, got ${g.features.length}`);
+  if (idProp || expectedCount !== undefined) {
+    const ids = new Set<number>();
+    for (const f of g.features) {
+      const ge = geomErrors(f?.geometry);
+      if (ge.length) errs.push(`${label}: feature ${idProp ? f?.properties?.[idProp] : "?"}: ${[...new Set(ge)].join(", ")}`);
+      if (idProp) {
+        const id = f?.properties?.[idProp];
+        if (!Number.isInteger(id)) errs.push(`${label}: feature without integer ${idProp}`);
+        else if (ids.has(id)) errs.push(`${label}: duplicate ${idProp} ${id}`);
+        else ids.add(id);
+      }
+    }
+    if (idProp && joinIds) {
+      const want = new Set(joinIds);
+      const missing = [...want].filter(i => !ids.has(i)).sort((a, b) => a - b), extra = [...ids].filter(i => !want.has(i)).sort((a, b) => a - b);
+      if (missing.length) errs.push(`${label}: ${missing.length} ${idProp} in elections.json have no polygon (e.g. ${missing.slice(0, 5).join(",")})`);
+      if (extra.length) errs.push(`${label}: ${extra.length} polygons have no ${idProp} in elections.json (e.g. ${extra.slice(0, 5).join(",")})`);
+    }
+  }
+  return errs;
 }

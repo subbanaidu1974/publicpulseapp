@@ -2,7 +2,7 @@ import express, { Router } from "express";
 import type { NextFunction, Request, Response } from "express";
 import fs from "fs";
 import path from "path";
-import { ALLIANCES, STATES, isElectionType, isStateCode } from "../src/lib/states";
+import { ALLIANCES, STATES, allianceGroups, alliancesAsOf, isElectionType, isStateCode } from "../src/lib/states";
 import type { ElectionType, StateCode } from "../src/lib/states";
 import {
   aggregateAlliances, filterElection, marginBuckets, marginalSeats, seatResults, seatTally, swing, voteShare,
@@ -12,7 +12,17 @@ import { blackoutResponse, computeForecast } from "../src/lib/forecast";
 import type { ForecastResponse } from "../src/lib/forecast";
 import { normalizeTcpd } from "../pipeline/normalize";
 import { normalizeCensus } from "../pipeline/census";
+import { loadGeoLookup } from "../pipeline/geo/lookup";
+import type { GeoLookup } from "../pipeline/geo/lookup";
 import type { CensusDistrict } from "../pipeline/census";
+import crypto from "crypto";
+import { requireRole } from "./civic/core";
+import { createPeopleRouter } from "./people-api";
+import { datasetForPath, loadManifestIndex } from "./manifest";
+import type { ManifestIndex } from "./manifest";
+import { comparabilityNotes } from "../src/lib/comparability";
+import { forecastDecision, loadCalendar, notificationsAllowed, surveysAllowed, windowState } from "./window";
+import { createGeoApiRouter } from "./geo-api";
 
 export interface DatasetStatus {
   name: string;
@@ -27,6 +37,10 @@ export interface Datasets {
   /** true when demo fixtures (not real generated data) are being served */
   demo: boolean;
   status: DatasetStatus[];
+  /** seat enrichment (district, Telugu name) from data/generated/geo; absent for demo data */
+  geo?: GeoLookup;
+  /** data/generated/manifest.json index; feeds `source` and `asOf` in response envelopes */
+  manifest?: ManifestIndex | null;
 }
 
 const root = () => process.cwd();
@@ -121,16 +135,17 @@ export function loadDatasets(baseDir: string = root()): Datasets {
     status.push({ name: "census", rows: census.length, provenance: "demo", generatedAt: null });
   }
 
-  return { elections, census, demo, status };
+  const realElections = !!genEl && genEl.rows.length > 0 && genEl.provenance !== "demo";
+  return { elections, census, demo, status, geo: realElections ? loadGeoLookup(baseDir) : undefined, manifest: loadManifestIndex(baseDir) };
 }
 
 /* ---------------- helpers ---------------- */
 
 class ApiError extends Error {
-  constructor(public status: number, message: string) { super(message); }
+  constructor(public status: number, message: string, public code: string = status === 404 ? "not_found" : status === 400 ? "bad_request" : "error") { super(message); }
 }
-const bad = (m: string) => new ApiError(400, m);
-const notFound = (m: string) => new ApiError(404, m);
+const bad = (m: string, code?: string) => new ApiError(400, m, code);
+const notFound = (m: string, code?: string) => new ApiError(404, m, code);
 
 function qstr(v: unknown): string | undefined {
   return typeof v === "string" && v.trim() !== "" ? v.trim() : undefined;
@@ -138,18 +153,18 @@ function qstr(v: unknown): string | undefined {
 
 function parseState(v: unknown, required = true): StateCode | undefined {
   const s = qstr(v);
-  if (!s) { if (required) throw bad("Missing required parameter: state"); return undefined; }
+  if (!s) { if (required) throw bad("Missing required parameter: state", "missing_state"); return undefined; }
   const up = s.toUpperCase();
-  if (!isStateCode(up)) throw notFound(`Unknown state '${s.slice(0, 20)}'. Valid: AP, TG`);
+  if (!isStateCode(up)) throw notFound(`Unknown state '${s.slice(0, 20)}'. Valid: AP, TG`, "unknown_state");
   return up;
 }
 
 function parseYear(v: unknown, name = "year"): number | undefined {
   const s = qstr(v);
   if (!s) return undefined;
-  if (!/^\d{4}$/.test(s)) throw bad(`Invalid ${name} '${s.slice(0, 20)}': expected a 4-digit year`);
+  if (!/^\d{4}$/.test(s)) throw bad(`Invalid ${name} '${s.slice(0, 20)}': expected a 4-digit year`, "invalid_year");
   const n = Number(s);
-  if (n < 1950 || n > 2100) throw bad(`Invalid ${name} '${s}': out of range`);
+  if (n < 1950 || n > 2100) throw bad(`Invalid ${name} '${s}': out of range`, "invalid_year");
   return n;
 }
 
@@ -157,7 +172,7 @@ function parseType(v: unknown, dflt?: ElectionType): ElectionType | undefined {
   const s = qstr(v);
   if (!s) return dflt;
   const lo = s.toLowerCase();
-  if (!isElectionType(lo)) throw bad(`Invalid type '${s.slice(0, 20)}'. Valid: assembly, ls`);
+  if (!isElectionType(lo)) throw bad(`Invalid type '${s.slice(0, 20)}'. Valid: assembly, ls`, "invalid_type");
   return lo;
 }
 
@@ -168,9 +183,9 @@ function latestYear(rows: CandidateResult[], state: StateCode, type: ElectionTyp
 
 function getElection(rows: CandidateResult[], state: StateCode, year: number | undefined, type: ElectionType) {
   const y = year ?? latestYear(rows, state, type);
-  if (y === undefined) throw notFound(`No ${type} election data for ${state}`);
+  if (y === undefined) throw notFound(`No ${type} election data for ${state}`, "no_data");
   const el = filterElection(rows, state, y, type);
-  if (!el.length) throw notFound(`No ${type} election data for ${state} in ${y}`);
+  if (!el.length) throw notFound(`No ${type} election data for ${state} in ${y}`, "no_data");
   return { year: y, rows: el };
 }
 
@@ -179,9 +194,25 @@ const roundMap = (m: Record<string, number>) => Object.fromEntries(Object.entrie
 
 /* ---------------- router ---------------- */
 
-export function createApiRouter(data: Datasets): Router {
+export function createApiRouter(data: Datasets, opts: { baseDir?: string } = {}): Router {
   const router = express.Router();
   const demo = data.demo;
+
+  // Envelope: attach `source` (dataset, provenance, URLs, licences, attribution) and `asOf` from the dataset manifest.
+  router.use((req, res, next) => {
+    const id = datasetForPath(req.path);
+    const info = id ? data.manifest?.[id] : undefined;
+    if (!info) return next();
+    const json = res.json.bind(res);
+    res.json = (body?: unknown) => {
+      if (body && typeof body === "object" && !Array.isArray(body) && res.statusCode < 400) {
+        const o = body as Record<string, unknown>;
+        return json({ ...o, source: o.source ?? info, asOf: o.asOf ?? info.asOf });
+      }
+      return json(body);
+    };
+    next();
+  });
 
   router.get("/health", (_req, res) => {
     res.json({ ok: true, demo });
@@ -205,7 +236,7 @@ export function createApiRouter(data: Datasets): Router {
     const state = parseState(req.query.state)!;
     const type = parseType(req.query.type, "assembly")!;
     const { year, rows } = getElection(data.elections, state, parseYear(req.query.year), type);
-    const seats = seatResults(rows);
+    const seats = seatResults(rows, data.geo ? n => data.geo!(state, type, n) : undefined);
     res.json({
       demo, state, year, type, count: seats.length,
       expectedSeats: type === "assembly" ? STATES[state].assemblySeats : STATES[state].lsSeats,
@@ -226,7 +257,7 @@ export function createApiRouter(data: Datasets): Router {
       tally,
       voteShare: roundMap(voteShare(rows)),
       marginBuckets: marginBuckets(seats),
-      alliances: alliances ? { definition: alliances, tally: aggregateAlliances(tally, alliances) } : null,
+      alliances: alliances ? { definition: alliances, tally: aggregateAlliances(tally, alliances), groups: allianceGroups(state, year, type), asOf: alliancesAsOf } : null,
     });
   });
 
@@ -235,11 +266,11 @@ export function createApiRouter(data: Datasets): Router {
     const type = parseType(req.query.type, "assembly")!;
     const from = parseYear(req.query.from, "from");
     const to = parseYear(req.query.to, "to");
-    if (from === undefined || to === undefined) throw bad("Both 'from' and 'to' years are required");
-    if (from === to) throw bad("'from' and 'to' must differ");
+    if (from === undefined || to === undefined) throw bad("Both 'from' and 'to' years are required", "missing_range");
+    if (from === to) throw bad("'from' and 'to' must differ", "invalid_range");
     const a = getElection(data.elections, state, from, type);
     const b = getElection(data.elections, state, to, type);
-    res.json({ demo, state, type, from, to, unit: "percentage points", swing: roundMap(swing(a.rows, b.rows)) });
+    res.json({ demo, state, type, from, to, unit: "percentage points", swing: roundMap(swing(a.rows, b.rows)), notes: comparabilityNotes(state, from, to, type) });
   });
 
   router.get("/elections/:state/marginal", (req, res) => {
@@ -248,7 +279,7 @@ export function createApiRouter(data: Datasets): Router {
     const raw = qstr(req.query.threshold) ?? "5";
     const threshold = Number(raw);
     if (!/^\d+(\.\d+)?$/.test(raw) || !Number.isFinite(threshold) || threshold > 100) {
-      throw bad(`Invalid threshold '${raw.slice(0, 20)}': expected a number between 0 and 100`);
+      throw bad(`Invalid threshold '${raw.slice(0, 20)}': expected a number between 0 and 100`, "invalid_threshold");
     }
     const { year, rows } = getElection(data.elections, state, parseYear(req.query.year), type);
     const seats = marginalSeats(seatResults(rows), threshold);
@@ -258,39 +289,90 @@ export function createApiRouter(data: Datasets): Router {
   router.get("/census/:state/districts", (req, res) => {
     const state = parseState(req.params.state)!;
     const districts = data.census.filter(d => d.state === state);
-    if (!districts.length) throw notFound(`No census data for ${state}`);
+    if (!districts.length) throw notFound(`No census data for ${state}`, "no_data");
     res.json({ demo, state, censusYear: districts[0].censusYear ?? 2011, count: districts.length, districts });
   });
 
+  /* Election window (S-118): calendar-driven, fail closed. */
+  router.get("/election-window", (req, res) => {
+    const state = parseState(req.query.state)!;
+    const now = new Date();
+    const cal = loadCalendar();
+    const fc = forecastDecision(state, now, { calendar: cal });
+    res.set("Cache-Control", "no-store");
+    res.json({
+      state, asOf: now.toISOString(), window: windowState(state, now, { calendar: cal }),
+      forecast: { show: fc.show, reason: fc.reason },
+      surveysAllowed: surveysAllowed(state, now, { calendar: cal }),
+      notificationsAllowed: notificationsAllowed(state, now, { calendar: cal }),
+      calendar: cal ? { loaded: true, coveredFrom: cal.coveredFrom, coveredThrough: cal.coveredThrough, verifiedEntries: cal.entries.filter(e => e.verified === true && e.example !== true).length } : { loaded: false },
+      flagSource: process.env.FORECAST_BLACKOUT === "1" || process.env.FORECAST_BLACKOUT === "0" ? "env:FORECAST_BLACKOUT" : "calendar",
+    });
+  });
+
+  /* Forecast cache is keyed to the elections snapshot (size + mtime of data/generated/elections.json). When the file
+     changes the datasets are reloaded and the cache is dropped, so a regenerated dataset never serves a stale forecast. */
+  const baseDir = opts.baseDir ?? root();
+  const elFile = path.join(baseDir, "data", "generated", "elections.json");
+  const sigOf = () => { try { const st = fs.statSync(elFile); return `${st.size}-${Math.round(st.mtimeMs)}`; } catch { return "none"; } };
+  let snapSig = sigOf();
+  let snapChecksum: string | null = null;
+  const checksumOf = () => { try { return crypto.createHash("sha256").update(fs.readFileSync(elFile)).digest("hex").slice(0, 16); } catch { return null; } };
   const forecastCache = new Map<string, ForecastResponse>();
+  const syncSnapshot = () => {
+    const sig = sigOf();
+    if (sig === snapSig) return;
+    snapSig = sig; snapChecksum = null;
+    forecastCache.clear();
+    const fresh = loadDatasets(baseDir);
+    data.elections = fresh.elections; data.census = fresh.census; data.demo = fresh.demo; data.status = fresh.status;
+  };
   router.get("/elections/:state/forecast", (req, res) => {
     const state = parseState(req.params.state)!;
-    // Fail closed during an election blackout window: no seats, no alliances.
-    if (process.env.FORECAST_BLACKOUT === "1") { res.set("Cache-Control", "no-store"); return res.json(blackoutResponse(state)); }
+    // Fail closed: blackout, or an unknown election window, withholds seats, alliances and back-test.
+    const decision = forecastDecision(state);
+    if (!decision.show) {
+      res.set("Cache-Control", "no-store");
+      return res.json({ ...blackoutResponse(state), window: decision.state, withheldReason: decision.reason });
+    }
+    syncSnapshot();
     let f = forecastCache.get(state);
     if (!f) {
       const computed = computeForecast(data.elections, state);
-      if (!computed) throw notFound(`No assembly election data for ${state}`);
+      if (!computed) throw notFound(`No assembly election data for ${state}`, "no_data");
       f = computed;
       forecastCache.set(state, f);
     }
+    snapChecksum ??= checksumOf();
     res.set("Cache-Control", "public, max-age=300");
-    res.json(f);
+    res.json({ ...f, window: decision.state, dataSnapshot: { checksum: snapChecksum, signature: snapSig } });
   });
 
+  /* Admin-only data status (S-47 tail): the civic bearer session must hold the admin role. */
+  router.get("/data-status/admin", requireRole("admin"), (_req, res) => {
+    res.set("Cache-Control", "no-store");
+    res.json({ demo: data.demo, datasets: data.status, snapshot: { signature: snapSig } });
+  });
+
+  // Geography, constituency profiles and split voting (S-95, S-98..S-100)
+  router.use(createGeoApiRouter(data, { baseDir }));
+
+  // People pages: parties, office holders, members, contestants, correction/takedown channel (S-104..S-114)
+  router.use(createPeopleRouter({ elections: data.elections }, opts));
+
   // Unknown /api/v1 routes -> JSON 404
-  router.use((req, _res, next) => next(notFound(`Not found: ${req.method} ${req.path.slice(0, 80)}`)));
+  router.use((req, _res, next) => next(notFound(`Not found: ${req.method} ${req.path.slice(0, 80)}`, "route_not_found")));
 
   // Catch-all error handler: JSON only, never a stack trace
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   router.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
-    if (err instanceof ApiError) return res.status(err.status).json({ error: err.message });
+    if (err instanceof ApiError) return res.status(err.status).json({ error: err.message, code: err.code });
     const status = (err as { status?: number })?.status;
     if (typeof status === "number" && status >= 400 && status < 500) {
-      return res.status(status).json({ error: "Bad request" });
+      return res.status(status).json({ error: "Bad request", code: "bad_request" });
     }
     console.error("[api] unexpected error:", (err as Error)?.message);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error", code: "internal" });
   });
 
   return router;

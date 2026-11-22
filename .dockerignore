@@ -1,0 +1,23 @@
+node_modules
+dist
+coverage
+playwright-report
+test-results
+.git
+.github
+.claude
+.env
+.env.*
+!.env.example
+*.log
+# local state must never be baked into an image
+data/civic*.db
+data/civic*.db-*
+data/civic-media
+data/civic-anchor*
+data/backups
+# tests and docs are not needed at runtime
+tests
+e2e
+docs
+data/raw

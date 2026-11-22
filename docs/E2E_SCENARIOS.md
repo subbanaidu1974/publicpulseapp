@@ -1,4 +1,4 @@
-# E2E Scenarios
+| E2E-20 | UI | Mobile viewport (375px) navigation | No horizontal scroll on home, elections and analytics; menu usable || E2E-19 | UI | Admin data status needs a server-verified admin session | No session or unconfirmed session is denied; only a 200 from the server admin check shows per-source status || E2E-18 | UI | Methodology and sources page with public data status | Page reachable; per-source status table shown; no synthetic survey stats || E2E-16 | UI | Survey validation: missing required field, duplicate submission | RETIRED with E2E-15 (S-124) || E2E-15 | UI | Citizen takes survey (valid) | RETIRED: legacy survey removed (S-124). Survey tab is an honest coming-soon page (E2E-139) || E2E-13 | UI | Map layer switch (winner → margin → turnout) | RETIRED: the synthetic district map was removed (S-123). Analytics is covered by E2E-138; a real choropleth returns with committed boundaries |# E2E Scenarios
 
 Each scenario has an ID used as a tag in `e2e/` specs (`@E2E-xx`). Status is tracked in `docs/stories/tracker.json`.
 Layers: **API** = HTTP-level test (no browser), **UI** = Playwright browser.
@@ -75,3 +75,111 @@ Layers: **API** = HTTP-level test (no browser), **UI** = Playwright browser.
 | E2E-63 | UI | Toggle to Telugu on Elections | Forecast, trend and provenance labels render in Telugu |
 | E2E-64 | UI | Axe on Elections with charts and forecast | No critical WCAG 2.x A/AA violations |
 | E2E-65 | UI | Elections at 375px | No horizontal page overflow |
+
+## Gap-audit scenarios (planned, from the Nov 2026 gap audit)
+
+| ID | Layer | Scenario | Expected |
+|---|---|---|---|
+| E2E-66 | API | Delete /api/admin/config and header-trusted admin; secrets never returned or written at runtime | Request with spoofed x-user-role gets 404/401; no endpoint returns SMTP or API secrets |
+| E2E-67 | API | Delete /api/send-otp mail relay; never log OTPs or phones; remove TLS-verification bypass | Route absent; log scan finds no OTP/phone; SMTP code removed |
+| E2E-68 | API | Replace client-side legacy login/admin with server sessions (or remove it); no seeded accounts or role-switch | No plaintext accounts in bundle; admin pages need a server-verified admin session |
+| E2E-69 | API | Security headers, CSP, HSTS, trust-proxy, CORS policy and public API rate limits/caching | Response headers present; burst against /api/v1 gets 429; CSP report-only clean |
+| E2E-70 | API | Production startup guards: refuse dev key provider, dev OTP flag, DEMO geo seed, demo data when NODE_ENV=production | Server exits non-zero in production with any dev provider or demo dataset |
+| E2E-71 | API | Webhook auth for missed-call/IVR (HMAC or allow-list); never return callId to caller; PIN by default | Forged IVR call for a known phone is rejected; no callId in the response |
+| E2E-72 | API | Scope JSON body parsers per router; 1 MB base64 photo accepted, global default kept small elsewhere | 1 MB base64 upload succeeds; oversize elsewhere gets 413 |
+| E2E-73 | API | Secret scanning (gitleaks) and secrets-manager config; remove unused genai/nodemailer, pin engines, audit and Dependabot | CI fails on a planted secret; npm audit clean at high; engines enforced |
+| E2E-74 | API | Login/OTP hardening: per-phone+person+source keys, per-purpose OTPs, weak-PIN blocklist, logout, session list/revoke, shorter TTL | Flooding one phone cannot lock the owner; weak PIN rejected; logout revokes server session |
+| E2E-75 | API | Trusted proxy and device attestation (Play Integrity/App Attest) for the app channel; edge-supplied ASN | Spoofed x-device-id/x-asn headers no longer change limits |
+| E2E-76 | API | Invite and SMS abuse caps: per-head daily invites, per-target-number cap, global SMS budget | 11th invite/day refused; repeat to one number refused |
+| E2E-77 | API | Real number-intelligence vendor adapter with failure policy | Churned/VoIP numbers flagged via adapter; vendor outage degrades safely |
+| E2E-78 | API | Production SMS provider adapter (DLT templates, delivery receipts, cost budget) | Provider contract test passes; OTP sent through DLT template |
+| E2E-79 | API | KMS/HSM key provider, per-purpose keys and rotation/re-hash plan | Master key never in app env; rotation test re-hashes phones |
+| E2E-80 | API | Reconcile THREAT_MODEL and RELEASE_GATE with the code; fix claims (ASN, logs, keys, anchor) | Every [DONE] claim maps to a test; mismatches fixed or marked |
+| E2E-81 | API | Job scheduler for retention purge, 18th-birthday erasure, invite expiry, audit anchoring and chain verification | Jobs run on schedule, are audited, and alert on failure |
+| E2E-82 | API | Observability: structured logs, request ids, /healthz and /readyz (DB + audit chain), metrics and alerts | Readiness fails when audit chain breaks; request id in every log line |
+| E2E-83 | API | Encrypted scheduled backups, restore drill and key escrow runbook | Restore from backup reproduces DB; drill documented |
+| E2E-84 | API | Deployment: Dockerfile, env/runbook, India-region hosting and TLS guide, E2E against production build | Container boots with NODE_ENV=production; Playwright passes against dist |
+| E2E-85 | API | CI upgrades: production build, ESLint, audit, secret scan, coverage thresholds, Windows matrix | CI red on any of them failing; coverage gate on server/civic and src/lib |
+| E2E-86 | API | Tracker gate reads real test results (no skips) and verifies STORY_TRACKER.md is current | Skipped or failing tagged test blocks a 'done' story |
+| E2E-87 | API | Migration checksums, pre-migrate backup, rollback doc | Schema drift detected at startup |
+| E2E-88 | API | Async/worker scrypt, capacity plan and Postgres/PostGIS migration path | Login p95 under load stays flat; capacity doc committed |
+| E2E-89 | API | Split identity, issue and survey stores with no cross-store joins | Separate DB files/keys; cross-store join test fails by design |
+| E2E-90 | UI | Real lite entry page, 2G budget measurement and load tests (OTP flood, count-day) | Lite page under 150 KB gzip on 2G profile; k6 scenario passes |
+| E2E-91 | API | Scheduled data-refresh pipeline with freshness alerts and forecast-cache invalidation | Stale data raises an alert; cache refreshes after pipeline run |
+| E2E-92 | API | README, complete .env.example (all CIVIC_* vars) and docs check in CI | Fresh clone follows README to a running app; env vars all documented |
+| E2E-93 | API | Fix boundary fetch: DataMeet India_AC shapefile, split TG from AP, re-key to ECI/LGD codes, validate 294 ACs | 175 AP + 119 TG AC polygons join on acNo; gate fails on mismatch |
+| E2E-94 | API | PC polygons from DataMeet 2019 simplified (CC0) with Wikidata QIDs; AP 25 / TG 17 | 42 PC polygons joined to LS results |
+| E2E-95 | API | LGD Parquet ingest: districts (AP 28, TG 33), mandals, blocks, villages, GPs, urban bodies; effective-dated, census codes kept | Counts match LGD (688/621 mandals, ~29k villages); rerun idempotent |
+| E2E-96 | UI | LGD village/ward to AC and PC mapping; flag ACs without rural rows; check part-mandal ACs against the 2008 ECI order | Every AC has villages or wards; 12 flagged ACs reviewed |
+| E2E-97 | API | Reservation (SC/ST/GEN) and PC link per AC from 2008 constituency table | Reservation shown on constituency page |
+| E2E-98 | API | Telugu name gazetteer: Wikidata (districts, mandals, ACs), LGD TG villages, AP villages from OSM/Wikidata, gaps flagged | Coverage report per level; missing names flagged not guessed |
+| E2E-99 | API | Census 2011 PCA ingest at district, mandal and village with LGD census-code crosswalk; remove demo census | Real census replaces demo; district totals match published |
+| E2E-100 | API | Old-to-new district crosswalk (AP 13 to 26 to 28; TG 10 to 33) for comparable history | 2014 and 2024 results aggregate to either district vintage |
+| E2E-101 | API | Electors by AC (CEO PDF parser, SSR 2025) with turnout, NOTA and gender fields in the API | Turnout % per seat returned; source PDFs fetchable (CEO sites unreachable in checks) |
+| E2E-102 | API | Seats API carries district, electors, Telugu name for AP and LS (not only TG assembly) | /elections seats return district and acNameTe for every seat |
+| E2E-103 | API | District boundary polygons for AP 28 / TG 33 (dissolved from mandals or OSM) | Districts render on map with codes joined |
+| E2E-104 | API | Mandal boundary polygons with licence review (OSM ODbL or other) | Mandal layer loads; attribution shown |
+| E2E-105 | API | Village boundary polygons: licence decision (SHRUG is CC BY-NC-SA) or alternative source | Licence cleared or village map stays point/table based |
+| E2E-106 | API | Polling-station reference list (number, name, location only); never ingest electoral-roll PDFs | No voter names/addresses in any store; legal guard test |
+| E2E-107 | API | Boundary versioning and post-census delimitation readiness | Two boundary versions selectable by date |
+| E2E-108 | API | Per-dataset provenance manifest (source, licence, checksum, asOf) shown on API envelopes | Every API response carries source and asOf |
+| E2E-109 | UI | Licence compliance register and attribution page (TCPD, DataMeet, ODbL, CC BY-SA, Esri) | Attribution page lists every dataset; CI checks register vs manifest |
+| E2E-110 | UI | LS-to-assembly segment mapping and split-voting endpoint | /split-voting returns per-AC LS vs assembly winners |
+| E2E-111 | UI | Real choropleth map (AC and district) replacing the tile grid; table fallback; self-hosted Leaflet CSS; tile policy | Map colours seats by selected metric; keyboard/table alternative; no third-party CSS |
+| E2E-112 | UI | Drill-down map: state to district to constituency to mandal to village with population and issue overlays | Clicking a district opens its constituencies; breadcrumb works in Telugu |
+| E2E-113 | UI | Constituency profile: boundary map, population, electors, history, current member, civic issue aggregates | Profile shows all sections with sources; issue cells suppressed under 30 |
+| E2E-114 | UI | Mandal and village profile pages (population, SC/ST, literacy, linked constituency, issues) | Village page resolves from search; shows census code and constituency |
+| E2E-115 | API | Geo search API and constituency endpoints (/geo/units, /constituencies/:state/:acNo) in EN/Telugu | Search by Telugu or English name returns the unit tree |
+| E2E-116 | API | Hamlet gazetteer review workflow and real import replacing DEMO data | Unreviewed hamlets hidden; reviewer queue works |
+| E2E-117 | API | LGD-to-ECI constituency link table, effective-dated | Issues aggregate to the election constituency |
+| E2E-118 | API | Canonical party registry: aliases, Telugu names, hand-curated colours, founding year, website, Wikidata QID, merger history | Every party code in elections.json resolves; one palette app-wide |
+| E2E-119 | API | Party flags and symbols with per-file licence/author/attribution; neutral text chip where no free file exists | Flag shown only if licence recorded; attribution page generated |
+| E2E-120 | API | Per-year alliance dataset (AP 2014/2019/2024, TG 2014/2018/2023, LS years) with sources and pre-poll vs hindsight label | Alliance view works for every election with a cited source |
+| E2E-121 | UI | Party profile page: seats and vote-share history, alliances, leaders, symbol | Page per party in EN/Telugu with sources |
+| E2E-122 | API | Party leaders and office holders (CM, deputy CM, speaker, party presidents, ministers), curated and dual-sourced with dates | Each person has two cited sources and an asOf date |
+| E2E-123 | API | Current MLA/MP roster: ECI results + minimal sansad.in fields + by-election/defection overlay with citations | 119 TG and 175 AP seats each show a current member; no contact/DOB/family fields stored |
+| E2E-124 | UI | Contestant profile: name, party, votes, position, sex, age, incumbency per election (TCPD/ECI) | Every contestant has a profile page; no unsourced fields |
+| E2E-125 | API | Winner photos from Wikimedia Commons with licence, author, attribution and takedown; initials avatar otherwise | Photo shown only with an accepted licence and credit; others show avatar |
+| E2E-126 | API | Affidavit link-outs (MyNeta/ECI) with neutral layout; no scraping; ADR written-consent request for any bulk use | Link shown for every contestant; no criminal-case lists or scores |
+| E2E-127 | API | Party-switch / turncoat records, citation-only (Speaker/ECI/news) | Each switch has a citation and date |
+| E2E-128 | API | Correction and takedown channel for person data and photos | Takedown request removes item within SLA and logs it |
+| E2E-129 | UI | MCC neutrality rules for candidate/party/leader pages: identical layout, no rankings, blackout hides promotions | Layout test proves identical sections for every candidate |
+| E2E-130 | API | By-election and re-poll tracking | Jubilee Hills 2025 by-election appears in seat history |
+| E2E-131 | UI | Pre-2014 undivided-AP history mapping and AP/TG LS 2014 split | 2009 and 2014 history selectable with comparability notes |
+| E2E-132 | API | Per-candidate and per-party assembly vs Lok Sabha comparison; incumbency analytics | Charts with sources and caveats |
+| E2E-133 | API | Calendar-driven, fail-closed election-window service (forecast, surveys, notifications) | Forecast hidden when calendar unknown; flag source audited |
+| E2E-134 | API | Forecast product review: skill warning, calibration and cache invalidation | Back-test shown beside every headline; refresh clears cache |
+| E2E-135 | UI | Turnout, NOTA and gender-turnout analytics page | Turnout by seat/district with sources |
+| E2E-136 | API | Golden tests for real data (totals vs ECI by year); comparability notes for swing | Seat tallies pinned per election; swing endpoint carries notes |
+| E2E-137 | API | Share cards with provenance and misinformation guardrails | Card image includes source, date and disclaimer |
+| E2E-138 | UI | Retire staticData and the synthetic constituency profiler; Telangana parity for Home, Analytics and Constituencies | No Math.random data; every tab state-aware or removed |
+| E2E-139 | API | Retire the legacy survey/admin portal (or move behind Phase 2 anonymous surveys); drop fake counters and leader preference | No localStorage tallies; no vote/poll wording or leader-preference question |
+| E2E-140 | API | Remove hard-coded reports, news, testimonials and hotlinked media | No third-party media URLs in source |
+| E2E-141 | API | i18n completeness: key-parity test EN/TE, localised error codes, translate all hard-coded labels | Test fails on missing te key; API errors render in Telugu |
+| E2E-142 | API | Product naming, metadata, hreflang, Open Graph; README rewrite | Title/meta localised; no AI Studio leftovers |
+| E2E-143 | API | Banned-wording copy lint (vote/ballot/result for surveys) in CI | CI fails on banned words in public pages |
+| E2E-144 | UI | Privacy policy, terms, third-party consent notice and who-sees-what screen | Policy page and consent banner shipped in EN/TE |
+| E2E-145 | API | Self-hosted Telugu font subset; low-end Android test | Telugu renders without external font calls |
+| E2E-146 | API | Login person-picker for multi-adult SIMs | Shared SIM login selects the adult then PIN |
+| E2E-147 | UI | PIN recovery UI using OTP | Recovery resets PIN and revokes sessions |
+| E2E-148 | UI | Residence declaration and hamlet search UI (T1) | User picks village/hamlet; tier shows T1 |
+| E2E-149 | UI | Attestation and volunteer screens (T2) | Two attestors move a person to T2 in UI |
+| E2E-150 | UI | Accept-invite screen: notice, own PIN, decline and report-not-agreed | Invitee sees notice before any data; accept sets PIN |
+| E2E-151 | API | Volunteer enrolment: adult sets own PIN and proves phone control; context persisted in table | Volunteer never types a PIN; account stays pending until OTP |
+| E2E-152 | API | Issue photo and voice upload wired to /issues/media with GPS | Photo/voice attach end to end; stored through media route |
+| E2E-153 | API | WebP and HEIC photo support with EXIF stripping | iPhone HEIC upload accepted and converted |
+| E2E-154 | UI | Issue detail page, feed filters by village/mandal/constituency, paginated bulk export | Feed filterable; export is identical for every caller |
+| E2E-155 | API | Officer/moderator consoles and audited admin role grants with MFA; unify roles tables | Grant needs admin + second approver; one roles source |
+| E2E-156 | API | Verified government officer onboarding (letter and domain check) | Officer role requires verified department email |
+| E2E-157 | UI | Moderation lexicon curation workflow, queue UI and false-positive metrics | Moderators manage lexicon versions; metrics visible |
+| E2E-158 | API | Erasure completeness for all issue tables and a dump-all-tables test | After delete no table holds the person id |
+| E2E-159 | API | Audit log: public redacted view, real external anchor sink, privileged-read calls wired | Anchor mismatch alarms; every privileged read logged |
+| E2E-160 | API | Politician reply role, scheme tags and grievance-system adapter | Replies public and scoped; adapter contract test |
+| E2E-161 | API | IVR upgrades: recording fetch, full category set, persisted call state, unified lockout | Voice note stored as media; restart keeps call state |
+| E2E-162 | API | Media hardening: encryption at rest, GPS rounding, AV scan, retention alignment | Files encrypted; GPS rounded to policy |
+| E2E-163 | API | Icon-led categories, trust-tier badges, category parity across web and IVR | Nine categories everywhere; tier badge visible |
+| E2E-164 | API | Household: recipient confirms head transfer; dependent caps; re-invite cooldown | Transfer needs recipient accept |
+| E2E-165 | API | Counsel-reviewed bilingual notices; grievance officer/DPO appointed; breach and CERT-In procedure | No DRAFT status left; officer contact real |
+| E2E-166 | API | Recorded Telugu audio per dialect with linguist review | Audio files exist and pass review |
+| E2E-167 | API | Operator, funding and legal-structure decision (design gate) | Decision recorded in DESIGN_2028 section 8.1 |
+| E2E-168 | API | Release gate owners, dates and evidence collection; red-team and pilot skew evaluation scheduled | All 18 gate rows have owner and date |

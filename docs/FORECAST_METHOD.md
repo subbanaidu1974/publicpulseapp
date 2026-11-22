@@ -65,3 +65,10 @@ The live numbers (including the current back-test) are always returned in the re
 - Uniform swing applies the same shift to every seat; real swings are not uniform (the estimated `sigma` is large, especially in TG where AIMIM and BJP are concentrated regionally).
 - The 2024 AP assembly and LS were held together, so the LS term mostly adds nothing there; in TG it adds a large BJP uplift (LS 2024 vs assembly 2023).
 - Results are cached in memory per state for the process lifetime; restart after refreshing the data.
+
+## Election window, calibration and cache (S-118, S-119)
+
+- The route asks `server/window.ts` before computing anything. `windowState(state, now)` is `open`, `blackout` or `unknown`, from `data/reference/election-calendar.json` (verified entries only, inside `coveredFrom..coveredThrough`) with `FORECAST_BLACKOUT=1|0` as an operator override. The shipped calendar has an empty real list, so the state is `unknown`.
+- Policy: `blackout` and `unknown` both return the withheld response (`blackout: true`, `window`, `withheldReason`, no seats, alliances or back-test, `Cache-Control: no-store`). `ELECTION_WINDOW_FAIL_OPEN_FORECAST=1` lets the forecast show while the window is `unknown`; it never lifts a real blackout. Surveys and notifications (`surveysAllowed`, `notificationsAllowed`) are open only when the window is `open`. `GET /api/v1/election-window?state=` reports all of this.
+- `backtest.calibration` holds reliability bins (stated chance of the model leader 50-60, 60-70, 70-80, 80-90, 90-100: seats, mean stated chance, observed hit rate), per run and pooled.
+- The cache is keyed to `data/generated/elections.json` (size and mtime). When the file changes the datasets are reloaded and the cache dropped; the response carries `dataSnapshot.checksum`.

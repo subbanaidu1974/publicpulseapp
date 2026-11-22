@@ -1,0 +1,143 @@
+{
+"schema":1,
+"asOf":"2026-11-22",
+"source":"LGD Parquet mirror https://ramseraph.github.io/opendata/lgd/ (sha256 per table in lgd-*.json)",
+"note":"Human review queue: ACs with no rural rows, mandals split across ACs (check against the 2008 ECI order), link/name discrepancies.",
+"AP":{
+"repairs":[
+"LGD AC 3170 'Mummidivaram': eci code 62 is out of range for AP; repaired to acNo 43 by name match with the 2008 table"
+],
+"acsWithNoRuralRows":[
+{
+"acNo":21,
+"name":"Visakhapatnam East"
+},
+{
+"acNo":94,
+"name":"Guntur West"
+}
+],
+"acsWithNoUrbanRows":49,
+"acsWithNoRows":[
+
+],
+"mandalsSplitAcrossAcs":[
+{
+"mandal":4835,
+"name":"Jami",
+"acs":{"16":16,"19":15}
+},
+{
+"mandal":4936,
+"name":"Mamidikuduru",
+"acs":{"45":7,"46":11}
+},
+{
+"mandal":4966,
+"name":"Eluru Rural",
+"acs":{"64":16,"65":2}
+},
+{
+"mandal":4982,
+"name":"Poduru",
+"acs":{"56":8,"57":8}
+},
+{
+"mandal":4993,
+"name":"Nandigama",
+"acs":{"83":17,"84":10}
+},
+{
+"mandal":5011,
+"name":"Vijayawada (Rural)",
+"acs":{"71":11,"82":11}
+},
+{
+"mandal":5383,
+"name":"Tirupati (Urban)",
+"acs":{"166":5,"167":5}
+},
+{
+"mandal":7183,
+"name":"Kurnool Urban",
+"acs":{"137":3,"143":1}
+}
+],
+"villagesInMultipleAcs":0,
+"linkIssues":[
+
+]
+},
+"TG":{
+"repairs":[
+
+],
+"acsWithNoRuralRows":[
+{
+"acNo":17,
+"name":"Nizamabad (Urban)"
+},
+{
+"acNo":22,
+"name":"Dharmapuri"
+},
+{
+"acNo":56,
+"name":"Tandur"
+},
+{
+"acNo":65,
+"name":"Goshamahal"
+},
+{
+"acNo":66,
+"name":"Charminar"
+},
+{
+"acNo":68,
+"name":"Yakutpura"
+},
+{
+"acNo":71,
+"name":"Secunderabad Cantt."
+},
+{
+"acNo":82,
+"name":"Achampet"
+},
+{
+"acNo":105,
+"name":"Warangal West"
+},
+{
+"acNo":106,
+"name":"Warangal East"
+}
+],
+"acsWithNoUrbanRows":10,
+"acsWithNoRows":[
+
+],
+"mandalsSplitAcrossAcs":[
+{
+"mandal":4757,
+"name":"Raghunadhapalem",
+"acs":{"112":41,"113":3}
+},
+{
+"mandal":6219,
+"name":"Rudrangi",
+"acs":{"19":10,"28":2}
+},
+{
+"mandal":7190,
+"name":"Masaipet",
+"acs":{"37":11,"41":4}
+}
+],
+"villagesInMultipleAcs":0,
+"linkIssues":[
+
+]
+}
+}

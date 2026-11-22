@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import express, { Router } from "express";
 import type { Request, Response } from "express";
+import { isLocalHost, isProductionEnv } from "../guards";
 import { audit, createSession, getDb, getKeys, getSms, requireAuth, revokeSessions } from "../core";
 import {
   E164_IN, OTP_NET_WINDOW_MS, OTP_TTL_MS, PIN_RE, attest, checkPin, createPerson, deleteAccount, getNumberIntelligence, getPerson, hashPin,
@@ -53,7 +54,7 @@ identityRouter.post("/signup/request", wrap(async (req, res) => {
     .run(phoneHash(phone), k.hmac("otp", code), new Date(Date.now() + OTP_TTL_MS).toISOString());
   await getSms().send(phone, `People Pulse code: ${code}. Valid for 5 minutes. Do not share it.`);
   const body: Record<string, unknown> = { ok: true, expires_in_s: OTP_TTL_MS / 1000 };
-  if (process.env.CIVIC_EXPOSE_DEV_OTP === "1" && process.env.NODE_ENV !== "production") body.dev_otp = code;
+  if (process.env.CIVIC_EXPOSE_DEV_OTP === "1" && !isProductionEnv() && isLocalHost(req)) body.dev_otp = code;
   res.json(body);
 }));
 

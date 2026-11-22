@@ -3,13 +3,16 @@ import type { ElectionType, StateCode } from "../lib/states";
 /** Typed client for the read-only /api/v1 contract. Responses carry `demo:boolean`. */
 export class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  /** Machine-readable server code (S-126); the UI shows a localised message for it, never the raw server string. */
+  code: string;
+  constructor(message: string, status: number, code = "") {
     super(message);
     this.status = status;
+    this.code = code;
   }
 }
 
-export interface Envelope { demo?: boolean; source?: string; asOf?: string }
+export interface Envelope { demo?: boolean; source?: unknown; asOf?: string }
 
 export interface StateInfo {
   code: StateCode;
@@ -57,6 +60,9 @@ export interface ForecastAlliance { alliance: string; seatsMedian: number; seats
 export interface Forecast {
   state: StateCode; basedOn?: unknown; method?: string; disclaimer?: string; blackout?: boolean;
   seats?: ForecastSeat[]; alliances?: ForecastAlliance[]; backtest?: unknown;
+  /** Election-window state and why the outlook is withheld (S-118). */
+  window?: "open" | "blackout" | "unknown"; withheldReason?: string;
+  dataSnapshot?: { checksum: string | null; signature: string };
 }
 
 export interface CensusRow { district?: string; name?: string; censusYear?: number; population?: number; literacy?: number; literacyPct?: number; scPct?: number; stPct?: number; [k: string]: unknown }
@@ -71,12 +77,12 @@ async function get<T>(path: string, params?: Record<string, string | number | un
   try {
     res = await fetch(`${BASE}${path}${qs}`);
   } catch {
-    throw new ApiError("Network error: could not reach the data service.", 0);
+    throw new ApiError("Network error: could not reach the data service.", 0, "network");
   }
   let body: any = null;
   try { body = await res.json(); } catch { /* non-JSON */ }
   if (!res.ok) {
-    throw new ApiError(body?.error?.message ?? body?.error ?? body?.message ?? `Request failed (${res.status})`, res.status);
+    throw new ApiError(body?.error?.message ?? body?.error ?? body?.message ?? `Request failed (${res.status})`, res.status, typeof body?.code === "string" ? body.code : "");
   }
   return body as T;
 }

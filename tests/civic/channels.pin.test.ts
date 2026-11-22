@@ -162,14 +162,15 @@ describe("IVR on a shared SIM: which adult, then personal PIN (S-45)", () => {
     for (const [id, p] of Object.entries(prompts.PROMPTS)) if (id !== "welcome") expect(p.textEn).not.toMatch(/\botp\b|one.time/i);
   });
 
-  it("single-adult SIMs keep the short flow unless CIVIC_IVR_PIN_ALWAYS=1", async () => {
+  it("@E2E-71 single-adult SIMs must give the PIN by default; the short flow needs CIVIC_IVR_PIN_ALWAYS=0", async () => {
     const solo = createPerson({ phone: "+919876500777", pin: "5566", consentVersion: "v1" });
     getDb().prepare("UPDATE persons SET residence_unit='DEMO-V-KLR', residence_declared_at=? WHERE id=?").run(new Date().toISOString(), solo.id);
+    process.env.CIVIC_IVR_PIN_ALWAYS = "0";
     let callId = await newCall("9876500777");
     await post("/ivr", { callId });
     expect((await post("/ivr", { callId, digits: "1" })).body.state).toBe("category");
 
-    process.env.CIVIC_IVR_PIN_ALWAYS = "1";
+    delete process.env.CIVIC_IVR_PIN_ALWAYS;
     callId = await newCall("9876500777");
     await post("/ivr", { callId });
     expect((await post("/ivr", { callId, digits: "1" })).body).toMatchObject({ state: "pin", sensitive: true });

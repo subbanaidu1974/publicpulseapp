@@ -5,7 +5,7 @@ import { openHome, openElections, openConstituency, revealNav, gotoTab, apiSeats
 test.describe('mobile layout', () => {
   test.use({ viewport: { width: 375, height: 812 } });
 
-  test('@E2E-20 mobile 375px: no horizontal scroll, nav usable, map table fallback', async ({ page }) => {
+  test('@E2E-20 mobile 375px: no horizontal scroll, nav usable', async ({ page }) => {
     await openHome(page, 'AP');
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBeLessThanOrEqual(1);
@@ -16,7 +16,9 @@ test.describe('mobile layout', () => {
     expect(overflow2).toBeLessThanOrEqual(1);
     await openHome(page, 'AP');
     await gotoTab(page, /analytics/i);
-    await expect(page.getByTestId('map-table-fallback')).toBeAttached();
+    await expect(page.getByTestId('analytics-page')).toBeVisible();
+    const overflow3 = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow3).toBeLessThanOrEqual(1);
   });
 });
 
@@ -50,6 +52,15 @@ test.describe('accessibility', () => {
 
   test('@E2E-21 axe: no critical violations on home', async ({ page }) => {
     await openHome(page, 'AP');
+    expect(await critical(page)).toEqual([]);
+  });
+
+  test('@E2E-21 axe: no critical violations on analytics and survey page', async ({ page }) => {
+    await openHome(page, 'TG');
+    await gotoTab(page, /analytics/i);
+    await expect(page.getByTestId('analytics-page')).toBeVisible();
+    expect(await critical(page)).toEqual([]);
+    await gotoTab(page, /survey/i);
     expect(await critical(page)).toEqual([]);
   });
 

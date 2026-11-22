@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "asOf": "2026-11-22",
+  "note": "Hand-kept changes to the sitting member after the general election (by-election, death/vacancy, defection). Every record has a date and >= 1 cited source. status 'confirmed' = stated by the cited page; 'reported' = a claim made in sources but not verified by us, shown with a 'reported' label and NEVER changes who is listed as the member. Only changes we could source are recorded: the alleged 2024-25 BRS to INC defections were NOT recorded because no citation was read (add them here with sources and status 'reported' when verified). Dates are as stated by the pages read on 2026-11-22; the exact poll/count dates of the by-election were not read from the page (month precision).",
+  "records": [
+    {
+      "id": "TG-assembly-61-vacancy-2025-06-08", "state": "TG", "type": "assembly", "acNo": 61, "kind": "vacancy", "status": "confirmed", "date": "2025-06-08",
+      "member": null, "previous": { "name": "Maganti Gopinath", "party": "BRS" },
+      "note": "Sitting MLA Maganti Gopinath died (8 June 2025).",
+      "sources": ["https://en.wikipedia.org/wiki/Maganti_Gopinath", "https://en.wikipedia.org/wiki/Jubilee_Hills_Assembly_constituency"]
+    },
+    {
+      "id": "TG-assembly-61-by-election-2025-11", "state": "TG", "type": "assembly", "acNo": 61, "kind": "by-election", "status": "confirmed", "date": "2025-11",
+      "member": { "name": "Naveen Yadav", "party": "INC" }, "previous": { "name": "Maganti Gopinath", "party": "BRS" },
+      "note": "Won the 2025 Jubilee Hills by-election as the INC candidate (majority 24,729 votes per the cited page). Poll date 11 Nov 2025 and result date are from the project brief and were not read from the page.",
+      "sources": ["https://en.wikipedia.org/wiki/Naveen_Yadav", "https://en.wikipedia.org/wiki/Jubilee_Hills_Assembly_constituency"]
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import type { CandidateResult } from "../src/lib/elections";
 import type { ElectionType, StateCode } from "../src/lib/states";
+import { registryCode } from "../src/lib/parties";
 
 type Provenance = NonNullable<CandidateResult["provenance"]>;
 
@@ -47,12 +48,12 @@ const PARTY_ALIASES: Record<string, string> = {
   IND: "IND", NOTA: "NOTA",
 };
 
-/** Canonical party code: uppercase/trimmed, known aliases mapped (TRS->BRS, JnP->JSP, ...). */
+/** Canonical party code: uppercase/trimmed, known aliases mapped (TRS->BRS, JnP->JSP, ...); falls back to the party registry (data/reference/parties.json). */
 export function canonicalParty(p: string): string {
   const raw = (p ?? "").trim();
   if (!raw) return "IND";
   const up = raw.toUpperCase();
-  return PARTY_ALIASES[up] ?? PARTY_ALIASES[up.replace(/[\s._-]/g, "")] ?? up;
+  return PARTY_ALIASES[up] ?? PARTY_ALIASES[up.replace(/[\s._-]/g, "")] ?? registryCode(raw) ?? up;
 }
 
 const STATE_MAP: Record<string, StateCode> = {
@@ -86,6 +87,14 @@ export function normalizeTcpd(csv: string, type: ElectionType, provenance: Prove
     if (r.District_Name) row.district = r.District_Name.trim();
     const electors = toInt(r.Electors);
     if (!Number.isNaN(electors) && electors > 0) row.electors = electors;
+    // S-109 attributes: kept only when the source row carries a clean value (ge24 / 2023 files lack age or incumbency).
+    const sx = (r.Sex ?? "").trim().toUpperCase();
+    if (sx === "M" || sx === "MALE") row.sex = "M"; else if (sx === "F" || sx === "FEMALE") row.sex = "F"; else if (sx === "O" || sx === "OTHER" || sx === "THIRD GENDER") row.sex = "O";
+    const age = toInt(r.Age);
+    if (!Number.isNaN(age) && age >= 18 && age <= 110) row.age = age;
+    const flag = (v: string | undefined): boolean | undefined => { const u = (v ?? "").trim().toUpperCase(); return u === "TRUE" ? true : u === "FALSE" ? false : undefined; };
+    const inc = flag(r.Incumbent); if (inc !== undefined) row.incumbent = inc;
+    const tc = flag(r.Turncoat); if (tc !== undefined) row.tcpdTurncoat = tc;
     out.push(row);
   }
   return sortResults(out);

@@ -1,0 +1,393 @@
+{
+  "schema": 1,
+  "datasets": [
+    {
+      "id": "alliances",
+      "path": "data/reference/alliances.json",
+      "bytes": 6709,
+      "sha256": "86fa7e4a8563133263c7ef31818606b403f645352b04ca14db8e09f8d6496ab9",
+      "rows": 8,
+      "asOf": "2026-11-22",
+      "provenance": "hand-curated",
+      "demo": false,
+      "sources": [
+        "https://en.wikipedia.org/wiki/2024_Andhra_Pradesh_Legislative_Assembly_election",
+        "https://en.wikipedia.org/wiki/2023_Telangana_Legislative_Assembly_election"
+      ],
+      "licences": [
+        "wikipedia-cc-by-sa",
+        "project-derived"
+      ],
+      "attribution": "Alliance records compiled from English Wikipedia election articles (each record cites its pages)."
+    },
+    {
+      "id": "census-districts",
+      "path": "data/generated/census.json",
+      "bytes": 13778,
+      "sha256": "10ac21537ed3bdcaa309bd6ca09dbc73ee5cbb0fa535ca7ac545e32dd6b6cef1",
+      "rows": 23,
+      "asOf": "2011-03-01",
+      "provenance": "census-dchb-2011",
+      "demo": false,
+      "sources": [
+        "https://censusindia.gov.in/nada/index.php/catalog/123"
+      ],
+      "licences": [
+        "census-orgi-2011"
+      ],
+      "attribution": "Source: Census of India 2011, Office of the Registrar General and Census Commissioner, India (District Census Handbooks village and town directories). Derived rollups by People Pulse."
+    },
+    {
+      "id": "census-subdistricts",
+      "path": "data/generated/census-subdistricts.json",
+      "bytes": 491296,
+      "sha256": "b2f20de44947a1e18e6098870a5dd67bc6ab370df72f3bd03dc4659693be3044",
+      "rows": 1118,
+      "asOf": "2011-03-01",
+      "provenance": "census-dchb-2011",
+      "demo": false,
+      "sources": [
+        "https://censusindia.gov.in/nada/index.php/catalog/123"
+      ],
+      "licences": [
+        "census-orgi-2011"
+      ],
+      "attribution": "Source: Census of India 2011, Office of the Registrar General and Census Commissioner, India (District Census Handbooks village and town directories). Derived rollups by People Pulse."
+    },
+    {
+      "id": "census-villages-towns",
+      "path": "data/generated/census-units.json",
+      "bytes": 4647039,
+      "sha256": "309cfb89e34003b1f0da51eb9145b98bfd7582c4e7ebb7e76e0c19f7c34738cd",
+      "rows": 28155,
+      "asOf": "2011-03-01",
+      "provenance": "census-dchb-2011",
+      "demo": false,
+      "sources": [
+        "https://censusindia.gov.in/nada/index.php/catalog/123"
+      ],
+      "licences": [
+        "census-orgi-2011"
+      ],
+      "attribution": "Source: Census of India 2011, Office of the Registrar General and Census Commissioner, India (District Census Handbooks village and town directories). Derived rollups by People Pulse."
+    },
+    {
+      "id": "elections",
+      "path": "data/generated/elections.json",
+      "bytes": 5883063,
+      "sha256": "f9952bcf1b5e23dca77c40e2b16c539bd3a9c346dc5aa001f64a09ee4fb1893c",
+      "rows": 15233,
+      "asOf": "2024 (latest election in file)",
+      "provenance": "TCPD",
+      "demo": false,
+      "sources": [
+        "https://lokdhaba.ashoka.edu.in/",
+        "https://results.eci.gov.in/",
+        "https://github.com/in-rolls/eci_results"
+      ],
+      "licences": [
+        "tcpd-nc",
+        "eci-statistical-reports",
+        "in-rolls-eci-results"
+      ],
+      "attribution": "Election results: Election Commission of India; compiled by TCPD (Trivedi Centre for Political Data, Ashoka University) Lok Dhaba, and ECI results via in-rolls/eci_results. TCPD data is for non-commercial use with citation."
+    },
+    {
+      "id": "geo-ac-AP",
+      "path": "data/generated/geo/ac-AP.geojson",
+      "bytes": 306469,
+      "sha256": "b4090d5c8c3b98ddc929694cd5535b18fb4f833800714f7dde49e7f0725f65da",
+      "rows": 175,
+      "asOf": null,
+      "provenance": "scripts/fetch-boundaries.ts",
+      "demo": false,
+      "sources": [
+        "https://github.com/datameet/maps",
+        "https://ramseraph.github.io/opendata/lgd/data/metadata.json"
+      ],
+      "licences": [
+        "datameet-cc-by-2.5-in",
+        "lgd-public",
+        "project-derived"
+      ],
+      "attribution": "Constituency boundaries: DataMeet (CC BY 2.5 India), modified. Districts: dissolved from AC polygons (approximate) with LGD names."
+    },
+    {
+      "id": "geo-ac-link",
+      "path": "data/generated/geo/ac-link.json",
+      "bytes": 46823,
+      "sha256": "78363f0056fd7093eabe28992b8edc0ab799a0140ef14bfaf44bdc7ace545c1c",
+      "rows": 294,
+      "asOf": "2026-11-22",
+      "provenance": "unknown",
+      "demo": false,
+      "sources": [
+        "https://ramseraph.github.io/opendata/lgd/data/metadata.json"
+      ],
+      "licences": [
+        "lgd-public",
+        "project-derived"
+      ],
+      "attribution": "Source: Local Government Directory, Government of India, via the ramseraph/opendata mirror."
+    },
+    {
+      "id": "geo-ac-TG",
+      "path": "data/generated/geo/ac-TG.geojson",
+      "bytes": 194188,
+      "sha256": "ed3a0d339a0dd9e7435706d680e06e518cca059afa2bd7228045b3d1e3e75541",
+      "rows": 119,
+      "asOf": null,
+      "provenance": "scripts/fetch-boundaries.ts",
+      "demo": false,
+      "sources": [
+        "https://github.com/datameet/maps",
+        "https://ramseraph.github.io/opendata/lgd/data/metadata.json"
+      ],
+      "licences": [
+        "datameet-cc-by-2.5-in",
+        "lgd-public",
+        "project-derived"
+      ],
+      "attribution": "Constituency boundaries: DataMeet (CC BY 2.5 India), modified. Districts: dissolved from AC polygons (approximate) with LGD names."
+    },
+    {
+      "id": "geo-ac-units",
+      "path": "data/generated/geo/ac-units.json",
+      "bytes": 338043,
+      "sha256": "408fa369a52aca87746250f88e804fb229e63c6d57a519b733edea099fe5c273",
+      "rows": 5,
+      "asOf": "2026-11-22",
+      "provenance": "unknown",
+      "demo": false,
+      "sources": [
+        "https://ramseraph.github.io/opendata/lgd/data/metadata.json"
+      ],
+      "licences": [
+        "lgd-public",
+        "project-derived"
+      ],
+      "attribution": "Source: Local Government Directory, Government of India, via the ramseraph/opendata mirror."
+    },
+    {
+      "id": "geo-boundaries-report",
+      "path": "data/generated/geo/boundaries-report.json",
+      "bytes": 1124,
+      "sha256": "57b37fc5c060c5687f80e2e6441d8090b4dc14d3147d325951588a84b8360e15",
+      "rows": 9,
+      "asOf": null,
+      "provenance": "unknown",
+      "demo": false,
+      "sources": [
+        "https://github.com/datameet/maps",
+        "https://ramseraph.github.io/opendata/lgd/data/metadata.json"
+      ],
+      "licences": [
+        "project-derived"
+      ],
+      "attribution": "Boundary build report generated by People Pulse."
+    },
+    {
+      "id": "geo-district-AP",
+      "path": "data/generated/geo/district-AP.geojson",
+      "bytes": 143572,
+      "sha256": "c1f0c570bea53395ac8436eae1dcac968624a87035069170e8c15cef4051a4bf",
+      "rows": 28,
+      "asOf": null,
+      "provenance": "scripts/fetch-boundaries.ts",
+      "demo": false,
+      "sources": [
+        "https://github.com/datameet/maps",
+        "https://ramseraph.github.io/opendata/lgd/data/metadata.json"
+      ],
+      "licences": [
+        "datameet-cc-by-2.5-in",
+        "lgd-public",
+        "project-derived"
+      ],
+      "attribution": "Constituency boundaries: DataMeet (CC BY 2.5 India), modified. Districts: dissolved from AC polygons (approximate) with LGD names."
+    },
+    {
+      "id": "geo-district-crosswalk",
+      "path": "data/generated/geo/district-crosswalk.json",
+      "bytes": 18802,
+      "sha256": "a53f5cd6168eb7b55f7ec70dba48c16523dc9b8b5d4a96ef04ca87d8b40c5796",
+      "rows": 6,
+      "asOf": null,
+      "provenance": "unknown",
+      "demo": false,
+      "sources": [
+        "https://ramseraph.github.io/opendata/lgd/data/metadata.json"
+      ],
+      "licences": [
+        "lgd-public",
+        "project-derived"
+      ],
+      "attribution": "Source: Local Government Directory, Government of India, via the ramseraph/opendata mirror."
+    },
+    {
+      "id": "geo-district-TG",
+      "path": "data/generated/geo/district-TG.geojson",
+      "bytes": 110436,
+      "sha256": "6f9c62fffab866acf51d15d2d857a405c8596157e6d81d0e2201dceb2d6ecfd3",
+      "rows": 33,
+      "asOf": null,
+      "provenance": "scripts/fetch-boundaries.ts",
+      "demo": false,
+      "sources": [
+        "https://github.com/datameet/maps",
+        "https://ramseraph.github.io/opendata/lgd/data/metadata.json"
+      ],
+      "licences": [
+        "datameet-cc-by-2.5-in",
+        "lgd-public",
+        "project-derived"
+      ],
+      "attribution": "Constituency boundaries: DataMeet (CC BY 2.5 India), modified. Districts: dissolved from AC polygons (approximate) with LGD names."
+    },
+    {
+      "id": "geo-lgd-AP",
+      "path": "data/generated/geo/lgd-AP.json",
+      "bytes": 2098502,
+      "sha256": "5c665139c7540e170ee3627e9f1a7055b44613223ee4cb135a30dcf383f777d4",
+      "rows": 28,
+      "asOf": "2026-11-22",
+      "provenance": "unknown",
+      "demo": false,
+      "sources": [
+        "https://ramseraph.github.io/opendata/lgd/data/metadata.json"
+      ],
+      "licences": [
+        "lgd-public",
+        "project-derived"
+      ],
+      "attribution": "Source: Local Government Directory, Government of India, via the ramseraph/opendata mirror."
+    },
+    {
+      "id": "geo-lgd-TG",
+      "path": "data/generated/geo/lgd-TG.json",
+      "bytes": 1958011,
+      "sha256": "4bfdbf9410d8c34b3430a58e4f4f81ea74a7f3f2601c1fad1ea83d48b1fe1707",
+      "rows": 33,
+      "asOf": "2026-11-22",
+      "provenance": "unknown",
+      "demo": false,
+      "sources": [
+        "https://ramseraph.github.io/opendata/lgd/data/metadata.json"
+      ],
+      "licences": [
+        "lgd-public",
+        "project-derived"
+      ],
+      "attribution": "Source: Local Government Directory, Government of India, via the ramseraph/opendata mirror."
+    },
+    {
+      "id": "geo-names-te",
+      "path": "data/generated/geo/names-te.json",
+      "bytes": 93548,
+      "sha256": "7a967b4e8e8c597dffc845f6e5fff30a7d60151f5c5d4427cb92dedf4d49af38",
+      "rows": 7,
+      "asOf": null,
+      "provenance": "unknown",
+      "demo": false,
+      "sources": [
+        "https://www.wikidata.org/",
+        "https://ramseraph.github.io/opendata/lgd/data/metadata.json"
+      ],
+      "licences": [
+        "wikidata-cc0",
+        "lgd-public"
+      ],
+      "attribution": "Telugu names: Wikidata (CC0) and LGD."
+    },
+    {
+      "id": "geo-pc-AP",
+      "path": "data/generated/geo/pc-AP.geojson",
+      "bytes": 61992,
+      "sha256": "a7fd1a97e1a2f24260d0711055f076e297d7c0956fb1ff28d4403c687f508365",
+      "rows": 25,
+      "asOf": null,
+      "provenance": "scripts/fetch-boundaries.ts",
+      "demo": false,
+      "sources": [
+        "https://github.com/datameet/maps"
+      ],
+      "licences": [
+        "datameet-cc0"
+      ],
+      "attribution": "Parliamentary constituency boundaries: DataMeet (CC0)."
+    },
+    {
+      "id": "geo-pc-TG",
+      "path": "data/generated/geo/pc-TG.geojson",
+      "bytes": 41530,
+      "sha256": "845657856583166504fb3d53713bc266309ebf2b43752268a9f5dc7ccdd50fd3",
+      "rows": 17,
+      "asOf": null,
+      "provenance": "scripts/fetch-boundaries.ts",
+      "demo": false,
+      "sources": [
+        "https://github.com/datameet/maps"
+      ],
+      "licences": [
+        "datameet-cc0"
+      ],
+      "attribution": "Parliamentary constituency boundaries: DataMeet (CC0)."
+    },
+    {
+      "id": "geo-review",
+      "path": "data/generated/geo/review.json",
+      "bytes": 1920,
+      "sha256": "62da1f1d9925d8e229adeda53ff6d6fb1ad5c77ade4ff35f11d4d778954c07a9",
+      "rows": 6,
+      "asOf": "2026-11-22",
+      "provenance": "unknown",
+      "demo": false,
+      "sources": [
+        "https://github.com/datameet/maps",
+        "https://ramseraph.github.io/opendata/lgd/data/metadata.json"
+      ],
+      "licences": [
+        "project-derived"
+      ],
+      "attribution": "Boundary build report generated by People Pulse."
+    },
+    {
+      "id": "lsmap-segments",
+      "path": "data/generated/lsmap/segments.json",
+      "bytes": 9636,
+      "sha256": "ad4f322f186ce58c77e85ffbf5607e9b8d10f3f579c23673e729acdf2411a3e8",
+      "rows": 8,
+      "asOf": "2026-11-22",
+      "provenance": "unknown",
+      "demo": false,
+      "sources": [
+        "https://ramseraph.github.io/opendata/lgd/data/metadata.json"
+      ],
+      "licences": [
+        "lgd-public",
+        "project-derived"
+      ],
+      "attribution": "Lok Sabha to assembly segment mapping derived by People Pulse from LGD / ECI 2008 delimitation tables."
+    },
+    {
+      "id": "parties",
+      "path": "data/reference/parties.json",
+      "bytes": 12310,
+      "sha256": "d0cadeca4ccba4bbf15b64df16767288a7e00aa910e74262cfa69fd1680ebac7",
+      "rows": 14,
+      "asOf": "2026-11-22",
+      "provenance": "hand-curated",
+      "demo": false,
+      "sources": [
+        "https://www.wikidata.org/",
+        "https://commons.wikimedia.org/"
+      ],
+      "licences": [
+        "wikidata-cc0",
+        "wikimedia-cc-by-sa",
+        "project-derived"
+      ],
+      "attribution": "Party registry curated by People Pulse; names and QIDs from Wikidata (CC0); flag and symbol files from Wikimedia Commons with per-file author and licence."
+    }
+  ]
+}

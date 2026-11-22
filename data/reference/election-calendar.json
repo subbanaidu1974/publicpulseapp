@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "description": "Election calendar used by server/window.ts. Times are Asia/Kolkata; a date-only value means the start of that day (IST). Blackout is [mccStart, end): end is the first instant the window is over. Only entries with verified:true and without example:true count, and only inside [coveredFrom, coveredThrough); outside that range the state is unknown (fail closed). Never invent dates: copy from the ECI/SEC schedule and cite the source URL.",
+  "coveredFrom": null,
+  "coveredThrough": null,
+  "entries": [],
+  "examples": [
+    {
+      "example": true,
+      "state": "AP",
+      "label": "EXAMPLE ONLY - not a real election",
+      "mccStart": "2099-01-01T00:00:00+05:30",
+      "pollDate": "2099-02-01",
+      "countDate": "2099-02-05",
+      "end": "2099-02-06T00:00:00+05:30",
+      "source": "https://example.invalid/eci-schedule",
+      "verified": false
+    }
+  ]
+}

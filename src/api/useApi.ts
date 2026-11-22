@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { errorKey } from "../i18n/errors";
 
 export interface ApiState<T> { data: T | null; error: string | null; loading: boolean; retry: () => void }
 
@@ -15,7 +16,7 @@ export function useApi<T>(fn: () => Promise<T>, deps: unknown[]): ApiState<T> {
     setError(null);
     fn().then(
       (d) => { if (alive) { setData(d); setLoading(false); } },
-      (e) => { if (alive) { setData(null); setError(e?.message ?? "Something went wrong"); setLoading(false); } },
+      (e) => { if (alive) { setData(null); setError(errorKey(e)); setLoading(false); } },
     );
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps

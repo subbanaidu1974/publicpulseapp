@@ -1,0 +1,31 @@
+# People Pulse single-node deployment (S-69). Usage: cp .env.example .env && edit, then `docker compose up -d --build`.
+# NODE_ENV=production makes the server refuse to start while dev key/SMS providers or demo data are in use (docs/DEPLOYMENT.md).
+# For a staging box that is allowed to run on dev stand-ins, uncomment the staging block below.
+services:
+  app:
+    build: .
+    image: people-pulse:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      TRUST_PROXY: "1"            # one reverse proxy (nginx/Caddy/ALB) in front: required for real client IPs and rate limits
+      # --- staging only (dev stand-ins, demo data allowed) ---
+      # NODE_ENV: staging
+      # SERVE_BUILT: "1"
+      # CIVIC_ALLOW_DEMO: "1"
+    ports:
+      - "127.0.0.1:3000:3000"     # bind to loopback; the reverse proxy terminates TLS and forwards here
+    volumes:
+      - pulse-data:/var/lib/pulse
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  pulse-data:

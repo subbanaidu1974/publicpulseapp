@@ -8,6 +8,8 @@ import { Bar, DemoBadge, ErrorBanner, fmt, Loading, partyColor } from "./ui";
 import ConstituencySearch from "./ConstituencySearch";
 import TrendCharts from "./TrendCharts";
 import ForecastPanel from "./ForecastPanel";
+import ShareCard from "./ShareCard";
+import { asOfLabel, sourceLabel } from "../lib/source";
 
 export default function ElectionsPage() {
   const { state, config } = useStateCtx();
@@ -44,7 +46,7 @@ export default function ElectionsPage() {
   const shareEntries = Object.entries(s?.voteShare ?? {}).sort((a, b) => b[1] - a[1]).slice(0, 10);
   const buckets = Object.entries(s?.marginBuckets ?? {});
   const maxBucket = Math.max(1, ...buckets.map(([, v]) => v));
-  const source = s?.source ?? "ECI / TCPD Lok Dhaba";
+  const source = sourceLabel(s?.source);
 
   const sel = "border border-black bg-white text-xs font-sans p-2 min-w-0";
 
@@ -78,7 +80,7 @@ export default function ElectionsPage() {
       {prov && (
         <div data-testid="provenance-banner" className={`border p-3 text-xs font-sans flex flex-wrap gap-x-4 gap-y-1 items-center ${prov.real ? "border-emerald-800 bg-emerald-50 text-emerald-950" : "border-amber-700 bg-amber-50 text-amber-950"}`}>
           <strong>{prov.real ? t("prov.real") : t("prov.demo")}</strong>
-          <span>{t("prov.banner")}: {s?.source ?? "ECI / TCPD Lok Dhaba"}</span>
+          <span>{t("prov.banner")}: {source}</span>
           <span data-testid="provenance-value">{t("prov.provenance")}: {prov.provenance}</span>
           {prov.generatedAt && <span>{t("prov.updated")}: {prov.generatedAt.slice(0, 10)}</span>}
         </div>
@@ -96,6 +98,8 @@ export default function ElectionsPage() {
           <div className="flex flex-wrap items-center gap-3 text-xs font-sans">
             <span data-testid="elections-source" className="font-mono">{t("common.source")}: {source} &middot; {yr} {t(type === "ls" ? "type.ls" : "type.assembly")}</span>
             {showDemo && <DemoBadge />}
+            <ShareCard testId="elections-share" demo={showDemo} title={`${lang === "te" ? config.nameTe : config.name} ${yr} ${t(type === "ls" ? "type.ls" : "type.assembly")}: ${t("share.figure")}`}
+              lines={tallyEntries.map(([party, n]) => ({ label: party, value: String(n) }))} source={source} asOf={asOfLabel(s, prov?.generatedAt?.slice(0, 10) ?? t("cs.na"))} />
           </div>
 
           {alliance && (

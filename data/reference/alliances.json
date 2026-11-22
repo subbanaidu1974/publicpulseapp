@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "asOf": "2026-11-22",
+  "note": "Per-election alliance records read from the English Wikipedia election pages listed in each record's sources on 2026-11-22. Only pre-poll arrangements named on those pages are recorded; elections with no cited record have no entry and the UI shows no grouping (never invent). 'pre-poll' = announced before polling; 'post-hoc' = analytic grouping applied in hindsight and must be labelled as such in the UI. Wikipedia is a secondary source: confidence 'high' means the page states the alliance and members unambiguously, 'medium' means the page is ambiguous about scope or membership. Not covered: Lok Sabha 2014 (no data in elections.json), Telangana Lok Sabha 2019 and 2024 (the pages name no state-level alliance).",
+  "records": [
+    {
+      "key": "AP-2014-assembly", "state": "AP", "year": 2014, "type": "assembly",
+      "groups": [
+        {
+          "name": "NDA (TDP+BJP)", "parties": ["TDP", "BJP"], "kind": "pre-poll", "confidence": "high",
+          "note": "Janasena (founded March 2014) campaigned in support but did not contest; it is not listed as a member.",
+          "sources": ["https://en.wikipedia.org/wiki/2014_Andhra_Pradesh_Legislative_Assembly_election"]
+        }
+      ],
+      "comparabilityNotes": ["2014 was the first assembly election for residual Andhra Pradesh (175 seats) after bifurcation; the same-day election page also covers Telangana."]
+    },
+    {
+      "key": "AP-2019-assembly", "state": "AP", "year": 2019, "type": "assembly",
+      "groups": [
+        {
+          "name": "JSP+ (JSP+BSP+CPI+CPM)", "parties": ["JSP", "BSP", "CPI", "CPM"], "kind": "pre-poll", "confidence": "high",
+          "note": "TDP, YSRCP, INC and BJP contested without any alliance (TDP had left the NDA in March 2018).",
+          "sources": ["https://en.wikipedia.org/wiki/2019_Andhra_Pradesh_Legislative_Assembly_election"]
+        },
+        {
+          "name": "Hindsight: 2024 NDA parties (TDP+JSP+BJP)", "parties": ["TDP", "JSP", "BJP"], "kind": "post-hoc", "confidence": "high",
+          "note": "These parties did NOT contest 2019 as an alliance; the grouping re-aggregates 2019 results under the 2024 alliance for comparison only.",
+          "sources": ["https://en.wikipedia.org/wiki/2024_Andhra_Pradesh_Legislative_Assembly_election"]
+        }
+      ]
+    },
+    {
+      "key": "AP-2024-assembly", "state": "AP", "year": 2024, "type": "assembly",
+      "groups": [
+        {
+          "name": "NDA (TDP+JSP+BJP)", "parties": ["TDP", "JSP", "BJP"], "kind": "pre-poll", "confidence": "high",
+          "note": "Page labels it 'Kutami'. Seats contested: TDP 144, JSP 21, BJP 10.",
+          "sources": ["https://en.wikipedia.org/wiki/2024_Andhra_Pradesh_Legislative_Assembly_election"]
+        },
+        {
+          "name": "INDIA bloc (INC+CPI+CPM)", "parties": ["INC", "CPI", "CPM"], "kind": "pre-poll", "confidence": "medium",
+          "note": "Page lists INC 159, CPI(M) 8, CPI 8 seats under the INDIA bloc; YSRCP contested alone.",
+          "sources": ["https://en.wikipedia.org/wiki/2024_Andhra_Pradesh_Legislative_Assembly_election"]
+        }
+      ]
+    },
+    {
+      "key": "AP-2019-ls", "state": "AP", "year": 2019, "type": "ls",
+      "groups": [
+        {
+          "name": "JSP+ (JSP+BSP+CPI+CPM)", "parties": ["JSP", "BSP", "CPI", "CPM"], "kind": "pre-poll", "confidence": "high",
+          "note": "JSP 17, BSP 3, CPI(M) 2, CPI 2 seats; TDP, YSRCP, INC, BJP contested alone.",
+          "sources": ["https://en.wikipedia.org/wiki/2019_Indian_general_election_in_Andhra_Pradesh"]
+        }
+      ]
+    },
+    {
+      "key": "AP-2024-ls", "state": "AP", "year": 2024, "type": "ls",
+      "groups": [
+        {
+          "name": "NDA (TDP+JSP+BJP)", "parties": ["TDP", "JSP", "BJP"], "kind": "pre-poll", "confidence": "high",
+          "note": "TDP 17, BJP 6, JSP 2 seats.",
+          "sources": ["https://en.wikipedia.org/wiki/2024_Indian_general_election_in_Andhra_Pradesh"]
+        },
+        {
+          "name": "INDIA bloc (INC+CPI+CPM)", "parties": ["INC", "CPI", "CPM"], "kind": "pre-poll", "confidence": "high",
+          "note": "INC 23, CPI(M) 1, CPI 1 seats; YSRCP contested all 25 alone.",
+          "sources": ["https://en.wikipedia.org/wiki/2024_Indian_general_election_in_Andhra_Pradesh"]
+        }
+      ]
+    },
+    {
+      "key": "TG-2014-assembly", "state": "TG", "year": 2014, "type": "assembly",
+      "groups": [
+        {
+          "name": "NDA (TDP+BJP)", "parties": ["TDP", "BJP"], "kind": "pre-poll", "confidence": "medium",
+          "note": "Page lists TDP and BJP together under NDA for Telangana with Janasena support; its seat figures for Telangana are ambiguous (combined page for AP and Telangana).",
+          "sources": ["https://en.wikipedia.org/wiki/2014_Telangana_Legislative_Assembly_election", "https://en.wikipedia.org/wiki/2014_Andhra_Pradesh_Legislative_Assembly_election"]
+        },
+        {
+          "name": "INC+ (INC+CPI)", "parties": ["INC", "CPI"], "kind": "pre-poll", "confidence": "medium",
+          "note": "CPI allied with INC in Telangana; YSRCP, TRS and AIMIM contested alone (CPI(M)-YSRCP understanding covered two Lok Sabha seats only).",
+          "sources": ["https://en.wikipedia.org/wiki/2014_Telangana_Legislative_Assembly_election"]
+        }
+      ],
+      "comparabilityNotes": ["2014 was the first Telangana assembly election after bifurcation."]
+    },
+    {
+      "key": "TG-2018-assembly", "state": "TG", "year": 2018, "type": "assembly",
+      "groups": [
+        {
+          "name": "Praja Kutami (INC+TDP+CPI+TJS)", "parties": ["INC", "TDP", "CPI", "TJS"], "kind": "pre-poll", "confidence": "high",
+          "note": "Alliance won 21 seats (INC 19, TDP 2). TRS contested alone; BJP contested 118 seats alone.",
+          "sources": ["https://en.wikipedia.org/wiki/2018_Telangana_Legislative_Assembly_election"]
+        }
+      ]
+    },
+    {
+      "key": "TG-2023-assembly", "state": "TG", "year": 2023, "type": "assembly",
+      "groups": [
+        {
+          "name": "INC+ (INC+CPI)", "parties": ["INC", "CPI"], "kind": "pre-poll", "confidence": "high",
+          "note": "INC contested 118 seats and left one to CPI. TDP's Telangana unit did not contest.",
+          "sources": ["https://en.wikipedia.org/wiki/2023_Telangana_Legislative_Assembly_election"]
+        },
+        {
+          "name": "NDA (BJP+JSP)", "parties": ["BJP", "JSP"], "kind": "pre-poll", "confidence": "medium",
+          "note": "BJP 111 and JSP 8 seats per the page; BRS and AIMIM contested without a pre-poll alliance.",
+          "sources": ["https://en.wikipedia.org/wiki/2023_Telangana_Legislative_Assembly_election"]
+        }
+      ]
+    }
+  ]
+}
