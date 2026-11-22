@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DevKeyProvider, getDb, migrate, resetDbForTests, setKeyProvider, setSmsProvider, getStore } from "../../server/civic/core";
 import { ensureGeo } from "../../server/civic/geo/service";
 import { setNumberIntelligence } from "../../server/civic/identity/service";
+import { setAttestationVerifier } from "../../server/civic/identity/network";
 import { assertProductionSafe, isLocalHost } from "../../server/civic/guards";
 import { createCivicRouter } from "../../server/civic/index";
 
@@ -20,6 +21,7 @@ function productionReady() {
   setKeyProvider({ hmac: (p, v) => real.hmac(p, v), encrypt: (p, v) => real.encrypt(p, v), decrypt: (p, v) => real.decrypt(p, v) });
   setSmsProvider({ send: async () => undefined });
   setNumberIntelligence({ lookup: async () => ({ recently_reissued: false, voip: false }) });
+  setAttestationVerifier({ verify: async () => ({ verified: false }) }); // a real verifier is installed (S-62/63/64 guard)
   process.env.CIVIC_GENERATED_DIR = gen;
   fs.writeFileSync(path.join(gen, "census.json"), JSON.stringify({ provenance: "Census of India 2011" }));
   fs.writeFileSync(path.join(gen, "elections.json"), JSON.stringify({ provenance: "TCPD" }));
@@ -32,7 +34,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   for (const k of KEYS) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
-  setNumberIntelligence(null); resetDbForTests(); vi.restoreAllMocks();
+  setNumberIntelligence(null); setAttestationVerifier(null); resetDbForTests(); vi.restoreAllMocks();
 });
 
 describe("production startup guards (S-55)", () => {

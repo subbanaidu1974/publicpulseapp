@@ -48,7 +48,7 @@ Offline: after one visit the shell and assets are cached; `e2e/lite.spec.ts` rel
 |---|---|---|---|---|---|
 | One IP, default edge limiter (120 burst, 20/s) | 222,995 (22k/s) | 10 | 10 per IP per 10 min | 222,985 x 429 | 4.2 / 5.9 / 7.7 ms |
 | One IP, OTP caps only | 108,399 (10.8k/s) | 10 | 10 per IP per 10 min | 108,389 x 429 | 8.6 / 13.0 / 20.0 ms |
-| Many /24s, a new phone each, SMS budget 200/h | 6,257 (625/s) | 200 | `CIVIC_SMS_HOURLY_BUDGET` | 6,057 x **503** (`degraded: true`) | 169 / 263 / 375 ms |
+| Many /24s, a new phone each, SMS budget 200/h | 6,257 (625/s) | 200 | `CIVIC_SMS_HOURLY_BUDGET` | 6,057 x **503** at measurement time; now **429** + `Retry-After` (`degraded: true`), see finding 1 | 169 / 263 / 375 ms |
 | One /24, many hosts | 92,292 (9.2k/s) | 60 | 60 per /24 per 10 min | 92,232 x 429 | 10.2 / 14.7 / 18.1 ms |
 | One phone, many IPs | 15,738 (1.6k/s) | 3 | 3 per phone per 10 min | 15,735 x 429 | 47.9 / 173 / 251 ms |
 
@@ -56,7 +56,7 @@ Result: every cap held exactly, no connection errors or timeouts, no 5xx other t
 
 Findings (code under `server/civic/`, not changed here):
 
-1. **The SMS-budget answer is a 503.** `requestOtp` in `server/civic/identity/routes.ts` answers 503 with `degraded: true` when the hourly SMS budget is spent, with no `Retry-After`. The households and enrolment routes answer 429 for the same condition. Under a billing-DoS this is a 5xx storm in monitoring and some clients and CDNs treat 503 as an origin outage; it should be 429 with `Retry-After` (seconds to the top of the budget window), like the other two routes.
+1. **The SMS-budget answer was a 503 (fixed).** At measurement time `requestOtp` answered 503 with `degraded: true` and no `Retry-After`. It now answers 429 with `Retry-After` and `degraded: true`, like the households and enrolment routes. The table above is the measurement before the fix; rerun `npm run load:otp` to refresh it.
 2. **OTP-cap 429s carry no `Retry-After`.** The edge limiter's 429 does (verified). The per-IP, per-/24, per-phone and login 429s from `fail()` in the identity router do not, so the lite page cannot tell people how long to wait. Add the header in `fail()` for 429 using the window that tripped.
 3. An attacker using many /24s and many phones can exhaust the whole hourly budget and block legitimate sign-ups for the hour (the cap protects the bill, not availability). The per-/24 cap bounds how many addresses it takes; the planned number-intelligence, attestation and per-ASN caps (DESIGN_2028 3.8 item 2) are what reduce this, and a reserved slice of the budget for already-trusted numbers (recovery and login codes) is worth considering.
 

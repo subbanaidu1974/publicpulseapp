@@ -8,6 +8,8 @@ import path from "node:path";
 import type { Request } from "express";
 import { isDevKeyProvider, isDevSmsProvider } from "./core";
 import { isDevNumberIntelligence } from "./identity/service";
+import { isDevAttestationVerifier } from "./identity/network";
+import { getSmsGateway } from "./providers/sms";
 
 export const isProductionEnv = (): boolean => process.env.NODE_ENV === "production" || process.env.CIVIC_ENV === "production";
 
@@ -34,8 +36,29 @@ export function demoProvenance(): string[] {
 
 export function productionProblems(): string[] {
   const p: string[] = [];
-  if (isDevKeyProvider()) p.push("dev key provider is the only key source (install an HSM/KMS provider with setKeyProvider; CIVIC_DEV_MASTER_KEY is not acceptable)");
-  if (isDevSmsProvider()) p.push("dev SMS provider is installed (use setSmsProvider with a DLT-registered provider)");
+  if (isDevKeyProvider()) p.push("dev key provider is the only key source (install an HSM/KMS provider with setKeyProvider, or set CIVIC_KMS_URL; CIVIC_DEV_MASTER_KEY is not acceptable)");
+  if (isDevSmsProvider()) p.push("dev SMS provider is installed (use setSmsProvider with a DLT-registered provider, or set CIVIC_SMS_URL)");
+  if (isDevAttestationVerifier() && process.env.CIVIC_ALLOW_NO_ATTESTATION !== "1") p.push("dev attestation verifier is active (install one with setAttestationVerifier; CIVIC_ALLOW_NO_ATTESTATION=1 accepts running without device attestation)");
+  if (process.env.CIVIC_ANCHOR_URL && !process.env.CIVIC_ANCHOR_SECRET) p.push("CIVIC_ANCHOR_URL is set but CIVIC_ANCHOR_SECRET is missing (anchors would be unsigned)");
+  if (process.env.CIVIC_KMS_URL) {
+    if (!process.env.CIVIC_KMS_SECRET) p.push("CIVIC_KMS_URL is set but CIVIC_KMS_SECRET is missing");
+    if (!process.env.CIVIC_KMS_KEK_ID) p.push("CIVIC_KMS_URL is set but CIVIC_KMS_KEK_ID is missing");
+    if (!/^https:\/\//i.test(process.env.CIVIC_KMS_URL)) p.push("CIVIC_KMS_URL must be https");
+  }
+  if (process.env.CIVIC_SMS_URL) {
+    if (!process.env.CIVIC_SMS_SECRET) p.push("CIVIC_SMS_URL is set but CIVIC_SMS_SECRET is missing");
+    if (!process.env.CIVIC_SMS_RECEIPT_SECRET) p.push("CIVIC_SMS_URL is set but CIVIC_SMS_RECEIPT_SECRET is missing (delivery receipts could not be authenticated)");
+    if (!/^https:\/\//i.test(process.env.CIVIC_SMS_URL)) p.push("CIVIC_SMS_URL must be https");
+  }
+  if (process.env.CIVIC_NUMINTEL_URL) {
+    if (!process.env.CIVIC_NUMINTEL_SECRET) p.push("CIVIC_NUMINTEL_URL is set but CIVIC_NUMINTEL_SECRET is missing");
+    if (!/^https:\/\//i.test(process.env.CIVIC_NUMINTEL_URL)) p.push("CIVIC_NUMINTEL_URL must be https (the clear number is sent)");
+  }
+  const gw = getSmsGateway();
+  if (gw && !isDevSmsProvider()) {
+    const missing = gw.registry.unregistered();
+    if (missing.length) p.push(`SMS templates without a DLT template id (they would be refused at send time): ${missing.join(", ")} (CIVIC_SMS_TEMPLATES_FILE)`);
+  }
   if (process.env.CIVIC_EXPOSE_DEV_OTP === "1") p.push("CIVIC_EXPOSE_DEV_OTP=1");
   if (isDevNumberIntelligence()) p.push("number-intelligence dev fixtures are active (use setNumberIntelligence)");
   if (process.env.CIVIC_ALLOW_DEMO !== "1") {
