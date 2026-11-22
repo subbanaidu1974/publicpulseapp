@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "asOf": "2026-11-22",
+  "note": "Office/role facts only (role, name, party, start date). No biography, family, caste/religion, contact details or date of birth are published. Every record cites >= 2 source URLs and was read from English Wikipedia (infobox term_start fields) on 2026-11-22; official government sites were NOT read, so confidence is 'medium' (secondary sources) and dates are as stated by those pages. Re-verify against the official sites before launch. Records carry no end date because each was the current holder on the read date.",
+  "records": [
+    {
+      "id": "AP-cm", "state": "AP", "role": "Chief Minister", "person": "N. Chandrababu Naidu", "party": "TDP", "start": "2024-06-12",
+      "sources": ["https://en.wikipedia.org/wiki/N._Chandrababu_Naidu", "https://en.wikipedia.org/wiki/Chief_Minister_of_Andhra_Pradesh", "https://www.wikidata.org/wiki/Q3518013"],
+      "wikidata": "Q3518013", "asOf": "2026-11-22", "confidence": "medium"
+    },
+    {
+      "id": "AP-deputy-cm", "state": "AP", "role": "Deputy Chief Minister", "person": "Pawan Kalyan", "party": "JSP", "start": "2024-06-12",
+      "sources": ["https://en.wikipedia.org/wiki/Pawan_Kalyan", "https://en.wikipedia.org/wiki/Deputy_Chief_Minister_of_Andhra_Pradesh", "https://www.wikidata.org/wiki/Q6067643"],
+      "wikidata": "Q6067643", "asOf": "2026-11-22", "confidence": "medium"
+    },
+    {
+      "id": "AP-speaker", "state": "AP", "role": "Speaker of the Legislative Assembly", "person": "Chintakayala Ayyanna Patrudu", "party": "TDP", "start": "2024-06-22",
+      "sources": ["https://en.wikipedia.org/wiki/Chintakayala_Ayyanna_Patrudu", "https://en.wikipedia.org/wiki/List_of_speakers_of_the_Andhra_Pradesh_Legislative_Assembly"],
+      "wikidata": null, "asOf": "2026-11-22", "confidence": "medium"
+    },
+    {
+      "id": "AP-deputy-speaker", "state": "AP", "role": "Deputy Speaker of the Legislative Assembly", "person": "Raghu Rama Krishna Raju", "party": "TDP", "start": "2024-11-14",
+      "sources": ["https://en.wikipedia.org/wiki/Raghu_Rama_Krishna_Raju", "https://en.wikipedia.org/wiki/List_of_speakers_of_the_Andhra_Pradesh_Legislative_Assembly"],
+      "wikidata": null, "asOf": "2026-11-22", "confidence": "medium"
+    },
+    {
+      "id": "TG-cm", "state": "TG", "role": "Chief Minister", "person": "A. Revanth Reddy", "party": "INC", "start": "2023-12-07",
+      "sources": ["https://en.wikipedia.org/wiki/Revanth_Reddy", "https://en.wikipedia.org/wiki/Chief_Minister_of_Telangana", "https://www.wikidata.org/wiki/Q7317733"],
+      "wikidata": "Q7317733", "asOf": "2026-11-22", "confidence": "medium"
+    },
+    {
+      "id": "TG-deputy-cm", "state": "TG", "role": "Deputy Chief Minister", "person": "Mallu Bhatti Vikramarka", "party": "INC", "start": "2023-12-07",
+      "sources": ["https://en.wikipedia.org/wiki/Mallu_Bhatti_Vikramarka", "https://en.wikipedia.org/wiki/List_of_deputy_chief_ministers_of_Telangana", "https://www.wikidata.org/wiki/Q6744315"],
+      "wikidata": "Q6744315", "asOf": "2026-11-22", "confidence": "medium"
+    },
+    {
+      "id": "TG-speaker", "state": "TG", "role": "Speaker of the Legislative Assembly", "person": "Gaddam Prasad Kumar", "party": "INC", "start": "2023-12-14",
+      "sources": ["https://en.wikipedia.org/wiki/Gaddam_Prasad_Kumar", "https://en.wikipedia.org/wiki/List_of_speakers_of_the_Telangana_Legislative_Assembly"],
+      "wikidata": null, "asOf": "2026-11-22", "confidence": "medium"
+    },
+    {
+      "id": "TDP-president", "state": "AP", "role": "National President (party)", "person": "N. Chandrababu Naidu", "party": "TDP", "start": "2015-05-29",
+      "sources": ["https://en.wikipedia.org/wiki/N._Chandrababu_Naidu", "https://en.wikipedia.org/wiki/Telugu_Desam_Party", "https://www.wikidata.org/wiki/Q3518013"],
+      "wikidata": "Q3518013", "asOf": "2026-11-22", "confidence": "medium"
+    },
+    {
+      "id": "JSP-president", "state": "AP", "role": "President (party)", "person": "Pawan Kalyan", "party": "JSP", "start": "2014-09-14",
+      "sources": ["https://en.wikipedia.org/wiki/Pawan_Kalyan", "https://en.wikipedia.org/wiki/Janasena_Party", "https://www.wikidata.org/wiki/Q6067643"],
+      "wikidata": "Q6067643", "asOf": "2026-11-22", "confidence": "medium"
+    }
+  ]
+}

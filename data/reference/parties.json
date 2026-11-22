@@ -1,0 +1,432 @@
+{
+  "schema": 1,
+  "asOf": "2026-11-22",
+  "note": "Hand-curated registry. Colours are hand-picked for WCAG 1.4.11 (>= 3:1 against white) and are NOT taken from Wikidata (unreliable). Colour must never be the only cue: always show the code or name. Telugu names appear only where a Wikidata te label was read on 2026-11-22; otherwise null. flag/symbol are present only where the Wikimedia Commons file licence was re-verified through the Commons API (extmetadata) on 2026-11-22; use 'identification-only' files only to identify the party, never to imply endorsement. Codes not listed here resolve to the 'OTH' bucket (see othersBucket).",
+  "othersBucket": {
+    "code": "OTH",
+    "name": {
+      "en": "Others",
+      "te": null
+    },
+    "color": "#6b6b6b"
+  },
+  "parties": [
+    {
+      "code": "TDP",
+      "aliases": [
+        "TELUGU DESAM PARTY",
+        "TELUGU DESAM",
+        "TELUGUDESAM",
+        "TELUGU DESAM PARTY (TDP)"
+      ],
+      "name": {
+        "en": "Telugu Desam Party",
+        "te": "తెలుగుదేశం పార్టీ"
+      },
+      "color": "#9a7400",
+      "foundedYear": 1982,
+      "website": "http://www.telugudesam.org/",
+      "wikidata": "Q2279320",
+      "history": [
+        {
+          "year": 1982,
+          "event": "Founded 29 March 1982 (Wikidata P571)",
+          "verified": true
+        }
+      ],
+      "flag": {
+        "commonsFile": "Telugu Desam Party Flag 2024.png",
+        "licence": "CC0",
+        "author": "Veekthedragon",
+        "use": "decorative",
+        "verified": "2026-11-22"
+      },
+      "symbol": null
+    },
+    {
+      "code": "YSRCP",
+      "aliases": [
+        "YSRC",
+        "YSRCONGRESS",
+        "YSR CONGRESS PARTY",
+        "YSR CONGRESS",
+        "YUVAJANA SRAMIKA RYTHU CONGRESS PARTY"
+      ],
+      "name": {
+        "en": "YSR Congress Party",
+        "te": "వై.యస్.ఆర్. కాంగ్రెస్ పార్టీ"
+      },
+      "color": "#1f4e9c",
+      "foundedYear": 2011,
+      "website": "https://www.ysrcongress.com/",
+      "wikidata": "Q8046035",
+      "history": [
+        {
+          "year": 2011,
+          "event": "Launched in March 2011 after Y. S. Jagan Mohan Reddy left the INC (Wikidata P571 says 2009, which is an inception placeholder; 2011 is from general knowledge and not re-verified)",
+          "verified": false
+        }
+      ],
+      "flag": null,
+      "symbol": null,
+      "mediaNote": "No freely licensed flag or symbol was found on Commons on 2026-11-22; render a text chip."
+    },
+    {
+      "code": "JSP",
+      "aliases": [
+        "JNP",
+        "JANASENA",
+        "JANA SENA",
+        "JANA SENA PARTY",
+        "JANASENA PARTY"
+      ],
+      "name": {
+        "en": "Jana Sena Party",
+        "te": "జనసేన పార్టీ"
+      },
+      "color": "#c62828",
+      "foundedYear": 2014,
+      "website": "http://www.janasenaparty.org",
+      "wikidata": "Q15940677",
+      "history": [
+        {
+          "year": 2014,
+          "event": "Founded 14 March 2014 (Wikidata P571)",
+          "verified": true
+        }
+      ],
+      "flag": {
+        "commonsFile": "Janasena Party Flag.png",
+        "licence": "CC BY-SA 4.0",
+        "author": "456legend",
+        "use": "decorative",
+        "attributionRequired": true,
+        "verified": "2026-11-22"
+      },
+      "symbol": null
+    },
+    {
+      "code": "BRS",
+      "aliases": [
+        "TRS",
+        "TELANGANA RASHTRA SAMITHI",
+        "BHARAT RASHTRA SAMITHI"
+      ],
+      "name": {
+        "en": "Bharat Rashtra Samithi",
+        "te": "భారత రాష్ట్ర సమితి"
+      },
+      "color": "#d81b60",
+      "foundedYear": 2001,
+      "website": "https://brsonline.in/",
+      "wikidata": "Q3518390",
+      "history": [
+        {
+          "year": 2001,
+          "event": "Founded as Telangana Rashtra Samithi (TRS); Wikidata P571 gives 2001",
+          "verified": true
+        },
+        {
+          "year": 2022,
+          "event": "Renamed Bharat Rashtra Samithi (BRS); elections before 2023 are stored under the code BRS for continuity (canonicalParty maps TRS to BRS)",
+          "verified": false
+        }
+      ],
+      "flag": {
+        "commonsFile": "Flag of Bharat Rashtra Samithi (India Nation Council).svg",
+        "licence": "Public domain",
+        "author": "Gppande",
+        "use": "decorative",
+        "verified": "2026-11-22"
+      },
+      "symbol": null
+    },
+    {
+      "code": "INC",
+      "aliases": [
+        "CONGRESS",
+        "INDIAN NATIONAL CONGRESS",
+        "I.N.C.",
+        "INC(I)"
+      ],
+      "name": {
+        "en": "Indian National Congress",
+        "te": "భారత జాతీయ కాంగ్రెసు"
+      },
+      "color": "#2e7d32",
+      "foundedYear": 1885,
+      "website": "https://inc.in",
+      "wikidata": "Q10225",
+      "history": [
+        {
+          "year": 1885,
+          "event": "Founded 28 December 1885 (Wikidata P571)",
+          "verified": true
+        }
+      ],
+      "flag": {
+        "commonsFile": "INC Flag Official.jpg",
+        "licence": "Public domain",
+        "author": "Indian National Congress",
+        "use": "identification-only",
+        "restrictions": "insignia",
+        "verified": "2026-11-22"
+      },
+      "symbol": {
+        "commonsFile": "Indian National Congress hand logo.svg",
+        "licence": "Public domain",
+        "author": "Original design by Indian National Congress, vectorised by Commons contributor",
+        "use": "identification-only",
+        "restrictions": "insignia",
+        "verified": "2026-11-22"
+      }
+    },
+    {
+      "code": "BJP",
+      "aliases": [
+        "BHARATIYA JANATA PARTY",
+        "BHARATIYAJANATAPARTY"
+      ],
+      "name": {
+        "en": "Bharatiya Janata Party",
+        "te": "భారతీయ జనతా పార్టీ"
+      },
+      "color": "#c25b00",
+      "foundedYear": 1980,
+      "website": "https://www.bjp.org/",
+      "wikidata": "Q10230",
+      "history": [
+        {
+          "year": 1980,
+          "event": "Founded 1980 (Wikidata P571)",
+          "verified": true
+        }
+      ],
+      "flag": {
+        "commonsFile": "BJP Flag.svg",
+        "licence": "CC BY-SA 4.0",
+        "author": "RachitSinghal",
+        "use": "decorative",
+        "attributionRequired": true,
+        "verified": "2026-11-22"
+      },
+      "symbol": null
+    },
+    {
+      "code": "AIMIM",
+      "aliases": [
+        "MIM",
+        "ALL INDIA MAJLIS-E-ITTEHADUL MUSLIMEEN",
+        "ALL INDIA MAJLIS E ITTEHADUL MUSLIMEEN"
+      ],
+      "name": {
+        "en": "All India Majlis-e-Ittehadul Muslimeen",
+        "te": null
+      },
+      "color": "#00695c",
+      "foundedYear": 1927,
+      "website": null,
+      "wikidata": "Q2837501",
+      "history": [
+        {
+          "year": 1927,
+          "event": "Founded 1927; reconstituted in 1958 (general knowledge, not re-verified)",
+          "verified": false
+        }
+      ],
+      "wikidataNote": "Q2837501 is the item linked from the English Wikipedia article 'All India Majlis-e-Ittehadul Muslimeen' (pageprops, 2026-11-22); its own English label reads differently, so do not display the Wikidata label.",
+      "flag": {
+        "commonsFile": "AIMIM FLAG.png",
+        "licence": "CC0",
+        "author": "Eaglespirit",
+        "use": "decorative",
+        "verified": "2026-11-22"
+      },
+      "symbol": null
+    },
+    {
+      "code": "CPM",
+      "aliases": [
+        "CPI(M)",
+        "CPIM",
+        "CPI (M)",
+        "COMMUNIST PARTY OF INDIA (MARXIST)"
+      ],
+      "name": {
+        "en": "Communist Party of India (Marxist)",
+        "te": "కమ్యూనిస్టు పార్టీ ఆఫ్ ఇండియా (మార్క్సిస్టు)"
+      },
+      "color": "#6d0f0f",
+      "foundedYear": 1964,
+      "website": "https://cpim.org",
+      "wikidata": "Q234277",
+      "history": [
+        {
+          "year": 1964,
+          "event": "Founded 7 November 1964 (Wikidata P571)",
+          "verified": true
+        }
+      ],
+      "flag": null,
+      "symbol": {
+        "commonsFile": "Cpm election symbol.svg",
+        "licence": "CC BY-SA 4.0",
+        "author": "Sanu N",
+        "use": "identification-only",
+        "restrictions": "communist symbol",
+        "attributionRequired": true,
+        "verified": "2026-11-22"
+      }
+    },
+    {
+      "code": "CPI",
+      "aliases": [
+        "COMMUNIST PARTY OF INDIA"
+      ],
+      "name": {
+        "en": "Communist Party of India",
+        "te": "కమ్యూనిస్టు పార్టీ ఆఫ్ ఇండియా"
+      },
+      "color": "#b71c1c",
+      "foundedYear": 1925,
+      "website": "https://communistpartyofindia.com",
+      "wikidata": "Q837159",
+      "history": [
+        {
+          "year": 1925,
+          "event": "Founded 26 December 1925 at Kanpur (Wikidata P571 also lists 17 October 1920 as the Tashkent founding claim)",
+          "verified": true
+        }
+      ],
+      "flag": {
+        "commonsFile": "CPI-banner.svg",
+        "licence": "Public domain",
+        "author": "Unknown author",
+        "use": "identification-only",
+        "restrictions": "communist insignia",
+        "verified": "2026-11-22"
+      },
+      "symbol": null
+    },
+    {
+      "code": "BSP",
+      "aliases": [
+        "BAHUJAN SAMAJ PARTY"
+      ],
+      "name": {
+        "en": "Bahujan Samaj Party",
+        "te": "బహుజన్ సమాజ్ పార్టీ"
+      },
+      "color": "#4a148c",
+      "foundedYear": 1984,
+      "website": "http://www.bspindia.org/",
+      "wikidata": "Q803681",
+      "history": [
+        {
+          "year": 1984,
+          "event": "Founded 14 April 1984 (Wikidata P571)",
+          "verified": true
+        }
+      ],
+      "flag": {
+        "commonsFile": "BSP flag.png",
+        "licence": "CC BY-SA 4.0",
+        "author": "SEPB66",
+        "use": "decorative",
+        "attributionRequired": true,
+        "verified": "2026-11-22",
+        "note": "A second file 'BSP Flag.png' is CC BY-SA 3.0 (456legend); the GAP_AUDIT note citing 4.0 referred to the lower-case file name."
+      },
+      "symbol": null
+    },
+    {
+      "code": "AAP",
+      "aliases": [
+        "AAAP",
+        "AAM AADMI PARTY"
+      ],
+      "name": {
+        "en": "Aam Aadmi Party",
+        "te": null
+      },
+      "color": "#0277bd",
+      "foundedYear": null,
+      "website": null,
+      "wikidata": null,
+      "history": [],
+      "flag": null,
+      "symbol": null,
+      "aliasNote": "AAAP is the code used in the TCPD/ECI source files for Aam Aadmi Party (145 rows) alongside AAP (41 rows); treated as one party."
+    },
+    {
+      "code": "TJS",
+      "aliases": [
+        "TELANGANA JANA SAMITHI"
+      ],
+      "name": {
+        "en": "Telangana Jana Samithi",
+        "te": null
+      },
+      "color": "#a1007a",
+      "foundedYear": 2018,
+      "website": null,
+      "wikidata": null,
+      "history": [
+        {
+          "year": 2018,
+          "event": "Member of the Praja Kutami in the 2018 Telangana assembly election (Wikipedia 2018 Telangana election page)",
+          "verified": true
+        }
+      ],
+      "flag": null,
+      "symbol": null
+    },
+    {
+      "code": "IND",
+      "aliases": [
+        "INDEPENDENT",
+        "INDEPENDENTS"
+      ],
+      "name": {
+        "en": "Independent",
+        "te": null
+      },
+      "color": "#6b6b6b",
+      "foundedYear": null,
+      "website": null,
+      "wikidata": null,
+      "history": [],
+      "flag": null,
+      "symbol": null
+    },
+    {
+      "code": "NOTA",
+      "aliases": [
+        "NONE OF THE ABOVE"
+      ],
+      "name": {
+        "en": "None of the above",
+        "te": null
+      },
+      "color": "#757575",
+      "foundedYear": null,
+      "website": null,
+      "wikidata": null,
+      "history": [],
+      "flag": null,
+      "symbol": null
+    }
+  ],
+  "unresolvedAliases": [
+    {
+      "code": "MTRSP",
+      "rows": 6,
+      "note": "Appears only in TG 2023 and 2024; identity not verified. Kept in the Others bucket until confirmed against the ECI party list."
+    },
+    {
+      "code": "NPT",
+      "rows": 13,
+      "note": "One AP 2014 assembly winner is coded NPT; identity not verified. Kept in the Others bucket."
+    }
+  ]
+}

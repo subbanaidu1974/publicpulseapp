@@ -1,0 +1,15 @@
+title = "People Pulse gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Lockfiles, build output, example env"
+paths = [
+  '''package-lock\.json''',
+  '''bun\.lock''',
+  '''dist/''',
+  '''playwright-report/''',
+  '''test-results/''',
+  '''\.env\.example''',
+]

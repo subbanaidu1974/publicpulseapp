@@ -58,7 +58,7 @@ test.describe('forecast panel and elections analytics', () => {
     await expect(panel.getByTestId('forecast-backtest-sentence')).toContainText(/mechanical extrapolation, not an expectation/);
     await expect(panel.getByTestId('forecast-alliance').nth(1)).toContainText('>90%');
     await expect(panel.getByTestId('forecast-alliance').nth(1)).not.toContainText('99%');
-    const ui = (await panel.locator(':scope > :not([data-testid="forecast-disclaimer"])').allInnerTexts()).join(' ');
+    const ui = (await panel.locator(':scope > :not([data-testid="forecast-disclaimer"]):not([data-testid="forecast-not"])').allInnerTexts()).join(' ');
     expect(ui).not.toMatch(/\b(poll|prediction)\b/i);
   });
 

@@ -119,7 +119,7 @@ function placeNames(village: Unit, now: Date): string[] {
 
 // ---------- reporting ----------
 export interface ReportInput { category?: string; description_en?: string; description_te?: string; photo_ref?: string; voice_ref?: string; lat?: number; lon?: number; village_lgd?: string }
-const tokens = (s: string) => new Set((s.toLowerCase().match(/[\p{L}\p{M}\p{N}]+/gu) ?? []).filter(t => t.length > 1));
+const tokens = (s: string) => new Set((s.toLowerCase().match(/[\p{L}\p{M}\p{N}]+/gu) ?? ([] as string[])).filter(t => t.length > 1));
 const jaccard = (a: Set<string>, b: Set<string>) => { if (!a.size || !b.size) return 0; let i = 0; for (const t of a) if (b.has(t)) i++; return i / (a.size + b.size - i); };
 function meters(a: { lat: number; lon: number }, b: { lat: number; lon: number }) {
   const R = 6371000, rad = Math.PI / 180;

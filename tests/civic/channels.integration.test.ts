@@ -45,7 +45,8 @@ describe("channels with the real issues and identity modules (@E2E-55)", () => {
     getDb().prepare("UPDATE persons SET residence_unit = ?, residence_declared_at = ? WHERE id = ?").run("DEMO-V-KLR", new Date().toISOString(), p.id);
     const { body: mc } = await chanPost("/missed-call", { from: "9876500001" });
     await chanPost("/ivr", { callId: mc.callId });
-    await chanPost("/ivr", { callId: mc.callId, digits: "1" });
+    expect((await chanPost("/ivr", { callId: mc.callId, digits: "1" })).body).toMatchObject({ state: "pin", sensitive: true }); // PIN is required by default (S-56)
+    await chanPost("/ivr", { callId: mc.callId, digits: "4821" });
     await chanPost("/ivr", { callId: mc.callId, digits: "1" });
     const done = await chanPost("/ivr", { callId: mc.callId, recording: "voice/real-1.wav" });
     expect(done.body.state).toBe("done");

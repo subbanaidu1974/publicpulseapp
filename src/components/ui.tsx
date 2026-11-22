@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { useT } from "../i18n";
+import { isErrKey } from "../i18n/errors";
 
 export function DemoBadge({ className = "", testId = "demo-badge" }: { className?: string; testId?: string }) {
   const { t } = useT();
@@ -14,7 +15,7 @@ export function ErrorBanner({ message, onRetry, inline = false }: { message: str
   const { t } = useT();
   return (
     <div data-testid={inline ? "error-banner-inline" : "error-banner"} role="alert" className="border border-red-700 bg-red-50 text-red-900 p-4 flex flex-wrap items-center justify-between gap-3 font-sans text-xs">
-      <span><strong>{t("common.error")}.</strong> {message}</span>
+      <span><strong>{t("common.error")}.</strong> {isErrKey(message) ? t(message) : message}</span>
       <button data-testid={inline ? "retry-button-inline" : "retry-button"} type="button" onClick={onRetry} className="border border-red-800 bg-red-800 text-white px-4 py-1.5 uppercase tracking-widest text-[10px] font-black cursor-pointer">
         {t("common.retry")}
       </button>
@@ -40,10 +41,7 @@ export function Bar({ label, value, pct, color = "#121212", testId }: { label: R
   );
 }
 
-const PARTY_COLORS: Record<string, string> = {
-  TDP: "#d4a017", YSRCP: "#1f4e9c", JSP: "#c62828", BJP: "#e8731a", INC: "#2e7d32",
-  BRS: "#d81b60", AIMIM: "#00695c", TRS: "#d81b60", CPI: "#b71c1c", CPM: "#8e0000", IND: "#6b6b6b", OTH: "#6b6b6b",
-};
-export const partyColor = (p: string) => PARTY_COLORS[p] ?? "#555";
+/** Party colours come from the hand-curated registry (data/reference/parties.json, >= 3:1 on white); unknown parties get the Others colour. */
+export { partyColor } from "../lib/parties";
 
 export const fmt = (n: number | undefined, d = 1) => (n === undefined || n === null || Number.isNaN(n) ? "n/a" : n.toFixed(d));

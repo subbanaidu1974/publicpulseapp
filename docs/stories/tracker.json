@@ -115,10 +115,11 @@
       "epic": "UI",
       "title": "Map layers with table fallback",
       "agent": "C",
-      "status": "done",
+      "status": "todo",
       "tests": [
         "E2E-13"
-      ]
+      ],
+      "notes": "Legacy tile-grid map retired in Wave 1; superseded by S-96/S-97 (real choropleth)."
     },
     {
       "id": "S-12",
@@ -135,12 +136,13 @@
       "epic": "UI",
       "title": "Survey validation, duplicate guard, n>=30 gating, demo badge",
       "agent": "C",
-      "status": "done",
+      "status": "todo",
       "tests": [
         "E2E-15",
         "E2E-16",
         "E2E-18"
-      ]
+      ],
+      "notes": "Legacy localStorage survey retired in Wave 1; superseded by Phase 2 surveys (S-28..S-32)."
     },
     {
       "id": "S-14",
@@ -561,7 +563,7 @@
       "epic": "Security",
       "title": "Delete /api/admin/config and header-trusted admin; secrets never returned or written at runtime",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-66"
       ],
@@ -574,7 +576,7 @@
       "epic": "Security",
       "title": "Delete /api/send-otp mail relay; never log OTPs or phones; remove TLS-verification bypass",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-67"
       ],
@@ -587,7 +589,7 @@
       "epic": "Security",
       "title": "Replace client-side legacy login/admin with server sessions (or remove it); no seeded accounts or role-switch",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-68"
       ],
@@ -600,7 +602,7 @@
       "epic": "Security",
       "title": "Security headers, CSP, HSTS, trust-proxy, CORS policy and public API rate limits/caching",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-69"
       ],
@@ -613,7 +615,7 @@
       "epic": "Security",
       "title": "Production startup guards: refuse dev key provider, dev OTP flag, DEMO geo seed, demo data when NODE_ENV=production",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-70"
       ],
@@ -626,7 +628,7 @@
       "epic": "Security",
       "title": "Webhook auth for missed-call/IVR (HMAC or allow-list); never return callId to caller; PIN by default",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-71"
       ],
@@ -639,7 +641,7 @@
       "epic": "Security",
       "title": "Scope JSON body parsers per router; 1 MB base64 photo accepted, global default kept small elsewhere",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-72"
       ],
@@ -652,7 +654,7 @@
       "epic": "Security",
       "title": "Secret scanning (gitleaks) and secrets-manager config; remove unused genai/nodemailer, pin engines, audit and Dependabot",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-73"
       ],
@@ -756,7 +758,7 @@
       "epic": "Operations",
       "title": "Job scheduler for retention purge, 18th-birthday erasure, invite expiry, audit anchoring and chain verification",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-81"
       ],
@@ -769,7 +771,7 @@
       "epic": "Operations",
       "title": "Observability: structured logs, request ids, /healthz and /readyz (DB + audit chain), metrics and alerts",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-82"
       ],
@@ -782,7 +784,7 @@
       "epic": "Operations",
       "title": "Encrypted scheduled backups, restore drill and key escrow runbook",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-83"
       ],
@@ -795,7 +797,7 @@
       "epic": "Operations",
       "title": "Deployment: Dockerfile, env/runbook, India-region hosting and TLS guide, E2E against production build",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-84"
       ],
@@ -808,7 +810,7 @@
       "epic": "Operations",
       "title": "CI upgrades: production build, ESLint, audit, secret scan, coverage thresholds, Windows matrix",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-85"
       ],
@@ -821,7 +823,7 @@
       "epic": "Operations",
       "title": "Tracker gate reads real test results (no skips) and verifies STORY_TRACKER.md is current",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-86"
       ],
@@ -834,7 +836,7 @@
       "epic": "Operations",
       "title": "Migration checksums, pre-migrate backup, rollback doc",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-87"
       ],
@@ -899,7 +901,7 @@
       "epic": "Operations",
       "title": "README, complete .env.example (all CIVIC_* vars) and docs check in CI",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-92"
       ],
@@ -912,7 +914,7 @@
       "epic": "Geo data",
       "title": "Fix boundary fetch: DataMeet India_AC shapefile, split TG from AP, re-key to ECI/LGD codes, validate 294 ACs",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-93"
       ],
@@ -925,7 +927,7 @@
       "epic": "Geo data",
       "title": "PC polygons from DataMeet 2019 simplified (CC0) with Wikidata QIDs; AP 25 / TG 17",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-94"
       ],
@@ -938,7 +940,7 @@
       "epic": "Geo data",
       "title": "LGD Parquet ingest: districts (AP 28, TG 33), mandals, blocks, villages, GPs, urban bodies; effective-dated, census codes kept",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-95"
       ],
@@ -951,7 +953,7 @@
       "epic": "Geo data",
       "title": "LGD village/ward to AC and PC mapping; flag ACs without rural rows; check part-mandal ACs against the 2008 ECI order",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-96"
       ],
@@ -964,7 +966,7 @@
       "epic": "Geo data",
       "title": "Reservation (SC/ST/GEN) and PC link per AC from 2008 constituency table",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-97"
       ],
@@ -977,39 +979,42 @@
       "epic": "Geo data",
       "title": "Telugu name gazetteer: Wikidata (districts, mandals, ACs), LGD TG villages, AP villages from OSM/Wikidata, gaps flagged",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-98"
       ],
       "priority": "P1",
       "wave": "W2",
-      "source": "gap-audit: 18"
+      "source": "gap-audit: 18",
+      "notes": "Telugu names: districts 60/61, mandals ~96%, TG villages 99%, AP villages ~2%; nothing invented."
     },
     {
       "id": "S-84",
       "epic": "Geo data",
       "title": "Census 2011 PCA ingest at district, mandal and village with LGD census-code crosswalk; remove demo census",
       "agent": "-",
-      "status": "todo",
+      "status": "in_progress",
       "tests": [
         "E2E-99"
       ],
       "priority": "P0",
       "wave": "W2",
-      "source": "gap-audit: 15"
+      "source": "gap-audit: 15",
+      "notes": "Real Census 2011 population for AP+TG villages/towns/mandals ingested; no literacy (needs data.gov.in key, PCA file, or Dataful approval). Licence stated only as Rights: ORGI; human review needed."
     },
     {
       "id": "S-85",
       "epic": "Geo data",
       "title": "Old-to-new district crosswalk (AP 13 to 26 to 28; TG 10 to 33) for comparable history",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-100"
       ],
       "priority": "P1",
       "wave": "W2",
-      "source": "gap-audit: 17,32"
+      "source": "gap-audit: 17,32",
+      "notes": "Two vintages only (pre-2014 and current LGD); AP 26 and TG 31 intermediate vintages unavailable in any source."
     },
     {
       "id": "S-86",
@@ -1029,7 +1034,7 @@
       "epic": "Geo data",
       "title": "Seats API carries district, electors, Telugu name for AP and LS (not only TG assembly)",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-102"
       ],
@@ -1042,13 +1047,14 @@
       "epic": "Geo data",
       "title": "District boundary polygons for AP 28 / TG 33 (dissolved from mandals or OSM)",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-103"
       ],
       "priority": "P1",
       "wave": "W2",
-      "source": "gap-audit: 20"
+      "source": "gap-audit: 20",
+      "notes": "District polygons are approximate (dissolved from whole ACs) and labelled so; no mandal polygons."
     },
     {
       "id": "S-89",
@@ -1107,7 +1113,7 @@
       "epic": "Geo data",
       "title": "Per-dataset provenance manifest (source, licence, checksum, asOf) shown on API envelopes",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-108"
       ],
@@ -1120,7 +1126,7 @@
       "epic": "Geo data",
       "title": "Licence compliance register and attribution page (TCPD, DataMeet, ODbL, CC BY-SA, Esri)",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-109"
       ],
@@ -1133,7 +1139,7 @@
       "epic": "Geo data",
       "title": "LS-to-assembly segment mapping and split-voting endpoint",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-110"
       ],
@@ -1146,7 +1152,7 @@
       "epic": "Public maps",
       "title": "Real choropleth map (AC and district) replacing the tile grid; table fallback; self-hosted Leaflet CSS; tile policy",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-111"
       ],
@@ -1159,7 +1165,7 @@
       "epic": "Public maps",
       "title": "Drill-down map: state to district to constituency to mandal to village with population and issue overlays",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-112"
       ],
@@ -1172,7 +1178,7 @@
       "epic": "Public maps",
       "title": "Constituency profile: boundary map, population, electors, history, current member, civic issue aggregates",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-113"
       ],
@@ -1185,7 +1191,7 @@
       "epic": "Public maps",
       "title": "Mandal and village profile pages (population, SC/ST, literacy, linked constituency, issues)",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-114"
       ],
@@ -1198,7 +1204,7 @@
       "epic": "Public maps",
       "title": "Geo search API and constituency endpoints (/geo/units, /constituencies/:state/:acNo) in EN/Telugu",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-115"
       ],
@@ -1211,7 +1217,7 @@
       "epic": "Public maps",
       "title": "Hamlet gazetteer review workflow and real import replacing DEMO data",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-116"
       ],
@@ -1224,7 +1230,7 @@
       "epic": "Public maps",
       "title": "LGD-to-ECI constituency link table, effective-dated",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-117"
       ],
@@ -1237,7 +1243,7 @@
       "epic": "People data",
       "title": "Canonical party registry: aliases, Telugu names, hand-curated colours, founding year, website, Wikidata QID, merger history",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-118"
       ],
@@ -1250,7 +1256,7 @@
       "epic": "People data",
       "title": "Party flags and symbols with per-file licence/author/attribution; neutral text chip where no free file exists",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-119"
       ],
@@ -1263,7 +1269,7 @@
       "epic": "People data",
       "title": "Per-year alliance dataset (AP 2014/2019/2024, TG 2014/2018/2023, LS years) with sources and pre-poll vs hindsight label",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-120"
       ],
@@ -1276,7 +1282,7 @@
       "epic": "People data",
       "title": "Party profile page: seats and vote-share history, alliances, leaders, symbol",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-121"
       ],
@@ -1289,33 +1295,35 @@
       "epic": "People data",
       "title": "Party leaders and office holders (CM, deputy CM, speaker, party presidents, ministers), curated and dual-sourced with dates",
       "agent": "-",
-      "status": "todo",
+      "status": "in_progress",
       "tests": [
         "E2E-122"
       ],
       "priority": "P1",
       "wave": "W3",
-      "source": "gap-audit: DESIGN 5"
+      "source": "gap-audit: DESIGN 5",
+      "notes": "9 office-holder records from Wikipedia infoboxes (medium confidence); party presidents for YSRCP/BRS/INC and TG deputy speaker not yet sourced."
     },
     {
       "id": "S-108",
       "epic": "People data",
       "title": "Current MLA/MP roster: ECI results + minimal sansad.in fields + by-election/defection overlay with citations",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-123"
       ],
       "priority": "P0",
       "wave": "W3",
-      "source": "gap-audit: DESIGN 5"
+      "source": "gap-audit: DESIGN 5",
+      "notes": "Roster from ECI results plus hand-kept overlay (Jubilee Hills by-election); BRS defections not recorded (no citation yet)."
     },
     {
       "id": "S-109",
       "epic": "People data",
       "title": "Contestant profile: name, party, votes, position, sex, age, incumbency per election (TCPD/ECI)",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-124"
       ],
@@ -1328,13 +1336,14 @@
       "epic": "People data",
       "title": "Winner photos from Wikimedia Commons with licence, author, attribution and takedown; initials avatar otherwise",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-125"
       ],
       "priority": "P1",
       "wave": "W3",
-      "source": "gap-audit: DESIGN 4"
+      "source": "gap-audit: DESIGN 4",
+      "notes": "17 of 336 winners have a licensed Commons photo; the rest show initials."
     },
     {
       "id": "S-111",
@@ -1367,7 +1376,7 @@
       "epic": "People data",
       "title": "Correction and takedown channel for person data and photos",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-128"
       ],
@@ -1380,7 +1389,7 @@
       "epic": "People data",
       "title": "MCC neutrality rules for candidate/party/leader pages: identical layout, no rankings, blackout hides promotions",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-129"
       ],
@@ -1432,7 +1441,7 @@
       "epic": "Analytics",
       "title": "Calendar-driven, fail-closed election-window service (forecast, surveys, notifications)",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-133"
       ],
@@ -1445,7 +1454,7 @@
       "epic": "Analytics",
       "title": "Forecast product review: skill warning, calibration and cache invalidation",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-134"
       ],
@@ -1471,7 +1480,7 @@
       "epic": "Analytics",
       "title": "Golden tests for real data (totals vs ECI by year); comparability notes for swing",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-136"
       ],
@@ -1484,7 +1493,7 @@
       "epic": "Analytics",
       "title": "Share cards with provenance and misinformation guardrails",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-137"
       ],
@@ -1497,7 +1506,7 @@
       "epic": "Legacy UI",
       "title": "Retire staticData and the synthetic constituency profiler; Telangana parity for Home, Analytics and Constituencies",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-138"
       ],
@@ -1510,7 +1519,7 @@
       "epic": "Legacy UI",
       "title": "Retire the legacy survey/admin portal (or move behind Phase 2 anonymous surveys); drop fake counters and leader preference",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-139"
       ],
@@ -1523,7 +1532,7 @@
       "epic": "Legacy UI",
       "title": "Remove hard-coded reports, news, testimonials and hotlinked media",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-140"
       ],
@@ -1536,7 +1545,7 @@
       "epic": "Legacy UI",
       "title": "i18n completeness: key-parity test EN/TE, localised error codes, translate all hard-coded labels",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-141"
       ],
@@ -1549,7 +1558,7 @@
       "epic": "Legacy UI",
       "title": "Product naming, metadata, hreflang, Open Graph; README rewrite",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-142"
       ],
@@ -1562,7 +1571,7 @@
       "epic": "Legacy UI",
       "title": "Banned-wording copy lint (vote/ballot/result for surveys) in CI",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-143"
       ],
@@ -1575,7 +1584,7 @@
       "epic": "Legacy UI",
       "title": "Privacy policy, terms, third-party consent notice and who-sees-what screen",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-144"
       ],
@@ -1588,7 +1597,7 @@
       "epic": "Legacy UI",
       "title": "Self-hosted Telugu font subset; low-end Android test",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-145"
       ],

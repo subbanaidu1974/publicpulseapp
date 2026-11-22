@@ -1,52 +1,83 @@
 import { test, expect } from '@playwright/test';
-import { openHome, gotoTab, revealNav, randomPhone, submitSurvey } from './helpers';
+import fs from 'node:fs';
+import path from 'node:path';
+import { openHome, gotoTab, revealNav } from './helpers';
 
-async function openSurvey(page: import('@playwright/test').Page) {
-  await openHome(page, 'AP');
-  await gotoTab(page, /survey/i);
-  await page.getByRole('button', { name: /lock vote/i }).click();
-  await expect(page.getByRole('button', { name: /dual-factor/i }).first()).toBeVisible();
+function sourceFiles(dir: string, out: string[] = []): string[] {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) sourceFiles(p, out);
+    else if (/\.(tsx?|css|html)$/.test(e.name)) out.push(p);
+  }
+  return out;
 }
+const SRC = sourceFiles(path.join(process.cwd(), 'src')).concat(path.join(process.cwd(), 'index.html'));
 
-test.describe('survey', () => {
-  test('@E2E-15 valid survey is accepted and shows thank-you with results gated', async ({ page }) => {
-    await openSurvey(page);
-    await submitSurvey(page, randomPhone());
-    await expect(page.getByTestId('survey-thanks')).toBeVisible();
-    await expect(page.getByText(/hidden until at least 30/i)).toBeVisible();
-  });
-
-  test('@E2E-16 missing required fields show inline errors', async ({ page }) => {
-    await openSurvey(page);
-    await page.getByRole('button', { name: /dual-factor/i }).first().click();
-    await page.getByRole('button', { name: /get otp/i }).click();
-    // required demographics are flagged inline (form returns to the demographics step)
-    await expect(page.getByTestId('survey-error-ageGroup')).toBeVisible();
-    await expect(page.getByTestId('survey-error-gender')).toBeVisible();
-    await expect(page.getByTestId('survey-thanks')).toBeHidden();
-  });
-
-  test('@E2E-16 duplicate submission is rejected', async ({ page }) => {
-    const phone = randomPhone();
-    await openSurvey(page);
-    await submitSurvey(page, phone);
-    await expect(page.getByTestId('survey-thanks')).toBeVisible();
-    await openSurvey(page);
-    await page.locator('select').filter({ has: page.locator('option[value="18-25"]') }).selectOption('18-25');
-    await page.locator('select').filter({ has: page.locator('option[value="Female"]') }).selectOption('Female');
-    await page.getByRole('button', { name: /dual-factor/i }).first().click();
-    await page.locator('input[type=tel]').fill(phone);
-    await page.getByRole('button', { name: /get otp/i }).click();
-    await expect(page.getByTestId('survey-error-phone')).toContainText(/already submitted/i);
-    await expect(page.getByTestId('survey-thanks')).toBeHidden();
-  });
-
-  test('@E2E-18 demo badge visible on synthetic survey stats and methodology link works', async ({ page }) => {
+test.describe('survey (retired legacy flow)', () => {
+  test('@E2E-139 survey tab is an honest coming-soon page that links to Civic', async ({ page }) => {
     await openHome(page, 'AP');
-    await gotoTab(page, /analytics/i);
-    await expect(page.getByTestId('demo-badge').first()).toBeVisible();
+    await gotoTab(page, /survey/i);
+    const soon = page.getByTestId('survey-coming-soon');
+    await expect(soon).toBeVisible();
+    await expect(soon).toContainText(/later phase/i);
+    await expect(page.locator('main form, main select, main input')).toHaveCount(0);
+    const body = (await page.locator('main').innerText()).toLowerCase();
+    expect(body).not.toMatch(/\b(ballot|poll|polls|vote)\b/);
+    await page.getByTestId('survey-to-civic').click();
+  });
+
+  test('@E2E-139 no legacy counters, localStorage tallies or leader-preference questions in source', async () => {
+    const text = SRC.map((f) => fs.readFileSync(f, 'utf8')).join('\n');
+    expect(text).not.toMatch(/registered-users-count|logged-polls-count|Leadership Preference|Election Preference|INITIAL_MOCK_RESPONSES/);
+  });
+
+  test('@E2E-139 no tallies are written to localStorage', async ({ page }) => {
+    await openHome(page, 'AP');
+    await gotoTab(page, /survey/i);
+    const keys = await page.evaluate(() => Object.keys(localStorage));
+    expect(keys.filter((k) => !/^(app-theme|pp-lang|pp-state)$/.test(k))).toEqual([]);
+  });
+
+  test('@E2E-18 methodology and sources page is reachable and shows sourced data status', async ({ page }) => {
+    await openHome(page, 'AP');
     await gotoTab(page, /methodology/i);
     await expect(page.getByRole('heading', { name: /methodology/i }).first()).toBeVisible();
+    await expect(page.getByTestId('data-status-public')).toBeVisible();
+  });
+});
+
+test.describe('legacy login and credentials (retired)', () => {
+  test('@E2E-68 no seeded accounts, passwords, role gates or browser OTP in source', async () => {
+    const text = SRC.map((f) => fs.readFileSync(f, 'utf8')).join('\n');
+    expect(text).not.toMatch(/admin@peoplepulse|userDatabase|validateUser|is-logged-in|current-user-role|current-user-email|dispatchedOtp|\/api\/send-otp|\/api\/admin\/config/);
+    expect(text).not.toMatch(/Math\.random/);
+    expect(text).not.toMatch(/password\s*[:=]\s*["'][^"']{4,}["']/i);
+  });
+
+  test('@E2E-68 Sign in leads to the Civic sign-in', async ({ page }) => {
+    await openHome(page, 'AP');
+    if (!(await page.getByTestId('sign-in').isVisible())) await revealNav(page);
+    await page.getByRole('button', { name: /^sign in$/i }).first().click();
+    await expect(page.locator('main')).toContainText(/sign|phone|mobile/i);
+    expect(await page.evaluate(() => localStorage.getItem('is-logged-in'))).toBeNull();
+  });
+});
+
+test.describe('hard-coded content and third-party media (retired)', () => {
+  test('@E2E-140 no hotlinked media or hard-coded reports in source', async () => {
+    const text = SRC.map((f) => fs.readFileSync(f, 'utf8')).join('\n');
+    expect(text).not.toMatch(/youtube\.com|youtu\.be|mixkit|unsplash|unpkg\.com|NEWS_CARDS|TESTIMONIALS|TRENDING_VIDEOS|bREPORTSb\b/);
+  });
+
+  test('@E2E-140 every tab makes only same-origin, Esri tile or font requests (fonts: E2E-145 will self-host)', async ({ page }) => {
+    const foreign: string[] = [];
+    page.on('request', (r) => {
+      const u = new URL(r.url());
+      if (u.protocol.startsWith('http') && u.origin !== new URL(page.url() === 'about:blank' ? r.url() : page.url()).origin && !/(arcgisonline\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)$/.test(u.hostname)) foreign.push(r.url());
+    });
+    await openHome(page, 'AP');
+    for (const label of [/analytics/i, /elections/i, /constituenc/i, /survey/i, /methodology/i, /faq/i]) await gotoTab(page, label);
+    expect(foreign).toEqual([]);
   });
 });
 
@@ -65,23 +96,24 @@ test.describe('language', () => {
 });
 
 test.describe('admin', () => {
-  test('@E2E-19 non-admin is blocked from data status page', async ({ page }) => {
+  test('@E2E-19 no session: admin data status is hidden', async ({ page }) => {
     await page.goto('/admin');
+    await expect(page.getByTestId('admin-denied')).toBeVisible();
     await expect(page.getByTestId('admin-data-status')).toBeHidden();
   });
 
-  test('@E2E-19 admin login shows per-source last-updated', async ({ page }) => {
-    test.skip(!process.env.E2E_ADMIN_EMAIL, 'admin credentials not provided (E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD / E2E_ADMIN_OTP)');
+  test('@E2E-19 a civic session without server-confirmed admin role is denied', async ({ page }) => {
+    await page.addInitScript(() => sessionStorage.setItem('civic-token', 'not-an-admin'));
     await page.goto('/admin');
-    await page.getByLabel(/email/i).fill(process.env.E2E_ADMIN_EMAIL!);
-    await page.getByLabel(/password/i).fill(process.env.E2E_ADMIN_PASSWORD || '');
-    await page.getByRole('button', { name: /sign in|log in|login|continue/i }).click();
-    if (process.env.E2E_ADMIN_OTP) {
-      await page.getByLabel(/otp|code/i).fill(process.env.E2E_ADMIN_OTP);
-      await page.getByRole('button', { name: /verify|submit|continue/i }).click();
-    }
-    const status = page.getByTestId('admin-data-status');
-    await expect(status).toBeVisible();
-    await expect(status).toContainText(/last.?updated|updated/i);
+    await expect(page.getByTestId('admin-denied')).toBeVisible();
+    await expect(page.getByTestId('admin-data-status')).toBeHidden();
+  });
+
+  test('@E2E-19 admin session confirmed by the server shows per-source status', async ({ page }) => {
+    await page.route('**/api/v1/data-status/admin', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' }));
+    await page.addInitScript(() => sessionStorage.setItem('civic-token', 'server-says-admin'));
+    await page.goto('/admin');
+    await expect(page.getByTestId('admin-data-status')).toBeVisible();
+    await expect(page.getByTestId('admin-data-status')).toContainText(/elections/i);
   });
 });

@@ -28,7 +28,7 @@ declare module "express-serve-static-core" {
   interface Request { person?: AuthedPerson }
 }
 
-const isProd = () => process.env.NODE_ENV === "production";
+const isProd = () => process.env.NODE_ENV === "production" || process.env.CIVIC_ENV === "production";
 const isTest = () => process.env.NODE_ENV === "test" || !!process.env.VITEST;
 
 // ---------------------------------------------------------------------------------------------
@@ -76,23 +76,79 @@ export function registerMigration(id: string, sql: string): void {
   migrations.push({ id, sql });
 }
 
-/** Run all registered migrations. Called by createCivicRouter and by tests. Safe to call repeatedly. */
+const checksumOf = (sql: string) => crypto.createHash("sha256").update(sql).digest("hex");
+
+/**
+ * (addition, S-72) Online, consistent copy of the live database into a NEW file (`VACUUM INTO`; WAL-safe, works while serving).
+ * Throws if dest exists. The copy is plaintext SQLite, exactly as sensitive as the live file (field-level encryption still applies);
+ * use server/civic/backup.ts to produce an encrypted, manifest-backed backup.
+ */
+export function backupDbTo(dest: string): void {
+  const target = path.resolve(dest);
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  getDb().exec(`VACUUM INTO '${target.replace(/'/g, "''")}'`);
+  try { fs.chmodSync(target, 0o600); } catch { /* best effort (Windows) */ }
+}
+
+function ensureMigrationsTable(d: DatabaseSync): void {
+  d.exec("CREATE TABLE IF NOT EXISTS migrations (id TEXT PRIMARY KEY, applied_at TEXT NOT NULL, checksum TEXT)");
+  const cols = d.prepare("PRAGMA table_info(migrations)").all() as unknown as { name: string }[];
+  if (!cols.some((c) => c.name === "checksum")) d.exec("ALTER TABLE migrations ADD COLUMN checksum TEXT");
+}
+
+/** (addition, S-72) Applied vs registered migrations. `drift` lists applied migrations whose SQL no longer matches the stored checksum. */
+export function migrationStatus(): { registered: number; applied: number; pending: string[]; drift: string[] } {
+  const d = getDb();
+  ensureMigrationsTable(d);
+  const rows = d.prepare("SELECT id, checksum FROM migrations").all() as unknown as { id: string; checksum: string | null }[];
+  const have = new Map(rows.map((r) => [r.id, r.checksum]));
+  const pending = migrations.filter((m) => !have.has(m.id)).map((m) => m.id);
+  const drift = migrations.filter((m) => have.has(m.id) && have.get(m.id) && have.get(m.id) !== checksumOf(m.sql)).map((m) => m.id);
+  return { registered: migrations.length, applied: rows.length, pending, drift };
+}
+
+/**
+ * Run all registered migrations. Called by createCivicRouter and by tests. Safe to call repeatedly.
+ * S-72: each applied migration stores the sha256 of its SQL. If an applied migration's SQL has changed since it ran (drift), this
+ * throws unless CIVIC_ALLOW_DRIFT=1 (then it warns and continues). Rows from before checksums existed are stamped on first sight.
+ * When migrations are pending on a non-empty file database, a copy is written first to <db dir>/backups/pre-migrate-<ts>.db
+ * (keeps the newest 5; disable with CIVIC_PREMIGRATE_BACKUP=0). Rollback: stop, restore that copy over CIVIC_DB (docs/RUNBOOK.md).
+ */
 export function migrate(): void {
   const d = getDb();
-  d.exec("CREATE TABLE IF NOT EXISTS migrations (id TEXT PRIMARY KEY, applied_at TEXT NOT NULL)");
+  ensureMigrationsTable(d);
+  const st = migrationStatus();
+  if (st.drift.length) {
+    const msg = `civic migration drift: applied migration(s) changed after being applied: ${st.drift.join(", ")}`;
+    if (process.env.CIVIC_ALLOW_DRIFT !== "1") throw new Error(msg + " (never edit an applied migration; add a new one. CIVIC_ALLOW_DRIFT=1 overrides)");
+    console.warn("[civic] WARNING: " + msg + " (continuing because CIVIC_ALLOW_DRIFT=1)");
+  }
+  // stamp checksums on legacy rows (applied before checksums were recorded)
+  for (const m of migrations) d.prepare("UPDATE migrations SET checksum = ? WHERE id = ? AND checksum IS NULL").run(checksumOf(m.sql), m.id);
+  if (st.pending.length && st.applied > 0 && process.env.CIVIC_PREMIGRATE_BACKUP !== "0") preMigrateBackup();
   for (const m of migrations) {
     const done = d.prepare("SELECT 1 AS x FROM migrations WHERE id = ?").get(m.id);
     if (done) continue;
     d.exec("BEGIN");
     try {
       d.exec(m.sql);
-      d.prepare("INSERT INTO migrations (id, applied_at) VALUES (?, ?)").run(m.id, new Date().toISOString());
+      d.prepare("INSERT INTO migrations (id, applied_at, checksum) VALUES (?, ?, ?)").run(m.id, new Date().toISOString(), checksumOf(m.sql));
       d.exec("COMMIT");
     } catch (e) {
       d.exec("ROLLBACK");
       throw new Error(`civic migration ${m.id} failed: ${(e as Error).message}`);
     }
   }
+}
+
+function preMigrateBackup(): void {
+  const file = process.env.CIVIC_DB || path.join("data", "civic.db");
+  if (file === ":memory:" || (isTest() && !process.env.CIVIC_DB)) return;
+  const dir = path.join(path.dirname(path.resolve(file)), "backups");
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  backupDbTo(path.join(dir, `pre-migrate-${stamp}.db`));
+  const old = fs.readdirSync(dir).filter((f) => /^pre-migrate-.*\.db$/.test(f)).sort();
+  for (const f of old.slice(0, Math.max(0, old.length - 5))) { try { fs.rmSync(path.join(dir, f)); } catch { /* ignore */ } }
 }
 
 /** Reset the DB handle (tests only). Also resets the key provider cache, SMS outbox, anchor sink and rate state. */
@@ -228,6 +284,8 @@ export function getKeys(): KeyProvider {
 }
 /** (addition) Install an HSM/KMS adapter. */
 export function setKeyProvider(p: KeyProvider | null): void { keyProvider = p; }
+/** (addition, S-55) True unless a non-dev KeyProvider (HSM/KMS adapter) has been installed. */
+export function isDevKeyProvider(): boolean { return !keyProvider || keyProvider instanceof DevKeyProvider; }
 
 // ---------------------------------------------------------------------------------------------
 // SMS
@@ -257,6 +315,8 @@ export function getSms(): SmsProvider {
 }
 /** (addition) Install a real SMS provider. */
 export function setSmsProvider(p: SmsProvider | null): void { smsProvider = p; }
+/** (addition, S-55) True unless a real SMS provider has been installed. */
+export function isDevSmsProvider(): boolean { return !smsProvider || smsProvider instanceof DevSmsProvider; }
 
 // ---------------------------------------------------------------------------------------------
 // Sessions + auth

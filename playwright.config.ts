@@ -28,6 +28,6 @@ export default defineConfig({
     url: baseURL,
     reuseExistingServer: true,
     timeout: 120_000,
-    env: { PORT: String(PORT), CIVIC_EXPOSE_DEV_OTP: "1", CIVIC_DB: process.env.CIVIC_DB || path.join(os.tmpdir(), `civic-e2e-${process.pid}-${Date.now()}.db`) },
+    env: { PORT: String(PORT), CIVIC_EXPOSE_DEV_OTP: "1", RATE_LIMIT_BURST: "100000", RATE_LIMIT_PER_SEC: "100000", CIVIC_DB: process.env.CIVIC_DB || path.join(os.tmpdir(), `civic-e2e-${process.pid}-${Date.now()}.db`) },
   },
 });

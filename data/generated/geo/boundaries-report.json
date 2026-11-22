@@ -1,0 +1,67 @@
+{
+"schema":1,
+"sources":{
+"ac":"DataMeet maps/assembly-constituencies/India_AC.shp (CC BY 2.5 India)",
+"pc":"DataMeet maps/parliamentary-constituencies/india_pc_2019_simplified.geojson (CC0)",
+"reservation":"DataMeet india-election-data/constituencies/2008-constituencies.csv"
+},
+"droppedUnnamedPolygons":[
+"AC_NO 0 (KRISHNA, no name; unattributed area 0.00072 deg2)",
+"AC_NO 0 (NELLORE, no name; unattributed area 0.00172 deg2)"
+],
+"reservationConflicts":[
+"TG AC 81 NAGARKURNOOL: 2008 CSV says SC, shapefile name tag says GEN; using GEN"
+],
+"problems":[
+
+],
+"counts":{
+"AP":{
+"ac":175,
+"pc":25,
+"district":28,
+"districtExpected":28
+},
+"TG":{
+"ac":119,
+"pc":17,
+"district":33,
+"districtExpected":33
+}
+},
+"vertices":{
+"AP":{
+"ac":14603,
+"pc":3647
+},
+"TG":{
+"ac":9134,
+"pc":2437
+}
+},
+"districtNotes":{
+"AP":[
+
+],
+"TG":[
+
+]
+},
+"crosswalk":{
+"vintages":{
+"pre2014":{
+"AP":13,
+"TG":10,
+"basis":"DataMeet India_AC DIST_NAME (districts at the 2008 delimitation)",
+"verified":true
+},
+"current":{
+"AP":28,
+"TG":33,
+"basis":"LGD district holding the majority of the AC's villages and wards",
+"verified":true
+}
+},
+"acsMapped":294
+}
+}

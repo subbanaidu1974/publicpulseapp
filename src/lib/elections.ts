@@ -14,6 +14,12 @@ export interface CandidateResult {
   position: number; // 1 = winner
   validVotes: number;
   electors?: number;
+  /** TCPD candidate attributes (S-109): present only where the source file carries them. */
+  sex?: "M" | "F" | "O";
+  age?: number;
+  incumbent?: boolean;
+  /** TCPD's own party-switch flag. INTERNAL: never published as a fact or shown as a label (MCC neutrality). */
+  tcpdTurncoat?: boolean;
   provenance?: "ECI" | "TCPD" | "demo";
 }
 
@@ -24,7 +30,15 @@ export interface SeatResult {
   tie?: boolean;
   /** True when only one candidate stood. */
   uncontested?: boolean;
+  /** Current (LGD) district of the seat; for LS seats the district holding most of the PC's assembly segments. */
+  district?: string;
+  /** Registered electors (from the candidate rows) when the source carries them. */
+  electors?: number;
+  /** Telugu constituency name when the gazetteer has one (never guessed). */
+  acNameTe?: string;
 }
+/** Optional per-seat enrichment supplied by the API layer from the committed geo data. */
+export type SeatGeoFn = (acNo: number) => { district?: string; acNameTe?: string } | undefined;
 
 const key = (r: CandidateResult) => `${r.state}|${r.year}|${r.type}`;
 
@@ -32,8 +46,14 @@ export function filterElection(rows: CandidateResult[], state: StateCode, year: 
   return rows.filter(r => r.state === state && r.year === year && r.type === type);
 }
 
+function extras(sorted: CandidateResult[], acNo: number, geo?: SeatGeoFn): Pick<SeatResult, "district" | "electors" | "acNameTe"> {
+  const electors = sorted.find(c => (c.electors ?? 0) > 0)?.electors;
+  const g = geo?.(acNo);
+  return { ...(g?.district ? { district: g.district } : {}), ...(electors ? { electors } : {}), ...(g?.acNameTe ? { acNameTe: g.acNameTe } : {}) };
+}
+
 /** Winner / runner-up / margin per constituency. */
-export function seatResults(rows: CandidateResult[]): SeatResult[] {
+export function seatResults(rows: CandidateResult[], geo?: SeatGeoFn): SeatResult[] {
   const byAc = new Map<number, CandidateResult[]>();
   for (const r of rows) byAc.set(r.acNo, [...(byAc.get(r.acNo) ?? []), r]);
   return [...byAc.values()].map(list => {
@@ -47,6 +67,7 @@ export function seatResults(rows: CandidateResult[]): SeatResult[] {
       acNo: w.acNo, acName: w.acName, winner: w.candidate, winnerParty: w.party,
       runnerUpParty: ru?.party ?? null, margin, marginPct: valid ? (margin / valid) * 100 : 0, validVotes: valid,
       tie: !!ru && ru.votes === w.votes, uncontested: !ru,
+      ...extras(sorted, w.acNo, geo),
     };
   }).sort((a, b) => a.acNo - b.acNo);
 }

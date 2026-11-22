@@ -257,6 +257,21 @@ export function simulate(model: Model, runs = PARAMS.runs, seedKey = `${model.st
 
 /* ---------------- back-test ---------------- */
 
+export interface CalibrationBin { lo: number; hi: number; n: number; meanPredicted: number | null; observed: number | null }
+const BIN_EDGES = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0001];
+/** Bin (probability, hit) pairs. Leader probabilities are >= 0.5 by construction. */
+export function calibrationBins(pairs: { p: number; hit: number }[]): CalibrationBin[] {
+  return BIN_EDGES.slice(0, -1).map((lo, i) => {
+    const hi = BIN_EDGES[i + 1];
+    const m = pairs.filter(x => x.p >= lo && x.p < hi);
+    return {
+      lo, hi: Math.min(hi, 1), n: m.length,
+      meanPredicted: m.length ? round(mean(m.map(x => x.p)), 4) : null,
+      observed: m.length ? round(mean(m.map(x => x.hit)), 4) : null,
+    };
+  });
+}
+
 export interface BacktestRun {
   predictedFrom: { assembly: number; assemblyPrev: number | null; ls: number | null };
   target: number;
@@ -266,6 +281,8 @@ export interface BacktestRun {
   winnerHitRate: number;
   persistenceHitRate: number; // naive baseline: last winner (by bloc) holds
   brier: number;              // mean (winProbLeader - hit)^2 over seats
+  /** Reliability bins: stated leader probability vs how often the leader actually won (S-119). */
+  calibration: CalibrationBin[];
   seatError: { alliance: string; predicted: number; predictedMedian: number; actual: number; error: number }[];
   meanAbsSeatError: number;
   notes: string[];
@@ -279,6 +296,7 @@ export function backtest(rows: CandidateResult[], state: StateCode, baseYear: nu
   const actual = seatTables(targetRows, blocs);
   const baseT = seatTables(rowsOf(rows, state, baseYear, "assembly"), blocs);
   let hit = 0, pers = 0, n = 0, brier = 0;
+  const pairs: { p: number; hit: number }[] = [];
   const predicted: Record<string, number> = {}, act: Record<string, number> = {};
   for (const b of m.blocs) { predicted[b] = 0; act[b] = 0; }
   for (const s of m.seats) {
@@ -288,7 +306,9 @@ export function backtest(rows: CandidateResult[], state: StateCode, baseYear: nu
     const ok = s.leader === a.winnerBloc ? 1 : 0;
     hit += ok;
     if (baseT.get(s.acNo)?.winnerBloc === a.winnerBloc) pers++;
-    brier += (winProb(s.marginPct, m.sigma, m.tau) - ok) ** 2;
+    const pw = winProb(s.marginPct, m.sigma, m.tau);
+    brier += (pw - ok) ** 2;
+    pairs.push({ p: pw, hit: ok });
     predicted[s.leader]++;
     act[a.winnerBloc] = (act[a.winnerBloc] ?? 0) + 1;
   }
@@ -305,7 +325,7 @@ export function backtest(rows: CandidateResult[], state: StateCode, baseYear: nu
     predictedFrom: { assembly: baseYear, assemblyPrev: m.prevYear, ls: m.lsYear },
     target: targetYear, seatsCompared: n, trendAvailable, uncertaintySource: m.uncertaintySource,
     winnerHitRate: n ? round(hit / n, 4) : 0, persistenceHitRate: n ? round(pers / n, 4) : 0,
-    brier: n ? round(brier / n, 4) : 0, seatError,
+    brier: n ? round(brier / n, 4) : 0, calibration: calibrationBins(pairs), seatError,
     meanAbsSeatError: round(mean(seatError.map(e => Math.abs(e.error))), 2), notes,
   };
 }
@@ -325,12 +345,25 @@ export interface ForecastResponse {
   };
   seats?: { acNo: number; acName: string; district?: string; leader: string; runnerUp: string; marginPct: number; winProbLeader: number; class: SeatClass }[];
   alliances?: { alliance: string; seatsMedian: number; seatsP10: number; seatsP90: number; majorityProb: number }[];
-  backtest?: { runs: BacktestRun[]; summary: string };
+  backtest?: { runs: BacktestRun[]; summary: string; calibration?: CalibrationBin[] };
 }
 
 /** Fail-closed response used during an election blackout window: no seats, no alliances. */
 export function blackoutResponse(state: StateCode): ForecastResponse {
   return { state, basedOn: { assembly: 0, assemblyPrev: null, ls: null }, method: METHOD, generatedFrom: "withheld", disclaimer: DISCLAIMER, blackout: true };
+}
+
+/** Pool the per-run reliability bins (weighted by n) into one table. */
+export function poolCalibration(runs: BacktestRun[]): CalibrationBin[] {
+  return BIN_EDGES.slice(0, -1).map((lo, i) => {
+    const bins = runs.map(r => r.calibration?.[i]).filter((b): b is CalibrationBin => !!b && b.n > 0);
+    const n = bins.reduce((a, b) => a + b.n, 0);
+    return {
+      lo, hi: Math.min(BIN_EDGES[i + 1], 1), n,
+      meanPredicted: n ? round(bins.reduce((a, b) => a + b.n * (b.meanPredicted ?? 0), 0) / n, 4) : null,
+      observed: n ? round(bins.reduce((a, b) => a + b.n * (b.observed ?? 0), 0) / n, 4) : null,
+    };
+  });
 }
 
 /** Compute the full forecast for a state, or null when there is no assembly data. */
@@ -369,6 +402,6 @@ export function computeForecast(rows: CandidateResult[], state: StateCode): Fore
     },
     seats,
     alliances: sim.map(a => ({ alliance: a.alliance, seatsMedian: a.seatsMedian, seatsP10: a.seatsP10, seatsP90: a.seatsP90, majorityProb: round(a.majorityProb, 4) })),
-    backtest: { runs, summary },
+    backtest: { runs, summary, calibration: poolCalibration(runs) },
   };
 }

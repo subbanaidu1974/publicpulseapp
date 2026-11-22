@@ -9,12 +9,13 @@
  * use the app. SHARED SIMs are supported: the IVR asks which adult is calling (their position on the number), then that
  * adult's personal PIN by keypad; wrong PINs go through identity checkPin (persisted counter, 5-attempt lockout per source,
  * here source = "ivr:<number>", plus the per-person ceiling), which texts the number's holder when it trips. The PIN is never stored in call state, audited, echoed or sent by SMS,
- * and no OTP is ever read aloud or collected by this module (single-adult SIMs keep the no-PIN flow unless
- * CIVIC_IVR_PIN_ALWAYS=1).
+ * and no OTP is ever read aloud or collected by this module (S-56: the PIN is required for every caller, single-adult SIMs included, unless
+ * CIVIC_IVR_PIN_ALWAYS=0). The webhook endpoints are authenticated by ./webhook (HMAC signature or IP allow-list).
  */
 import { Router, json } from "express";
 import type { Request, Response } from "express";
 import { audit, createSession, getSms } from "../core";
+import { createWebhookAuth, webhookAuthConfigured } from "./webhook";
 import { checkPin, getPerson, personsOnSim, phoneHash, rateAllow, type PinResult } from "../identity/service";
 
 export type IvrState = "welcome" | "who" | "pin" | "category" | "record" | "confirm" | "status" | "survey" | "done" | "goodbye";
@@ -71,7 +72,9 @@ const prompt = (id: string): IvrPrompt => ({ id, audioKey: `audio/te/${id}.wav`,
 
 interface Call { callId: string; phone: string; state: IvrState; category?: string; referenceId?: string; lastRef?: string; createdAt: number; turns: number; adults?: string[]; personId?: string; needsPin?: boolean; verified?: boolean }
 const PIN_RE = /^\d{4,6}$/;
-const pinAlways = () => process.env.CIVIC_IVR_PIN_ALWAYS === "1";
+/** S-56: PIN is required for every caller unless explicitly disabled with CIVIC_IVR_PIN_ALWAYS=0 (default on). */
+const pinAlways = () => process.env.CIVIC_IVR_PIN_ALWAYS !== "0";
+const AGG_ID_RE = /^[\w.-]{6,64}$/;
 
 /** Opaque storage keys only: no leading slash, no traversal segments. */
 const validKey = (k: string): boolean => /^[\w./-]{1,200}$/.test(k) && !k.startsWith("/") && !k.split("/").includes("..");
@@ -136,7 +139,8 @@ export function defaultDeps(): ChannelDeps {
 
 export function createChannelsRouter(deps: ChannelDeps = defaultDeps()): Router {
   const r = Router();
-  r.use(json({ limit: "16kb" }));
+  r.use(json({ limit: "16kb", verify: (req, _res, buf) => { (req as Request & { rawBody?: Buffer }).rawBody = buf; } }));
+  const webhookAuth = createWebhookAuth(() => deps.now());
   const calls = new Map<string, Call>();
   const perPhone = new Map<string, number[]>();
   const budget: number[] = [];
@@ -155,7 +159,7 @@ export function createChannelsRouter(deps: ChannelDeps = defaultDeps()): Router 
     return { ...base, xml: renderXml(base) };
   };
 
-  r.post("/missed-call", async (req: Request, res: Response) => {
+  r.post("/missed-call", webhookAuth, async (req: Request, res: Response) => {
     const phone = normPhone(req.body?.from);
     if (!phone) return void res.status(400).json({ error: "invalid_number" });
     if (within(budget, 3_600_000).length >= MISSED_CALL_BUDGET_PER_HOUR) return void res.status(429).json({ error: "callback_budget_exhausted", degraded: true });
@@ -164,14 +168,19 @@ export function createChannelsRouter(deps: ChannelDeps = defaultDeps()): Router 
     if (mine.length >= MISSED_CALL_PER_PHONE_PER_HOUR) return void res.status(429).json({ error: "too_many_requests" });
     mine.push(deps.now()); budget.push(deps.now());
     prune();
-    const callId = `c${deps.now().toString(36)}${(++seq).toString(36)}`;
+    // Bind the call to the authenticated aggregator's own call id: an authenticated aggregator must supply one, and it cannot be reused.
+    const agg = req.body?.aggregatorCallId;
+    if (webhookAuthConfigured() && !(typeof agg === "string" && AGG_ID_RE.test(agg))) return void res.status(400).json({ error: "aggregator_call_id_required" });
+    if (agg !== undefined && !(typeof agg === "string" && AGG_ID_RE.test(agg))) return void res.status(400).json({ error: "invalid_aggregator_call_id" });
+    if (typeof agg === "string" && calls.has(agg)) return void res.status(409).json({ error: "duplicate_call" });
+    const callId = typeof agg === "string" ? agg : `c${deps.now().toString(36)}${(++seq).toString(36)}`;
     calls.set(callId, { callId, phone, state: "welcome", createdAt: deps.now(), turns: 0 });
     safeAudit("missed_call", callId);
     // The adapter dials back; the callback is free to the citizen. No OTP, no SMS is sent at this stage.
     res.status(202).json({ status: "callback_queued", callId, callbackTo: `${phone.slice(0, 2)}******${phone.slice(-2)}` });
   });
 
-  r.post("/ivr", async (req: Request, res: Response) => {
+  r.post("/ivr", webhookAuth, async (req: Request, res: Response) => {
     prune();
     const callId = typeof req.body?.callId === "string" ? req.body.callId : "";
     const c = calls.get(callId);
@@ -258,13 +267,24 @@ export function createChannelsRouter(deps: ChannelDeps = defaultDeps()): Router 
   });
 
   /** Voice-note intake outside an IVR call (e.g. a PWA-lite or aggregator upload reference). */
-  r.post("/voice-note", async (req: Request, res: Response) => {
+  r.post("/voice-note", webhookAuth, async (req: Request, res: Response) => {
     const phone = normPhone(req.body?.from);
     const audioKey = typeof req.body?.audioKey === "string" && validKey(req.body.audioKey) ? req.body.audioKey : null;
     const category = typeof req.body?.category === "string" && Object.values(CATEGORIES).includes(req.body.category) ? req.body.category : "other";
     if (!phone || !audioKey) return void res.status(400).json({ error: "invalid_request" });
     try {
-      const issue = await deps.createIssue({ channel: "ivr", category, phone, audioKey });
+      let personId: string | undefined;
+      if (pinAlways() && deps.listAdults && deps.checkPin) {
+        const adults = await deps.listAdults(phone);
+        if (adults.length === 1) { // a single adult must also prove the PIN; a shared SIM is refused below as before
+          const pin = typeof req.body?.pin === "string" ? req.body.pin : "";
+          if (!PIN_RE.test(pin)) return void res.status(409).json({ error: "pin_required" });
+          const pr = await deps.checkPin(adults[0].id, pin, "ivr:" + phone);
+          if (pr !== "ok") return void res.status(pr === "wrong" ? 403 : 429).json({ error: pr === "wrong" ? "pin_wrong" : "pin_locked" });
+          personId = adults[0].id;
+        }
+      }
+      const issue = await deps.createIssue({ channel: "ivr", category, phone, audioKey, ...(personId ? { personId } : {}) });
       await deps.sendSms(phone, `People Pulse: your issue reference is ${issue.id}. We never ask for OTP or bank details.`);
       res.status(201).json({ referenceId: issue.id });
     } catch (e) {

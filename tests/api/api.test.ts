@@ -28,6 +28,7 @@ const elections: CandidateResult[] = [
   // AP 2019: YSRCP 3, TDP 1 ; AP 2024: TDP 2, JSP 1, YSRCP 1  (4 seats)
   ...election("AP", 2019, "assembly", [["YSRCP", 600, "TDP", 400], ["YSRCP", 550, "TDP", 450], ["YSRCP", 700, "TDP", 300], ["TDP", 520, "YSRCP", 480]]),
   ...election("AP", 2024, "assembly", [["TDP", 600, "YSRCP", 400], ["JSP", 510, "YSRCP", 490], ["TDP", 700, "YSRCP", 300], ["YSRCP", 530, "TDP", 470]]),
+  ...election("TG", 2019, "ls", [["BRS", 600, "INC", 400], ["BJP", 550, "BRS", 450]]),
   // TG 2023: INC 3, BRS 1, BJP 1 (5 seats); one is a 1% marginal, one 0.5%
   ...election("TG", 2023, "assembly", [["INC", 5050, "BRS", 4950], ["INC", 6000, "BRS", 4000], ["INC", 7000, "BJP", 3000], ["BRS", 5025, "INC", 4975], ["BJP", 6500, "INC", 3500]]),
 ];
@@ -124,9 +125,18 @@ describe("@E2E-03 GET /elections/:state/summary", () => {
     expect(Object.values(body.marginBuckets as Record<string, number>).reduce((a, b) => a + b, 0)).toBe(4);
   });
 
-  it("alliances is null where none are defined", async () => {
-    const { body } = await get("/elections/TG/summary?year=2023");
+  it("alliances is null where no cited record exists", async () => {
+    // TG 2019 Lok Sabha has no alliance record in data/reference/alliances.json (the cited pages name no state-level alliance).
+    const { body } = await get("/elections/TG/summary?year=2019&type=ls");
     expect(body.alliances).toBeNull();
+  });
+
+  it("@E2E-120 TG 2023 summary carries the cited pre-poll INC+CPI record with kind and sources", async () => {
+    const { body } = await get("/elections/TG/summary?year=2023");
+    expect(body.alliances.definition["INC+ (INC+CPI)"]).toEqual(["INC", "CPI"]);
+    const g = body.alliances.groups.find((x: any) => x.name === "INC+ (INC+CPI)");
+    expect(g.kind).toBe("pre-poll");
+    expect(g.sources[0].startsWith("https://en.wikipedia.org/")).toBe(true);
   });
 });
 
@@ -200,7 +210,8 @@ describe("@E2E-07 validation and error contract", () => {
       const r = await get(p);
       expect(r.status).toBe(expected);
       expect(r.type).toContain("application/json");
-      expect(Object.keys(r.body)).toEqual(["error"]);
+      expect(Object.keys(r.body).sort()).toEqual(["code", "error"]); // S-126: machine-readable code for client localisation
+      expect(r.body.code).toMatch(/^[a-z_]+$/);
       expect(typeof r.body.error).toBe("string");
       expect(r.text).not.toMatch(/\bat .*\(|node_modules|\.ts:\d+|Error:/);
     });
@@ -214,7 +225,7 @@ describe("@E2E-07 validation and error contract", () => {
       const res = await fetch(url);
       const text = await res.text();
       expect(res.status).toBe(500);
-      expect(JSON.parse(text)).toEqual({ error: "Internal server error" });
+      expect(JSON.parse(text)).toEqual({ error: "Internal server error", code: "internal" });
       expect(text).not.toMatch(/null|\.ts|node_modules/);
     } finally {
       await new Promise<void>(r => s.close(() => r()));

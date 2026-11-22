@@ -1,4 +1,6 @@
+import { useState } from "react";
 import type { ReactNode } from "react";
+import ShareCard from "./ShareCard";
 import { api, type Forecast, type ForecastAlliance } from "../api/client";
 import { useApi } from "../api/useApi";
 import { useT } from "../i18n";
@@ -21,6 +23,14 @@ function backtestRuns(b: unknown): Run[] {
     hit: r.winnerHitRate ?? r.hitRate, persist: r.persistenceHitRate ?? r.persistence, err: r.meanAbsSeatError,
   }));
 }
+
+interface CalBin { lo: number; hi: number; n: number; meanPredicted: number | null; observed: number | null }
+function calibrationOf(b: unknown): CalBin[] {
+  const c = (b as { calibration?: unknown } | null)?.calibration;
+  return Array.isArray(c) ? (c as CalBin[]) : [];
+}
+const HIDE_KEY = "pp-hide-seat-table";
+const readHide = () => { try { return localStorage.getItem(HIDE_KEY) === "1"; } catch { return false; } };
 
 function describe(v: unknown): string {
   if (v === null || v === undefined) return "";
@@ -53,6 +63,8 @@ export default function ForecastPanel({ state }: { state: StateCode }) {
   const { t } = useT();
   const fc = useApi<Forecast | null>(() => api.forecast(state), [state]);
   const f = fc.data;
+  const [hideSeats, setHideSeats] = useState<boolean>(readHide);
+  const toggleSeats = () => setHideSeats((h) => { const n = !h; try { localStorage.setItem(HIDE_KEY, n ? "1" : "0"); } catch { /* ignore */ } return n; });
 
   const shell = (children: ReactNode) => (
     <section aria-labelledby="fc-h" data-testid="forecast-panel" className="border-2 border-black bg-[#FAF8F5] p-4 sm:p-6 space-y-4">
@@ -67,6 +79,7 @@ export default function ForecastPanel({ state }: { state: StateCode }) {
   if (fc.loading) return shell(<Loading />);
   if (fc.error) return shell(<ErrorBanner inline message={fc.error} onRetry={fc.retry} />);
   if (!f) return shell(<p data-testid="forecast-unavailable" className="text-xs font-sans">{t("fc.unavailable")}</p>);
+  if (f.blackout && f.window === "unknown") return shell(<p data-testid="forecast-unknown" role="status" className="text-sm font-serif border-l-4 border-amber-600 pl-3">{t("fc.unknown")}</p>);
   if (f.blackout) return shell(<p data-testid="forecast-blackout" role="status" className="text-sm font-serif border-l-4 border-amber-600 pl-3">{t("fc.blackout")}</p>);
 
   const seats = f.seats ?? [];
@@ -75,12 +88,21 @@ export default function ForecastPanel({ state }: { state: StateCode }) {
   const count = (c: string) => seats.filter((s) => s.class === c).length;
   const toss = seats.filter((s) => s.class === "toss-up").sort((a, b) => a.marginPct - b.marginPct);
   const runs = backtestRuns(f.backtest);
+  const cal = calibrationOf(f.backtest);
+  const asOf = f.dataSnapshot?.checksum ? `${t("fc.snapshot")} ${f.dataSnapshot.checksum}` : "";
+  const shareLines = alliances.map((a) => ({ label: a.alliance, value: `${a.seatsP10}-${a.seatsP90} (${a.seatsMedian})` }));
 
   return shell(
     <>
       <p data-testid="forecast-disclaimer" className="text-sm font-serif border-l-4 border-amber-600 pl-3 bg-amber-50 py-2 pr-2">
         {f.disclaimer || t("fc.fallbackDisclaimer")}
       </p>
+      <div data-testid="forecast-not" className="border border-black bg-white p-3 space-y-1">
+        <h4 className="text-sm font-serif italic">{t("fc.notTitle")}</h4>
+        <ul className="list-disc pl-5 text-xs font-sans space-y-0.5">
+          <li>{t("fc.not1")}</li><li>{t("fc.not2")}</li><li>{t("fc.not3")}</li><li>{t("fc.not4")}</li>
+        </ul>
+      </div>
       <p className="text-[11px] font-sans text-slate-700">
         {f.basedOn !== undefined && <span>{t("fc.basedOn")}: {describe(f.basedOn)}. </span>}
         {f.method && <span>{t("fc.method")}: {f.method}</span>}
@@ -120,6 +142,30 @@ export default function ForecastPanel({ state }: { state: StateCode }) {
           </div>
         )}
         <p className="text-[11px] font-sans text-slate-800">{t("fc.capNote")}</p>
+        {cal.length > 0 && (
+          <div data-testid="forecast-calibration" className="space-y-1 pt-1">
+            <h5 className="text-xs font-serif italic font-bold">{t("fc.calTitle")}</h5>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs font-sans text-left border-collapse bg-white">
+                <thead><tr>
+                  <th scope="col" className="p-1.5 border-b border-black">{t("fc.calBin")}</th>
+                  <th scope="col" className="p-1.5 border-b border-black text-right">{t("fc.calN")}</th>
+                  <th scope="col" className="p-1.5 border-b border-black text-right">{t("fc.calPred")}</th>
+                  <th scope="col" className="p-1.5 border-b border-black text-right">{t("fc.calObs")}</th>
+                </tr></thead>
+                <tbody>{cal.map((b) => (
+                  <tr key={b.lo} data-testid="forecast-cal-row" className="border-b border-black/10">
+                    <th scope="row" className="p-1.5 font-bold">{Math.round(b.lo * 100)}-{Math.round(b.hi * 100)}%</th>
+                    <td className="p-1.5 text-right font-mono">{b.n}</td>
+                    <td className="p-1.5 text-right font-mono">{b.n ? rate(b.meanPredicted) : "-"}</td>
+                    <td className="p-1.5 text-right font-mono">{b.n ? rate(b.observed) : t("fc.calEmpty")}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+            <p className="text-[11px] font-sans text-slate-800">{t("fc.calNote")}</p>
+          </div>
+        )}
       </div>
 
       <div data-testid="forecast-classes" className="space-y-1">
@@ -135,8 +181,12 @@ export default function ForecastPanel({ state }: { state: StateCode }) {
       </div>
 
       <div className="space-y-1">
-        <h4 className="text-sm font-serif italic">{t("fc.tossTable")} ({toss.length})</h4>
-        {toss.length === 0 ? <p className="text-xs font-sans">{t("fc.noTossUps")}</p> : (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h4 className="text-sm font-serif italic">{t("fc.tossTable")} ({toss.length})</h4>
+          <button data-testid="forecast-seats-toggle" type="button" aria-pressed={hideSeats} onClick={toggleSeats}
+            className="border border-black px-3 py-1 text-[10px] uppercase tracking-widest font-black cursor-pointer">{hideSeats ? t("fc.showSeats") : t("fc.hideSeats")}</button>
+        </div>
+        {hideSeats ? null : toss.length === 0 ? <p className="text-xs font-sans">{t("fc.noTossUps")}</p> : (
           <div className="overflow-x-auto max-h-72 overflow-y-auto">
             <table data-testid="forecast-toss-table" className="w-full text-xs font-sans text-left border-collapse bg-white">
               <thead className="sticky top-0 bg-white"><tr>
@@ -159,6 +209,10 @@ export default function ForecastPanel({ state }: { state: StateCode }) {
         )}
       </div>
 
+      <div className="flex flex-wrap items-center gap-3">
+        <ShareCard testId="forecast-share" projection title={t("fc.title")} lines={shareLines} source={f.method ?? "uniform-swing-damped-v1"} asOf={asOf || String(describe(f.basedOn))} />
+        {asOf && <span data-testid="forecast-snapshot" className="text-[10px] font-mono text-slate-600">{asOf}</span>}
+      </div>
     </>,
   );
 }

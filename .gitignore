@@ -18,3 +18,10 @@ data/civic*.db
 data/civic*.db-*
 data/civic-anchor*
 data/civic-media/
+
+# raw downloaded source files (large; re-fetchable)
+data/raw/
+
+# CI report artefacts
+vitest.json
+playwright.json

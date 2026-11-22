@@ -1,10 +1,20 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:ital,wght@0,400..800;1,400..800&display=swap');
 @import "tailwindcss";
 
+/* Self-hosted Telugu subset (Noto Sans Telugu, SIL OFL 1.1; see public/fonts/LICENSE). No third-party font requests.
+   unicode-range keeps the file from loading for pages with no Telugu text; font-display: swap shows fallback text at once. */
+@font-face {
+  font-family: "Noto Sans Telugu";
+  src: url("/fonts/NotoSansTelugu-subset.woff2") format("woff2");
+  font-weight: 400 800;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0C00-0C7F, U+0964-0965, U+200C-200D, U+25CC;
+}
+
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Playfair Display", Georgia, serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-sans: "Noto Sans Telugu", ui-sans-serif, system-ui, "Segoe UI", Roboto, "Nirmala UI", sans-serif;
+  --font-serif: "Noto Sans Telugu", Georgia, "Times New Roman", "Nirmala UI", serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 /* Custom styles for high-fidelity interactive lists scrollbars matching the beige/editorial dark theme */
@@ -26,7 +36,7 @@
 
 /* Custom editorial text dropcap or visual styling */
 .editorial-lead::first-letter {
-  font-family: "Playfair Display", Georgia, serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: 3rem;
   line-height: 2.5rem;
   float: left;

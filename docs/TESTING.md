@@ -23,5 +23,13 @@
 ## Story tracker
 `docs/stories/tracker.json` is the source of truth. A story may be `done` only when every id in `tests[]` appears as `@E2E-xx` / `@UT-xx` in a file under `e2e/` or `tests/`. `npm run tracker` regenerates `docs/STORY_TRACKER.md` with status counts and percent complete.
 
+## Operations tests (S-67..S-72, S-77)
+- `tests/ops`: logger redaction and request ids, /healthz /readyz /metrics, encrypted backup round trip and tamper detection, restore drill, migration checksums and pre-migrate backup, Dockerfile basics, env-var docs check. Run with `npm run test:ops`.
+- `e2e/ops.spec.ts` (E2E-84) builds the production bundle and runs it: production mode must refuse dev stand-ins; the built bundle (`SERVE_BUILT=1`) must serve /healthz, /readyz, the static page and an /api/v1 call.
+- Coverage: `npm run test:coverage` enforces thresholds on `server/civic` and `src/lib` (set in `vitest.config.ts`, just below the actuals; ratchet up, never down). ESLint: `npm run lint:eslint`. Env docs: `npm run check:docs`.
+
+## Tracker gate with real results (S-71)
+`npm run tracker -- --check --report vitest.json --report playwright.json` additionally requires every tag of a `done` story to have run in the matching report (Playwright for `e2e/`, Vitest for `tests/`) and passed, with no skipped or failed test, and fails when `docs/STORY_TRACKER.md` is not what a fresh render produces. Produce the reports with `npx vitest run --reporter=default --reporter=json --outputFile.json=vitest.json` and `PLAYWRIGHT_JSON_OUTPUT_NAME=playwright.json npx playwright test --reporter=list,html,json`.
+
 ## CI
-`.github/workflows/ci.yml`: install, tsc, vitest, data validation, tracker check, Playwright; the HTML report is uploaded as an artifact.
+`.github/workflows/ci.yml`: unit tests on Ubuntu and Windows; then on Ubuntu: gitleaks and local secret scan, audit and copy lint (report only), tsc, ESLint, docs check, Vitest with coverage thresholds and a JSON report, data validation, production build, Playwright (JSON report), tracker gate with both reports. Reports and the HTML report are uploaded as artifacts.

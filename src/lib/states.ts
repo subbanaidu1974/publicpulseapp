@@ -20,8 +20,34 @@ export const STATES: Record<StateCode, StateConfig> = {
 export const isStateCode = (s: string): s is StateCode => s === "AP" || s === "TG";
 export const isElectionType = (s: string): s is ElectionType => s === "assembly" || s === "ls";
 
-/** Pre-poll alliances by state/year, used for alliance aggregation. Editable data, not editorial. */
-export const ALLIANCES: Record<string, Record<string, string[]>> = {
-  "AP-2024-assembly": { "NDA (TDP+JSP+BJP)": ["TDP", "JSP", "BJP"] },
-  "AP-2024-ls": { "NDA (TDP+JSP+BJP)": ["TDP", "JSP", "BJP"] },
-};
+import alliancesData from "../../data/reference/alliances.json";
+
+export type AllianceKind = "pre-poll" | "post-hoc";
+export interface AllianceGroup {
+  name: string; parties: string[]; kind: AllianceKind; confidence: "high" | "medium" | "low"; note?: string; sources: string[];
+}
+export interface AllianceRecord {
+  key: string; state: StateCode; year: number; type: ElectionType; groups: AllianceGroup[]; comparabilityNotes?: string[];
+}
+
+/** Cited per-election alliance records (data/reference/alliances.json). Elections without a record have no grouping. */
+export const ALLIANCE_RECORDS: Record<string, AllianceRecord> =
+  Object.fromEntries((alliancesData.records as AllianceRecord[]).map(r => [r.key, r]));
+
+export const alliancesAsOf: string = alliancesData.asOf;
+
+/** Groups for one election, optionally restricted by kind (default: all). */
+export function allianceGroups(state: StateCode, year: number, type: ElectionType, kind?: AllianceKind): AllianceGroup[] {
+  const g = ALLIANCE_RECORDS[`${state}-${year}-${type}`]?.groups ?? [];
+  return kind ? g.filter(x => x.kind === kind) : g;
+}
+
+/**
+ * Pre-poll alliances by state/year/type as { name: parties[] }, used for alliance aggregation. Derived from the cited
+ * records; post-hoc (hindsight) groupings are excluded here and available through allianceGroups().
+ */
+export const ALLIANCES: Record<string, Record<string, string[]>> = Object.fromEntries(
+  Object.values(ALLIANCE_RECORDS)
+    .map(r => [r.key, Object.fromEntries(r.groups.filter(g => g.kind === "pre-poll").map(g => [g.name, g.parties]))] as const)
+    .filter(([, g]) => Object.keys(g).length > 0),
+);

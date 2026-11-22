@@ -81,6 +81,8 @@ class DevNumberIntelligence implements NumberIntelligence {
 let intel: NumberIntelligence = new DevNumberIntelligence();
 export function setNumberIntelligence(n: NumberIntelligence | null): void { intel = n ?? new DevNumberIntelligence(); }
 export function getNumberIntelligence(): NumberIntelligence { return intel; }
+/** (S-55) True while the dev fixture stub is the active number-intelligence adapter. */
+export function isDevNumberIntelligence(): boolean { return intel instanceof DevNumberIntelligence; }
 
 // ---------------------------------------------------------------------------------------------
 // Rate limiting (persisted so it survives restarts)

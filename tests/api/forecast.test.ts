@@ -9,12 +9,13 @@ let base: string;
 const get = async (p: string) => { const r = await fetch(base + p); return { status: r.status, body: await r.json() as any, headers: r.headers }; };
 
 beforeAll(async () => {
+  process.env.ELECTION_WINDOW_FAIL_OPEN_FORECAST = "1"; // calendar ships empty (unknown); the shape tests need the model visible
   const app = express();
   app.use("/api/v1", createApiRouter(loadDatasets()));
   server = await new Promise<Server>(res => { const s = app.listen(0, "127.0.0.1", () => res(s)); });
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/v1`;
 });
-afterAll(() => new Promise<void>(res => { delete process.env.FORECAST_BLACKOUT; server.close(() => res()); }));
+afterAll(() => new Promise<void>(res => { delete process.env.FORECAST_BLACKOUT; delete process.env.ELECTION_WINDOW_FAIL_OPEN_FORECAST; server.close(() => res()); }));
 
 describe("GET /elections/:state/forecast", () => {
   for (const st of ["AP", "TG", "tg"]) {
@@ -55,5 +56,23 @@ describe("GET /elections/:state/forecast", () => {
       expect(r.body.backtest).toBeUndefined();
     } finally { delete process.env.FORECAST_BLACKOUT; }
     expect((await get("/elections/AP/forecast")).body.blackout).toBe(false);
+  });
+});
+
+describe("forecast product review (S-119)", () => {
+  it("@E2E-134 back-test carries reliability bins that add up to the seats compared", async () => {
+    const { body } = await get("/elections/AP/forecast");
+    const cal = body.backtest.calibration as { lo: number; hi: number; n: number; meanPredicted: number | null; observed: number | null }[];
+    expect(cal.length).toBe(5);
+    expect(cal[0].lo).toBe(0.5);
+    const total = cal.reduce((a, b) => a + b.n, 0);
+    const compared = (body.backtest.runs as { seatsCompared: number }[]).reduce((a, r) => a + r.seatsCompared, 0);
+    expect(total).toBe(compared);
+    for (const b of cal) if (b.n > 0) { expect(b.observed).toBeGreaterThanOrEqual(0); expect(b.observed).toBeLessThanOrEqual(1); }
+    for (const r of body.backtest.runs) expect(r.calibration.length).toBe(5);
+  });
+  it("@E2E-134 the response names the elections snapshot it was computed from", async () => {
+    const { body } = await get("/elections/AP/forecast");
+    expect(body.dataSnapshot).toHaveProperty("signature");
   });
 });

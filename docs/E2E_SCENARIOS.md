@@ -1,4 +1,4 @@
-# E2E Scenarios
+| E2E-20 | UI | Mobile viewport (375px) navigation | No horizontal scroll on home, elections and analytics; menu usable || E2E-19 | UI | Admin data status needs a server-verified admin session | No session or unconfirmed session is denied; only a 200 from the server admin check shows per-source status || E2E-18 | UI | Methodology and sources page with public data status | Page reachable; per-source status table shown; no synthetic survey stats || E2E-16 | UI | Survey validation: missing required field, duplicate submission | RETIRED with E2E-15 (S-124) || E2E-15 | UI | Citizen takes survey (valid) | RETIRED: legacy survey removed (S-124). Survey tab is an honest coming-soon page (E2E-139) || E2E-13 | UI | Map layer switch (winner → margin → turnout) | RETIRED: the synthetic district map was removed (S-123). Analytics is covered by E2E-138; a real choropleth returns with committed boundaries |# E2E Scenarios
 
 Each scenario has an ID used as a tag in `e2e/` specs (`@E2E-xx`). Status is tracked in `docs/stories/tracker.json`.
 Layers: **API** = HTTP-level test (no browser), **UI** = Playwright browser.

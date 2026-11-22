@@ -6,35 +6,77 @@ on:
   pull_request:
 
 jobs:
-  checks:
-    runs-on: ubuntu-latest
+  # S-70: unit tests on both platforms (the code runs on Windows dev machines and Linux servers).
+  unit:
+    name: unit (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.13
           cache: npm
       - run: npm ci
-      - name: Typecheck
-        run: npx tsc --noEmit
       - name: Unit and API tests
         run: npx vitest run
+
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13
+          cache: npm
+      - run: npm ci
+      - name: Secret scan (local fallback)
+        run: npm run scan:secrets
+      - name: Dependency audit (report only)
+        run: npm audit --audit-level=high
+        continue-on-error: true # TODO: make blocking once the current high/critical findings are fixed
+      - name: Banned-wording copy lint
+        run: npm run lint:copy
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: ESLint
+        run: npm run lint:eslint
+      - name: Docs check (.env.example covers every env var the code reads)
+        run: npm run check:docs
+      - name: Unit and API tests with coverage (thresholds: server/civic, src/lib)
+        run: npx vitest run --coverage --reporter=default --reporter=json --outputFile.json=vitest.json
       - name: Data validation
         run: npm run pipeline:validate
-      - name: Story tracker gate
-        run: npm run tracker -- --check
+      - name: Production build
+        run: npm run build
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
-      - name: E2E
-        run: npx playwright test
+      - name: E2E (includes the production-build smoke test, e2e/ops.spec.ts)
+        run: npx playwright test --reporter=list,html,json
         env:
           CI: 'true'
-      - name: Upload Playwright report
+          PLAYWRIGHT_JSON_OUTPUT_NAME: playwright.json
+      - name: Story tracker gate (tagged tests exist, ran, passed, not skipped; STORY_TRACKER.md current)
+        run: npm run tracker -- --check --report vitest.json --report playwright.json
+      - name: Upload reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: reports
           path: |
             playwright-report/
             test-results/
+            coverage/
+            vitest.json
+            playwright.json
           retention-days: 14
