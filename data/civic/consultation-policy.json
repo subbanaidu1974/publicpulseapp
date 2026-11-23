@@ -1,0 +1,40 @@
+{
+  "_label": "Bill consultation policy (DESIGN_2028 3.6, stories S-35 and S-36). Engineering defaults pending the same counsel and panel sign-off as docs/decisions. Read by server/civic/consultations (cached; restart to reload). A consultation is a signal, not a referendum.",
+  "limits": {
+    "max_title_chars": 200,
+    "max_bill_ref_chars": 120,
+    "max_clauses": 60,
+    "max_original_chars": 4000,
+    "max_ref_chars": 200,
+    "min_summary_chars": 10,
+    "max_summary_chars": 800,
+    "max_groups": 20,
+    "max_group_chars": 40,
+    "max_duration_days": 180,
+    "max_comment_chars": 1500,
+    "max_audio_seconds": 60,
+    "min_reason_chars": 10,
+    "min_response_chars": 20,
+    "max_theme_chars": 200,
+    "require_telugu_at_submit": true
+  },
+  "official_domain_suffixes": ["gov.in", "nic.in"],
+  "panel": {
+    "min_approvals": 2,
+    "min_reject_note_chars": 10,
+    "note": "Same model as Pulse Surveys: two distinct reviewers approve the CURRENT content hash (EN and TE plain-language summaries included); never the creator or anyone in the creator's department. A correction is a new version that needs the same two approvals before it replaces the public one."
+  },
+  "stances": [
+    { "id": "support", "en": "Support", "te": "మద్దతు" },
+    { "id": "support_changes", "en": "Support with changes", "te": "మార్పులతో మద్దతు" },
+    { "id": "oppose", "en": "Oppose", "te": "వ్యతిరేకం" },
+    { "id": "unclear", "en": "Unclear", "te": "స్పష్టత లేదు" },
+    { "id": "prefer_not", "en": "Prefer not to say", "te": "చెప్పడానికి ఇష్టపడను" }
+  ],
+  "report": { "due_days": 30 },
+  "review_sample": { "min": 10, "share": 0.05, "note": "Suggested human review sample: one representative per near-duplicate cluster plus a seeded random pick of the remaining comments. The closing report states how many comments were actually read." },
+  "disclaimer": {
+    "en": "A consultation is a signal, not a referendum. Each person counts once per clause.",
+    "te": "ఈ సంప్రదింపు ప్రజల అభిప్రాయ సూచన మాత్రమే; ఇది ప్రజాభిప్రాయ నిర్ణయం కాదు. ప్రతి నిబంధనకు ఒక్కొక్కరిని ఒకసారి మాత్రమే లెక్కిస్తారు."
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "asOf": "2026-11-22",
+  "disclaimer": "Outbound links and candidate feed sources for count day. NOTHING here was verified: no page was fetched by this project, no terms or robots were read, and no scraping is authorised. Every entry is verified:false until a human confirms it. Links are pointers only; PDFs are never copied.",
+  "sources": [
+    { "id": "synthetic-fixture", "kind": "fixture", "status": "synthetic", "name": "SYNTHETIC count-day generator", "licenceKey": null, "notes": "Tests and demos only. Refused in production unless COUNTDAY_ALLOW_SYNTHETIC=1." },
+    { "id": "file-drop", "kind": "file-drop", "status": "unverified", "name": "Operator-placed licensed or official feed file", "licenceKey": "eci-statistical-reports", "notes": "Neutral JSON or CSV schema in docs/COUNT_DAY.md. The operator is responsible for the right to use the file." },
+    { "id": "tcpd-delayed", "kind": "tcpd-delayed", "status": "delayed-fallback", "name": "TCPD / in-rolls archive", "licenceKey": "tcpd-nc", "notes": "Post-count only, declared seats only, non-commercial licence (see licences.json)." },
+    { "id": "http-feed", "kind": "http", "status": "unconfigured", "name": "HTTP feed stub", "licenceKey": null, "notes": "No default URL. Set COUNTDAY_HTTP_URL to a feed you are licensed to use." }
+  ],
+  "links": {
+    "AP": [
+      { "kind": "results-portal", "label": "ECI results portal", "url": "https://results.eci.gov.in/", "verified": false },
+      { "kind": "form20", "label": "Form 20 (booth-wise statement): Chief Electoral Officer, Andhra Pradesh", "url": "https://ceoandhra.nic.in/", "verified": false },
+      { "kind": "affidavit", "label": "Candidate affidavits: ECI affidavit portal", "url": "https://affidavit.eci.gov.in/", "verified": false }
+    ],
+    "TG": [
+      { "kind": "results-portal", "label": "ECI results portal", "url": "https://results.eci.gov.in/", "verified": false },
+      { "kind": "form20", "label": "Form 20 (booth-wise statement): Chief Electoral Officer, Telangana", "url": "https://ceotelangana.nic.in/", "verified": false },
+      { "kind": "affidavit", "label": "Candidate affidavits: ECI affidavit portal", "url": "https://affidavit.eci.gov.in/", "verified": false }
+    ]
+  }
+}

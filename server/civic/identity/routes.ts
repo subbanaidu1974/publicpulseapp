@@ -8,13 +8,14 @@ import {
 import {
   DEGRADED_NOTICE, E164_IN, OTP_NET_WINDOW_MS, OTP_TTL_MS, PIN_RE, WEAK_PIN_MESSAGE, attest, checkPin, consumeOtp, createPersonAsync, deleteAccount,
   getNumberIntelligence, getPerson, hashPin, isLockedAnywhere, isPendingActivation, loginCeilingAllow, loginSourceAllow, loginSourceReset, networkKeys,
-  otpNetworkLimit, otpRemainingMs, personsOnSim, phoneHash, publicPerson, rateAllow, resetPinAsync, smsBudgetAllow, storeOtp, touchActive, verifyPinAsync,
+  otpNetworkLimit, otpRemainingMs, personsOnSim, phoneHash, publicPerson, rateAllow, resetPinAsync, smsBudgetAllow, smsHourlyBudget, storeOtp, touchActive, verifyPinAsync,
   weakPinReason,
 } from "./service";
 import type { OtpPurpose } from "./service";
 import { capScale, requestContext, sourceKey } from "./network";
 import { ENROL_CONTEXTS, activateEnrolment, cancelEnrolment, createEnrolment, listAttestRequests, listEnrolmentsOf } from "./enrolment";
 import { getNotice } from "../households/routes";
+import { markSmsExhausted, otpQueue } from "../../degraded";
 
 export * from "./service";
 export * from "./network";
@@ -66,13 +67,17 @@ async function requestOtp(req: Request, res: Response, purpose: OtpPurpose) {
   }
   const left = otpRemainingMs(phone, purpose);
   if (left > 0) return void res.json({ ok: true, already_sent: true, expires_in_s: Math.ceil(left / 1000) }); // do not let a flood invalidate the owner's pending code
-  if (!smsBudgetAllow()) return fail(res, 429, "sms capacity reached; try again later", { degraded: true, notice: DEGRADED_NOTICE });
+  if (!smsBudgetAllow()) { markSmsExhausted(); return fail(res, 429, "sms capacity reached; try again later", { degraded: true, notice: DEGRADED_NOTICE }); }
+  const lane = otpQueue.admit(smsHourlyBudget()); // budget smoothing: a burst beyond the slot allowance waits in a bounded queue
+  if (lane.lane === "full") { res.set("Retry-After", String(lane.retryAfterSeconds)); return fail(res, 503, "sms queue is full; try again shortly", { degraded: true, notice: DEGRADED_NOTICE, retry_after_seconds: lane.retryAfterSeconds }); }
   const info = await getNumberIntelligence().lookup(phone);
   if (info.voip && purpose === "signup") { audit("system", "signup.blocked", "number_intel", { reason: "voip" }); return fail(res, 403, "this number cannot be used to sign up"); }
   const code = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
   storeOtp(phone, purpose, code);
-  await getSms().send(phone, `People Pulse code: ${code}. Valid for 5 minutes. Do not share it.`);
-  const body: Record<string, unknown> = { ok: true, purpose, expires_in_s: OTP_TTL_MS / 1000 };
+  const text = `People Pulse code: ${code}. Valid for 5 minutes. Do not share it.`;
+  if (lane.lane === "now") await getSms().send(phone, text);
+  else otpQueue.enqueue(() => getSms().send(phone, text), smsHourlyBudget());
+  const body: Record<string, unknown> = { ok: true, purpose, expires_in_s: OTP_TTL_MS / 1000, ...(lane.lane === "queued" ? { queued: true, expected_delay_s: lane.retryAfterSeconds } : {}) };
   if (process.env.CIVIC_EXPOSE_DEV_OTP === "1" && !isProductionEnv() && isLocalHost(req)) body.dev_otp = code;
   res.json(body);
 }

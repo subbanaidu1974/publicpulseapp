@@ -101,6 +101,8 @@ export function installConsole(): void {
 const ID_OK = /^[A-Za-z0-9._-]{8,64}$/;
 
 /** Class of route for logs and metrics. Low cardinality by construction: never includes ids or query strings. */
+import { degradedPayload, recordOutcome } from "./degraded";
+
 export function routeClass(p: string): string {
   if (p === "/healthz" || p === "/readyz" || p === "/metrics") return p.slice(1);
   const m = /^\/api\/v1\/civic\/([a-z-]+)/.exec(p);
@@ -120,6 +122,7 @@ export function resetMetricsForTests(): void { requests.clear(); latency.clear()
 function observe(cls: string, status: number, seconds: number): void {
   const k = `${cls}|${Math.floor(status / 100)}xx`;
   requests.set(k, (requests.get(k) ?? 0) + 1);
+  recordOutcome(status);
   const h = latency.get(cls) ?? { buckets: BUCKETS.map(() => 0), sum: 0, count: 0 };
   BUCKETS.forEach((b, i) => { if (seconds <= b) h.buckets[i]++; });
   h.sum += seconds; h.count++;
@@ -239,8 +242,9 @@ export function obsRouter(deps: ReadyDeps, env: NodeJS.ProcessEnv = process.env)
   r.get("/healthz", noStore, (_req, res) => { res.json({ ok: true, uptimeSeconds: Math.round(process.uptime()) }); });
   r.get("/readyz", noStore, (_req, res) => {
     const rd = computeReadiness(deps);
-    res.status(rd.ok ? 200 : 503).json(rd);
+    res.status(rd.ok ? 200 : 503).json({ ...rd, info: { degraded: degradedPayload() } });
   });
+  r.get("/api/v1/degraded", (_req, res) => { res.setHeader("Cache-Control", "public, max-age=5, stale-while-revalidate=30, stale-if-error=300"); res.json(degradedPayload()); });
   r.get("/metrics", noStore, (req, res) => {
     if (!metricsAllowed(req, env)) return void res.status(404).type("text/plain").send("Not found\n");
     res.type("text/plain; version=0.0.4").send(renderMetrics(deps.jobs, computeReadiness(deps)));

@@ -33,6 +33,9 @@ export const STORE_TABLES: Record<StoreName, string[]> = {
     "survey_closures", "enrolments", "hh_household", "hh_member", "hh_invite", "hh_pin", "hh_invite_cooldown", "hh_transfer", "admin_mfa",
     "admin_mfa_recovery", "role_requests", "officer_role", "issue_links", "erasure_outbox", "people_requests", "people_takedowns", "sms_ledger", "provider_keys",
     "cred_idem",
+    // government notifications (server/civic/notify)
+    "notify_orgs", "notify_senders", "notify_credentials", "notify_challenges", "notify_messages", "notify_approvals", "notify_inbox", "notify_person",
+    "notify_prefs", "notify_devices", "notify_block_log", "notify_kill",
   ],
   issues: [
     "migrations", "issue", "issue_me_too", "issue_event", "issue_sample", "officer_rebuttal", "issue_appeal", "moderation_action", "lexicon_change",
@@ -46,6 +49,10 @@ export const STORE_TABLES: Record<StoreName, string[]> = {
     "survey_results", "survey_query_budget",
     // anonymous credential + responses (server/civic/surveys/responses.ts, credential.ts)
     "survey_signing_key", "spent_token", "survey_response", "survey_response_assisted", "response_journal",
+    // bill consultations (server/civic/consultations/schema.ts)
+    "consultations", "consultation_versions", "consultation_corrections", "consultation_panel_reviews", "consultation_audio_reviews", "consultation_log",
+    "consultation_feedback", "consultation_burst", "consultation_comment_reviews", "consultation_machine_items", "consultation_themes", "consultation_responses",
+    "consultation_reports",
   ],
   audit: ["migrations", "audit_log", "audit_anchors"],
 };

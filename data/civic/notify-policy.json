@@ -1,0 +1,40 @@
+{
+  "_label": "Government notification policy (DESIGN_2028 3.5 and 3.8 item 4). Engineering defaults; the numbers and the declaration wording need counsel and operator sign-off. Read by server/civic/notify (cached; restart to reload). The Telugu text is a DRAFT that needs human review.",
+  "categories": ["emergency", "service", "scheme", "civic", "election_info", "other"],
+  "category_labels": {
+    "emergency": { "en": "Emergency and disaster", "te": "అత్యవసర పరిస్థితి" },
+    "service": { "en": "Service", "te": "సేవ" },
+    "scheme": { "en": "Scheme", "te": "పథకం" },
+    "civic": { "en": "Civic information", "te": "పౌర సమాచారం" },
+    "election_info": { "en": "Election information (Election Commission liaison only)", "te": "ఎన్నికల సమాచారం (ఎన్నికల సంఘం అనుసంధాన అధికారి మాత్రమే)" },
+    "other": { "en": "Other", "te": "ఇతరాలు" }
+  },
+  "org_kinds": {
+    "department": { "categories": ["emergency", "service", "scheme", "civic", "other"], "sender_roles": ["department_sender", "emergency_authority"] },
+    "eci_liaison": { "categories": ["election_info"], "sender_roles": ["eci_liaison"] }
+  },
+  "sender_roles": ["department_sender", "emergency_authority", "eci_liaison"],
+  "approvals": { "standard": 1, "emergency_template": 1, "emergency_free_text": 2 },
+  "caps": {
+    "emergency": { "daily": 20, "weekly": 60 },
+    "service": { "daily": 2, "weekly": 6 },
+    "scheme": { "daily": 1, "weekly": 3 },
+    "civic": { "daily": 1, "weekly": 4 },
+    "election_info": { "daily": 1, "weekly": 3 },
+    "other": { "daily": 1, "weekly": 2 }
+  },
+  "sender_caps": { "per_org_per_hour": 10, "per_org_per_day": 40, "emergency_exempt": true },
+  "quiet_hours": { "default_start": "21:00", "default_end": "07:00", "timezone": "IST", "bypass": ["emergency"] },
+  "sms_fallback": { "always_for": ["emergency"], "otherwise_only_if_person_opted_in_to_sms": true },
+  "limits": { "title_chars": 80, "text_chars": 300, "slot_chars": 80, "reason_chars_min": 10, "max_audience": 200000, "message_ttl_hours": 24, "antiphish_min": 3, "antiphish_max": 30 },
+  "webauthn": { "challenge_ttl_s": 120, "require_user_verification": true, "challenge_rate_per_10min": 20 },
+  "allowed_link_domains": ["gov.in", "nic.in", "eci.gov.in", "ceoandhra.nic.in", "ceotelangana.nic.in"],
+  "mcc": {
+    "unknown_blocks": ["scheme", "other"],
+    "declaration": {
+      "text_en": "I declare that this message is issued on the responsibility of the sending department, promotes no party, candidate or scheme announcement barred under the Model Code of Conduct in force for this area, and is either an emergency notice or a pre-cleared template.",
+      "text_te": "ఈ సందేశం పంపిన శాఖ బాధ్యతతో జారీ అవుతుందని, ఈ ప్రాంతంలో అమలులో ఉన్న ఆదర్శ ప్రవర్తనా నియమావళి ప్రకారం నిషేధించబడిన ఏ పార్టీ, అభ్యర్థి లేదా పథక ప్రకటనను ఇది ప్రోత్సహించదని, ఇది అత్యవసర నోటీసు లేదా ముందే ఆమోదించిన నమూనా అని ప్రకటిస్తున్నాను.",
+      "min_reason_chars": 10
+    }
+  }
+}

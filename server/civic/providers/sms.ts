@@ -103,6 +103,10 @@ export function defaultCivicTemplates(senderId?: string): SmsTemplate[] {
     { id: "ivr_failed", category: "service", body: "People Pulse: we could not file this by phone. Please sign up or sign in on the app, then try again. We never ask for OTP or bank details.", ...base },
     { id: "enrol_activation", category: "transactional", body: "{{notice:1500}}\n\nPeople Pulse activation. Code: {{activation:16}}  OTP: {{otp:8}}\nEnter both in the app and choose your OWN PIN. Never tell the PIN to anyone, including the volunteer. Valid 72 hours (OTP 5 minutes).", ...base },
     { id: "household_invite", category: "service", body: "{{te:1500}}\n\n{{en:1500}}\n\nInvite code: {{invite:40}}\nValid 72 hours. [DRAFT NOTICE {{version:20}}]", ...base },
+    // Government notifications (server/civic/notify): SMS fallback. NO dltTemplateId on purpose: UNAPPROVED placeholders until the operator registers
+    // them on the DLT portal (production refuses to send them). The Telugu text is a DRAFT that needs human review.
+    { id: "notify_sms_en", category: "service", body: "People Pulse [{{word:30}}] {{org:60}}: {{text:480}} We never ask for OTP, PIN, payment or login.", ...base },
+    { id: "notify_sms_te", category: "service", body: "పీపుల్ పల్స్ [{{word:30}}] {{org:60}}: {{text:480}} మేము ఎప్పుడూ OTP, PIN, చెల్లింపు లేదా లాగిన్ అడగము.", ...base, language: "te" },
   ];
 }
 

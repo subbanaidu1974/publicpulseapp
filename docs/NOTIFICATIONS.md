@@ -1,0 +1,45 @@
+# Government notifications (S-37, S-38, S-39)
+
+Code: `server/civic/notify/**`. Policy: `data/civic/notify-policy.json`. MCC templates: `data/reference/mcc-templates.json` (examples only, none cleared). Router: `/api/v1/civic/notify`. Design: DESIGN_2028 3.5, 3.8 item 4, decisions E1 and I1. Tests: `tests/civic/notify` (tags `@E2E-46`, `@E2E-47`, `@E2E-48`).
+
+There is **no push provider** (FCM/APNs). `PushTransport` is an interface; the dev transport is an in-memory outbox and, in production, reports `no_push_provider`, so emergency SMS and the in-app inbox are the real channels until an adapter is written.
+
+## Tables (identity store, listed in `STORE_TABLES`)
+`notify_orgs`, `notify_senders`, `notify_credentials`, `notify_challenges`, `notify_messages`, `notify_approvals`, `notify_inbox`, `notify_person`, `notify_prefs`, `notify_devices`, `notify_block_log`, `notify_kill`. Preferences and inbox are erased with the person (erasure hook). Audit metadata never contains message text or phone numbers.
+
+## Sender flow
+1. Admin A files an organisation (`POST /admin/orgs`, TOTP) with evidence: `letter_ref`, `email_domain` (must be on the government domain list), `contact`. A different admin B verifies it (TOTP). Status pending to verified.
+2. Admin A binds a person to the org with a role (`department_sender`, `emergency_authority`, `eci_liaison`); a different admin approves. An admin cannot bind themselves.
+3. The sender registers a FIDO2 key (`/webauthn/register/*`). Without a key every create/approve/send fails with `fido2_required`; an unverified or unbound person gets `sender_unverified`.
+4. Sender A creates a message; a different sender of the same org approves it with their own assertion; then sender A sends with a fresh assertion. Free-text emergency needs 2 distinct approvers (policy `approvals`), a template emergency or any other category needs 1.
+5. The challenge for approve/send is `SHA-256("notify-assert|purpose|message_id|msg_hash|nonce")`, so the authenticator signs over the message hash. Challenges are single use, expire (120 s) and are checked against the current hash at send time.
+6. At send the payload is canonical JSON, signed Ed25519 with the platform key, and stored with `key_id`. Verify `signed_payload` with the public key from `GET /keys` (pin it; never trust a key inside a notification).
+7. Kill switch: `POST /admin/kill` (one admin + TOTP, instant, scope `all` or `org`) blocks create/approve/send and is audited; releasing needs a request by one admin and approval by another. (Design choice: engaging is single-admin because it only reduces capability; lifting is dual control. Change if the spec requires dual control to engage.)
+
+Block codes: `sender_unverified`, `fido2_required`, `not_a_sender`, `kill_switch` (423), `category_not_allowed`, `content_policy` (422, with rule names), `approval_required`, `dual_control`, `mcc_*`, `sender_rate_cap` (429), `audience_too_large`, `webauthn_*`, `challenge_*`.
+
+## Recipient controls
+Categories: emergency, service, scheme, civic, election_info, other (policy file). Emergency is always on and cannot be switched off; everything else is opt-in. Per-person daily/weekly caps per category, quiet hours default 21:00-07:00 IST (person-set; emergency bypasses; deferred messages are delivered by job `notifyDeferred` after the window, or dropped when the message expired). Emergency goes to inbox, push and SMS; other categories use SMS only when push failed/blocked/absent AND the person set `sms_ok`. SMS goes through `getSms()`; with the managed provider it uses templates `notify_sms_en` / `notify_sms_te` (placeholders **without DLT ids = unapproved**; production refuses them until real ids are supplied through `CIVIC_SMS_TEMPLATES_FILE`). The Telugu texts are drafts needing human review.
+
+Anti-phishing: each person sets a private word, stored encrypted (`notify-antiphish`), shown in every inbox item, push payload and SMS. A content linter rejects (at create and again at send) OTP, PIN, password, login, "click here", payment/bank/card/UPI, Aadhaar number requests, "share/send/enter ... code", and any link not https on an allow-listed domain (also Telugu forms). The platform footer "we never ask for OTP..." is added by the platform, not the sender. Known limit: the word "PIN" in any sense (for example a postal PIN code) is rejected.
+
+## MCC mode
+`windowState(state)` from `server/window.ts` (district entries use the calendar key `STATE:DISTRICT`; blackout on either wins). Open: normal. Blackout: non-emergency passes only with a template from `mcc-templates.json` whose `cleared_by` and `cleared_on` are set and `example` is not true, with a category match, **plus** the sender's declaration (`accepted: true`, reason of at least 10 characters; the checkbox text is stored with the message). Unknown (no/unreadable calendar, outside coverage): categories in `mcc.unknown_blocks` (`scheme`, `other`) are blocked. Emergency always passes but needs the declaration whenever the window is not open. Every block, MCC or otherwise, is written to the public block log. The shipped template file contains only EXAMPLE entries with `cleared_by: null`; no clearance is invented, so in a real blackout nothing but emergency passes until the operator adds real clearances.
+
+## Routes (JSON; auth = `Authorization: Bearer <session>`)
+Public: `GET /keys` {keys:[{key_id, version, alg:"Ed25519", public_key (base64url raw), spki}]} · `GET /block-log?limit&before` {entries:[{id, time_bucket, sender_org, category, reason_code}]} · `GET /policy` · `GET /templates` {templates:[... , cleared]} · `GET /senders` · `GET /senders/:org_id/log` (public per-sender audit: sent messages, signatures, declarations).
+
+Recipient: `GET|PUT /prefs` {categories:{service:true,...}, quiet_hours:{start:"22:00",end:"06:00"}, language:"te"|"en", sms_ok, push_blocked} (GET returns categories with `{opted_in, locked}`) · `POST /unsubscribe` · `PUT /antiphish` {word} · `GET /antiphish` · `POST /devices` {token, platform} / `DELETE /devices` · `GET /inbox?limit` {items:[{id, message_id, category, sender:{org_id,name}, title, text, title_en/te, text_en/te, sent_at, delivered_at, read, antiphish_word, signature, key_id, signed_payload, channels}], unread} · `POST /inbox/:id/read`.
+
+Sender: `GET /sender/me` · `POST /webauthn/register/options` (returns PublicKeyCredentialCreationOptions with base64url `challenge`) · `POST /webauthn/register/verify` (the credential as the browser returns it, with ArrayBuffers base64url encoded: `{id, rawId, type, response:{clientDataJSON, attestationObject}}`) · `POST /messages` {org_id?, category, target:{state, district?, units[]|all_in_state}, text_en, text_te, title_en?, title_te?, template_id?, slots?, declaration?:{accepted, reason}} · `GET /messages`, `GET /messages/:id` · `POST /messages/:id/challenge` {purpose:"approve"|"send"} (returns `challenge`, `rpId`, `allowCredentials`, `message_hash`) · `POST /messages/:id/approve` {assertion:{id, rawId, type, response:{clientDataJSON, authenticatorData, signature}}} · `POST /messages/:id/send` {assertion} · `POST /messages/:id/cancel`.
+
+Admin (admin role; mutating calls need `x-totp-code`): `GET|POST /admin/orgs`, `POST /admin/orgs/:id/verify|reject`, `GET|POST /admin/senders`, `POST /admin/senders/:id/approve|reject|revoke`, `POST /admin/credentials/:id/revoke`, `GET|POST /admin/kill`, `POST /admin/kill/:id/release-request|release-approve`.
+
+## WebAuthn: approach and what needs review
+In-house (`webauthn.ts`, node:crypto, no dependency): CBOR decoder (definite lengths), COSE ES256 and Ed25519, registration with attestation `none` only (other formats refused), assertion with rpIdHash, UP and UV flags, origin, challenge, signature and counter checks (non-increasing counter refused when either side is non-zero). **Needs independent review and interop testing with real hardware keys and browsers.** Not done: attestation trust/authenticator allow-listing, RS256, resident keys, extensions. The tests use a software authenticator, not real keys.
+
+## Signing key: honest limit
+The KeyProvider only exposes hmac/encrypt, so the Ed25519 pair is derived from purpose `notify-signing` (`sign.ts`). The private key exists in process memory while signing; true HSM-resident signing needs a `sign` call in a KMS adapter (not built). Rotation keeps old public keys listed in `GET /keys`.
+
+## Left / not built
+Real push adapter; HSM `sign` operation; per-sender anomaly alerts; background worker for very large fan-outs (sending is in-request, capped by `max_audience`); consultation-invite category; DLT registration of the SMS templates; counsel review of the declaration wording; native review of Telugu text and the Telugu linter list; clearing real MCC templates; cross-store audience resolution by village-to-state (targeting uses unit codes or `all_in_state` over declared residences).

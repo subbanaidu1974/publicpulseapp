@@ -53,7 +53,7 @@ export async function runOtpFlood(opts: { smoke?: boolean } = {}): Promise<Phase
       const p = await probe(srv.base, probeAs, randPhone());
       const warnings: string[] = [];
       if (p.status === 429 && !p.retryAfter) warnings.push("OTP-cap 429 has no Retry-After header (server/civic/identity/routes.ts fail())");
-      if (degraded503) warnings.push("SMS budget exhausted answers 503 (a 5xx) with degraded:true and no Retry-After; callers expect 429 + Retry-After");
+      if (p.status === 503 && !p.retryAfter) warnings.push("OTP queue-full 503 has no Retry-After (server/degraded.ts; docs/DEGRADED_MODE.md)"); // queue full: 503 + Retry-After + degraded:true is the documented answer
       if (edge) { const ra = await edgeRetryAfter(srv.base); if (ra === null) warnings.push("edge limiter 429 has no Retry-After"); else if (ra === "unthrottled") warnings.push("edge limiter did not throttle"); }
       const ok = unexpected5xx === 0 && stats.errors === 0 && sent <= maxSent && !warnings.some((w) => w.startsWith("edge"));
       const note = p.status === 429 ? (p.retryAfter ? `probe 429 with Retry-After ${p.retryAfter}` : "probe 429 without Retry-After") : `probe ${p.status}${p.degraded ? " degraded" : ""}`;

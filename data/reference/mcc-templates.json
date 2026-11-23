@@ -1,0 +1,44 @@
+{
+  "_label": "Pre-cleared notification templates for Model Code of Conduct windows (DESIGN_2028 3.5, decision E1). SCHEMA + EXAMPLES ONLY. Every entry below is an EXAMPLE with cleared_by: null: no clearance has been obtained from any Election Commission and none is implied. A template is usable during an MCC window ONLY when cleared_by and cleared_on are filled in by the operator with a real, citable clearance in `source`. Never invent a clearance.",
+  "schema": 1,
+  "fields": {
+    "id": "unique, [a-z0-9_.-]",
+    "category": "one of data/civic/notify-policy.json categories",
+    "text_en / text_te": "message text; {slot} placeholders",
+    "slots": "map slot name -> { max: number }; a message supplies a value for each slot (linted like all content)",
+    "cleared_by": "name of the authority that cleared this exact text, or null (= NOT cleared, unusable in an MCC window)",
+    "cleared_on": "YYYY-MM-DD of the clearance, or null",
+    "source": "reference to the clearance document, or a note that the entry is an example",
+    "example": "true marks an illustrative entry"
+  },
+  "templates": [
+    {
+      "id": "example.emergency.rain-alert", "example": true, "category": "emergency",
+      "text_en": "Heavy rain alert for {area}. Stay indoors, avoid flooded roads and follow instructions of local officials.",
+      "text_te": "{area} కు భారీ వర్ష హెచ్చరిక. ఇంట్లోనే ఉండండి, నీరు నిలిచిన రోడ్లను నివారించండి, స్థానిక అధికారుల సూచనలను పాటించండి.",
+      "slots": { "area": { "max": 60 } },
+      "cleared_by": null, "cleared_on": null, "source": "EXAMPLE ONLY: not cleared by anyone"
+    },
+    {
+      "id": "example.emergency.cyclone-shelter", "example": true, "category": "emergency",
+      "text_en": "Cyclone warning for {area}. Move to the nearest relief shelter: {place}.",
+      "text_te": "{area} కు తుఫాను హెచ్చరిక. సమీపంలోని సహాయ శిబిరానికి వెళ్లండి: {place}.",
+      "slots": { "area": { "max": 60 }, "place": { "max": 80 } },
+      "cleared_by": null, "cleared_on": null, "source": "EXAMPLE ONLY: not cleared by anyone"
+    },
+    {
+      "id": "example.service.health-camp", "example": true, "category": "service",
+      "text_en": "Free health camp at {place} on {date}, {time}.",
+      "text_te": "{place} లో {date} న {time} కు ఉచిత ఆరోగ్య శిబిరం.",
+      "slots": { "place": { "max": 80 }, "date": { "max": 20 }, "time": { "max": 20 } },
+      "cleared_by": null, "cleared_on": null, "source": "EXAMPLE ONLY: not cleared by anyone"
+    },
+    {
+      "id": "example.election_info.roll-check", "example": true, "category": "election_info",
+      "text_en": "Electoral roll revision is open until {date}. Check your entry at your booth level officer or the official Election Commission website.",
+      "text_te": "ఎన్నికల జాబితా సవరణ {date} వరకు తెరిచి ఉంది. మీ బూత్ స్థాయి అధికారిని సంప్రదించండి లేదా అధికారిక ఎన్నికల సంఘం వెబ్‌సైట్‌లో చూడండి.",
+      "slots": { "date": { "max": 20 } },
+      "cleared_by": null, "cleared_on": null, "source": "EXAMPLE ONLY: not cleared by anyone"
+    }
+  ]
+}
