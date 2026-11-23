@@ -119,5 +119,11 @@ export const EN = {
   "reason.bad_kind": "Unknown kind of organisation.", "reason.letter_ref_required": "The official letter reference is required.", "reason.contact_required": "A contact is required.",
   "reason.already_engaged": "This is already stopped.", "reason.reason_required": "A reason of at least 5 characters is required.", "reason.release_not_requested": "Request the release first.", "reason.already_released": "Already released.",
   "reason.credential_exists": "That key is already registered.", "reason.bad_word": "That word cannot be used. Use plain words, no links, symbols or long numbers.", "reason.emergency_locked": "Emergency notices cannot be switched off.",
-  "reason.bad_quiet_hours": "Give two different times.", "reason.unknown": "This could not be done"
+  "reason.bad_quiet_hours": "Give two different times.", "reason.unknown": "This could not be done",
+  "status.title": "Sending status", "status.window": "Election period, {state}", "status.kill": "Sending is suspended", "status.orgsSuspended": "{n} sender organisation(s) are suspended individually.", "status.unavailable": "The sending status could not be loaded.",
+  "lint.live": "Live check", "lint.liveClean": "No problems found in this text. The server checks again when you create the message.", "lint.liveFound": "This text would be refused:", "lint.liveFail": "The live check is not available right now. The server still checks when you create the message.",
+  "dev.title": "Registered devices", "dev.none": "No device is registered for app notifications.", "dev.count": "{n} device(s) registered", "dev.item": "{label}, added {at}",
+  "adm.find": "Find a person", "adm.findHint": "Type a full phone number or part of a volunteer label. Phone numbers are never shown: you see an opaque id, the last 4 digits and the roles the person holds.", "adm.findBtn": "Search", "adm.noMatch": "No person matches.",
+  "adm.pickPerson": "Use this person", "adm.picked": "Selected person", "adm.tail": "number ending {tail}", "adm.roles": "Roles: {roles}", "adm.noRoles": "no special roles", "adm.alreadySender": "Already a sender: {org} ({status})",
+  "adm.keysShow": "Show security keys", "adm.keysNone": "This sender has no security keys.", "adm.keyLine": "Key added {at}, last used {used}", "adm.keyNever": "never", "adm.keyRevoked": "revoked"
 };

@@ -30,7 +30,7 @@ export const STORE_NAMES: StoreName[] = ["identity", "issues", "survey", "audit"
 export const STORE_TABLES: Record<StoreName, string[]> = {
   identity: [
     "migrations", "store_meta", "persons", "sessions", "consents", "roles", "otps", "rate_events", "attestations", "has_responded", "pin_failures",
-    "survey_closures", "enrolments", "hh_household", "hh_member", "hh_invite", "hh_pin", "hh_invite_cooldown", "hh_transfer", "admin_mfa",
+    "survey_closures", "enrolments", "enrolment_rechecks", "hh_household", "hh_member", "hh_invite", "hh_pin", "hh_invite_cooldown", "hh_transfer", "admin_mfa",
     "admin_mfa_recovery", "role_requests", "officer_role", "issue_links", "erasure_outbox", "people_requests", "people_takedowns", "sms_ledger", "provider_keys",
     "cred_idem",
     // government notifications (server/civic/notify)

@@ -33,3 +33,6 @@ data/generated/countday/
 
 # local pre-migration backups (written automatically before schema changes)
 data/backups/
+
+# staged data refresh working copies and previous set (scripts/refresh-data.ts)
+data/refresh/

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { notifyApi, type AdminOrg, type AdminSender, type KillRow } from "../../api/notify";
-import { AntiPhishBanner, Btn, type Keyed, ErrorNote, Field, NeedSignIn, Shell, TextInput, card, errorText, linkCls, signedIn, useLoad, usePolicy } from "./shared";
+import { notifyApi, type AdminOrg, type AdminSender, type KillRow, type PersonHit, type SenderCredential } from "../../api/notify";
+import { AntiPhishBanner, Btn, type Keyed, ErrorNote, Field, NeedSignIn, Shell, TextInput, card, errorText, fmtTime, linkCls, signedIn, useLoad, usePolicy } from "./shared";
 import { useNotifyT } from "./notifyText";
 
 const sel = "min-h-[44px] border border-black bg-white text-black px-3 text-base w-full";
@@ -18,12 +18,21 @@ function AdminBody() {
   const [org, setOrg] = useState({ name: "", kind: "department", letter_ref: "", email_domain: "", contact: "" });
   const [snd, setSnd] = useState({ org_id: "", person_id: "", role: "" });
   const [kill, setKill] = useState({ scope: "org" as "all" | "org", org_id: "", reason: "" });
-  const [credId, setCredId] = useState("");
+  const [find, setFind] = useState(""), [hits, setHits] = useState<PersonHit[] | null>(null), [picked, setPicked] = useState<PersonHit | null>(null);
+  const [keys, setKeys] = useState<{ sender: string; rows: SenderCredential[] } | null>(null);
   const code = totp.trim();
   const needCode = code.length !== 6;
   const run = async (fn: (c: string) => Promise<unknown>, ok: string) => {
     setErr(null); setMsg(null);
     try { await fn(code); setMsg(ok); orgs.reload(); senders.reload(); kills.reload(); } catch (e) { setErr(errorText(t, e)); } finally { setTotp(""); }
+  };
+  const search = async () => {
+    setErr(null); setMsg(null);
+    try { setHits((await notifyApi.adminPeople(find.trim())).people); } catch (e) { setHits(null); setErr(errorText(t, e)); }
+  };
+  const showKeys = async (sender: string) => {
+    setErr(null);
+    try { setKeys({ sender, rows: (await notifyApi.adminCredentials(sender)).credentials }); } catch (e) { setErr(errorText(t, e)); }
   };
   if (orgs.loading) return <p role="status">{t("loading")}</p>;
   if (orgs.error) return <p role="alert" data-testid="nt-load-fail" className="font-bold">{errorText(t, orgs.error)}</p>;
@@ -51,7 +60,14 @@ function AdminBody() {
           <Btn secondary disabled={needCode} onClick={() => run((c) => notifyApi.decideSender(s.id, "reject", c), t("adm.senderRejected"))}>{t("adm.reject")}</Btn>
         </>}
         {s.status === "active" && <Btn secondary data-testid="adm-sender-revoke" disabled={needCode} onClick={() => run((c) => notifyApi.decideSender(s.id, "revoke", c), t("adm.senderRevoked"))}>{t("adm.revoke")}</Btn>}
+        {s.status !== "rejected" && <Btn secondary data-testid="adm-keys-show" onClick={() => void showKeys(s.id)}>{t("adm.keysShow")}</Btn>}
       </div>
+      {keys?.sender === s.id && (keys.rows.length === 0 ? <p className="text-sm" data-testid="adm-keys-none">{t("adm.keysNone")}</p> : (
+        <ul className="space-y-1" data-testid="adm-keys">{keys.rows.map((k) => (
+          <li key={k.id} className="flex flex-wrap items-center gap-2 text-sm" data-testid="adm-key" data-revoked={k.revoked ? "1" : "0"}>
+            <span>{t("adm.keyLine", { at: fmtTime(k.created_at), used: k.last_used_at ? fmtTime(k.last_used_at) : t("adm.keyNever") })}{k.revoked ? ` (${t("adm.keyRevoked")})` : ""}</span>
+            {!k.revoked && <Btn secondary data-testid="cred-revoke" disabled={needCode} onClick={() => run(async (c) => { await notifyApi.revokeCredential(k.id, c); await showKeys(s.id); }, t("adm.credRevoked"))}>{t("adm.credRevoke")}</Btn>}
+          </li>))}</ul>))}
     </li>
   );
   const KillItem = ({ k }: { k: KillRow } & Keyed) => (
@@ -99,15 +115,24 @@ function AdminBody() {
         <p className="text-sm">{t("adm.sendersExplain")}</p>
         <form className={`${card} space-y-2`} data-testid="adm-sender-form" onSubmit={(e) => { e.preventDefault(); void run((c) => notifyApi.requestSender(snd, c), t("adm.senderFiled")); }}>
           <Field id="s-org" label={t("adm.pickOrg")}><select id="s-org" data-testid="sender-org" className={sel} value={snd.org_id} onChange={(e) => setSnd({ ...snd, org_id: e.target.value, role: "" })}><option value="">-</option>{verified.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></Field>
-          <Field id="s-person" label={t("adm.person")}><TextInput id="s-person" data-testid="sender-person" value={snd.person_id} onChange={(e) => setSnd({ ...snd, person_id: e.target.value.trim() })} /></Field>
+          <fieldset className="space-y-2 border border-black/40 p-3" data-testid="person-finder">
+            <legend className="font-bold text-sm">{t("adm.find")}</legend>
+            <p className="text-xs">{t("adm.findHint")}</p>
+            <Field id="s-find" label={t("adm.find")}><TextInput id="s-find" data-testid="sender-find" autoComplete="off" value={find} onChange={(e) => setFind(e.target.value)} /></Field>
+            <Btn secondary type="button" data-testid="sender-find-btn" disabled={find.trim().length < 3} onClick={() => void search()}>{t("adm.findBtn")}</Btn>
+            {hits && (hits.length === 0 ? <p className="text-sm" data-testid="adm-nomatch">{t("adm.noMatch")}</p> : (
+              <ul className="space-y-2" data-testid="adm-people">{hits.map((h) => (
+                <li key={h.person_id} className="border border-black/30 p-2 text-sm space-y-1" data-testid="adm-person" data-person-id={h.person_id}>
+                  <p>{h.phone_tail ? t("adm.tail", { tail: h.phone_tail }) : "-"} - {h.roles.length ? t("adm.roles", { roles: h.roles.map((r) => r.role + (r.department ? ` (${r.department})` : "")).join(", ") }) : t("adm.noRoles")}</p>
+                  {h.senders.map((x) => <p key={x.sender_id} className="text-xs">{t("adm.alreadySender", { org: x.org_name, status: t(`sstatus.${x.status}`) })}</p>)}
+                  <Btn secondary type="button" data-testid="adm-person-pick" onClick={() => { setPicked(h); setSnd({ ...snd, person_id: h.person_id }); setHits(null); }}>{t("adm.pickPerson")}</Btn>
+                </li>))}</ul>))}
+            {picked && <p className="text-sm font-bold" data-testid="sender-picked" data-person-id={picked.person_id}>{t("adm.picked")}: {picked.phone_tail ? t("adm.tail", { tail: picked.phone_tail }) : picked.person_id.slice(0, 8)}</p>}
+          </fieldset>
           <Field id="s-role" label={t("adm.role")}><select id="s-role" data-testid="sender-role" className={sel} value={snd.role} onChange={(e) => setSnd({ ...snd, role: e.target.value })}><option value="">-</option>{roles.map((r) => <option key={r} value={r}>{t(`role.${r}`)}</option>)}</select></Field>
           <button type="submit" data-testid="sender-file" disabled={needCode || !snd.org_id || !snd.person_id || !snd.role} className="min-h-[44px] px-4 border border-black bg-black text-white font-bold disabled:opacity-60">{t("adm.file")}</button>
         </form>
         <ul className="space-y-2">{(senders.data ?? []).map((s) => <SenderRow key={s.id} s={s} />)}</ul>
-        <form className={`${card} space-y-2`} data-testid="adm-cred-form" onSubmit={(e) => { e.preventDefault(); void run((c) => notifyApi.revokeCredential(credId.trim(), c), t("adm.credRevoked")); }}>
-          <Field id="c-id" label={t("adm.credId")}><TextInput id="c-id" data-testid="cred-id" value={credId} onChange={(e) => setCredId(e.target.value)} /></Field>
-          <button type="submit" data-testid="cred-revoke" disabled={needCode || !credId.trim()} className="min-h-[44px] px-4 border border-black bg-white text-black font-bold disabled:opacity-60">{t("adm.credRevoke")}</button>
-        </form>
       </section>
 
       <section className="space-y-2" aria-labelledby="ak-h" data-testid="adm-kill-panel">

@@ -21,7 +21,7 @@ Content (hashed, sha256 of canonical JSON): title EN/TE, department, bill refere
 
 **Corrections**: after submission a change is `POST /:id/corrections` (reason EN mandatory). It creates a *pending* new version; the public keeps the old one until the same two approvals (`panel/review` with `correction_id`). The new version gets its own sha256; `GET /:id/versions/:n` serves every version; the public log records `correction_proposed` and `corrected` with the reason.
 
-**Audio**: metadata only (`group`, `file_id`, `duration_s` <= 60, `status`). Input status is `placeholder` or `recorded`; `reviewed` is rejected on input. `POST /:id/audio/review` (panel) records a human review of a `recorded` file and only then does the public payload show `reviewed`. A placeholder can never be reviewed.
+**Audio**: metadata in the content (`group`, `file_id`, `duration_s` <= 60, `status`) plus the stored file. Input status is `placeholder` or `recorded`; `reviewed` is rejected on input. `POST /:id/audio/upload?clause=&group=` (owner: officer of the department or admin) takes the raw audio body for a recording that already has a `file_id`: the type is sniffed from the bytes (ogg, wav, mp3, m4a, webm, flac; anything else 415 `audio_type_unsupported`), the size is capped (`CONSULT_AUDIO_MAX_BYTES`, default 5 MiB, 413 `audio_too_large`), the sha256 is recorded (`consultation_audio_files`, migration `consult_002_audio_files`) and the file is stored under `CONSULT_AUDIO_DIR` (default `<CIVIC_MEDIA_DIR>/consultation-audio/<consultation id>/<generated name>`; a client name never reaches the file system). A re-upload replaces the bytes until the recording is reviewed (then 409 `audio_already_reviewed`). `POST /:id/audio/review` (panel) records a human review of a `recorded` file and only then does the public payload show `reviewed`. A placeholder can never be reviewed. `GET /:id/clauses/:n/audio/:group` streams the file ONLY once that exact recording is `recorded` and reviewed: 409 `audio_not_reviewed` before, 404 `audio_not_found` / `audio_file_missing` otherwise. It sends the sniffed `Content-Type`, `X-Content-Type-Options: nosniff`, `Accept-Ranges: bytes` (206 / 416 for `Range`), an `ETag` (the sha256, 304 on `If-None-Match`), `Cache-Control: no-store` for every refusal and while the consultation is still `in_review`, `public, max-age=300` once it is approved or later.
 
 ## Eligibility and feedback
 
@@ -54,7 +54,7 @@ Job `consultations` (every minute, registered via `registerJob` from `hooks.ts`)
 
 | Route | Who | Notes |
 |---|---|---|
-| `GET /` | public | `status`, `department`, `q`, `overdue=1`, `limit`, `cursor`; items: id, status, department, titles, bill_ref, source_url, scope, window, version, content_hash, closing_report |
+| `GET /` | public | `status`, `department`, `state` (e.g. `AP`, 400 `state_invalid` otherwise), `q`, `overdue=1`, `limit`, `cursor`; items: id, status, department, titles, bill_ref, source_url, scope, window, version, content_hash, closing_report, plus `affected_groups` and `clause_count` so a card needs no detail request |
 | `GET /mine` | officer, admin | own / department consultations incl. drafts with wording `findings` |
 | `GET /:id` | public | detail: `clauses[{n, original_text, original_ref, summary_en, summary_te, audio[{group,file_id,duration_s,status}]}]`, `affected_groups`, `versions`, `panel`, `stances`, `closing_report` |
 | `GET /:id/clauses/:n` | public | one clause plus stances |
@@ -65,12 +65,16 @@ Job `consultations` (every minute, registered via `registerJob` from `hooks.ts`)
 | `POST /:id/panel/review` | admin, survey_panel | `{decision, notes, correction_id?}` |
 | `POST /:id/publish`, `/close`, `/complete` | owner | owner = creator, officer of the department, admin |
 | `POST /:id/corrections` | owner | `{reason_en, reason_te?, clauses:[{n, summary_en?, summary_te?, original_text?, original_ref?, audio?}]}` |
+| `POST /:id/audio/upload?clause=&group=` | owner | raw audio body -> 201 `{mime, bytes, sha256, file_id, reviewed:false}`; see Audio |
 | `POST /:id/audio/review` | admin, survey_panel | `{clause, group}` |
+| `GET /:id/clauses/:n/audio/:group` | public | the reviewed recording (range supported); 409 `audio_not_reviewed` until a panel member reviews it |
+| `GET /:id/corrections?status=` | owner, officer of the department, survey_panel, admin | `{current_version, corrections:[{id, from_version, to_version, content_hash, status: pending\|applied\|rejected, reason_en, reason_te, approvals, rejections, diff:[{clause, field, before, after}]}]}`; the panel picks the `id` from here (no pasted ids) |
+| `GET /:id/comments/held?status=rejected` | moderator, admin | held comments with their `feedback_id`: `{comments:[{feedback_id, clause, stance, comment, reasons[], public_ok}]}`; no author identity. Audited as a sensitive read |
 | `POST /:id/feedback` | auth | `{clause, stance, comment?, public_ok?}` -> `{clause, stance, edited, comment_status: none\|ok\|held, comment_public}`; 201 first time, 200 edit |
 | `GET /:id/mine` | auth | own feedback, `eligible`, `ineligible{code,message}`, `editable_until` |
 | `GET /:id/figures` | public | after close + delay: `participation`, `clauses[{clause, published, participants, stances[{id,count,share}], other, cells[], suppressed_reason}]`, `weighted`, `method_note` |
 | `GET /:id/comments` | public | after close + delay: opted-in, moderated comments; `clause`, `limit`, `offset` |
-| `POST /:id/comments/:fid/moderate` | moderator, admin | `{decision: release\|keep_held}` |
+| `POST /:id/comments/:fid/moderate` | moderator, admin | `{decision: release\|reject\|keep_held}`; `reject` marks the comment rejected (it stays out of the public list and leaves the held queue; a new edit by its author sends it through the check again) |
 | `GET /:id/analyst` | staff | flags, clusters, coverage, suggested sample, themes |
 | `POST /:id/review/comments`, `/review/run`, `/themes` | staff | see above |
 | `GET /:id/closing-report` | public | published report with `snapshot_hash` (else 404 `report_not_published` with `closing_report` state) |
@@ -82,7 +86,7 @@ Error body: `{error, code, ...}`. Staff = admin, officer of the department, mode
 
 ## Environment
 
-`CONSULT_FEEDBACK_PER_MIN_PERSON`, `CONSULT_FEEDBACK_PER_MIN_NET`, `CONSULT_BURST_PER_MIN`, `CONSULT_DUP_THRESHOLD`, `CONSULT_CLUSTER_FLAG_MIN`, `CONSULT_REPORT_DUE_DAYS` (see `.env.example`); plus the shared `SURVEY_MIN_CELL`, `SURVEY_ROUND_TO`, `SURVEY_PUBLISH_DELAY_HOURS`, `SURVEY_MIN_OPTION_*`, `CIVIC_SURVEY_MIN_ACCOUNT_DAYS`.
+`CONSULT_FEEDBACK_PER_MIN_PERSON`, `CONSULT_FEEDBACK_PER_MIN_NET`, `CONSULT_BURST_PER_MIN`, `CONSULT_DUP_THRESHOLD`, `CONSULT_CLUSTER_FLAG_MIN`, `CONSULT_REPORT_DUE_DAYS`, `CONSULT_AUDIO_DIR`, `CONSULT_AUDIO_MAX_BYTES` (see `.env.example`); plus the shared `SURVEY_MIN_CELL`, `SURVEY_ROUND_TO`, `SURVEY_PUBLISH_DELAY_HOURS`, `SURVEY_MIN_OPTION_*`, `CIVIC_SURVEY_MIN_ACCOUNT_DAYS`.
 
 ## Not done / limits
 

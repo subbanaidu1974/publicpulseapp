@@ -59,4 +59,5 @@ Failure meanings: "manifest sha256" = file damaged or tampered with in storage; 
 | `/readyz` 503 | The failing check in the JSON body: `db`, `migrations` (pending or drift), `auditChain` (alarm) |
 | `auditChain` alarm | Do not restart to clear it. Open `docs/BREACH_RUNBOOK.md`; compare the DB with the latest anchor and the newest backup |
 | Jobs failing | `/metrics`: `pulse_job_last_ok{job="..."} 0`; the admin endpoint `/api/v1/civic/ops/jobs` shows the last error text |
+| `/readyz` `info.dataFreshness.raised` | `GET /api/v1/data-freshness` lists stale datasets; refresh with `npm run refresh:data` (docs/DATA_REFRESH.md); undo with `-- --rollback` |
 | Startup refuses in production | The message lists each guard that failed (docs/DEPLOYMENT.md section 1) |

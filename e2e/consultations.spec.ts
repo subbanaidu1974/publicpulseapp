@@ -15,7 +15,6 @@ test.describe('registry and detail', () => {
     await expect(card).toBeVisible();
     await expect(card.getByTestId('cons-card-dept')).toHaveText(a.dept);
     await expect(card.getByTestId('cons-card-source')).toHaveAttribute('href', /^https:\/\/prsindia\.gov\.in\//);
-    await card.scrollIntoViewIfNeeded(); // groups are fetched only for cards that scroll into view
     await expect(card.getByTestId('cons-card-groups')).toContainText('farmers');
     await page.getByTestId('reg-search').fill(a.title);
     await expect(page.getByTestId('cons-card')).toHaveCount(1);
@@ -313,7 +312,7 @@ test.describe('department and panel console', () => {
     await expect(page.getByTestId('cons-status')).toHaveAttribute('data-status', 'open');
   });
 
-  test('@E2E-44 panel rejection needs notes and returns the draft; a correction is proposed and approved by id', async ({ page, request }) => {
+  test('@E2E-44 panel rejection needs notes and returns the draft; a correction is picked from the panel list and approved', async ({ page, request }) => {
     const m = await makeConsultation(request, { stage: 'in_review' });
     const p = await panelist(request);
     await gotoCons(page, '/console', { token: p.token });
@@ -334,11 +333,20 @@ test.describe('department and panel console', () => {
     await di.getByTestId('corr-sum-en').fill('Farmers must register their land free of charge before selling crops to a state buyer.');
     await di.getByTestId('corr-reason-en').fill('The fee was described wrongly in the first summary.');
     await di.getByTestId('corr-send').click();
-    const corrId = (await di.getByTestId('corr-id').textContent())!.trim();
+    await expect(di.getByTestId('corr-note')).toContainText('Correction sent');
+    // the panel picks the pending correction from a list and sees what changes: no id is ever copied or pasted
     for (let i = 0; i < 2; i++) {
       const pp = await panelist(request);
-      const r = await request.post(`${C}/${o.id}/panel/review`, { headers: bearer(pp.token), data: { decision: 'approve', notes: '', correction_id: corrId } });
-      expect(r.status(), await r.text()).toBe(200);
+      await gotoCons(page, '/console', { token: pp.token });
+      const pc = page.locator(`[data-testid=panel-item][data-cons-id="${o.id}"]`);
+      await pc.getByTestId('panel-toggle').click();
+      await expect(pc.getByTestId('panel-corr')).toBeVisible();
+      await expect(pc.getByTestId('panel-corr')).toContainText('The fee was described wrongly');
+      await expect(pc.locator('[data-testid=diff-item][data-field="summary_en"]').getByTestId('diff-after')).toContainText('free of charge');
+      await expect(pc.locator('[data-testid=diff-item][data-field="summary_en"]').getByTestId('diff-before')).toContainText('register their land before selling');
+      await expect(pc.getByTestId('panel-corr-approvals')).toContainText(`${i} approvals`);
+      await pc.getByTestId('panel-approve').click();
+      await expect(pc.getByTestId('panel-note')).toContainText('Decision recorded');
     }
     await gotoCons(page, `/${o.id}`);
     await expect(page.getByTestId('cons-version')).toHaveCount(2);
@@ -398,6 +406,103 @@ test.describe('department and panel console', () => {
     await gotoCons(page, `/${m.id}/report`);
     await expect(page.getByTestId('rep-flags')).toContainText(/near-identical/);
     await expect(page.getByTestId('rep-coverage-line')).toContainText('3 comments, 1 read by people');
+  });
+});
+
+const OGG = Buffer.concat([Buffer.from('OggS'), Buffer.alloc(1996, 7)]);
+
+test.describe('server-backed registry, audio and moderation (S-154)', () => {
+  test('@E2E-169 the list carries affected groups and the state filter is server-side: no per-card detail request', async ({ page, request }) => {
+    const a = await makeConsultation(request);
+    const j = await (await request.get(`${C}?state=AP&limit=100`)).json();
+    const item = (j.consultations as { id: string; affected_groups: string[]; clause_count: number; scope: { state: string } }[]).find((x) => x.id === a.id)!;
+    expect(item.affected_groups).toEqual(['farmers', 'tenants']);
+    expect(item.clause_count).toBe(2);
+    expect(j.consultations.every((x: { scope: { state: string } }) => x.scope.state === 'AP')).toBe(true);
+    expect(((await (await request.get(`${C}?state=TG&limit=100`)).json()).consultations as { id: string }[]).some((x) => x.id === a.id)).toBe(false);
+    const details: string[] = [], lists: string[] = [];
+    page.on('request', (r) => { const u = new URL(r.url()); if (/\/consultations\/[0-9a-f-]{36}$/.test(u.pathname)) details.push(u.pathname); if (u.pathname.endsWith('/consultations')) lists.push(u.search); });
+    await gotoCons(page);
+    await expect(page.locator(`[data-cons-id="${a.id}"]`).getByTestId('cons-card-groups')).toContainText('farmers');
+    await page.getByTestId('reg-state').selectOption('TG');
+    await expect(page.getByTestId('reg-empty')).toBeVisible();
+    expect(lists.some((q) => q.includes('state=TG'))).toBe(true);
+    expect(details).toEqual([]);
+  });
+
+  test('@E2E-169 an officer uploads a recording; it plays only after a panel member reviews it', async ({ page, request }) => {
+    const fileId = 'aud_' + uniq();
+    const m = await makeConsultation(request, { clauses: [{ ref: 'Section 1', en: 'Farmers must register their land before selling crops.', te: 'రైతులు పంట అమ్మే ముందు తమ భూమిని నమోదు చేయాలి.', audio: [{ group: 'farmers', file_id: fileId }] }] });
+    const url = `${C}/${m.id}/clauses/1/audio/farmers`;
+    await gotoCons(page, '/console', { token: m.officer.token });
+    const di = page.locator(`[data-testid=dept-item][data-cons-id="${m.id}"]`);
+    await di.getByTestId('aud-box').locator('summary').click();
+    await di.getByTestId('aud-file').setInputFiles({ name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('this is not audio at all, it is text') });
+    await di.getByTestId('aud-upload').click();
+    await expect(di.getByTestId('cons-error')).toContainText('not an audio file');
+    await di.getByTestId('aud-file').setInputFiles({ name: 'farmers.ogg', mimeType: 'audio/ogg', buffer: OGG });
+    await di.getByTestId('aud-upload').click();
+    await expect(di.getByTestId('aud-note')).toContainText('Uploaded');
+    // uploaded but not reviewed: the route refuses and the page shows no player
+    const early = await request.get(url);
+    expect(early.status()).toBe(409);
+    expect((await early.json()).code).toBe('audio_not_reviewed');
+    await gotoCons(page, `/${m.id}`);
+    await page.getByText('60-second audio summaries by group').first().click();
+    await expect(page.getByTestId('cons-audio-player')).toHaveCount(0);
+    // a panel member marks it reviewed through the console
+    const p = await panelist(request);
+    await gotoCons(page, '/console', { token: p.token });
+    const pc = page.locator(`[data-testid=panel-item][data-cons-id="${m.id}"]`);
+    await pc.getByTestId('panel-toggle').click();
+    await pc.getByTestId('panel-audio-review').click();
+    await expect(pc.getByTestId('panel-note')).toContainText('Audio marked reviewed');
+    const ok = await request.get(url);
+    expect(ok.status()).toBe(200);
+    expect(ok.headers()['content-type']).toBe('audio/ogg');
+    expect(ok.headers()['accept-ranges']).toBe('bytes');
+    expect((await ok.body()).equals(OGG)).toBe(true);
+    const part = await request.get(url, { headers: { range: 'bytes=0-3' } });
+    expect(part.status()).toBe(206);
+    expect((await part.body()).toString()).toBe('OggS');
+    await gotoCons(page, `/${m.id}`);
+    await page.getByText('60-second audio summaries by group').first().click();
+    const player = page.getByTestId('cons-audio-player');
+    await expect(player).toHaveCount(1);
+    await expect(player).toHaveAttribute('src', new RegExp(`/consultations/${m.id}/clauses/1/audio/farmers$`));
+    // the reviewed recording cannot be swapped any more
+    await gotoCons(page, '/console', { token: m.officer.token });
+    const locked = page.locator(`[data-testid=dept-item][data-cons-id="${m.id}"]`);
+    await locked.getByTestId('aud-box').locator('summary').click();
+    await expect(locked.getByTestId('aud-locked')).toBeVisible();
+    await expect(locked.getByTestId('aud-upload')).toHaveCount(0);
+  });
+
+  test('@E2E-169 a moderator sees held comments with their ids and releases or rejects them', async ({ page, request }) => {
+    const m = await makeConsultation(request);
+    const people = [await respondent(request), await respondent(request)];
+    await give(request, people[0], m.id, 1, 'oppose', 'please call me on 9876543210 to discuss this', true);
+    await give(request, people[1], m.id, 2, 'oppose', 'you can reach me at 9876543211 any time', true);
+    await give(request, await respondent(request), m.id, 1, 'support', 'this clause is clear and fair', true);
+    const outsider = await respondent(request);
+    expect((await request.get(`${C}/${m.id}/comments/held`, { headers: bearer(outsider.token) })).status()).toBe(403);
+    const mod = await seed(request, { roles: [{ role: 'moderator' }], label: 'moderator' });
+    await gotoCons(page, '/console', { token: mod.token });
+    await expect(page.getByTestId('mod-section')).toBeVisible();
+    await page.getByTestId('mod-pick').selectOption(m.id);
+    await expect(page.getByTestId('held-item')).toHaveCount(2);
+    await expect(page.getByTestId('held-count')).toContainText('2 held');
+    expect(await axeCons(page)).toEqual([]);
+    await assertTouchTargets(page);
+    const first = page.getByTestId('held-item').first();
+    expect(await first.getAttribute('data-feedback-id')).toMatch(/^[0-9a-f-]{36}$/);
+    await first.getByTestId('held-release').click();
+    await expect(page.getByTestId('held-item')).toHaveCount(1);
+    await page.getByTestId('held-item').first().getByTestId('held-reject').click();
+    await expect(page.getByTestId('held-empty')).toBeVisible();
+    // the server keeps the decisions: nothing is held any more, one is in the rejected queue
+    expect((await (await request.get(`${C}/${m.id}/comments/held`, { headers: bearer(mod.token) })).json()).comments).toHaveLength(0);
+    expect((await (await request.get(`${C}/${m.id}/comments/held?status=rejected`, { headers: bearer(mod.token) })).json()).comments).toHaveLength(1);
   });
 });
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { scopeApi, ScopeError, type AuditSummary, type IssuesSummary, type ScopeMe, type SurveysSummary } from "../../api/scope";
+import { scopeApi, ScopeError, type AuditSummary, type IssuesSummary, type ScopeMe, type SurveysSummary, type TreeUnit } from "../../api/scope";
 import { useT } from "../../i18n";
 import { Btn, Field, TextInput, inputCls } from "../civic/ui";
 import { ShedNotice } from "../DegradedBanner";
@@ -49,8 +49,6 @@ export function IssuesPanel({ me }: { me: ScopeMe }) {
   const [unit, setUnit] = useState("");
   const [dept, setDept] = useState("");
   const [deptDraft, setDeptDraft] = useState("");
-  const [q, setQ] = useState("");
-  const [hits, setHits] = useState<{ lgd: string; nameEn: string; nameTe?: string; path: string[] }[] | null>(null);
   const { load, reload } = useScoped<IssuesSummary>(() => scopeApi.issues(unit, dept), [unit, dept]);
   const name = (u: { name_en: string; name_te?: string | null } | null) => (u ? (lang === "te" && u.name_te ? u.name_te : u.name_en) : s("sc.iss.state"));
   const own = me.roles.filter((r) => r.unit && ["politician", "officer", "journalist", "admin"].includes(r.role));
@@ -61,14 +59,7 @@ export function IssuesPanel({ me }: { me: ScopeMe }) {
           <Btn secondary data-testid="iss-own" onClick={() => setUnit("")}>{s("sc.iss.own")}</Btn>
           {own.map((r) => <Btn key={`${r.role}-${r.unit!.lgd}`} secondary data-testid="iss-own-unit" onClick={() => setUnit(r.unit!.lgd)}>{name(r.unit)}</Btn>)}
         </div>
-        <form className="flex flex-wrap gap-2 items-end" onSubmit={(e) => { e.preventDefault(); if (q.trim().length >= 2) void scopeApi.searchUnits(q.trim()).then(setHits); }}>
-          <Field id="iss-q" label={s("sc.iss.search")}><TextInput id="iss-q" data-testid="iss-q" value={q} onChange={(e) => setQ(e.target.value)} /></Field>
-          <Btn data-testid="iss-search" type="submit" disabled={q.trim().length < 2}>{s("sc.iss.searchBtn")}</Btn>
-        </form>
-        {hits && (hits.length === 0 ? <p data-testid="iss-nohits" className="text-sm">{s("sc.iss.noHits")}</p> : (
-          <ul className="space-y-1" data-testid="iss-hits">{hits.map((h) => (
-            <li key={h.lgd} className="flex flex-wrap items-center gap-2 text-sm"><span>{lang === "te" && h.nameTe ? h.nameTe : h.nameEn}{h.path.length ? ` (${h.path.slice(0, 3).join(", ")})` : ""}</span>
-              <Btn secondary data-testid="iss-pick" data-lgd={h.lgd} onClick={() => { setUnit(h.lgd); setHits(null); }}>{s("sc.iss.pick")}</Btn></li>))}</ul>))}
+        <UnitTree onPick={setUnit} />
         <form className="flex flex-wrap gap-2 items-end" onSubmit={(e) => { e.preventDefault(); setDept(deptDraft.trim()); }}>
           <Field id="iss-dept" label={s("sc.iss.dept")}><TextInput id="iss-dept" data-testid="iss-dept" value={deptDraft} onChange={(e) => setDeptDraft(e.target.value)} className={inputCls} /></Field>
           <Btn secondary type="submit" data-testid="iss-dept-apply">{s("sc.iss.apply")}</Btn>
@@ -78,6 +69,40 @@ export function IssuesPanel({ me }: { me: ScopeMe }) {
       {load.state === "error" && <ScopeErrorView error={load.error} onRetry={reload} />}
       {load.state === "ok" && <IssuesTable d={load.data} name={name} />}
     </Section>
+  );
+}
+
+/** District -> mandal -> village (or the unit a scoped role holds), one level at a time. Every unit listed comes from the server's scope check. */
+function UnitTree({ onPick }: { onPick: (lgd: string) => void }) {
+  const s = useScopeT();
+  const { lang } = useT();
+  const [path, setPath] = useState<TreeUnit[]>([]);
+  const parent = path.length ? path[path.length - 1].lgd : undefined;
+  const { load, reload } = useScoped(() => scopeApi.units(parent), [parent]);
+  const nm = (u: { name_en: string; name_te?: string | null }) => (lang === "te" && u.name_te ? u.name_te : u.name_en);
+  return (
+    <section aria-labelledby="tree-h" className="space-y-2" data-testid="unit-tree">
+      <h4 id="tree-h" className="font-bold text-sm">{s("sc.tree.title")}</h4>
+      <p className="text-xs">{s("sc.tree.hint")}</p>
+      <nav aria-label={s("sc.tree.path")}>
+        <ol className="flex flex-wrap gap-1 items-center text-sm" data-testid="tree-path">
+          <li><Btn secondary data-testid="tree-root" onClick={() => setPath([])}>{s("sc.tree.root")}</Btn></li>
+          {path.map((u, i) => <li key={u.lgd}><Btn secondary data-testid="tree-crumb" data-lgd={u.lgd} aria-current={i === path.length - 1 ? "location" : undefined} onClick={() => setPath(path.slice(0, i + 1))}>{nm(u)}</Btn></li>)}
+        </ol>
+      </nav>
+      {load.state === "loading" && <p role="status" data-testid="tree-loading" className="text-sm">{s("sc.tree.loading")}</p>}
+      {load.state === "error" && <ScopeErrorView error={load.error} onRetry={reload} />}
+      {load.state === "ok" && (load.data.units.length === 0 ? <p className="text-sm" data-testid="tree-none">{s("sc.tree.none")}</p> : (
+        <>
+          <ul className="space-y-1" data-testid="tree-units" data-parent={load.data.parent?.lgd ?? ""}>{load.data.units.map((u) => (
+            <li key={u.lgd} className="flex flex-wrap items-center gap-2 text-sm" data-testid="tree-unit" data-lgd={u.lgd} data-level={u.level}>
+              <span className="font-bold">{nm(u)}</span><span className="text-xs">({s(`sc.lvl.${u.level}` as ScopeKey)})</span>
+              {u.has_children && <Btn secondary data-testid="tree-open" onClick={() => setPath([...path, u])}>{s("sc.tree.open")}</Btn>}
+              <Btn secondary data-testid="iss-pick" data-lgd={u.lgd} onClick={() => onPick(u.lgd)}>{s("sc.tree.show")}</Btn>
+            </li>))}</ul>
+          {load.data.truncated && <p className="text-xs" data-testid="tree-more">{s("sc.tree.more", { n: load.data.units.length })}</p>}
+        </>))}
+    </section>
   );
 }
 

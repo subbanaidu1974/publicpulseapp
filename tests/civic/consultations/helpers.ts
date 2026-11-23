@@ -55,6 +55,13 @@ export async function call(p: P | null, method: string, url: string, body?: unkn
   return { status: r.status, body: (t ? JSON.parse(t) : {}) as Record<string, any> };
 }
 
+/** A raw (non-JSON) request, for audio upload and streaming; returns status, headers and the body bytes. */
+export async function callRaw(p: P | null, method: string, url: string, body?: Buffer | Uint8Array, headers: Record<string, string> = {}) {
+  const r = await fetch(base + url, { method, headers: { ...(p ? { authorization: "Bearer " + p.token } : {}), ...headers }, body: body as BodyInit | undefined });
+  const bytes = Buffer.from(await r.arrayBuffer());
+  return { status: r.status, headers: r.headers, bytes, json: () => (bytes.length ? JSON.parse(bytes.toString("utf8")) : {}) as Record<string, any> };
+}
+
 export function draft(over: Record<string, unknown> = {}) {
   return {
     title_en: "Draft Agricultural Marketing Amendment Bill", title_te: "వ్యవసాయ మార్కెటింగ్ సవరణ బిల్లు ముసాయిదా",

@@ -4,6 +4,8 @@ import { GENERATED, ROOT } from "../pipeline/io";
 import { verifyManifest, MANIFEST_NAME } from "../pipeline/manifest";
 import { parseUnitRows, validateUnits } from "../pipeline/census";
 import { STATES } from "../src/lib/states";
+import { geomErrors } from "../pipeline/geo/geometry";
+import { loadRegistry, validateRegistry } from "../pipeline/geo/versions";
 import { validateCensus, validateElections, validateGeoJson, type CensusSnapshot, type ElectionSnapshot } from "../pipeline/quality";
 
 const dir = process.argv[2] ? resolve(process.argv[2]) : GENERATED;
@@ -38,6 +40,28 @@ else {
         console.log(`geo/${kind}-${state}.geojson: ${g.features?.length ?? 0} polygons${real ? ", joined to elections.json" : ""}`);
       }
     }
+    // S-89: mandal polygons must be valid, unique per LGD mandal, known to LGD and matched at or above the documented threshold.
+    for (const state of ["AP", "TG"] as const) {
+      const f = resolve(geoDir, `mandal-${state}.geojson`), lf = resolve(geoDir, `lgd-${state}.json`);
+      if (!existsSync(f)) continue;
+      const g = JSON.parse(readFileSync(f, "utf8"));
+      const known = existsSync(lf) ? new Set<string>((JSON.parse(readFileSync(lf, "utf8")).mandals as string[][]).map(m => m[0])) : null;
+      const seen = new Set<string>();
+      errors.push(...validateGeoJson(g, `geo/mandal-${state}.geojson`).filter(e => !/non-empty/.test(e) || !g.features?.length));
+      for (const ft of g.features ?? []) {
+        const p = ft.properties ?? {};
+        const ge = geomErrors(ft.geometry);
+        if (ge.length) errors.push(`geo/mandal-${state}.geojson: ${p.lgdCode}: ${[...new Set(ge)].join(", ")}`);
+        if (seen.has(p.lgdCode)) errors.push(`geo/mandal-${state}.geojson: duplicate lgdCode ${p.lgdCode}`);
+        seen.add(p.lgdCode);
+        if (known && !known.has(String(p.lgdCode))) errors.push(`geo/mandal-${state}.geojson: lgdCode ${p.lgdCode} is not an LGD mandal of ${state}`);
+        if (!(p.confidence >= 0.8)) errors.push(`geo/mandal-${state}.geojson: ${p.lgdCode} has match confidence ${p.confidence} below 0.8`);
+      }
+      console.log(`geo/mandal-${state}.geojson: ${g.features?.length ?? 0} mandal polygons`);
+    }
+    // S-92: the boundary version registry must be consistent with the files it lists.
+    const reg = loadRegistry(geoDir);
+    if (reg) { errors.push(...validateRegistry(reg, geoDir).map(e => `geo/versions.json: ${e}`)); console.log(`geo/versions.json: ${reg.sets.length} boundary set(s)`); }
   }
 }
 

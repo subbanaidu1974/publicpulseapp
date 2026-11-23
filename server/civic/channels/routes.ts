@@ -20,7 +20,7 @@ import { IVR_CATEGORY_DIGITS, ivrCategoryPrompt } from "../issues/categories";
 import { sqliteCallStore, type Call, type CallStore, type IvrState } from "./callstore";
 import { createWebhookAuth, webhookAuthConfigured } from "./webhook";
 import { ivrSurveyStep, isSurveyIntent, type IvrSurveyStep } from "../surveys/assisted";
-import { checkPin, getPerson, personsOnSim, phoneHash, rateAllow, type PinResult } from "../identity/service";
+import { checkPin, getPerson, personsOnPhone, rateAllow, type PinResult } from "../identity/service";
 
 export type { IvrState };
 export type IvrExpect = "digit" | "recording" | "none";
@@ -147,7 +147,7 @@ export function defaultDeps(): ChannelDeps {
   return {
     now: () => Date.now(),
     sendSms: (to, text) => getSms().send(to.startsWith("+") ? to : "+91" + to, text),
-    listAdults: async (phone) => personsOnSim(phoneHash("+91" + phone)).sort((x, y) => x.created_at.localeCompare(y.created_at) || x.id.localeCompare(y.id)).map((p) => ({ id: p.id, label: p.label })),
+    listAdults: async (phone) => personsOnPhone("+91" + phone).sort((x, y) => x.created_at.localeCompare(y.created_at) || x.id.localeCompare(y.id)).map((p) => ({ id: p.id, label: p.label })),
     checkPin: async (personId, pin, source) => {
       const p = getPerson(personId);
       if (!p) return "wrong";
@@ -157,7 +157,7 @@ export function defaultDeps(): ChannelDeps {
       // Identify the caller by number (callback went to that number). On a shared SIM the IVR has already verified one adult's
       // personal PIN and passes personId; without it a shared SIM is still refused.
       const phone = "+91" + input.phone;
-      const people = personsOnSim(phoneHash(phone));
+      const people = personsOnPhone(phone);
       const who = input.personId ? people.find((p) => p.id === input.personId) : people.length === 1 ? people[0] : undefined;
       if (!who) throw new ChannelError(people.length === 0 || input.personId ? "not_registered" : "pin_required");
       const village = input.villageLgd ?? who.residence_unit;

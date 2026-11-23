@@ -103,6 +103,9 @@ export function errCode(e: unknown): string {
   return typeof e.body.code === "string" ? e.body.code : "";
 }
 
+/** S-164: true when an OTP request failed because the code could not be SENT (502 delivery: "failed"); the person may try again at once. */
+export function smsFailed(e: unknown): boolean { return e instanceof CivicApiError && e.body.delivery === "failed"; }
+
 /** Server error classification shared by the identity screens. */
 export function errKind(e: unknown): "person_required" | "limited" | "locked" | "weak_pin" | "wrong" | "network" | "gone" | "forbidden" | "conflict" | "other" {
   if (!(e instanceof CivicApiError)) return "other";
@@ -137,10 +140,12 @@ export const civicIdentityApi = {
     return { ...d.person, role: d.role ?? d.person.role, roles: d.roles };
   },
   /** One-time code. purpose recovery uses POST /identity/pin/recover/request. The server never re-sends while a code is still valid (alreadySent). */
-  requestCode: async (phone: string, purpose: "signup" | "recovery" = "signup"): Promise<{ devOtp?: string; alreadySent: boolean; queued?: boolean; expectedDelayS?: number }> => {
-    const r = await call<{ ok: boolean; dev_otp?: string; already_sent?: boolean; queued?: boolean; expected_delay_s?: number }>(purpose === "recovery" ? "/identity/pin/recover/request" : "/identity/signup/request", { method: "POST", body: { phone: e164(phone) }, auth: false });
-    return { devOtp: r.dev_otp, alreadySent: !!r.already_sent, ...(r.queued ? { queued: true, expectedDelayS: Math.max(0, Math.ceil(Number(r.expected_delay_s) || 0)) } : {}) };
+  requestCode: async (phone: string, purpose: "signup" | "recovery" = "signup"): Promise<{ devOtp?: string; alreadySent: boolean; queued?: boolean; expectedDelayS?: number; delivery?: "sent" | "queued" | "failed" }> => {
+    const r = await call<{ ok: boolean; dev_otp?: string; already_sent?: boolean; queued?: boolean; expected_delay_s?: number; delivery?: "sent" | "queued" | "failed" }>(purpose === "recovery" ? "/identity/pin/recover/request" : "/identity/signup/request", { method: "POST", body: { phone: e164(phone) }, auth: false });
+    return { devOtp: r.dev_otp, alreadySent: !!r.already_sent, ...(r.delivery ? { delivery: r.delivery } : {}), ...(r.queued ? { queued: true, expectedDelayS: Math.max(0, Math.ceil(Number(r.expected_delay_s) || 0)) } : {}) };
   },
+  /** S-158: change the PIN while signed in. Success signs out every other device and returns a fresh token for this one (the caller stores it). */
+  changePin: (a: { oldPin: string; newPin: string }) => call<{ ok: boolean; token: string }>("/identity/pin/change", { method: "POST", body: { old_pin: a.oldPin, new_pin: a.newPin } }),
   declareResidence: async (a: { residence: string; unitId?: string }): Promise<MePerson> =>
     (await call<{ person: MePerson }>("/identity/residence", { method: "POST", body: { residence: a.residence, ...(a.unitId ? { unit_id: a.unitId } : {}) } })).person,
   geoUnits: async (state: GeoState, level: "district" | "mandal" | "village", parent?: string): Promise<GeoUnit[]> => {
@@ -207,6 +212,14 @@ export interface IssueDetail {
   hasPhoto: boolean; hasVoice: boolean; photoMediaId?: string; voiceMediaId?: string;
   canConfirm: boolean; canAppeal: boolean;
 }
+/** S-157: the caller's own report (GET /issues/mine). moderation: ok = public, held = waiting for review, taken_down = removed. Reason classes are coarse, never rule ids. */
+export type OwnerModeration = "ok" | "held" | "taken_down";
+export interface OwnerAppeal { status: string; at?: string; decidedAt?: string; count: number }
+export interface MyReport {
+  id: string; category: string; status: string; moderation: OwnerModeration; moderationClasses: string[]; escalated: boolean; canAppeal: boolean;
+  appeal: OwnerAppeal | null; snippet: string; createdAt?: string; support: number;
+}
+export interface MyReportDetail extends IssueDetail { moderation: OwnerModeration; moderationClasses: string[]; escalated: boolean; appeal: OwnerAppeal | null }
 export interface Me { personId?: string; roles: string[]; isAdmin?: boolean; mfa?: { enrolled: boolean; confirmed: boolean; recoveryCodesLeft?: number } }
 export type ModQueueStatus = "held" | "escalated" | "taken_down";
 export interface HeldReport { id: string; category?: string; villageLgd?: string; text?: string; textTe?: string; reasons: string[]; at?: string; appeal?: { id?: string; at?: string; reason?: string } | null; escalated: boolean; moderation?: string }
@@ -299,6 +312,22 @@ const loadCategoryPayload = () => (catPayload ??= call<Raw>("/issues/categories"
 
 const decodeLexChange = (r: Raw): LexChange => ({ id: String(r.id), op: r.op === "retire" ? "retire" : "add", list: String(r.list ?? ""), term: String(r.term), status: String(r.status ?? "pending"), approvals: Number(r.approvals ?? 0), approvalsNeeded: Number(r.approvals_needed ?? 1), note: str(r.note) });
 
+const toOwnerAppeal = (a: unknown): OwnerAppeal | null => { const r = a as Raw | null; return r && typeof r === "object" ? { status: String(r.status ?? ""), at: str(r.at), decidedAt: str(r.decided_at), count: num(r.count) ?? 1 } : null; };
+/** Shared decoder of an issue detail body (public and owner views have the same shape). */
+function decodeIssueDetail(r: Raw): IssueDetail {
+  const status = String(r.status ?? "Reported");
+  return {
+    id: String(r.id), category: String(r.category ?? "other"), status, department: str(r.department),
+    text: str(r.description_en) ?? str(r.description_te), textTe: str(r.description_te), createdAt: str(r.created_at), updatedAt: str(r.updated_at), slaDue: str(r.sla_due), resolvedAt: str(r.resolved_at),
+    supportCount: num(r.counts?.support) ?? 0,
+    units: [...unitRef("village", r.village), ...unitRef("mandal", r.mandal), ...unitRef("district", r.district), ...unitRef("constituency", r.constituency)], acNo: num(r.constituency?.ac_no),
+    timeline: list<Raw>(r.timeline).map((e) => ({ type: String(e.type ?? "status"), status: str(e.status), at: str(e.at) })),
+    officerResponses: list<Raw>(r.officer_responses).map((b) => ({ text: String(b.text ?? ""), officerTag: str(b.officer_tag), at: str(b.at) })),
+    hasPhoto: !!r.has_photo, hasVoice: !!r.has_voice, photoMediaId: str(r.photo_media_id), voiceMediaId: str(r.voice_media_id),
+    canConfirm: r.can_confirm === true || status === "Resolved", canAppeal: r.can_appeal === true,
+  };
+}
+
 export const issuesApi = {
   uploadMedia,
   /** The nine canonical categories (GET /issues/categories); falls back to the built-in copy of the same list when the call fails. */
@@ -356,11 +385,22 @@ export const issuesApi = {
   },
   meToo: (id: string) => call<Raw>(`/issues/${enc(id)}/me-too`, { method: "POST", body: {} }),
   confirm: (id: string, vote: "confirm" | "reopen") => call<Raw>(`/issues/${enc(id)}/confirm`, { method: "POST", body: { vote } }),
-  /**
-   * TODO(appeal): POST /issues/:id/appeal exists, but the backend has no owner view of a held issue (public.ts mentions GET /issues/mine/:id,
-   * which is not routed), so the reporter cannot find the held report or its id. IssueDetail therefore renders the form only when the
-   * server says can_appeal === true, which the public route never does.
-   */
+  /** S-157: the caller's own reports, held and removed ones included (GET /issues/mine). */
+  mine: async (): Promise<MyReport[]> => list<Raw>(await call<Raw>("/issues/mine", { fresh: true }), "items").map((r) => ({
+    id: String(r.id), category: String(r.category ?? "other"), status: String(r.status ?? "Reported"), moderation: (r.moderation === "held" || r.moderation === "taken_down" ? r.moderation : "ok") as OwnerModeration,
+    moderationClasses: list<string>(r.moderation_classes), escalated: r.escalated === true, canAppeal: r.can_appeal === true,
+    appeal: toOwnerAppeal(r.appeal), snippet: String(r.snippet ?? ""), createdAt: str(r.created_at), support: num(r.support) ?? 0,
+  })),
+  /** S-157: owner detail of one of the caller's own reports (GET /issues/mine/:id); can_appeal comes from the server. null when it is not the caller's. */
+  myDetail: async (id: string): Promise<MyReportDetail | null> => {
+    try {
+      const r = await call<Raw>(`/issues/mine/${enc(id)}`, { fresh: true });
+      if (!r?.id) return null;
+      const base = decodeIssueDetail(r);
+      return { ...base, canConfirm: false, canAppeal: r.can_appeal === true, moderation: (r.moderation === "held" || r.moderation === "taken_down" ? r.moderation : "ok") as OwnerModeration, moderationClasses: list<string>(r.moderation_classes), escalated: r.escalated === true, appeal: toOwnerAppeal(r.appeal) };
+    } catch (e) { if (e instanceof CivicApiError && (e.status === 404 || e.status === 400)) return null; throw e; }
+  },
+  /** POST /issues/:id/appeal (only the reporter of a held or removed report; one pending appeal at a time). */
   appeal: (id: string, reason: string) => call<Raw>(`/issues/${enc(id)}/appeal`, { method: "POST", body: { reason } }),
   /** Geo units: ancestors of a village (mandal, district...) and its constituency, for the feed filters. */
   villageScopes: async (lgd: string): Promise<Unit[]> => {

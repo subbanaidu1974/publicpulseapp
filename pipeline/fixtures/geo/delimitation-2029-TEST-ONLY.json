@@ -1,0 +1,115 @@
+{
+ "_comment": "TEST ONLY. A hypothetical post-census delimitation used to exercise the dry-run validator. Numbers are artificial (6+4 seats), not a forecast of any real order. Never install.",
+ "set": {
+  "id": "delimitation-2029-test",
+  "label": "TEST ONLY hypothetical 2029 delimitation",
+  "valid_from": "2029-06-01",
+  "valid_to": null,
+  "source": "TEST ONLY fixture (no real source)",
+  "testOnly": true,
+  "seats": {
+   "AP": {
+    "assembly": 6,
+    "ls": 2
+   },
+   "TG": {
+    "assembly": 4,
+    "ls": 2
+   }
+  },
+  "files": {},
+  "checksums": {}
+ },
+ "rows": [
+  {
+   "set": "delimitation-2029-test",
+   "state": "AP",
+   "acNo": 1,
+   "pcNo": 1,
+   "districtLgd": "TEST-D1",
+   "validFrom": "2029-06-01",
+   "validTo": null
+  },
+  {
+   "set": "delimitation-2029-test",
+   "state": "AP",
+   "acNo": 2,
+   "pcNo": 2,
+   "districtLgd": "TEST-D2",
+   "validFrom": "2029-06-01",
+   "validTo": null
+  },
+  {
+   "set": "delimitation-2029-test",
+   "state": "AP",
+   "acNo": 3,
+   "pcNo": 1,
+   "districtLgd": "TEST-D1",
+   "validFrom": "2029-06-01",
+   "validTo": null
+  },
+  {
+   "set": "delimitation-2029-test",
+   "state": "AP",
+   "acNo": 4,
+   "pcNo": 2,
+   "districtLgd": "TEST-D2",
+   "validFrom": "2029-06-01",
+   "validTo": null
+  },
+  {
+   "set": "delimitation-2029-test",
+   "state": "AP",
+   "acNo": 5,
+   "pcNo": 1,
+   "districtLgd": "TEST-D1",
+   "validFrom": "2029-06-01",
+   "validTo": null
+  },
+  {
+   "set": "delimitation-2029-test",
+   "state": "AP",
+   "acNo": 6,
+   "pcNo": 2,
+   "districtLgd": "TEST-D2",
+   "validFrom": "2029-06-01",
+   "validTo": null
+  },
+  {
+   "set": "delimitation-2029-test",
+   "state": "TG",
+   "acNo": 1,
+   "pcNo": 1,
+   "districtLgd": "TEST-D3",
+   "validFrom": "2029-06-01",
+   "validTo": null
+  },
+  {
+   "set": "delimitation-2029-test",
+   "state": "TG",
+   "acNo": 2,
+   "pcNo": 2,
+   "districtLgd": "TEST-D4",
+   "validFrom": "2029-06-01",
+   "validTo": null
+  },
+  {
+   "set": "delimitation-2029-test",
+   "state": "TG",
+   "acNo": 3,
+   "pcNo": 1,
+   "districtLgd": "TEST-D3",
+   "validFrom": "2029-06-01",
+   "validTo": null
+  },
+  {
+   "set": "delimitation-2029-test",
+   "state": "TG",
+   "acNo": 4,
+   "pcNo": 2,
+   "districtLgd": "TEST-D4",
+   "validFrom": "2029-06-01",
+   "validTo": null
+  }
+ ]
+}

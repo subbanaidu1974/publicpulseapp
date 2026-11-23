@@ -4,6 +4,7 @@
  * covers issues whose moderation state is "ok". Free text is sanitised again on the way out (defence in depth behind moderation).
  */
 import { getStore } from "../core";
+import { myIssueIds, reporterPseudonym } from "../core/pseudonyms";
 
 const getDb = () => getStore("issues");
 import { ancestors, electionConstituency, getUnit, villageConstituencies, type Unit } from "../geo/service";
@@ -226,3 +227,88 @@ const csvCell = (v: unknown) => {
 };
 export const toCsv = (rows: Record<string, unknown>[]) => [EXPORT_COLUMNS.join(","), ...rows.map(r => EXPORT_COLUMNS.map(c => csvCell(r[c])).join(","))].join("\n") + "\n";
 export const toNdjson = (rows: Record<string, unknown>[]) => rows.map(r => JSON.stringify(r)).join("\n") + (rows.length ? "\n" : "");
+
+// ---------- owner view (S-157): GET /issues/mine, GET /issues/mine/:id ----------
+// The issues store holds only keyed pseudonyms, so ownership is resolved through the identity-store link ledger (myIssueIds) and then CONFIRMED
+// against the per-issue reporter pseudonym: a person who only supported ("me too") or was sampled on someone else's issue never sees it here.
+// The view carries the person's own text, the moderation state and a coarse reason CLASS (never the lexicon rule ids, never moderator identities
+// or notes), and whether an appeal can be filed. Nothing about any other person.
+
+export type ModerationClass = "personal_information" | "names_a_person" | "abusive_or_targeting" | "needs_manual_check" | "other";
+const CLASS_OF: Record<string, ModerationClass> = {
+  personal_identifier: "personal_information",
+  honorific_name: "names_a_person", role_named: "names_a_person", person_suffix: "names_a_person", introduces_name: "names_a_person", possible_full_name: "names_a_person",
+  title_case_text: "names_a_person", accusation_with_person: "names_a_person", accusation: "names_a_person",
+  community_targeting: "abusive_or_targeting", abusive_language: "abusive_or_targeting",
+  lexicon_unavailable: "needs_manual_check", unsupported_script: "needs_manual_check", unsupported_or_obfuscated_text: "needs_manual_check",
+};
+/** Collapse the comma-separated rule ids of a hold into the classes shown to the reporter (most serious first, no duplicates). */
+export function moderationClasses(reasons: string | null | undefined): ModerationClass[] {
+  const order: ModerationClass[] = ["personal_information", "names_a_person", "abusive_or_targeting", "needs_manual_check", "other"];
+  const got = new Set<ModerationClass>();
+  for (const r of String(reasons ?? "").split(",").map(x => x.trim()).filter(Boolean)) got.add(CLASS_OF[r] ?? "other");
+  return order.filter(c => got.has(c));
+}
+
+interface OwnerRow { [k: string]: any }
+function ownedRows(personId: string, only?: string): OwnerRow[] {
+  const ids = [...new Set(myIssueIds(personId))].filter(id => !only || id === only);
+  const stmt = getDb().prepare("SELECT * FROM issue WHERE id=?");
+  const out: OwnerRow[] = [];
+  for (const id of ids) {
+    const i = stmt.get(id) as OwnerRow | undefined;
+    if (i && i.reporter_id === reporterPseudonym(id, personId)) out.push(i); // reported by this person (not merely supported)
+  }
+  return out;
+}
+function appealState(issueId: string) {
+  const rows = getDb().prepare("SELECT status, at, decided_at FROM issue_appeal WHERE issue_id=? ORDER BY at DESC, rowid DESC").all(issueId) as { status: string; at: string; decided_at: string | null }[];
+  const latest = rows[0];
+  return { pending: rows.some(r => r.status === "pending"), count: rows.length, latest: latest ? { status: latest.status === "pending" ? "pending" : latest.status === "release" ? "approved" : latest.status === "takedown" ? "rejected" : latest.status, at: latest.at, decided_at: latest.decided_at } : null };
+}
+function ownerBase(i: OwnerRow, place: ReturnType<typeof createPlaceResolver>) {
+  const ap = appealState(i.id);
+  const state = i.moderation === "ok" ? "ok" : i.moderation === "held" ? "held" : "taken_down";
+  const p = place(i.village_lgd);
+  return {
+    id: i.id, category: i.category, department: i.department, status: i.status, moderation: state,
+    moderation_classes: state === "ok" ? [] : moderationClasses(i.moderation_reason),
+    escalated: state !== "ok" && !!i.mod_escalated,
+    can_appeal: state !== "ok" && !ap.pending,
+    appeal: ap.latest ? { status: ap.latest.status, at: ap.latest.at, decided_at: ap.latest.decided_at, count: ap.count } : null,
+    village: p.village, mandal: p.mandal, district: p.district,
+    description_en: i.desc_en ?? null, description_te: i.desc_te ?? null,
+    created_at: i.created_at, updated_at: i.updated_at,
+  };
+}
+
+/** The caller's own reports (visible, held and taken down), newest first. */
+export function myReports(personId: string, now = clock.now()) {
+  const place = createPlaceResolver(now);
+  const items = ownedRows(personId).map(i => {
+    const b = ownerBase(i, place);
+    const { description_en, description_te, ...rest } = b;
+    const text = description_en ?? description_te ?? "";
+    return { ...rest, snippet: text.length > 160 ? text.slice(0, 157) + "..." : text, support: (getDb().prepare("SELECT COUNT(*) c FROM issue_me_too WHERE issue_id=?").get(i.id) as { c: number }).c };
+  }).sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : a.id < b.id ? 1 : -1));
+  return { items };
+}
+
+/** One of the caller's own reports in full. 404 for anything the caller did not report (never says whether it exists). */
+export function myReport(personId: string, id: string, now = clock.now()) {
+  const i = ownedRows(personId, id)[0];
+  if (!i) throw new HttpError(404, "no report of yours with that id");
+  const db = getDb();
+  const base = ownerBase(i, createPlaceResolver(now));
+  const timeline = (db.prepare("SELECT type, status, at FROM issue_event WHERE issue_id=? ORDER BY seq").all(id) as { type: string; status: string | null; at: string }[]).map(e => ({ type: e.type, status: e.status, at: e.at }));
+  const responses = base.moderation === "ok" ? (db.prepare("SELECT officer_tag, text, at FROM officer_rebuttal WHERE issue_id=? ORDER BY at").all(id) as { officer_tag: string; text: string; at: string }[]) : [];
+  const mediaId = (r: string | null) => (r?.startsWith("media:") ? r.slice(6) : null);
+  return {
+    ...base,
+    lat: i.lat ?? null, lon: i.lon ?? null, sla_due: i.sla_due, resolved_at: i.resolved_at, esc_level: i.esc_level,
+    has_photo: !!i.photo_ref, has_voice: !!i.voice_ref, photo_media_id: mediaId(i.photo_ref), voice_media_id: mediaId(i.voice_ref),
+    timeline,
+    counts: { support: (db.prepare("SELECT COUNT(*) c FROM issue_me_too WHERE issue_id=?").get(id) as { c: number }).c, officer_responses: responses.length },
+    officer_responses: responses.map(r => ({ officer_tag: r.officer_tag, text: sanitizeDescription(r.text), at: r.at })),
+  };
+}

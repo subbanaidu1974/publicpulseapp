@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CivicApiError } from "../../api/civic";
-import { notifyApi, notifyErrCode, notifyErrRules, type MessageDraft, type NotifyMessage, type SenderMe, type Template } from "../../api/notify";
+import { notifyApi, notifyErrCode, notifyErrRules, type LintResult, type MessageDraft, type NotifyMessage, type SenderMe, type Template } from "../../api/notify";
 import { WebAuthnClientError, classify, createCredential, getAssertion, webauthnSupported } from "../../lib/webauthn";
 import { AntiPhishBanner, Btn, type Keyed, ErrorNote, Field, NeedSignIn, Shell, TextInput, card, categoryLabel, errorText, fmtTime, linkCls, reasonText, signedIn, useLang, useLoad, usePolicy } from "./shared";
 import { useNotifyT, type NotifyT } from "./notifyText";
@@ -120,13 +120,26 @@ function Compose({ me, templates, onCreated, onKill }: { me: SenderMe; templates
   const [rules, setRules] = useState<string[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const win = useLoad(() => notifyApi.window(state), [state]);
+  const win = useLoad(() => notifyApi.status(state, org?.id), [state, org?.id]);
   const tpls = templates.filter((x) => x.category === cat);
   const chosen = tpls.find((x) => x.id === tpl);
   const fill = (s: string) => s.replace(/\{([a-z0-9_]+)\}/gi, (_m, n: string) => slots[n] || `{${n}}`);
-  const needDecl = win.data ? win.data.window !== "open" : true;
+  const needDecl = win.data ? win.data.window.declaration_needed : true;
   const minReason = policy?.declaration.min_reason_chars ?? 10;
   const max = policy?.limits.text_chars ?? 300;
+
+  // Live check: the server lints what is typed (nothing is created or logged); the answer is advice, the server still checks at create and send.
+  const [live, setLive] = useState<{ state: "idle" | "ok" | "fail"; r: LintResult | null }>({ state: "idle", r: null });
+  const slotKey = JSON.stringify(slots);
+  useEffect(() => {
+    const payload = chosen ? { slots, state } : { text_en: en, text_te: te, state };
+    const empty = chosen ? Object.values(slots).every((v) => !String(v).trim()) : !en.trim() && !te.trim();
+    if (empty) { setLive({ state: "idle", r: null }); return; }
+    let on = true;
+    const h = setTimeout(() => { notifyApi.lint(payload).then((r) => { if (on) setLive({ state: "ok", r }); }, () => { if (on) setLive({ state: "fail", r: null }); }); }, 400);
+    return () => { on = false; clearTimeout(h); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [en, te, slotKey, state, chosen?.id]);
 
   const submit = async () => {
     setErr(null); setRules([]); setMsg(null); setBusy(true);
@@ -186,8 +199,14 @@ function Compose({ me, templates, onCreated, onKill }: { me: SenderMe; templates
           <label className="flex items-center gap-3 min-h-[44px]"><input type="checkbox" data-testid="compose-all" checked={allIn} onChange={(e) => setAllIn(e.target.checked)} /><span>{t("compose.allInState")}</span></label>
           {!allIn && <Field id="cp-units" label={t("compose.units")}><TextInput id="cp-units" data-testid="compose-units" value={units} onChange={(e) => setUnits(e.target.value)} /></Field>}
         </fieldset>
-        <div role="status" data-testid="compose-window" data-window={win.data?.window ?? "unknown"} className="text-sm border border-black p-2">
-          {win.loading ? t("loading") : win.error || !win.data ? t("mcc.unavailable") : <>{t(`mcc.state.${win.data.window}`)} {needDecl ? t("compose.declNeeded") : t("compose.declOptional")}</>}
+        <div role="status" data-testid="compose-window" data-window={win.data?.window.status ?? "unknown"} className="text-sm border border-black p-2">
+          {win.loading ? t("loading") : win.error || !win.data ? t("mcc.unavailable") : <>{t(`mcc.state.${win.data.window.status}`)} <span data-testid="compose-window-notice">{lang === "te" ? win.data.window.notice_te : win.data.window.notice_en}</span> {needDecl ? t("compose.declNeeded") : t("compose.declOptional")}</>}
+        </div>
+        <div role="status" aria-live="polite" data-testid="lint-live" data-state={live.state} data-clean={live.r ? (live.r.clean ? "1" : "0") : ""} className="text-sm border border-black/40 p-2">
+          <strong>{t("lint.live")}: </strong>
+          {live.state === "idle" ? null : live.state === "fail" ? t("lint.liveFail") : live.r?.clean ? t("lint.liveClean") : (
+            <>{t("lint.liveFound")}<ul className="list-disc pl-5">{[...new Set(live.r?.rules ?? [])].map((r) => <li key={r} data-rule={r}>{t(`rule.${r}`)}</li>)}</ul></>
+          )}
         </div>
         <fieldset className="space-y-2 border border-black/40 p-3" data-testid="declaration">
           <legend className="font-bold text-sm">{t("compose.declTitle")}</legend>
@@ -209,9 +228,25 @@ function Compose({ me, templates, onCreated, onKill }: { me: SenderMe; templates
   );
 }
 
+/** What the public status route says about sending right now: a standing banner when sending is suspended, before anyone tries to send. */
+function StatusBanner({ orgId, tick }: { orgId?: string; tick: number }) {
+  const t = useNotifyT();
+  const lang = useLang();
+  const st = useLoad(() => notifyApi.status("AP", orgId), [orgId, tick]);
+  const k = st.data?.kill;
+  if (!k?.engaged) return null;
+  return (
+    <div role="alert" data-testid="status-kill" data-scope={k.scope ?? ""} className="border-2 border-black bg-red-100 text-black p-3 font-bold space-y-1">
+      <p>{t("status.kill")}: {lang === "te" ? k.notice_te : k.notice_en}</p>
+      {k.since && <p className="text-sm font-normal">{fmtTime(k.since)}</p>}
+    </div>
+  );
+}
+
 function ConsoleBody() {
   const t = useNotifyT();
   const me = useLoad(() => notifyApi.me(), []);
+  const [tick, setTick] = useState(0);
   const tpls = useLoad(() => notifyApi.templates(), []);
   const msgs = useLoad(() => (me.data?.can_send ? notifyApi.messages() : Promise.resolve([] as NotifyMessage[])), [me.data?.can_send]);
   const [killed, setKilled] = useState(false);
@@ -222,10 +257,11 @@ function ConsoleBody() {
   const list = msgs.data ?? [];
   const waiting = list.filter((m) => m.status === "pending_approval" && m.created_by !== d.person_id);
   const rest = list.filter((m) => !waiting.includes(m));
-  const refresh = () => { msgs.reload(); me.reload(); };
+  const refresh = () => { msgs.reload(); me.reload(); setTick((x) => x + 1); };
   const killFromMsgs = killed || list.some((m) => m.blocked_reason === "kill_switch");
   return (
     <div className="space-y-5">
+      <StatusBanner orgId={active[0]?.org.id} tick={tick} />
       {killFromMsgs && <p role="alert" data-testid="kill-banner" className="border-2 border-black bg-red-100 text-black p-3 font-bold">{t("kill.banner")}</p>}
       <section className={card} data-testid="sender-status" aria-labelledby="ss-h">
         <h3 id="ss-h" className="font-bold text-lg">{t("sender.title")}</h3>

@@ -4,7 +4,7 @@ import { useT } from "../../i18n";
 import { useConsT, type ConsKey, type ConsT } from "./consultationsText";
 import { type Keyed, ClosingBadge, Disclaimer, ErrorLine, Page, StatusBadge, btnLink, card, chip, eligibilityText, fmtDate, isOpenNow, linkCls, scopeLabel, shortHash, titleOf, useLoad, useMe } from "./shared";
 
-/** Where a reviewed recording is served from (the server has no audio route yet: see the hand-off notes). */
+/** Where a reviewed recording is streamed from: the server answers 409 for a recording no panel member has marked reviewed. */
 export const audioUrl = (id: string, n: number, group: string) => `/api/v1/civic/consultations/${id}/clauses/${n}/audio/${encodeURIComponent(group)}`;
 
 function AudioLine({ id, n, group, audio }: Keyed & { id: string; n: number; group: string; audio: AudioRef | undefined }) {

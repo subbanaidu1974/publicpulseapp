@@ -9,11 +9,12 @@ test.describe.configure({ mode: "serial" });
 // Both projects would seed/remove the same shared directory at once (parallel workers race): run this spec in the desktop project only.
 test.skip(({ isMobile }) => isMobile, "seeds a shared directory; desktop project only");
 
-test.beforeAll(() => {
+test.beforeAll(({}, testInfo) => {
+  if (testInfo.project.name === "mobile") return; // hooks still run for skipped tests: do not touch the shared directory from the mobile project
   fs.rmSync(DIR, { recursive: true, force: true });
   execFileSync(process.execPath, ["--import", "tsx", "scripts/countday-ingest.ts", "--state", "AP", "--source", "fixture", "--steps", "3", "--acs", "8", "--dir", DIR], { stdio: "pipe" });
 });
-test.afterAll(() => { fs.rmSync(DIR, { recursive: true, force: true }); });
+test.afterAll(({}, testInfo) => { if (testInfo.project.name !== "mobile") fs.rmSync(DIR, { recursive: true, force: true }); });
 
 test("@E2E-50 count-day page shows synthetic banner, labels and never 'won' for partial counts", async ({ page }) => {
   await page.goto("/#/countday");

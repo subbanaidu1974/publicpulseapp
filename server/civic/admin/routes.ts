@@ -16,7 +16,12 @@
  *  POST /admin/roles/requests/:id/reject  admin + MFA (the requester may withdraw)
  *  MFA is sent as header `x-totp-code: 123456` (or body `totp`), or a one-time `recovery_code`.
  *
+ *  POST /admin/breakglass/requests        admin + MFA: {purpose, version?, reason}: request dual-control key recovery (S-163, ./breakglass.ts)
+ *  GET  /admin/breakglass/requests        admin: all requests (privileged read)
+ *  POST /admin/breakglass/requests/:id/approve|deny|export   admin + MFA; two OTHER admins approve; export is single use within 15 minutes
+ *
  *  GET /audit/head                        public: latest hash, entry count, anchor info
+ *  GET /audit/summary                     public: counts by action class and the break-glass counters (no actors, no key material)
  *  GET /audit/entries?from=&limit=        public, redacted: seq, hour bucket, action class, hashes (no actor/object/meta)
  *  GET /audit/verify                      public: chain check + local head vs last anchored value (+ the witness's own copy when reachable)
  */
@@ -24,13 +29,15 @@ import crypto from "node:crypto";
 import express, { Router } from "express";
 import type { NextFunction, Request, Response } from "express";
 import {
-  ROLE_NAMES, anchorStatus, audit, auditHead, auditPrivilegedRead, auditPublicEntries, getAnchorSink, getDb, getStore, grantRole, hasRole, listRoles, listRolesDetailed,
+  ROLE_NAMES, anchorStatus, audit, auditHead, auditPrivilegedRead, auditPublicEntries, getAnchorSink, getDb, getKeys, getStore, grantRole, hasRole, listRoles, listRolesDetailed,
   requireRole, requireAuth, revokeRole, runInTransaction,
 } from "../core";
 import type { RoleName } from "../core";
 import { rateAllow } from "../identity/service";
 import { validateGrantUnit } from "../scope/model";
 import { confirmMfa, enrolMfa, mfaStatus, verifyMfa } from "./mfa";
+import { breakGlassError, getBreakGlass, publicBreakGlass } from "./breakglass";
+import { KNOWN_PURPOSES } from "../providers/keys";
 
 export * from "./mfa";
 
@@ -175,6 +182,59 @@ adminRouter.post(["/roles/requests/:id/reject", "/role-requests/:id/reject"], re
 }));
 
 // ---------------------------------------------------------------------------------------------
+// Break-glass (S-163): dual-control key recovery. Every step is audited by the engine (keys.breakglass.*).
+// ---------------------------------------------------------------------------------------------
+
+const noBreakGlass = (res: Response) => fail(res, 501, "break-glass is not available with this key provider", { code: "break_glass_unavailable" });
+const bgFail = (res: Response, e: unknown) => { const x = breakGlassError(e); fail(res, x.status, x.error, { code: x.code }); };
+
+adminRouter.get("/breakglass/requests", requireRole("admin"), wrap((req, res) => {
+  const bg = getBreakGlass();
+  if (!bg) return noBreakGlass(res);
+  auditPrivilegedRead(req.person!.id, "breakglass_requests", "admin lists break-glass requests");
+  res.json({ requests: bg.list().map(publicBreakGlass) });
+}));
+
+adminRouter.post("/breakglass/requests", requireRole("admin"), requireMfa, wrap((req, res) => {
+  const bg = getBreakGlass();
+  if (!bg) return noBreakGlass(res);
+  const purpose = str(req.body?.purpose);
+  if (!(KNOWN_PURPOSES as readonly string[]).includes(purpose)) return fail(res, 400, "unknown key purpose", { code: "unknown_purpose" });
+  const k = getKeys() as unknown as { keyInfo?: (p: string) => { version: number } };
+  let version = Number(req.body?.version);
+  if (!Number.isInteger(version) || version < 1) { try { version = k.keyInfo ? k.keyInfo(purpose).version : NaN; } catch { version = NaN; } }
+  if (!Number.isInteger(version) || version < 1) return fail(res, 400, "version must be a positive integer", { code: "bad_version" });
+  try { res.status(201).json(publicBreakGlass(bg.request(req.person!.id, { purpose, version, reason: str(req.body?.reason) }))); } catch (e) { bgFail(res, e); }
+}));
+
+adminRouter.post("/breakglass/requests/:id/approve", requireRole("admin"), requireMfa, wrap((req, res) => {
+  const bg = getBreakGlass();
+  if (!bg) return noBreakGlass(res);
+  const me = req.person!.id, id = str(req.params.id);
+  try { const r = bg.approve(id, me); res.json({ ok: true, ...r }); }
+  catch (e) {
+    if (/own break-glass/.test((e as Error).message)) audit(me, "keys.breakglass.self_approval_refused", id, {});
+    bgFail(res, e);
+  }
+}));
+
+adminRouter.post("/breakglass/requests/:id/deny", requireRole("admin"), requireMfa, wrap((req, res) => {
+  const bg = getBreakGlass();
+  if (!bg) return noBreakGlass(res);
+  try { bg.deny(str(req.params.id), req.person!.id); res.json({ ok: true, status: "denied" }); } catch (e) { bgFail(res, e); }
+}));
+
+adminRouter.post("/breakglass/requests/:id/export", requireRole("admin"), requireMfa, wrap(async (req, res) => {
+  const bg = getBreakGlass();
+  if (!bg) return noBreakGlass(res);
+  try {
+    const bundle = await bg.exportRecoveryBundle(str(req.params.id), req.person!.id);
+    res.set("Cache-Control", "no-store");
+    res.json({ ok: true, bundle, note: "the data key wrapped under the recovery KEK; this grant is now used and cannot be used again" });
+  } catch (e) { bgFail(res, e); }
+}));
+
+// ---------------------------------------------------------------------------------------------
 // Public audit transparency (S-144)
 // ---------------------------------------------------------------------------------------------
 
@@ -192,6 +252,26 @@ auditRouter.get("/head", pubLimit("head", 120), wrap((_req, res) => {
     count: h?.count ?? 0,
     anchor: { sink: a.sink, configured: a.sink !== "none", last: a.last_anchor, unanchored_entries: a.unanchored_entries },
   });
+}));
+
+/** Counts only: how many entries per action class, and how often break-glass was requested, approved, denied and used. No actor, object or metadata. */
+auditRouter.get("/summary", pubLimit("summary", 60), wrap((_req, res) => {
+  const d = getStore("audit");
+  const rows = d.prepare("SELECT action, COUNT(*) AS n FROM audit_log GROUP BY action").all() as { action: string; n: number }[];
+  const byClass: Record<string, number> = {};
+  const bg = { requests: 0, approvals: 0, denials: 0, uses: 0, self_approval_refusals: 0 };
+  let total = 0;
+  for (const r of rows) {
+    total += r.n;
+    const cls = r.action.split(/[._]/)[0].slice(0, 24);
+    byClass[cls] = (byClass[cls] ?? 0) + r.n;
+    if (r.action === "keys.breakglass.request") bg.requests += r.n;
+    else if (r.action === "keys.breakglass.approve") bg.approvals += r.n;
+    else if (r.action === "keys.breakglass.deny") bg.denials += r.n;
+    else if (r.action === "keys.breakglass.export" || r.action === "keys.breakglass.use") bg.uses += r.n;
+    else if (r.action === "keys.breakglass.self_approval_refused") bg.self_approval_refusals += r.n;
+  }
+  res.json({ total, by_class: byClass, break_glass: bg });
 }));
 
 auditRouter.get("/entries", pubLimit("entries", 60), wrap((req, res) => {

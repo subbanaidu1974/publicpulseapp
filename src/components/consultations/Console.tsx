@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { consApi, type Analyst, type ConsDetail, type ConsSummary, type Missing, type ReportPreview } from "../../api/consultations";
+import { consApi, type Analyst, type ClauseDiff, type ConsDetail, type ConsSummary, type CorrectionRow, type HeldComment, type Missing, type ReportPreview } from "../../api/consultations";
 import { useT } from "../../i18n";
-import { useConsT, type ConsT } from "./consultationsText";
+import { useConsT, type ConsKey, type ConsT } from "./consultationsText";
 import { DraftEditor } from "./DraftEditor";
 import { ReportView } from "./Report";
 import { type Keyed, Btn, ClosingBadge, ErrorLine, Page, StatusBadge, card, fmtDate, inputCls, linkCls, shortHash, titleOf, useErrMsg, useLoad, useMe } from "./shared";
@@ -32,12 +32,12 @@ function useAct(reload: () => void) {
 function CorrectionForm({ cs, reload }: Keyed & { cs: ConsDetail; reload: () => void }) {
   const c = useConsT();
   const a = useAct(reload);
-  const [n, setN] = useState(1), [reasonEn, setReasonEn] = useState(""), [reasonTe, setReasonTe] = useState(""), [sEn, setSEn] = useState(""), [sTe, setSTe] = useState(""), [corrId, setCorrId] = useState("");
+  const [n, setN] = useState(1), [reasonEn, setReasonEn] = useState(""), [reasonTe, setReasonTe] = useState(""), [sEn, setSEn] = useState(""), [sTe, setSTe] = useState("");
   const cl = cs.clauses.find((x) => x.n === n);
   return (
     <details className="border border-black/30 p-3" data-testid="corr-box">
       <summary className="font-bold cursor-pointer min-h-[44px] flex items-center">{c("corr.title")}</summary>
-      <form className="space-y-2 mt-2" onSubmit={(e) => { e.preventDefault(); void a.act(async () => { const r = await consApi.correct(cs.id, { reason_en: reasonEn, ...(reasonTe ? { reason_te: reasonTe } : {}), clauses: [{ n, summary_en: sEn || cl?.summary_en, summary_te: sTe || cl?.summary_te }] }); setCorrId(r.id); }, c("corr.sent")); }}>
+      <form className="space-y-2 mt-2" onSubmit={(e) => { e.preventDefault(); void a.act(() => consApi.correct(cs.id, { reason_en: reasonEn, ...(reasonTe ? { reason_te: reasonTe } : {}), clauses: [{ n, summary_en: sEn || cl?.summary_en, summary_te: sTe || cl?.summary_te }] }), c("corr.sent")); }}>
         <p className="text-sm">{c("corr.intro")}</p>
         <label className="text-sm font-bold block">{c("corr.clause")}
           <select data-testid="corr-clause" className={inputCls + " font-normal"} value={n} onChange={(e) => setN(Number(e.target.value))}>{cs.clauses.map((x) => <option key={x.n} value={x.n}>{c("cl.n", { n: x.n })}</option>)}</select></label>
@@ -46,7 +46,7 @@ function CorrectionForm({ cs, reload }: Keyed & { cs: ConsDetail; reload: () => 
         <label className="text-sm font-bold block">{c("corr.reasonEn")}<input data-testid="corr-reason-en" className={inputCls + " font-normal"} value={reasonEn} onChange={(e) => setReasonEn(e.target.value)} /></label>
         <label className="text-sm font-bold block">{c("corr.reasonTe")}<input data-testid="corr-reason-te" lang="te" className={inputCls + " font-normal"} value={reasonTe} onChange={(e) => setReasonTe(e.target.value)} /></label>
         <ErrorLine msg={a.err} />
-        {a.note && <p role="status" data-testid="corr-note" className="text-sm font-bold">{a.note} {corrId && <><br />{c("corr.id")}: <code className="break-all" data-testid="corr-id">{corrId}</code></>}</p>}
+        {a.note && <p role="status" data-testid="corr-note" className="text-sm font-bold">{a.note}</p>}
         <Btn type="submit" data-testid="corr-send" disabled={a.busy}>{c("corr.send")}</Btn>
       </form>
     </details>
@@ -159,6 +159,7 @@ function DeptItem({ cs, reload, onEdit, canPublish }: Keyed & { cs: ConsDetail; 
       <ErrorLine msg={a.err} />
       {a.note && <p role="status" className="text-sm font-bold" data-testid="dept-note">{a.note}</p>}
       {cs.status === "draft" && cs.registered_at !== null && <p className="text-sm" data-testid="dept-returned">{c("dept.returned")}</p>}
+      {cs.status !== "completed" && <AudioUploads cs={cs} reload={reload} />}
       {(cs.status === "approved" || cs.status === "open") && <CorrectionForm cs={cs} reload={reload} />}
       {cs.status === "closed" && <ClosingTools cs={cs} reload={reload} canPublish={canPublish} />}
     </li>
@@ -202,14 +203,38 @@ function PanelCard({ sum, reload }: Keyed & { sum: ConsSummary; reload: () => vo
   );
 }
 
+const diffText = (v: unknown): string => { const t = typeof v === "string" ? v : JSON.stringify(v ?? null); return t.length > 400 ? t.slice(0, 400) + "..." : t; };
+
+/** The per-clause difference of a correction, so a reviewer decides on the change itself. */
+function DiffList({ diff }: { diff: ClauseDiff[] }) {
+  const c = useConsT();
+  return (
+    <div className="space-y-1" data-testid="panel-corr-diff">
+      <h5 className="font-bold text-sm">{c("diff.title")}</h5>
+      {diff.length === 0 ? <p className="text-sm">{c("diff.none")}</p> : (
+        <ul className="space-y-2">{diff.map((d, i) => (
+          <li key={i} className="text-sm border border-black/30 p-2" data-testid="diff-item" data-clause={d.clause} data-field={d.field}>
+            <strong>{c("diff.line", { n: d.clause, field: c(`diff.${d.field}` as ConsKey) })}</strong>
+            <p className="break-words"><span className="font-bold">{c("diff.before")}: </span><span data-testid="diff-before">{diffText(d.before)}</span></p>
+            <p className="break-words"><span className="font-bold">{c("diff.after")}: </span><span data-testid="diff-after">{diffText(d.after)}</span></p>
+          </li>))}</ul>)}
+    </div>
+  );
+}
+
 function PanelCardOpen({ sum }: Keyed & { sum: ConsSummary; reload: () => void }) {
   const c = useConsT();
   const { lang } = useT();
   const det = useLoad(() => consApi.get(sum.id), [sum.id, sum.version, sum.status]);
-  const a = useAct(() => { det.reload(); }); // the list is not reloaded: a returned draft leaves the public list but its decision note stays visible
-  const [notes, setNotes] = useState(""), [corr, setCorr] = useState("");
+  const status = det.data?.status;
+  const corrs = useLoad(() => (status && status !== "in_review" ? consApi.corrections(sum.id, "pending").then((r) => r.corrections) : Promise.resolve([] as CorrectionRow[])), [sum.id, det.data?.version, status]);
+  const a = useAct(() => { det.reload(); corrs.reload(); }); // the list is not reloaded: a returned draft leaves the public list but its decision note stays visible
+  const [notes, setNotes] = useState(""), [picked, setPicked] = useState("");
   const cs = det.data;
   if (!cs) return <li className={card}><p role="status">{c("loading")}</p></li>;
+  const pending = corrs.data ?? [];
+  const chosen = cs.status === "in_review" ? undefined : pending.find((x) => x.id === picked) ?? pending[0];
+  const corr = chosen?.id ?? "";
   const recorded = cs.clauses.flatMap((cl) => cl.audio.filter((x) => x.status === "recorded").map((x) => ({ n: cl.n, group: x.group })));
   return (
     <li className={card} data-testid="panel-item" data-cons-id={cs.id} data-status={cs.status}>
@@ -222,8 +247,14 @@ function PanelCardOpen({ sum }: Keyed & { sum: ConsSummary; reload: () => void }
       {(cs.status === "in_review" || cs.status === "approved" || cs.status === "open") && (
         <form className="space-y-2 border border-black/30 p-3" data-testid="panel-form" onSubmit={(e) => e.preventDefault()}>
           <label className="text-sm font-bold block">{c("pan.notes")}<textarea data-testid="panel-notes" className={inputCls + " font-normal"} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></label>
-          <label className="text-sm font-bold block">{c("pan.corrId")}<input data-testid="panel-corr" className={inputCls + " font-normal"} value={corr} onChange={(e) => setCorr(e.target.value)} aria-describedby={`pc-${cs.id}`} /></label>
-          <p id={`pc-${cs.id}`} className="text-xs">{c("pan.corrHint")}</p>
+          {cs.status !== "in_review" && (pending.length === 0 ? <p className="text-sm" data-testid="panel-corr-none">{c("pan.corrNone")}</p> : (
+            <div className="space-y-2" data-testid="panel-corr-box">
+              <label className="text-sm font-bold block">{c("pan.corrPick")}
+                <select data-testid="panel-corr" className={inputCls + " font-normal"} value={corr} onChange={(e) => setPicked(e.target.value)}>
+                  {pending.map((x) => <option key={x.id} value={x.id}>{c("pan.corrOption", { a: x.from_version, b: x.to_version, reason: x.reason_en })}</option>)}
+                </select></label>
+              {chosen && <><p className="text-xs" data-testid="panel-corr-approvals">{c("pan.corrApprovals", { n: chosen.approvals })}</p><DiffList diff={chosen.diff} /></>}
+            </div>))}
           <div className="flex flex-wrap gap-2">
             <Btn data-testid="panel-approve" disabled={a.busy || (cs.status !== "in_review" && !corr)} onClick={() => void a.act(() => consApi.review(cs.id, "approve", notes, corr.trim() || undefined), c("pan.done"))}>{c("pan.approve")}</Btn>
             <Btn secondary data-testid="panel-reject" disabled={a.busy || (cs.status !== "in_review" && !corr)} onClick={() => void a.act(() => consApi.review(cs.id, "reject", notes, corr.trim() || undefined), c("pan.done"))}>{c("pan.reject")}</Btn>
@@ -261,16 +292,108 @@ function PanelSection() {
   );
 }
 
+// ---------------------------------------------------------------------------------------------
+// Moderation: held comments with their feedback ids, released or rejected through the moderate route
+// ---------------------------------------------------------------------------------------------
+
+function HeldItem({ cid, h, reload }: Keyed & { cid: string; h: HeldComment; reload: () => void }) {
+  const c = useConsT();
+  const a = useAct(reload);
+  return (
+    <li className={card} data-testid="held-item" data-feedback-id={h.feedback_id}>
+      <p className="text-sm font-bold">{c("mod.clause", { n: h.clause, s: h.stance })}</p>
+      <blockquote className="border-l-4 border-black pl-2 whitespace-pre-line break-words text-sm" data-testid="held-text">{h.comment}</blockquote>
+      {h.reasons.length > 0 && <p className="text-xs">{c("mod.reasons", { r: h.reasons.join(", ") })}</p>}
+      <div className="flex flex-wrap gap-2">
+        <Btn data-testid="held-release" disabled={a.busy} onClick={() => void a.act(() => consApi.moderate(cid, h.feedback_id, "release"), c("mod.released"))}>{c("mod.release")}</Btn>
+        <Btn secondary data-testid="held-reject" disabled={a.busy} onClick={() => void a.act(() => consApi.moderate(cid, h.feedback_id, "reject"), c("mod.rejected"))}>{c("mod.reject")}</Btn>
+      </div>
+      <ErrorLine msg={a.err} />
+      {a.note && <p role="status" className="text-sm font-bold" data-testid="held-note">{a.note}</p>}
+    </li>
+  );
+}
+
+function HeldQueue({ cid }: Keyed & { cid: string }) {
+  const c = useConsT();
+  const q = useLoad(() => consApi.held(cid), [cid]);
+  const msg = useErrMsg();
+  if (q.loading && !q.data) return <p role="status">{c("loading")}</p>;
+  if (q.error) return <ErrorLine msg={msg(q.error)} />;
+  const list = q.data?.comments ?? [];
+  return list.length === 0 ? <p className="text-sm" data-testid="held-empty">{c("mod.none")}</p> : (
+    <>
+      <p className="text-sm font-bold" data-testid="held-count">{c("mod.count", { n: list.length })}</p>
+      <ul className="space-y-3" data-testid="held-list">{list.map((h) => <HeldItem key={h.feedback_id} cid={cid} h={h} reload={q.reload} />)}</ul>
+    </>
+  );
+}
+
+function ModerationSection() {
+  const c = useConsT();
+  const { lang } = useT();
+  const q = useLoad(async () => (await consApi.list({ limit: 100 })).consultations.slice(0, 50), []);
+  const [pick, setPick] = useState("");
+  return (
+    <section className="space-y-3" data-testid="mod-section" aria-labelledby="mod-h">
+      <h2 id="mod-h" className="text-xl font-bold">{c("mod.title")}</h2>
+      <p className="text-sm">{c("mod.intro")}</p>
+      {q.loading && !q.data && <p role="status">{c("loading")}</p>}
+      <ErrorLine msg={q.error ? c("err.load") : null} />
+      <label className="text-sm font-bold block">{c("mod.pick")}
+        <select data-testid="mod-pick" className={inputCls + " font-normal"} value={pick} onChange={(e) => setPick(e.target.value)}>
+          <option value="">{c("mod.choose")}</option>
+          {(q.data ?? []).map((x) => <option key={x.id} value={x.id}>{titleOf(x, lang)}</option>)}
+        </select></label>
+      {pick && <HeldQueue key={pick} cid={pick} />}
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------
+// Department: recording uploads (the server sniffs the type; a recording is public only after a panel review)
+// ---------------------------------------------------------------------------------------------
+
+function AudioUpload({ cs, n, audio, reload }: Keyed & { cs: ConsDetail; n: number; audio: { group: string; status: string } ; reload: () => void }) {
+  const c = useConsT();
+  const a = useAct(reload);
+  const [file, setFile] = useState<File | null>(null);
+  const id = `au-${cs.id}-${n}-${audio.group}`;
+  if (audio.status === "reviewed") return <li className="text-sm" data-testid="aud-locked" data-group={audio.group}>{c("cl.n", { n })}, {audio.group}: {c("aud.up.locked")}</li>;
+  return (
+    <li className="space-y-1" data-testid="aud-item" data-clause={n} data-group={audio.group}>
+      <label htmlFor={id} className="text-sm font-bold block">{c("aud.up.file", { n, g: audio.group })}</label>
+      <input id={id} type="file" accept="audio/*" data-testid="aud-file" className={inputCls + " font-normal"} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+      <Btn secondary data-testid="aud-upload" disabled={a.busy} onClick={() => { if (!file) { a.setErr(c("aud.up.choose")); return; } void a.act(() => consApi.uploadAudio(cs.id, n, audio.group, file), c("aud.up.done")); }}>{c("aud.up.btn")}</Btn>
+      <ErrorLine msg={a.err} />
+      {a.note && <p role="status" className="text-sm font-bold" data-testid="aud-note">{a.note}</p>}
+    </li>
+  );
+}
+
+function AudioUploads({ cs, reload }: Keyed & { cs: ConsDetail; reload: () => void }) {
+  const c = useConsT();
+  const items = cs.clauses.flatMap((cl) => cl.audio.filter((x) => !!x.file_id).map((x) => ({ n: cl.n, audio: x })));
+  if (items.length === 0 || cs.status === "completed") return null;
+  return (
+    <details className="border border-black/30 p-3" data-testid="aud-box">
+      <summary className="font-bold cursor-pointer min-h-[44px] flex items-center">{c("aud.up.title")}</summary>
+      <p className="text-sm my-2">{c("aud.up.help")}</p>
+      <ul className="space-y-3">{items.map((x) => <AudioUpload key={x.n + x.audio.group} cs={cs} n={x.n} audio={x.audio} reload={reload} />)}</ul>
+    </details>
+  );
+}
+
 export function ConsolePage() {
   const c = useConsT();
   const me = useMe();
   const has = (r: string) => me.roles.includes(r);
-  const dept = has("officer") || has("admin"), panel = has("survey_panel") || has("admin");
+  const dept = has("officer") || has("admin"), panel = has("survey_panel") || has("admin"), mod = has("moderator") || has("admin");
   let body: ReactNode;
   if (me.loading) body = <p role="status">{c("loading")}</p>;
   else if (!me.signedIn) body = <p role="alert" data-testid="console-401" className="font-bold">{c("err.401")}</p>;
-  else if (!dept && !panel) body = <p role="alert" data-testid="console-403" className="font-bold">{c("console.noRole")}</p>;
-  else body = <>{dept && <DeptSection admin={has("admin")} canPublish={panel} />}{panel && <PanelSection />}</>;
+  else if (!dept && !panel && !mod) body = <p role="alert" data-testid="console-403" className="font-bold">{c("console.noRole")}</p>;
+  else body = <>{dept && <DeptSection admin={has("admin")} canPublish={panel} />}{panel && <PanelSection />}{mod && <ModerationSection />}</>;
   return (
     <Page title={c("console.title")} back={{ label: c("nav.registry"), to: "#/consultations" }}>
       <p className="text-sm max-w-2xl">{c("console.intro")}</p>

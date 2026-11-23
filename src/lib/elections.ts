@@ -21,6 +21,12 @@ export interface CandidateResult {
   /** TCPD's own party-switch flag. INTERNAL: never published as a fact or shown as a label (MCC neutrality). */
   tcpdTurncoat?: boolean;
   provenance?: "ECI" | "TCPD" | "demo";
+  /** Source's own turnout figure (TCPD Turnout_Percentage = valid votes / electors, in %), kept when present. */
+  turnoutPct?: number;
+  /** Set on rows fought before the 2 June 2014 bifurcation, mapped onto today's AP/TG seats (data/generated/history). */
+  comparability?: "pre-bifurcation";
+  /** Constituency number in the undivided-AP source numbering (pre-bifurcation rows only). */
+  undividedNo?: number;
 }
 
 export interface SeatResult {

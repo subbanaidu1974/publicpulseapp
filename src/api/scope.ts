@@ -11,6 +11,8 @@ export interface ScopeUnit { lgd: string; level: string; name_en: string; name_t
 export interface ScopeRole { role: string; jurisdiction: string | null; department: string | null; unit: ScopeUnit | null; scope: "unit" | "state" | "none" }
 export interface ScopeCan { issues_summary: boolean; surveys_summary: boolean; audit_summary: boolean; export: boolean }
 export interface ScopeMe { roles: ScopeRole[]; can: ScopeCan; read_only: boolean; early_access: boolean; individual_data: boolean; min_cell: number; notice_en: string; notice_te: string }
+export interface TreeUnit { lgd: string; level: string; name_en: string; name_te: string | null; parent: string | null; has_children: boolean }
+export interface UnitList { parent: ScopeUnit | null; level: string | null; units: TreeUnit[]; total: number; truncated: boolean; read_only: boolean }
 export interface IssueCell { department: string; total: number; open: number; resolved: number; by_status: Record<string, number>; resolution_rate: number }
 export interface IssuesSummary { role: string; unit: ScopeUnit | null; department: string | null; min_cell: number; cells: IssueCell[]; masked: { department: string; reason: string }[]; total_shown: number; truncated: boolean }
 export interface PublishedSurvey { survey_id: string; topic_class: string; state: string; snapshot_sha256: string; published_at: string; results_url: string; method_url: string }
@@ -75,11 +77,12 @@ export const scopeApi = {
     const res = await raw(`/export?${q.toString()}`);
     return { blob: await res.blob(), nextCursor: res.headers.get("x-next-cursor"), filename: `issues.${format}` };
   },
-  /** Village search for the unit picker (public geo route). The server decides whether the picked unit is inside the caller's scope. */
-  searchUnits: async (q: string): Promise<{ lgd: string; nameEn: string; nameTe?: string; path: string[] }[]> => {
-    const res = await fetch(`/api/v1/civic/geo/search?q=${encodeURIComponent(q)}`);
-    if (!res.ok) return [];
-    const j = (await res.json()) as { results?: { village: { lgd: string; name_en: string; name_te: string | null }; path: string[] }[] };
-    return (j.results ?? []).map((h) => ({ lgd: h.village.lgd, nameEn: h.village.name_en, nameTe: h.village.name_te ?? undefined, path: h.path }));
+  /** One level of the unit tree, only units inside the caller's scope (names EN+TE, the codes the issues summary accepts). */
+  units: (parent?: string, level?: string) => {
+    const q = new URLSearchParams();
+    if (parent) q.set("parent", parent);
+    if (level) q.set("level", level);
+    const s = q.toString();
+    return json<UnitList>(`/units${s ? `?${s}` : ""}`);
   },
 };

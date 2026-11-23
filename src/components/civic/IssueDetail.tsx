@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CivicApiError, issuesApi, tokenStore, type Issue, type IssueDetail as Detail } from "../../api/civic";
+import { CivicApiError, issuesApi, tokenStore, type Issue, type IssueDetail as Detail, type MyReportDetail } from "../../api/civic";
 import { useT } from "../../i18n";
 import { useCivicT, type CivicKey } from "./civicText";
 import { useCategories } from "./categories";
@@ -7,12 +7,17 @@ import { Btn, ErrorNote } from "./ui";
 
 const stat = (c: (k: CivicKey) => string, s: string) => (c(`c.issue.s.${s}` as CivicKey) as string | undefined) ?? s;
 
-/** Issue detail (S-139): status, timeline, responsible units, me-too, confirm/reopen and appeal where the server allows. No reporter identity is ever shown. */
-export default function IssueDetail({ id, fallback, onBack }: { id: string; fallback?: Issue; onBack: () => void }) {
+/**
+ * Issue detail (S-139): status, timeline, responsible units, me-too, confirm/reopen and appeal where the server allows. No reporter identity is ever shown.
+ * `owner` (S-157) loads the caller's OWN report from GET /issues/mine/:id, which also works while the report is held or removed: the page then says why
+ * (coarse reason classes only), shows the state of any appeal and offers the appeal form when the server says can_appeal.
+ */
+export default function IssueDetail({ id, fallback, onBack, owner = false, onChanged }: { id: string; fallback?: Issue; onBack: () => void; owner?: boolean; onChanged?: () => void }) {
   const c = useCivicT();
   const { lang } = useT();
   const { label } = useCategories();
-  const [d, setD] = useState<Detail | null | undefined>(undefined);
+  const [d, setD] = useState<(Detail & Partial<MyReportDetail>) | null | undefined>(undefined);
+  const fetchDetail = (): Promise<(Detail & Partial<MyReportDetail>) | null> => (owner ? issuesApi.myDetail(id) : issuesApi.detail(id));
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [reason, setReason] = useState("");
@@ -30,19 +35,22 @@ export default function IssueDetail({ id, fallback, onBack }: { id: string; fall
 
   useEffect(() => {
     let live = true;
-    issuesApi.detail(id).then((r) => { if (live) setD(r); }).catch(() => { if (live) setD(null); });
+    fetchDetail().then((r) => { if (live) setD(r); }).catch(() => { if (live) setD(null); });
     return () => { live = false; };
-  }, [id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, owner]);
 
   const act = async (fn: () => Promise<unknown>, ok: CivicKey, fail: (e: CivicApiError) => CivicKey | null = () => null) => {
     setMsg(null); setErr(null);
-    try { await fn(); setMsg(c(ok)); setD(await issuesApi.detail(id)); }
+    try { await fn(); setMsg(c(ok)); setD(await fetchDetail()); onChanged?.(); }
     catch (e) { const k = e instanceof CivicApiError ? fail(e) : null; setErr(k ? c(k) : c("c.error")); }
   };
   const lvl = (l: string): string => { const k = `c.issue.scope${l[0].toUpperCase()}${l.slice(1)}` as CivicKey; const t = c(k) as string | undefined; return t && t !== k ? t : l; };
   const uName = (u: { nameEn: string; nameTe?: string }) => (lang === "te" ? u.nameTe ?? u.nameEn : u.nameEn);
   const when = (s?: string) => (s ? new Date(s).toLocaleString(lang === "te" ? "te-IN" : "en-IN", { dateStyle: "medium", timeStyle: "short" }) : "");
 
+  const moderation = d?.moderation ?? "ok";
+  const apStatus = d?.appeal?.status;
   const category = d?.category ?? fallback?.category ?? "other";
   const status = d?.status ?? fallback?.status ?? "";
   return (
@@ -52,6 +60,21 @@ export default function IssueDetail({ id, fallback, onBack }: { id: string; fall
       {d === undefined && <p role="status">{c("c.loading")}</p>}
       {d === null && <p data-testid="issue-no-detail" className="text-sm">{c("c.issue.noDetail")}</p>}
       <p className="text-sm"><strong>{c("c.issue.status")}:</strong> <span data-testid="detail-status">{stat(c, status)}</span></p>
+      {d && moderation !== "ok" && (
+        <div className="border-2 border-black p-3 space-y-1 text-sm" data-testid="owner-moderation" role="status">
+          <p className="font-bold" data-testid="owner-moderation-state">{c(moderation === "held" ? "c.issue.heldTitle" : "c.issue.takenDownTitle")}</p>
+          <p>{c(moderation === "held" ? "c.issue.heldBody" : "c.issue.takenDownBody")}</p>
+          {(d.moderationClasses ?? []).length > 0 && (
+            <div><p className="font-bold">{c("c.issue.heldWhy")}</p>
+              <ul className="list-disc ml-5" data-testid="owner-moderation-classes">{(d.moderationClasses ?? []).map((k) => <li key={k}>{c(`c.issue.cls.${k}` as CivicKey)}</li>)}</ul>
+            </div>
+          )}
+          {d.escalated && <p>{c("c.issue.escalatedNote")}</p>}
+          {apStatus && (
+            <p data-testid="owner-appeal-state">{c(apStatus === "pending" ? "c.issue.appealPending" : apStatus === "approved" ? "c.issue.appealApproved" : apStatus === "rejected" ? "c.issue.appealRejected" : "c.issue.appealUpheld")}</p>
+          )}
+        </div>
+      )}
       {d && (
         <>
           {d.department && <p className="text-sm"><strong>{c("c.issue.department")}:</strong> {d.department}</p>}
@@ -77,7 +100,7 @@ export default function IssueDetail({ id, fallback, onBack }: { id: string; fall
             </div>
           )}
           <div className="flex items-center gap-3 flex-wrap text-sm">
-            <Btn data-testid="issue-metoo" onClick={() => void act(() => issuesApi.meToo(id), "c.issue.meTooDone", (e) => (e.status === 429 ? "c.issue.meTooLimit" : null))}>{c("c.issue.meToo")}</Btn>
+            {moderation === "ok" && <Btn data-testid="issue-metoo" onClick={() => void act(() => issuesApi.meToo(id), "c.issue.meTooDone", (e) => (e.status === 429 ? "c.issue.meTooLimit" : null))}>{c("c.issue.meToo")}</Btn>}
             <span data-testid="detail-metoo-count">{d.supportCount} {c("c.issue.meTooCount")}</span>
           </div>
           {d.canConfirm && status === "Resolved" && (
@@ -89,9 +112,9 @@ export default function IssueDetail({ id, fallback, onBack }: { id: string; fall
               </div>
             </div>
           )}
-          {/* TODO(appeal): the public detail route never sets can_appeal and the backend has no owner view of a held issue, so this form stays hidden until it does (see issuesApi.appeal). */}
+          {/* The public route never sets can_appeal; the owner view (GET /issues/mine/:id) does, for a held or removed report with no appeal pending. */}
           {d.canAppeal && (
-            <form className="space-y-2 text-sm" data-testid="issue-appeal" onSubmit={(e) => { e.preventDefault(); void act(() => issuesApi.appeal(id, reason), "c.issue.appealSent"); }}>
+            <form className="space-y-2 text-sm" data-testid="issue-appeal" onSubmit={(e) => { e.preventDefault(); void act(() => issuesApi.appeal(id, reason).then(() => setReason("")), "c.issue.appealSent", () => "c.issue.appealFail"); }}>
               <label htmlFor="ia-reason" className="block font-bold">{c("c.issue.appealWhy")}</label>
               <textarea id="ia-reason" className="w-full border border-black p-2" rows={3} maxLength={1000} value={reason} onChange={(e) => setReason(e.target.value)} />
               <button type="submit" className="min-h-[44px] px-4 border border-black bg-black text-white font-bold" disabled={reason.trim().length < 3}>{c("c.issue.appeal")}</button>

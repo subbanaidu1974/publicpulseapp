@@ -8,6 +8,7 @@ import {
   runIdentityErasureHooks, runInTransaction,
 } from "../core";
 import type { Tier } from "../core";
+import { phoneHashCandidates } from "../providers/rehash";
 
 registerMigration("identity_001", `
 CREATE TABLE otps (
@@ -108,6 +109,26 @@ export const PIN_RE = /^\d{4,6}$/;
 export const smsHourlyBudget = () => Number(process.env.CIVIC_SMS_HOURLY_BUDGET || 2000);
 /** Spend one SMS from the global hourly budget (key "sms:global", shared by every SMS-sending flow). False = budget exhausted: answer 429/503 + degraded. */
 export function smsBudgetAllow(now = Date.now()): boolean { return rateAllow("sms:global", smsHourlyBudget(), 60 * 60 * 1000, now); }
+export type SmsDelivery = "sent" | "queued" | "failed";
+/**
+ * (S-164) Send one SMS and report HONESTLY what happened. A contract-v2 provider answers with the ledger state of the message; the quiet
+ * failure policy of the managed provider (send() resolves even when the vendor is down) is why this does not use send(): sent/delivered ->
+ * "sent"; pending/queued/retry (the vendor has it, or will be asked again) -> "queued"; dead/failed/budget_exhausted -> "failed". A v1
+ * provider only has send(): resolved -> "sent", threw -> "failed". Never throws.
+ */
+export async function sendSmsReport(to: string, text: string): Promise<SmsDelivery> {
+  const p = getSms() as { contract?: number; submit?: (to: string, text: string) => Promise<{ state: string }>; send(to: string, text: string): Promise<void> };
+  try {
+    if (p.contract === 2 && typeof p.submit === "function") {
+      const r = await p.submit(to, text);
+      if (r.state === "sent" || r.state === "delivered") return "sent";
+      if (r.state === "pending" || r.state === "queued" || r.state === "retry") return "queued";
+      return "failed";
+    }
+    await p.send(to, text);
+    return "sent";
+  } catch { return "failed"; }
+}
 export const DEGRADED_NOTICE = "SMS capacity is reached for this hour. Existing sessions keep working; try again later.";
 
 // ---------------------------------------------------------------------------------------------
@@ -115,6 +136,8 @@ export const DEGRADED_NOTICE = "SMS capacity is reached for this hour. Existing 
 // ---------------------------------------------------------------------------------------------
 
 export interface NumberIntel { recently_reissued: boolean; voip: boolean }
+/** The richer report of a contract-v2 adapter (providers/numberintel.ts). Every field beyond NumberIntel is optional here: the dev stub and old adapters omit them. */
+export interface NumberIntelExtra { risk?: "low" | "medium" | "high" | "unknown"; trust?: "normal" | "reduced"; recycled?: boolean; portedRecently?: boolean; source?: string }
 /** Adapter for an operator-grade number intelligence / churn-list vendor. */
 export interface NumberIntelligence { lookup(e164: string): Promise<NumberIntel> }
 
@@ -130,6 +153,36 @@ export function setNumberIntelligence(n: NumberIntelligence | null): void { inte
 export function getNumberIntelligence(): NumberIntelligence { return intel; }
 /** (S-55) True while the dev fixture stub is the active number-intelligence adapter. */
 export function isDevNumberIntelligence(): boolean { return intel instanceof DevNumberIntelligence; }
+
+/**
+ * (S-162) Number-intelligence lookup that can never block a sign-up: an adapter that throws (vendor down, bad answer) yields an UNKNOWN
+ * verdict with reduced trust, and sign-up proceeds. The managed adapter already degrades the same way; this covers any other adapter.
+ */
+export async function lookupNumber(e164: string): Promise<NumberIntel & NumberIntelExtra> {
+  try { return (await intel.lookup(e164)) as NumberIntel & NumberIntelExtra; }
+  catch { return { recently_reissued: false, voip: false, risk: "unknown", trust: "reduced", recycled: false, portedRecently: false, source: "unknown" }; }
+}
+export type NumberRisk = "low" | "medium" | "high" | "unknown";
+/** Effective risk class of a lookup result: the adapter's own `risk` when it gives one, else derived from the two classic flags. */
+export function numberRisk(i: NumberIntel & NumberIntelExtra): NumberRisk { return i.risk ?? (i.voip || i.recently_reissued ? "high" : "low"); }
+/** Risk classes whose holders get the stricter OTP cap (CIVIC_RISK_CAP_FACTOR) and the "low quality" survey key class. */
+export const isElevatedRisk = (r: NumberRisk): boolean => r === "medium" || r === "high";
+/**
+ * Flags written on the person at account creation from a lookup. recently_reissued (recycled number) already makes the account
+ * survey-ineligible until a volunteer confirms it (T0-restricted). number_risk_medium/high move survey responses to the *_LOW key class;
+ * number_ported is informational; number_unverified records that the vendor could not answer (never blocks, never penalises).
+ */
+export function numberFlags(i: NumberIntel & NumberIntelExtra): string[] {
+  const f: string[] = [];
+  if (i.recently_reissued || i.recycled) f.push("recently_reissued");
+  if (i.portedRecently) f.push("number_ported");
+  const r = numberRisk(i);
+  if (isElevatedRisk(r)) f.push("number_risk_" + r);
+  if (i.trust === "reduced" && numberRisk(i) === "unknown") f.push("number_unverified"); // vendor failure (also when served from the short failure cache)
+  return [...new Set(f)];
+}
+/** Multiplier on the per-phone OTP cap for elevated-risk numbers (default 0.67: 3 requests per 10 minutes become 2). 1 = no difference. */
+export const riskCapFactor = (): number => { const f = Number(process.env.CIVIC_RISK_CAP_FACTOR ?? 0.67); return Number.isFinite(f) && f > 0 && f <= 1 ? f : 0.67; };
 
 // ---------------------------------------------------------------------------------------------
 // Rate limiting (persisted so it survives restarts)
@@ -192,29 +245,44 @@ export type OtpPurpose = "signup" | "recovery" | "enrol";
 export const OTP_PURPOSES: OtpPurpose[] = ["signup", "recovery", "enrol"];
 export const OTP_MAX_ATTEMPTS = 5;
 
+const inList = (n: number) => Array.from({ length: n }, () => "?").join(",");
+interface OtpRow { phone_hash: string; code_hash: string; expires_at: string; attempts: number }
+/** The OTP row for (phone, purpose) under ANY active key version (S-161 dual-read; current-version row preferred). */
+function otpRow(phone: string, purpose: OtpPurpose): OtpRow | undefined {
+  const cands = phoneHashCandidates(phone);
+  const rows = getDb().prepare(`SELECT phone_hash, code_hash, expires_at, attempts FROM otps WHERE phone_hash IN (${inList(cands.length)}) AND purpose = ?`).all(...cands, purpose) as unknown as OtpRow[];
+  return rows.sort((a, b) => cands.indexOf(a.phone_hash) - cands.indexOf(b.phone_hash))[0];
+}
 /** Milliseconds left on a still-usable code for (phone, purpose), or 0. A code with 5 failed tries counts as burned (0). */
 export function otpRemainingMs(phone: string, purpose: OtpPurpose, now = Date.now()): number {
-  const row = getDb().prepare("SELECT expires_at, attempts FROM otps WHERE phone_hash = ? AND purpose = ?").get(getKeys().hmac("phone", phone), purpose) as { expires_at: string; attempts: number } | undefined;
+  const row = otpRow(phone, purpose);
   if (!row || row.attempts >= OTP_MAX_ATTEMPTS) return 0;
   return Math.max(0, new Date(row.expires_at).getTime() - now);
 }
-/** Store a fresh code (hashed) for (phone, purpose), replacing an expired or burned one. */
+/** Store a fresh code (hashed) for (phone, purpose), replacing an expired or burned one. Single-write: always under the CURRENT key version. */
 export function storeOtp(phone: string, purpose: OtpPurpose, code: string, now = Date.now()): void {
-  getDb().prepare("INSERT OR REPLACE INTO otps (phone_hash, purpose, code_hash, expires_at, attempts) VALUES (?,?,?,?,0)")
-    .run(getKeys().hmac("phone", phone), purpose, getKeys().hmac("otp", code), new Date(now + OTP_TTL_MS).toISOString());
+  const cands = phoneHashCandidates(phone);
+  const d = getDb();
+  if (cands.length > 1) d.prepare(`DELETE FROM otps WHERE phone_hash IN (${inList(cands.length - 1)}) AND purpose = ?`).run(...cands.slice(1), purpose);
+  d.prepare("INSERT OR REPLACE INTO otps (phone_hash, purpose, code_hash, expires_at, attempts) VALUES (?,?,?,?,0)")
+    .run(cands[0], purpose, getKeys().hmac("otp", code), new Date(now + OTP_TTL_MS).toISOString());
+}
+/** Drop the pending code for (phone, purpose), whichever key version it was stored under (a code whose SMS never left is not "already sent"). */
+export function discardOtp(phone: string, purpose: OtpPurpose): void {
+  const cands = phoneHashCandidates(phone);
+  getDb().prepare(`DELETE FROM otps WHERE phone_hash IN (${inList(cands.length)}) AND purpose = ?`).run(...cands, purpose);
 }
 /** Check a code for (phone, purpose): constant-time, 5 tries, single use (deleted on success). */
 export function consumeOtp(phone: string, purpose: OtpPurpose, code: string, now = new Date()): boolean {
   const d = getDb();
-  const ph = getKeys().hmac("phone", phone);
-  const row = d.prepare("SELECT code_hash, expires_at, attempts FROM otps WHERE phone_hash = ? AND purpose = ?").get(ph, purpose) as { code_hash: string; expires_at: string; attempts: number } | undefined;
+  const row = otpRow(phone, purpose);
   if (!row || row.expires_at < now.toISOString() || row.attempts >= OTP_MAX_ATTEMPTS) return false;
   const given = Buffer.from(getKeys().hmac("otp", code), "hex"), want = Buffer.from(row.code_hash, "hex");
   if (given.length !== want.length || !crypto.timingSafeEqual(given, want)) {
-    d.prepare("UPDATE otps SET attempts = attempts + 1 WHERE phone_hash = ? AND purpose = ?").run(ph, purpose);
+    d.prepare("UPDATE otps SET attempts = attempts + 1 WHERE phone_hash = ? AND purpose = ?").run(row.phone_hash, purpose);
     return false;
   }
-  d.prepare("DELETE FROM otps WHERE phone_hash = ? AND purpose = ?").run(ph, purpose);
+  d.prepare("DELETE FROM otps WHERE phone_hash = ? AND purpose = ?").run(row.phone_hash, purpose);
   return true;
 }
 
@@ -320,12 +388,38 @@ export interface PersonRow {
   phone_purged_at: string | null; deleted_at: string | null; last_active_at: string | null;
 }
 
+/** The WRITE hash of a number (current key version). Lookups must go through personsOnPhone / phoneHashCandidates, which also see older versions during a rotation (S-161). */
 export const phoneHash = (e164: string) => getKeys().hmac("phone", e164);
 export function getPerson(id: string): PersonRow | undefined {
   return getDb().prepare("SELECT * FROM persons WHERE id = ? AND deleted_at IS NULL").get(id) as unknown as PersonRow | undefined;
 }
 export function personsOnSim(hash: string): PersonRow[] {
   return getDb().prepare("SELECT * FROM persons WHERE phone_hash = ? AND deleted_at IS NULL ORDER BY created_at").all(hash) as unknown as PersonRow[];
+}
+/**
+ * (S-161) Every live account on a number, under ANY active key version, so a key rotation locks nobody out while the rehash runs. Single-write,
+ * lazy migration: a row found under an older hash is rewritten to the current hash (and its encrypted phone re-encrypted) right here, so
+ * logging in is itself part of the migration. With one active version this is the same query as personsOnSim(phoneHash(e164)).
+ */
+export function personsOnPhone(e164: string): PersonRow[] {
+  const cands = phoneHashCandidates(e164);
+  const d = getDb();
+  const rows = d.prepare(`SELECT * FROM persons WHERE phone_hash IN (${inList(cands.length)}) AND deleted_at IS NULL ORDER BY created_at`).all(...cands) as unknown as PersonRow[];
+  if (cands.length > 1) {
+    const stale = rows.filter((r) => r.phone_hash !== cands[0]);
+    if (stale.length) {
+      const enc = getKeys().encrypt("phone", e164);
+      runInTransaction(() => { for (const r of stale) d.prepare("UPDATE persons SET phone_hash = ?, phone_enc = ? WHERE id = ?").run(cands[0], enc, r.id); });
+      for (const r of stale) { r.phone_hash = cands[0]; r.phone_enc = enc; }
+      audit("system", "phone.rehash_lazy", "identity", { rows: stale.length });
+    }
+  }
+  return rows;
+}
+/** Everyone on the same SIM as `p` (including p), by the clear number when it is still on file, else by the stored hash. */
+export function simMembers(p: PersonRow): PersonRow[] {
+  if (p.phone_enc) { try { return personsOnPhone(getKeys().decrypt("phone", p.phone_enc)); } catch { /* fall through */ } }
+  return p.phone_hash ? personsOnSim(p.phone_hash) : [];
 }
 
 export function createPerson(opts: { phone: string; pin: string; label?: string; flags?: string[]; consentVersion: string; now?: Date }): PersonRow {

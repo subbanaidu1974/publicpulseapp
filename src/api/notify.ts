@@ -53,6 +53,16 @@ export interface NotifyMessage {
 export interface AdminOrg { id: string; name: string; kind: string; letter_ref: string; email_domain: string; contact: string; status: string; requested_by: string; created_at: string; decided_by: string | null }
 export interface AdminSender { id: string; org_id: string; org_name: string; person_id: string; role: string; status: string; requested_by: string; credentials: number }
 export interface KillRow { id: string; scope: "all" | "org"; org_id: string | null; reason: string; engaged_by: string; engaged_at: string; release_requested_by: string | null; released_at: string | null }
+export interface NotifyStatus {
+  kill: { engaged: boolean; scope: "all" | "org" | null; since: string | null; orgs_suspended: number; notice_en: string | null; notice_te: string | null };
+  window: { state: string; status: "open" | "blackout" | "unknown"; notice_en: string; notice_te: string; declaration_needed: boolean; blocked_categories: string[] };
+  as_of: string;
+}
+export interface LintFinding { rule: string; field: string; detail?: string }
+export interface LintResult { clean: boolean; findings: LintFinding[]; rules: string[]; chars: { text_en: number; text_te: number; max: number }; mcc: { state: string; window: string } | null }
+export interface Device { id: string; platform: string; label_en: string; label_te: string; created_at: string }
+export interface PersonHit { person_id: string; phone_tail: string | null; tier: string; roles: { role: string; department: string | null; jurisdiction: string | null }[]; senders: { sender_id: string; org_name: string; role: string; status: string }[]; matched_by: "phone" | "name_hint" }
+export interface SenderCredential { id: string; alg: number; created_at: string; last_used_at: string | null; revoked: boolean; revoked_at: string | null }
 export interface WindowInfo { state: string; window: "open" | "blackout" | "unknown"; notificationsAllowed: boolean }
 
 export const notifyApi = {
@@ -70,6 +80,8 @@ export const notifyApi = {
     const j = await r.json() as { window: WindowInfo["window"]; notificationsAllowed: boolean };
     return { state, window: j.window, notificationsAllowed: j.notificationsAllowed };
   },
+  /** Public pre-flight: the kill switch (no reason) and what the election-window state means for senders. */
+  status: (state: string, orgId?: string) => get<NotifyStatus>(`/status?state=${encodeURIComponent(state)}${orgId ? `&org_id=${encodeURIComponent(orgId)}` : ""}`, false),
   // recipient
   inbox: (limit = 50) => get<{ items: InboxItem[]; unread: number }>(`/inbox?limit=${limit}`),
   markRead: (id: string) => post<{ ok: true }>(`/inbox/${encodeURIComponent(id)}/read`),
@@ -78,6 +90,7 @@ export const notifyApi = {
   unsubscribe: () => post<Prefs>("/unsubscribe"),
   antiphish: () => get<{ word: string | null }>("/antiphish"),
   setAntiphish: (word: string) => call<{ ok: true }>("/antiphish", { method: "PUT", body: { word } }),
+  devices: () => get<{ devices: Device[]; count: number }>("/devices"),
   removeDevices: () => call<{ ok: true }>("/devices", { method: "DELETE" }),
   // sender
   me: () => get<SenderMe>("/sender/me"),
@@ -85,6 +98,8 @@ export const notifyApi = {
   registerVerify: (c: RegistrationCredentialDto) => post<{ credential_id: string; alg: number }>("/webauthn/register/verify", c),
   messages: async () => (await get<{ messages: NotifyMessage[] }>("/messages")).messages,
   message: (id: string) => get<NotifyMessage>(`/messages/${encodeURIComponent(id)}`),
+  /** Content-linter findings for text being typed. Nothing is created or logged. */
+  lint: (b: { text_en?: string; text_te?: string; title_en?: string; title_te?: string; slots?: Record<string, string>; state?: string }) => post<LintResult>("/messages/lint", b),
   create: (d: MessageDraft) => post<{ id: string; status: string; msg_hash: string; approvals_required: number; mcc_window: string }>("/messages", d),
   challenge: (id: string, purpose: "approve" | "send") => post<AssertionOptionsDto>(`/messages/${encodeURIComponent(id)}/challenge`, { purpose }),
   approve: (id: string, assertion: AssertionDto) => post<{ id: string; status: string; approvals: number; approvals_required: number }>(`/messages/${encodeURIComponent(id)}/approve`, { assertion }),
@@ -97,6 +112,8 @@ export const notifyApi = {
   adminSenders: async () => (await get<{ senders: AdminSender[] }>("/admin/senders")).senders,
   requestSender: (b: { org_id: string; person_id: string; role: string }, totp: string) => post<{ id: string }>("/admin/senders", b, totp),
   decideSender: (id: string, action: "approve" | "reject" | "revoke", totp: string) => post<{ id: string; status: string }>(`/admin/senders/${encodeURIComponent(id)}/${action}`, {}, totp),
+  adminPeople: (q: string) => get<{ people: PersonHit[]; note: string }>(`/admin/people?q=${encodeURIComponent(q)}`),
+  adminCredentials: (sender: string) => get<{ sender: { id: string; org_name: string; role: string; status: string }; credentials: SenderCredential[] }>(`/admin/credentials?sender=${encodeURIComponent(sender)}`),
   revokeCredential: (id: string, totp: string) => post<{ ok: true }>(`/admin/credentials/${encodeURIComponent(id)}/revoke`, {}, totp),
   kills: async () => (await get<{ kills: KillRow[] }>("/admin/kill")).kills,
   engageKill: (b: { scope: "all" | "org"; org_id?: string; reason: string }, totp: string) => post<{ id: string }>("/admin/kill", b, totp),

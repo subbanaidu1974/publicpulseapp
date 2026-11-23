@@ -910,13 +910,14 @@
       "epic": "Operations",
       "title": "Scheduled data-refresh pipeline with freshness alerts and forecast-cache invalidation",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-91"
       ],
       "priority": "P2",
       "wave": "W3",
-      "source": "gap-audit: 121,30"
+      "source": "gap-audit: 121,30",
+      "notes": "Staged refresh with atomic swap and rollback (off by default), freshness endpoint and job; 9 datasets report unknown freshness because their generators write no asOf. The default refresh steps were never run against live sources."
     },
     {
       "id": "S-77",
@@ -1083,13 +1084,14 @@
       "epic": "Geo data",
       "title": "Mandal boundary polygons with licence review (OSM ODbL or other)",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-104"
       ],
       "priority": "P2",
       "wave": "W3",
-      "source": "gap-audit: 20"
+      "source": "gap-audit: 20",
+      "notes": "Mandal polygons from OSM via Wikidata ids: AP 556/688 (81%) and TG 464/621 (75%) matched by name with confidence >= 0.8; 289 mandals have no polygon (listed in mandal-coverage.json). ODbL share-alike scope needs a counsel decision."
     },
     {
       "id": "S-90",
@@ -1109,26 +1111,28 @@
       "epic": "Geo data",
       "title": "Polling-station reference list (number, name, location only); never ingest electoral-roll PDFs",
       "agent": "-",
-      "status": "todo",
+      "status": "in_progress",
       "tests": [
         "E2E-106"
       ],
       "priority": "P2",
       "wave": "W3",
-      "source": "gap-audit: DESIGN 8"
+      "source": "gap-audit: DESIGN 8",
+      "notes": "Schema, validator, legal guard (rejects voter-level fields), importer and route are built and tested, but NO station data is shipped: CEO/ECI sources were unreachable and need an operator-supplied list and a terms check."
     },
     {
       "id": "S-92",
       "epic": "Geo data",
       "title": "Boundary versioning and post-census delimitation readiness",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-107"
       ],
       "priority": "P2",
       "wave": "W3",
-      "source": "gap-audit: DESIGN 3.8"
+      "source": "gap-audit: DESIGN 3.8",
+      "notes": "Versioned boundary sets (delimitation-2008), ?version=/?asOf= on geo routes, dry-run checker with a TEST ONLY fixture for a future delimitation."
     },
     {
       "id": "S-93",
@@ -1385,13 +1389,14 @@
       "epic": "People data",
       "title": "Party-switch / turncoat records, citation-only (Speaker/ECI/news)",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-127"
       ],
       "priority": "P2",
       "wave": "W3",
-      "source": "gap-audit: DESIGN 4"
+      "source": "gap-audit: DESIGN 4",
+      "notes": "Citation-only party-change records: two entries, each confirmed by two publishers; shown identically for every person and hidden in blackout. More entries need two-source verification."
     },
     {
       "id": "S-113",
@@ -1424,39 +1429,42 @@
       "epic": "People data",
       "title": "By-election and re-poll tracking",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-130"
       ],
       "priority": "P2",
       "wave": "W3",
-      "source": "gap-audit: 23"
+      "source": "gap-audit: 23",
+      "notes": "17 AP/TG by-election records from 2014; two verified against a second source, others single-source; cause empty for 15 of 17."
     },
     {
       "id": "S-116",
       "epic": "People data",
       "title": "Pre-2014 undivided-AP history mapping and AP/TG LS 2014 split",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-131"
       ],
       "priority": "P2",
       "wave": "W3",
-      "source": "gap-audit: 23"
+      "source": "gap-audit: 23",
+      "notes": "2009 assembly and 2009/2014 Lok Sabha split between AP and TG by constituency numbering (372 of 378 names match); kept in a separate file flagged pre-bifurcation so existing history and the forecast are unchanged. Not in the main year pickers."
     },
     {
       "id": "S-117",
       "epic": "People data",
       "title": "Per-candidate and per-party assembly vs Lok Sabha comparison; incumbency analytics",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-132"
       ],
       "priority": "P2",
       "wave": "W3",
-      "source": "gap-audit: DESIGN 4"
+      "source": "gap-audit: DESIGN 4",
+      "notes": "Assembly vs Lok Sabha comparison, incumbency analytics (win rate withheld for 2023/2024: no incumbent flag), candidate trails matched by name within the same seat with confidence; no ranking and no turncoat label."
     },
     {
       "id": "S-118",
@@ -1489,13 +1497,14 @@
       "epic": "Analytics",
       "title": "Turnout, NOTA and gender-turnout analytics page",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-135"
       ],
       "priority": "P1",
       "wave": "W3",
-      "source": "gap-audit: 19"
+      "source": "gap-audit: 19",
+      "notes": "Turnout (valid-votes turnout), NOTA and women-candidate analytics; gender turnout is not available in the data and is reported as such."
     },
     {
       "id": "S-121",
@@ -1934,6 +1943,160 @@
       "wave": "W5",
       "source": "gap-audit: 102",
       "notes": "Tooling built (npm run gate:status, per-row evidence folders, red-team scope, pilot skew tool). All 18 gate rows still need human owners, dates and evidence; release stays blocked."
+    },
+    {
+      "id": "S-154",
+      "epic": "Consult",
+      "title": "Consultation server gaps: affected_groups in list items, reviewed-audio route, staff held-comments list, pending-correction ids, state list filter",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-169"
+      ],
+      "priority": "P1",
+      "wave": "W6",
+      "source": "follow-up from Phase 2 screens and reports",
+      "notes": "Consultation list carries affected groups and clause counts; reviewed audio streams only after panel review (stored on local disk only); staff corrections list and held-comments queue."
+    },
+    {
+      "id": "S-155",
+      "epic": "Notify",
+      "title": "Notification server gaps: lint-only endpoint, public sender/kill-switch status, device list, admin lookup routes",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-170"
+      ],
+      "priority": "P1",
+      "wave": "W6",
+      "source": "follow-up from Phase 2 screens and reports",
+      "notes": "Lint-only endpoint, public kill-switch and election-period status, own-device list (no tokens), audited admin lookups with masked identifiers."
+    },
+    {
+      "id": "S-156",
+      "epic": "Roles",
+      "title": "Scope-aware unit list route and bilingual OTP capacity/queue notices",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-171"
+      ],
+      "priority": "P1",
+      "wave": "W6",
+      "source": "follow-up from Phase 2 screens and reports",
+      "notes": "Scope-aware unit tree for the dashboard picker; OTP capacity and queue-full notices are bilingual."
+    },
+    {
+      "id": "S-157",
+      "epic": "Issues",
+      "title": "Owner view of own reports (held/appeal) and appeal flow end to end",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-181"
+      ],
+      "priority": "P1",
+      "wave": "W6",
+      "source": "follow-up from Phase 2 screens and reports",
+      "notes": "Owner view of own reports with appeal flow and UI."
+    },
+    {
+      "id": "S-158",
+      "epic": "Identity",
+      "title": "Change-PIN screen wired to /identity/pin/change",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-182"
+      ],
+      "priority": "P2",
+      "wave": "W6",
+      "source": "follow-up from Phase 2 screens and reports",
+      "notes": "Change-PIN screen wired to the endpoint."
+    },
+    {
+      "id": "S-159",
+      "epic": "Identity",
+      "title": "Schedule the volunteer re-check sampler; test the per-SIM adult cap",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-183"
+      ],
+      "priority": "P1",
+      "wave": "W6",
+      "source": "follow-up from Phase 2 screens and reports",
+      "notes": "Re-check sampler job with independent-volunteer tasks; per-SIM adult cap test added."
+    },
+    {
+      "id": "S-160",
+      "epic": "Platform",
+      "title": "Enforce the audit-metadata rule (no phone numbers, PINs or response contents) with a scrubber and a test",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-184"
+      ],
+      "priority": "P1",
+      "wave": "W6",
+      "source": "follow-up from Phase 2 screens and reports",
+      "notes": "Audit scrubber redacts sensitive keys and phone-shaped values at write time; cannot catch a PIN written inside free prose."
+    },
+    {
+      "id": "S-161",
+      "epic": "Identity",
+      "title": "Dual-hash phone lookup in identity so phone-key rotation can run online",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-185"
+      ],
+      "priority": "P1",
+      "wave": "W6",
+      "source": "follow-up from Phase 2 screens and reports",
+      "notes": "Dual-hash phone lookup for online key rotation. Household invites made before a rotation may need re-issuing; numbers whose encrypted copy was purged cannot be rehashed."
+    },
+    {
+      "id": "S-162",
+      "epic": "Identity",
+      "title": "Use number-intelligence risk/trust in identity decisions (quality, caps)",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-186"
+      ],
+      "priority": "P2",
+      "wave": "W6",
+      "source": "follow-up from Phase 2 screens and reports",
+      "notes": "Number-intelligence risk lowers OTP caps and selects the low survey key class; vendor failure never blocks sign-up; recycled numbers are flagged restricted (no extra OTP step)."
+    },
+    {
+      "id": "S-163",
+      "epic": "Admin",
+      "title": "Break-glass admin API with dual control and audit",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-187"
+      ],
+      "priority": "P2",
+      "wave": "W6",
+      "source": "follow-up from Phase 2 screens and reports",
+      "notes": "Break-glass admin API with two-other-admin approval and one-time wrapped export; requests are in memory so a restart cancels them."
+    },
+    {
+      "id": "S-164",
+      "epic": "Identity",
+      "title": "Honest SMS state when the vendor is down (queued/failed, not just code sent)",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-188"
+      ],
+      "priority": "P2",
+      "wave": "W6",
+      "source": "follow-up from Phase 2 screens and reports",
+      "notes": "OTP responses say sent/queued/failed; failed sends drop the code so a resend works at once."
     }
   ]
 }

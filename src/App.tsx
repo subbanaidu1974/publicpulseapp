@@ -31,6 +31,7 @@ import { parseProfileHash } from "./api/profiles";
 import { isSurveysHash } from "./components/surveys/SurveysRoot";
 import PeoplePage, { isPeopleHash } from "./components/people/PeoplePage";
 import { PEOPLE_TEXT } from "./components/people/peopleText";
+import AnalyticsRoot, { AnalyticsLinks, isAnalyticsHash } from "./components/analytics/AnalyticsRoot";
 
 type Theme = "beige" | "dark" | "dark-beige" | "earth-yellow";
 const THEMES: Theme[] = ["beige", "dark", "dark-beige", "earth-yellow"];
@@ -39,6 +40,7 @@ const TABS = ["home", "map", "analytics", "elections", "civic", "constituencies"
 function initialTab(): string {
   try { if (window.location.pathname.replace(/\/+$/, "") === "/admin") return "admin"; } catch { /* ignore */ }
   try { if (/^#\/map(\/|$)/.test(window.location.hash)) return "map"; } catch { /* ignore */ }
+  try { if (isAnalyticsHash(window.location.hash)) return "analytics"; } catch { /* ignore */ }
   try { if (parseProfileHash(window.location.hash)) return "constituencies"; } catch { /* ignore */ }
   try { if (isPeopleHash(window.location.hash)) return "people"; } catch { /* ignore */ }
   try { if (isSurveysHash(window.location.hash)) return "survey"; } catch { /* ignore */ }
@@ -95,7 +97,15 @@ function AppInner() {
     window.addEventListener("hashchange", on);
     return () => window.removeEventListener("hashchange", on);
   }, []);
+  // Turnout / comparison / history pages (#/analytics/turnout|compare|history) replace the analytics overview while the hash is set.
+  const [anRoute, setAnRoute] = useState(() => { try { return isAnalyticsHash(window.location.hash); } catch { return false; } });
+  useEffect(() => {
+    const on = () => { const is = isAnalyticsHash(window.location.hash); setAnRoute(is); if (is) { closeProfile(); setCurrentTabRaw("analytics"); } };
+    window.addEventListener("hashchange", on);
+    return () => window.removeEventListener("hashchange", on);
+  }, []);
   const setCurrentTab = (tab: string) => {
+    if (isAnalyticsHash(window.location.hash)) { window.history.replaceState(null, "", window.location.pathname + window.location.search); setAnRoute(false); }
     closeProfile();
     if (isDashboardHash(window.location.hash)) { window.history.replaceState(null, "", window.location.pathname + window.location.search); setDashRoute(false); }
     if (isNotifyHash(window.location.hash)) { window.history.replaceState(null, "", window.location.pathname + window.location.search); setNotifyRoute(false); }
@@ -132,7 +142,7 @@ function AppInner() {
         ) : (<>
         {currentTab === "home" && <HomePage theme={theme} />}
         {currentTab === "map" && <MapPage theme={theme} />}
-        {currentTab === "analytics" && <AnalyticsPage />}
+        {currentTab === "analytics" && (anRoute ? <AnalyticsRoot /> : <><AnalyticsLinks /><AnalyticsPage /></>)}
         {currentTab === "elections" && <ElectionsPage />}
         {currentTab === "civic" && <CivicHome />}
         {currentTab === "constituencies" && <><ConstituencySearch year={defaultYear(stateCode, "assembly")} type="assembly" /><PlaceSearch /></>}

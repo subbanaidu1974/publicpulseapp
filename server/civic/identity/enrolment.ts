@@ -7,9 +7,9 @@
  * deleted outright. The enrolment context (volunteer, kind, ref) stays on the row for the T2 independence check and the re-check sampler.
  */
 import crypto from "node:crypto";
-import { audit, createSession, getDb, getKeys, getSms, recordConsent, runInTransaction } from "../core";
+import { audit, createSession, getDb, getKeys, getSms, recordConsent, registerErasureHook, registerMigration, runInTransaction } from "../core";
 import {
-  PENDING_FLAG, OTP_TTL_MS, AGE_GATE_DAYS, consumeOtp, getNumberIntelligence, getPerson, hashPinAsync, personsOnSim, phoneHash, publicPerson, rateAllow,
+  PENDING_FLAG, OTP_TTL_MS, AGE_GATE_DAYS, consumeOtp, getPerson, hashPinAsync, lookupNumber, numberFlags, personsOnPhone, phoneHash, publicPerson, rateAllow,
   smsBudgetAllow, storeOtp, weakPinReason, WEAK_PIN_MESSAGE,
 } from "./service";
 import type { PersonRow } from "./service";
@@ -59,7 +59,7 @@ export async function createEnrolment(o: {
   const v = getPerson(o.volunteerId);
   if (!v || v.role !== "volunteer") return { ok: false, status: 403, error: "only enrolled volunteers can enrol adults" };
   expirePendingEnrolments(now);
-  if (personsOnSim(phoneHash(o.phone)).length > 0) {
+  if (personsOnPhone(o.phone).length > 0) {
     audit(o.volunteerId, "volunteer_enrol_refused", "enrol", { reason: "number_already_registered" });
     return { ok: false, status: 409, error: "this number already has an account", code: "number_registered" };
   }
@@ -68,13 +68,13 @@ export async function createEnrolment(o: {
     return { ok: false, status: 429, error: "daily enrolment quota reached", code: "quota" };
   }
   if (!smsBudgetAllow(now.getTime())) return { ok: false, status: 429, error: "sms capacity reached; try again later", code: "sms_budget", degraded: true };
-  const info = await getNumberIntelligence().lookup(o.phone);
+  const info = await lookupNumber(o.phone); // S-162: a vendor failure is an unknown verdict, never a refusal
   if (info.voip) return { ok: false, status: 403, error: "this number cannot be used to sign up", code: "number_blocked" };
 
   const personId = crypto.randomUUID(), enrolmentId = crypto.randomUUID();
   const code = newCode();
   const otp = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
-  const flags = [PENDING_FLAG, ...(info.recently_reissued ? ["recently_reissued"] : [])];
+  const flags = [PENDING_FLAG, ...numberFlags(info)];
   const expires = new Date(now.getTime() + ENROLMENT_TTL_MS).toISOString();
   runInTransaction(() => {
     d.prepare(`INSERT INTO persons (id, tier, phone_hash, phone_enc, label, flags, created_at, eligible_from) VALUES (?, 'T0', ?, ?, ?, ?, ?, ?)`)
@@ -160,7 +160,7 @@ export function getEnrolmentContext(personId: string): { enrolment_id: string; v
  * (default 10%, env CIVIC_RECHECK_FRACTION), marks them "requested" and returns them so a reviewer can phone the adult and confirm they
  * agreed and own the account. `rng` is injectable for tests.
  */
-export function sampleEnrolmentsForRecheck(o: { fraction?: number; sinceDays?: number; limit?: number; now?: Date; rng?: () => number } = {}): { enrolment_id: string; person_id: string; volunteer_id: string; context_kind: string; context_ref: string | null }[] {
+export function sampleEnrolmentsForRecheck(o: { fraction?: number; sinceDays?: number; limit?: number; now?: Date; rng?: () => number; markSkipped?: boolean } = {}): { enrolment_id: string; person_id: string; volunteer_id: string; context_kind: string; context_ref: string | null }[] {
   const now = o.now ?? new Date();
   const fraction = o.fraction ?? Number(process.env.CIVIC_RECHECK_FRACTION || 0.1);
   const rng = o.rng ?? Math.random;
@@ -168,8 +168,15 @@ export function sampleEnrolmentsForRecheck(o: { fraction?: number; sinceDays?: n
   const d = getDb();
   const cands = d.prepare("SELECT id, person_id, volunteer_id, context_kind, context_ref FROM enrolments WHERE status = 'activated' AND recheck_state IS NULL AND activated_at >= ? ORDER BY activated_at").all(since) as unknown as
     { id: string; person_id: string; volunteer_id: string; context_kind: string; context_ref: string | null }[];
-  const picked = cands.filter(() => rng() < fraction).slice(0, o.limit ?? 50);
+  const chosen = cands.filter(() => rng() < fraction);
+  const picked = chosen.slice(0, o.limit ?? 50);
   for (const c of picked) d.prepare("UPDATE enrolments SET recheck_state = 'requested', recheck_at = ? WHERE id = ?").run(now.toISOString(), c.id);
+  // A scheduled run decides every candidate ONCE: the others are marked so that running the job again does not give them another draw
+  // (which would push the sampled share towards 100%). Candidates over the limit stay undecided and get the next run.
+  if (o.markSkipped) {
+    const taken = new Set(chosen.map((c) => c.id));
+    for (const c of cands) if (!taken.has(c.id)) d.prepare("UPDATE enrolments SET recheck_state = 'not_sampled', recheck_at = ? WHERE id = ? AND recheck_state IS NULL").run(now.toISOString(), c.id);
+  }
   if (picked.length) audit("system", "enrolment.recheck_sampled", "enrolment", { count: picked.length });
   return picked.map((c) => ({ enrolment_id: c.id, person_id: c.person_id, volunteer_id: c.volunteer_id, context_kind: c.context_kind, context_ref: c.context_ref }));
 }
@@ -197,4 +204,99 @@ export function listAttestRequests(volunteerId: string, limit = 50): { person_id
       ORDER BY p.residence_declared_at LIMIT ?`).all(volunteerId, v.phone_hash, `%${PENDING_FLAG}%`, volunteerId, volunteerId, Math.min(200, Math.max(1, limit))) as unknown as
     { person_id: string; label: string | null; village: string | null }[];
   return rows;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Re-check task queue (S-159). The sampler above picks a share of activated enrolments (CIVIC_RECHECK_FRACTION); each pick becomes a task that
+// an INDEPENDENT volunteer (not the enrolling volunteer, not from the same organisation, not on the adult's own SIM) confirms or disputes.
+// Tasks carry ids only: the adult's label and village are joined at read time, so erasing the person erases the task's content.
+// ---------------------------------------------------------------------------------------------
+
+registerMigration("identity_004_enrolment_rechecks", `
+CREATE TABLE enrolment_rechecks (
+  id TEXT PRIMARY KEY,
+  enrolment_id TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('open','confirmed','disputed','expired')),
+  created_at TEXT NOT NULL,
+  due_at TEXT NOT NULL,
+  decided_at TEXT,
+  decided_by TEXT
+);
+CREATE UNIQUE INDEX idx_rechecks_enrolment ON enrolment_rechecks(enrolment_id);
+CREATE INDEX idx_rechecks_status ON enrolment_rechecks(status, due_at);
+`);
+
+registerErasureHook("identity.enrolment_rechecks", (personId) => {
+  getDb().prepare("DELETE FROM enrolment_rechecks WHERE enrolment_id IN (SELECT id FROM enrolments WHERE person_id = ?)").run(personId);
+});
+
+export const recheckDueDays = () => Number(process.env.CIVIC_RECHECK_DUE_DAYS || 14);
+
+export interface RecheckTask { id: string; enrolment_id: string; label: string | null; context_kind: string; context_ref: string | null; village: string | null; created_at: string; due_at: string }
+
+/** Sample, create a task per pick, and expire overdue tasks. The scheduled job (CIVIC_RECHECK_FRACTION) calls this; each step is audited. */
+export function runRecheckSampler(o: { fraction?: number; now?: Date; rng?: () => number; limit?: number } = {}): { sampled: number; tasks: number; expired: number } {
+  const now = o.now ?? new Date();
+  const d = getDb();
+  const fraction = o.fraction ?? Number(process.env.CIVIC_RECHECK_FRACTION || 0.1);
+  let expired = 0;
+  const overdue = d.prepare("SELECT id, enrolment_id FROM enrolment_rechecks WHERE status = 'open' AND due_at <= ?").all(now.toISOString()) as { id: string; enrolment_id: string }[];
+  for (const t of overdue) {
+    runInTransaction(() => {
+      d.prepare("UPDATE enrolment_rechecks SET status = 'expired', decided_at = ? WHERE id = ?").run(now.toISOString(), t.id);
+      d.prepare("UPDATE enrolments SET recheck_state = 'expired', recheck_at = ? WHERE id = ? AND recheck_state = 'requested'").run(now.toISOString(), t.enrolment_id);
+    });
+    audit("system", "enrolment.recheck_expired", "enrolment:" + t.enrolment_id, { task: t.id });
+    expired++;
+  }
+  if (!(fraction > 0)) return { sampled: 0, tasks: 0, expired };
+  const picked = sampleEnrolmentsForRecheck({ fraction, now, rng: o.rng, limit: o.limit, markSkipped: true });
+  const due = new Date(now.getTime() + recheckDueDays() * 86400000).toISOString();
+  let tasks = 0;
+  for (const p of picked) {
+    const id = crypto.randomUUID();
+    const r = d.prepare("INSERT OR IGNORE INTO enrolment_rechecks (id, enrolment_id, status, created_at, due_at) VALUES (?, ?, 'open', ?, ?)").run(id, p.enrolment_id, now.toISOString(), due);
+    if (Number(r.changes) > 0) { tasks++; audit("system", "enrolment.recheck_task", "enrolment:" + p.enrolment_id, { task: id, due }); }
+  }
+  return { sampled: picked.length, tasks, expired };
+}
+
+/** Is `reviewerId` independent of the volunteer who enrolled the adult (and not the adult, and not on the adult's SIM)? */
+function independentReviewer(reviewerId: string, enrolmentId: string): boolean {
+  const d = getDb();
+  const rv = getPerson(reviewerId);
+  if (!rv || rv.role !== "volunteer") return false;
+  const e = d.prepare(`SELECT e.volunteer_id AS vid, e.person_id AS pid, v.org AS org FROM enrolments e LEFT JOIN persons v ON v.id = e.volunteer_id WHERE e.id = ?`).get(enrolmentId) as { vid: string; pid: string | null; org: string | null } | undefined;
+  if (!e || e.vid === reviewerId || e.pid === reviewerId) return false;
+  if (rv.org && e.org === rv.org) return false;
+  const adult = e.pid ? getPerson(e.pid) : undefined;
+  if (adult?.phone_hash && rv.phone_hash === adult.phone_hash) return false;
+  return true;
+}
+
+/** Open re-check tasks this volunteer may act on (independent of the enrolling volunteer). Never returns a phone number or the enrolling volunteer. */
+export function listRecheckTasks(reviewerId: string, limit = 50): RecheckTask[] {
+  const rows = getDb().prepare(
+    `SELECT t.id AS id, t.enrolment_id AS enrolment_id, t.created_at AS created_at, t.due_at AS due_at, e.context_kind AS context_kind, e.context_ref AS context_ref,
+            p.label AS label, p.residence_unit AS village
+       FROM enrolment_rechecks t JOIN enrolments e ON e.id = t.enrolment_id LEFT JOIN persons p ON p.id = e.person_id
+      WHERE t.status = 'open' ORDER BY t.due_at LIMIT 500`).all() as unknown as RecheckTask[];
+  return rows.filter((r) => independentReviewer(reviewerId, r.enrolment_id)).slice(0, Math.min(200, Math.max(1, limit)));
+}
+
+export type RecheckSubmit = { ok: true; outcome: "confirmed" | "disputed" } | { ok: false; status: number; error: string };
+/** An independent volunteer reports what the adult said. Audited with the reviewer as actor; a second answer is refused. */
+export function submitRecheckResult(reviewerId: string, taskId: string, outcome: string, now = new Date()): RecheckSubmit {
+  if (outcome !== "confirmed" && outcome !== "disputed") return { ok: false, status: 400, error: "outcome must be confirmed or disputed" };
+  const d = getDb();
+  const t = d.prepare("SELECT id, enrolment_id, status, due_at FROM enrolment_rechecks WHERE id = ?").get(taskId) as { id: string; enrolment_id: string; status: string; due_at: string } | undefined;
+  if (!t) return { ok: false, status: 404, error: "no such re-check task" };
+  if (!independentReviewer(reviewerId, t.enrolment_id)) return { ok: false, status: 403, error: "only an independent volunteer can answer this re-check" };
+  if (t.status !== "open") return { ok: false, status: 409, error: "this re-check was already answered or has expired" };
+  if (t.due_at <= now.toISOString()) return { ok: false, status: 409, error: "this re-check has expired" };
+  runInTransaction(() => {
+    d.prepare("UPDATE enrolment_rechecks SET status = ?, decided_at = ?, decided_by = ? WHERE id = ?").run(outcome, now.toISOString(), reviewerId, t.id);
+    recordRecheckResult(reviewerId, t.enrolment_id, outcome);
+  });
+  return { ok: true, outcome };
 }

@@ -124,6 +124,12 @@ export function registerDevice(personId: string, token: unknown, platform: unkno
   getDb().prepare("INSERT OR REPLACE INTO notify_devices (token_hash, person_id, token_enc, platform, created_at) VALUES (?,?,?,?,?)")
     .run(k.hmac("notify-device", token), personId, k.encrypt("notify-device", token), pf, nowFn.now().toISOString());
 }
+/** The caller's own registered devices for the settings screen. The token (and its hash) is never returned: `id` is a short reference only. */
+export function listDevices(personId: string): { id: string; platform: string; label_en: string; label_te: string; created_at: string }[] {
+  const names: Record<string, [string, string]> = { android: ["Android phone", "ఆండ్రాయిడ్ ఫోన్"], ios: ["iPhone or iPad", "ఐఫోన్ లేదా ఐప్యాడ్"], web: ["Web browser", "వెబ్ బ్రౌజర్"] };
+  const rows = getDb().prepare("SELECT token_hash, platform, created_at FROM notify_devices WHERE person_id = ? ORDER BY created_at").all(personId) as { token_hash: string; platform: string; created_at: string }[];
+  return rows.map((r) => { const n = names[r.platform] ?? names.android; return { id: r.token_hash.slice(0, 12), platform: r.platform, label_en: n[0], label_te: n[1], created_at: r.created_at }; });
+}
 export function removeDevices(personId: string): void { getDb().prepare("DELETE FROM notify_devices WHERE person_id = ?").run(personId); }
 function deviceTokens(personId: string): string[] {
   return (getDb().prepare("SELECT token_enc FROM notify_devices WHERE person_id = ?").all(personId) as { token_enc: string }[]).flatMap((r) => { try { return [getKeys().decrypt("notify-device", r.token_enc)]; } catch { return []; } });

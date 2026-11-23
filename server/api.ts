@@ -23,7 +23,9 @@ import type { ManifestIndex } from "./manifest";
 import { comparabilityNotes } from "../src/lib/comparability";
 import { forecastDecision, loadCalendar, notificationsAllowed, surveysAllowed, windowState } from "./window";
 import { createGeoApiRouter } from "./geo-api";
+import { createRefreshRouter } from "./refresh";
 import { createCountdayRouter } from "./countday/router";
+import { createAnalyticsRouter } from "./analytics-api";
 
 export interface DatasetStatus {
   name: string;
@@ -215,6 +217,9 @@ export function createApiRouter(data: Datasets, opts: { baseDir?: string } = {})
     next();
   });
 
+  // Turnout/NOTA, assembly-vs-LS comparison, by-elections, pre-bifurcation history, cited party changes (S-112/115/116/117/120). Mounted first so pre-2014 years are served before the main /elections handlers.
+  router.use(createAnalyticsRouter(data, opts));
+
   router.get("/health", (_req, res) => {
     res.json({ ok: true, demo });
   });
@@ -315,7 +320,10 @@ export function createApiRouter(data: Datasets, opts: { baseDir?: string } = {})
      changes the datasets are reloaded and the cache is dropped, so a regenerated dataset never serves a stale forecast. */
   const baseDir = opts.baseDir ?? root();
   const elFile = path.join(baseDir, "data", "generated", "elections.json");
-  const sigOf = () => { try { const st = fs.statSync(elFile); return `${st.size}-${Math.round(st.mtimeMs)}`; } catch { return "none"; } };
+  const manFile = path.join(baseDir, "data", "generated", "manifest.json");
+  const statSig = (f: string) => { try { const st = fs.statSync(f); return `${st.size}-${Math.round(st.mtimeMs)}`; } catch { return "none"; } };
+  // S-76: the snapshot signature covers the elections file and the dataset manifest (a refresh swaps both).
+  const sigOf = () => { const e = statSig(elFile), m = statSig(manFile); return m === "none" ? e : `${e}+${m}`; };
   let snapSig = sigOf();
   let snapChecksum: string | null = null;
   const checksumOf = () => { try { return crypto.createHash("sha256").update(fs.readFileSync(elFile)).digest("hex").slice(0, 16); } catch { return null; } };
@@ -358,6 +366,8 @@ export function createApiRouter(data: Datasets, opts: { baseDir?: string } = {})
 
   // Geography, constituency profiles and split voting (S-95, S-98..S-100)
   router.use(createGeoApiRouter(data, { baseDir }));
+  // Data freshness per dataset (S-76)
+  router.use(createRefreshRouter({ baseDir }));
 
   // Count-day signed snapshots (S-41)
   router.use("/countday", createCountdayRouter({ dir: process.env.COUNTDAY_DIR || path.join(baseDir, "data", "generated", "countday") }));

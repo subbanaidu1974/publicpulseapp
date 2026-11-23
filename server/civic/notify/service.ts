@@ -3,8 +3,9 @@
  * signing, kill-switch, public block log, fan-out. Dual-control admin steps reuse the admin pattern (TOTP + a different admin).
  */
 import crypto from "node:crypto";
-import { audit, canonicalJson, getDb, hasRole } from "../core";
-import { findTemplate, lintContent, mccGate, notifyPolicy, renderTemplate, type Declaration } from "./content";
+import { audit, canonicalJson, getDb, getKeys, hasRole, listRolesDetailed } from "../core";
+import { E164_IN, personsOnPhone } from "../identity/service";
+import { findTemplate, lintContent, mccGate, notifyPolicy, notifyWindow, renderTemplate, type Declaration } from "./content";
 import { deliverTo, nowFn, type DeliverableMessage } from "./delivery";
 import { signPayload } from "./sign";
 import { assertionChallenge, b64u, verifyAssertion, verifyRegistration, webauthnConfig, WebAuthnError, type AssertionInput, type RegistrationInput } from "./webauthn";
@@ -401,3 +402,88 @@ export function publicSenderLog(orgId: string): Row | null {
   return { org: o, messages: msgs.map((m) => ({ ...m, declaration: m.declaration ? { accepted: JSON.parse(m.declaration).accepted, reason: JSON.parse(m.declaration).reason } : null })) };
 }
 export const publicOrgs = (): Row[] => qa("SELECT id, name, kind FROM notify_orgs WHERE status = 'verified' ORDER BY name");
+
+// ---------------------------------------------------------------------------------------------
+// Pre-flight (S-155): lint without creating anything, the public kill/MCC status, admin lookups
+// ---------------------------------------------------------------------------------------------
+
+/** What the compose screen shows while typing: the content linter's findings per field. Creates nothing, writes no block log, needs an active sender binding. */
+export function lintMessage(personId: string, b: Row): Row {
+  if (!activeSender(personId)) E(403, "not_a_sender", "you are not an approved sender");
+  const p = notifyPolicy();
+  const fields: Record<string, string> = {};
+  for (const k of ["text_en", "text_te", "title_en", "title_te"]) { const v = b[k]; if (typeof v === "string" && v.trim()) fields[k] = v.slice(0, 2000); }
+  if (b.slots && typeof b.slots === "object") for (const [k, v] of Object.entries(b.slots as Row)) if (typeof v === "string" && v.trim()) fields["slot:" + String(k).slice(0, 40)] = v.slice(0, 2000);
+  const findings: { rule: string; field: string; detail?: string }[] = [];
+  for (const [field, text] of Object.entries(fields)) for (const h of lintContent([text])) findings.push({ field, ...h });
+  const state = String(b.state ?? "").toUpperCase();
+  const mcc = /^[A-Z]{2,3}$/.test(state) ? { state, window: notifyWindow(state, b.district ? String(b.district).slice(0, 40) : null, nowFn.now()) } : null;
+  return {
+    clean: findings.length === 0, findings, rules: [...new Set(findings.map((f) => f.rule))],
+    chars: { text_en: (fields.text_en ?? "").length, text_te: (fields.text_te ?? "").length, max: p.limits.text_chars },
+    mcc, note: "A preview only. The server checks again at create and at send; nothing was saved.",
+  };
+}
+
+const WINDOW_NOTICE: Record<string, { en: string; te: string }> = {
+  open: { en: "No election code of conduct restriction is in force for this state.", te: "ఈ రాష్ట్రంలో ఎన్నికల ప్రవర్తనా నియమావళి నిబంధనలు ప్రస్తుతం అమలులో లేవు." },
+  blackout: { en: "The election code of conduct is in force. Only pre-cleared templates with a signed declaration, and emergency alerts with a declaration, can be sent.", te: "ఎన్నికల ప్రవర్తనా నియమావళి అమలులో ఉంది. ముందే అనుమతి పొందిన మూసలు (డిక్లరేషన్‌తో), డిక్లరేషన్‌తో అత్యవసర హెచ్చరికలు మాత్రమే పంపవచ్చు." },
+  unknown: { en: "The election calendar is not available, so some message categories are blocked until it is known. Emergency alerts need a declaration.", te: "ఎన్నికల క్యాలెండర్ అందుబాటులో లేదు, కాబట్టి కొన్ని సందేశ వర్గాలు నిలిపివేయబడ్డాయి. అత్యవసర హెచ్చరికలకు డిక్లరేషన్ అవసరం." },
+};
+const KILL_NOTICE = {
+  en: "Sending is suspended by the administrators. Messages cannot be created or sent until it is released.",
+  te: "నిర్వాహకులు సందేశాల పంపకాన్ని నిలిపివేశారు. అది తిరిగి ప్రారంభమయ్యే వరకు సందేశాలను సృష్టించలేరు, పంపలేరు.",
+};
+
+/** Public: is sending suspended (no reason shown), and what the election-window state means for senders. `orgId` narrows an org-level kill to that sender. */
+export function publicStatus(state: string, district: string | null, orgId: string | null): Row {
+  const kills = qa("SELECT scope, org_id, engaged_at FROM notify_kill WHERE released_at IS NULL ORDER BY engaged_at");
+  const all = kills.find((k) => k.scope === "all");
+  const org = orgId ? kills.find((k) => k.scope === "org" && k.org_id === orgId) : undefined;
+  const hit = all ?? org;
+  const now = nowFn.now();
+  const w = notifyWindow(state, district, now);
+  return {
+    kill: { engaged: !!hit, scope: all ? "all" : org ? "org" : null, since: hit?.engaged_at ?? null, orgs_suspended: kills.filter((k) => k.scope === "org").length, notice_en: hit ? KILL_NOTICE.en : null, notice_te: hit ? KILL_NOTICE.te : null },
+    window: { state, status: w, notice_en: WINDOW_NOTICE[w].en, notice_te: WINDOW_NOTICE[w].te, declaration_needed: w !== "open", blocked_categories: w === "unknown" ? notifyPolicy().mcc.unknown_blocks : [] },
+    as_of: now.toISOString(),
+  };
+}
+
+const maskTail = (phone: string): string => "••••" + phone.replace(/\D/g, "").slice(-4);
+/** Normalise what an admin typed into +91XXXXXXXXXX, or null when it is not a phone number. */
+function asPhone(q: string): string | null {
+  const d = q.replace(/[\s-]/g, "");
+  if (!/^(\+?91)?[6-9]\d{9}$/.test(d)) return null;
+  const n = "+91" + d.slice(-10);
+  return E164_IN.test(n) ? n : null;
+}
+/**
+ * Admin lookup of a sender candidate. A phone number is accepted only as the QUERY; the answer carries an opaque person id, a masked tail
+ * and role context, never a number and never a name. A text hint matches enrolment labels but the label is not returned.
+ */
+export function lookupPeople(q: string): Row {
+  const query = q.trim().slice(0, 40);
+  if (query.length < 3) E(400, "query_too_short", "type at least 3 characters of a name hint, or a full phone number");
+  const phone = asPhone(query);
+  const rows: Row[] = phone
+    ? (personsOnPhone(phone) as unknown as Row[])
+    : qa("SELECT * FROM persons WHERE deleted_at IS NULL AND label IS NOT NULL AND lower(label) LIKE ? ESCAPE '!' ORDER BY created_at LIMIT 10", "%" + query.toLowerCase().replace(/[!%_]/g, "!$&") + "%");
+  const people = rows.slice(0, 10).map((r) => {
+    let tail: string | null = phone ? maskTail(phone) : null;
+    if (!tail && r.phone_enc) { try { tail = maskTail(getKeys().decrypt("phone", r.phone_enc)); } catch { tail = null; } }
+    const roles = listRolesDetailed(r.id).map((x) => ({ role: x.role, department: x.department, jurisdiction: x.jurisdiction }));
+    const senders = qa("SELECT s.id, s.role, s.status, o.name AS org_name FROM notify_senders s JOIN notify_orgs o ON o.id = s.org_id WHERE s.person_id = ? ORDER BY s.created_at", r.id)
+      .map((s) => ({ sender_id: s.id, org_name: s.org_name, role: s.role, status: s.status }));
+    return { person_id: r.id, phone_tail: tail, tier: r.tier, roles, senders, matched_by: phone ? "phone" : "name_hint" };
+  });
+  return { people, note: "Pseudonymous references only. Phone numbers and names are not returned." };
+}
+
+/** Admin: the security keys of one sender (by sender binding id or person id), for revocation without pasting credential ids. Public key material is not returned. */
+export function senderCredentials(sender: string): Row {
+  const s = q1("SELECT s.id, s.person_id, s.role, s.status, o.name AS org_name FROM notify_senders s JOIN notify_orgs o ON o.id = s.org_id WHERE s.id = ? OR s.person_id = ? ORDER BY s.created_at DESC LIMIT 1", sender, sender);
+  if (!s) return E(404, "sender_not_found");
+  const creds = qa("SELECT id, alg, created_at, last_used_at, revoked_at FROM notify_credentials WHERE person_id = ? ORDER BY created_at", s.person_id);
+  return { sender: { id: s.id, org_name: s.org_name, role: s.role, status: s.status }, credentials: creds.map((c) => ({ id: c.id, alg: c.alg, created_at: c.created_at, last_used_at: c.last_used_at, revoked: !!c.revoked_at, revoked_at: c.revoked_at })) };
+}

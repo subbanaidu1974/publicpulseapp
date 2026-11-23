@@ -88,6 +88,8 @@ export function normalizeTcpd(csv: string, type: ElectionType, provenance: Prove
     const electors = toInt(r.Electors);
     if (!Number.isNaN(electors) && electors > 0) row.electors = electors;
     // S-109 attributes: kept only when the source row carries a clean value (ge24 / 2023 files lack age or incumbency).
+    const tp = Number((r.Turnout_Percentage ?? "").trim());
+    if ((r.Turnout_Percentage ?? "").trim() !== "" && Number.isFinite(tp) && tp > 0 && tp <= 100) row.turnoutPct = tp;
     const sx = (r.Sex ?? "").trim().toUpperCase();
     if (sx === "M" || sx === "MALE") row.sex = "M"; else if (sx === "F" || sx === "FEMALE") row.sex = "F"; else if (sx === "O" || sx === "OTHER" || sx === "THIRD GENDER") row.sex = "O";
     const age = toInt(r.Age);

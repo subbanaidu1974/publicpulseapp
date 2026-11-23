@@ -8,7 +8,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const ALLOWED_FILES = ["ElectionsPage", "TrendCharts", "ForecastPanel", "ConstituencySearch", "DataStatusPanel", "pages", "peopleText"];
+export const ALLOWED_FILES = ["ElectionsPage", "TrendCharts", "ForecastPanel", "ConstituencySearch", "DataStatusPanel", "pages", "peopleText", "analyticsText"];
 export const ALLOWED_KEY_PREFIXES = ["elections.", "el.", "tr.", "prov.", "fc.", "res.", "share.",
   // election-results descriptions, each reviewed (S-128 tail). Survey copy is not on this list.
   "home.lead", "home.cardElections", "an.lead", "footer.about", "c.intro",
