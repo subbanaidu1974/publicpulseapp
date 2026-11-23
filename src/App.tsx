@@ -22,6 +22,7 @@ import ConsentBanner from "./components/ConsentBanner";
 import { StateProvider, useStateCtx, defaultYear } from "./state/StateContext";
 import { LangProvider, useT } from "./i18n";
 import ProfilePage from "./components/profiles/ProfilePage";
+import CountDayPage, { isCountDayHash } from "./components/pages/CountDayPage";
 import PlaceSearch from "./components/profiles/PlaceSearch";
 import { parseProfileHash } from "./api/profiles";
 import { isSurveysHash } from "./components/surveys/SurveysRoot";
@@ -54,6 +55,13 @@ function AppInner() {
 
   const [currentTab, setCurrentTabRaw] = useState<string>(initialTab);
   // Profile pages (#/constituency/<ST>/<n>, #/place/<ST>/<level>/<code>) take over the main area until a tab is chosen or Back is pressed.
+  // Count-day page (#/countday, S-41): plain read-only page that takes over the main area while the hash is set.
+  const [cdRoute, setCdRoute] = useState(() => { try { return isCountDayHash(window.location.hash); } catch { return false; } });
+  useEffect(() => {
+    const on = () => setCdRoute(isCountDayHash(window.location.hash));
+    window.addEventListener("hashchange", on);
+    return () => window.removeEventListener("hashchange", on);
+  }, []);
   const [profileRoute, setProfileRoute] = useState(() => { try { return parseProfileHash(window.location.hash); } catch { return null; } });
   useEffect(() => {
     const on = () => setProfileRoute(parseProfileHash(window.location.hash));
@@ -72,6 +80,7 @@ function AppInner() {
   }, []);
   const setCurrentTab = (tab: string) => {
     closeProfile();
+    if (isCountDayHash(window.location.hash)) { window.history.replaceState(null, "", window.location.pathname + window.location.search); setCdRoute(false); }
     if (tab !== "people" && isPeopleHash(window.location.hash)) window.history.replaceState(null, "", window.location.pathname + window.location.search);
     if (tab !== "survey" && isSurveysHash(window.location.hash)) window.history.replaceState(null, "", window.location.pathname + window.location.search);
     setCurrentTabRaw(tab);
@@ -98,7 +107,7 @@ function AppInner() {
       <Navbar currentTab={currentTab} setCurrentTab={setCurrentTab} theme={theme} setTheme={setTheme} />
 
       <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        {profileRoute ? (
+        {cdRoute ? <CountDayPage /> : profileRoute ? (
           <ProfilePage route={profileRoute} onBack={() => { if (window.history.length > 1) window.history.back(); else closeProfile(); }} />
         ) : (<>
         {currentTab === "home" && <HomePage theme={theme} />}

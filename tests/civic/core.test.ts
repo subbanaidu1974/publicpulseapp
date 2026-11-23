@@ -28,7 +28,11 @@ describe("core: keys and sms", () => {
     expect(c).not.toContain("9876543210");
     expect(k.decrypt("phone", c)).toBe("+919876543210");
     expect(() => k.decrypt("other", c)).toThrow();
-    expect(() => k.decrypt("phone", c.slice(0, -2) + "AA")).toThrow();
+    // Flip a character in the middle (always changes real ciphertext bytes; replacing the tail could be a no-op when it already ended in "AA").
+    const i = Math.floor(c.length / 2);
+    const tampered = c.slice(0, i) + (c[i] === "A" ? "B" : "A") + c.slice(i + 1);
+    expect(tampered).not.toBe(c);
+    expect(() => k.decrypt("phone", tampered)).toThrow();
     expect(new DevKeyProvider("another-master").hmac("phone", "x")).not.toBe(k.hmac("phone", "x"));
   });
   it("production requires a master key and refuses the dev SMS provider", async () => {

@@ -386,77 +386,84 @@
       "epic": "Consult",
       "title": "Bill consultation: clause feedback, EN/TE plain-language summaries, 60-second audio",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-44"
       ],
-      "phase": "2028-P2"
+      "phase": "2028-P2",
+      "notes": "Server side only: consultation registry, EN/TE plain-language clause summaries (panel-approved, frozen, versioned), per-clause feedback, k-suppressed unweighted figures, audio metadata placeholders. No screens yet."
     },
     {
       "id": "S-36",
       "epic": "Consult",
       "title": "Anti-astroturf, sampled AI-review disclosure, mandatory closing report with department response",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-45"
       ],
-      "phase": "2028-P2"
+      "phase": "2028-P2",
+      "notes": "Server side only: near-duplicate clustering (500-comment test), once-per-person counting, honest review-coverage disclosure (no AI call), mandatory closing report with department responses, overdue flag. Closing report published by one panel member, not two. No screens yet."
     },
     {
       "id": "S-37",
       "epic": "Notify",
       "title": "Verified sender onboarding, FIDO2 keys, two-person approval, HSM-signed payloads",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-46"
       ],
-      "phase": "2028-P2"
+      "phase": "2028-P2",
+      "notes": "Server side only: verified sender orgs, in-house WebAuthn (software-authenticator tested only, NEEDS REVIEW with real hardware keys), two-person approval, signed payloads, kill switch (engage = one admin, release = two admins; owner may want dual control to engage). Signing key derived from the key provider (HSM signer not built). No screens yet."
     },
     {
       "id": "S-38",
       "epic": "Notify",
       "title": "Categories, opt-in, caps, quiet hours, SMS fallback, anti-phish word",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-47"
       ],
-      "phase": "2028-P2"
+      "phase": "2028-P2",
+      "notes": "Server side only: opt-in categories, caps, quiet hours, SMS fallback, anti-phishing word, content linter. No real push adapter and SMS templates have no DLT ids (production refuses them). No screens yet."
     },
     {
       "id": "S-39",
       "epic": "Notify",
       "title": "MCC mode from district calendar, pre-cleared templates, self-declaration, public block log",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-48"
       ],
-      "phase": "2028-P3"
+      "phase": "2028-P3",
+      "notes": "Server side only: MCC mode with pre-cleared templates, sender declaration, public block log, fail-closed on unknown windows. Template file has EXAMPLE entries only; no clearances exist. Election calendar is still empty."
     },
     {
       "id": "S-40",
       "epic": "Roles",
       "title": "Role-based geo-scoped access (politician, journalist, officer, ECI liaison)",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-49"
       ],
-      "phase": "2028-P2"
+      "phase": "2028-P2",
+      "notes": "Geo-scoped role model, GET-only scoped dashboards, journalist export byte-equal to public, audited denials, who-sees-what matrix test. No screens yet."
     },
     {
       "id": "S-41",
       "epic": "Elections",
       "title": "Count-day feed (scrape or licensed, TCPD fallback), signed static snapshots, Form 20, affidavits",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-50"
       ],
-      "phase": "2028-P3"
+      "phase": "2028-P3",
+      "notes": "Pluggable results source (synthetic, file-drop, delayed TCPD fallback, HTTP stub), signed hash-chained snapshots with verifier and publish scripts, two-admin hold for anomalies, never infers won from partial counts. NO real feed exists or is verified; nothing scrapes any results site. Signing key derived from the key provider; no external witness."
     },
     {
       "id": "S-42",
@@ -509,11 +516,12 @@
       "epic": "Platform",
       "title": "OTP budget cap, rate limits, queues and count-day degraded mode",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-56"
       ],
-      "phase": "2028-P3"
+      "phase": "2028-P3",
+      "notes": "Degraded mode (flag, SMS budget, error rate, queue depth), bilingual shed notices, OTP queue smoothing, stale-while-revalidate on public reads; load test updated."
     },
     {
       "id": "S-47",

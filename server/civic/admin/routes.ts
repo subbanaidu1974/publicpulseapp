@@ -29,6 +29,7 @@ import {
 } from "../core";
 import type { RoleName } from "../core";
 import { rateAllow } from "../identity/service";
+import { validateGrantUnit } from "../scope/model";
 import { confirmMfa, enrolMfa, mfaStatus, verifyMfa } from "./mfa";
 
 export * from "./mfa";
@@ -121,6 +122,7 @@ adminRouter.post(["/roles/requests", "/role-requests"], requireRole("admin"), re
   if (action !== "grant" && action !== "revoke") return fail(res, 400, "action must be grant or revoke");
   if (!ROLE_NAMES.includes(role)) return fail(res, 400, "unknown role", { roles: ROLE_NAMES });
   if (reason.length < 5 || reason.length > 300) return fail(res, 400, "reason (5 to 300 characters) is required");
+  if (action === "grant") { const bad = validateGrantUnit(role, jurisdiction); if (bad) return fail(res, 400, "invalid jurisdiction for this role", { code: bad }); } // S-40: politician = a constituency; journalist / eci_liaison = state-level
   const d = getDb();
   if (!d.prepare("SELECT 1 AS x FROM persons WHERE id = ? AND deleted_at IS NULL").get(personId)) return fail(res, 404, "person not found");
   if (action === "grant" && personId === me) return fail(res, 403, "you cannot request a role for yourself", { code: "self_grant" });

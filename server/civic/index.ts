@@ -6,6 +6,7 @@ import { issuesRouter } from "./issues/routes";
 import { channelsRouter } from "./channels/routes";
 import { adminRouter, auditRouter } from "./admin/routes";
 import { surveysRouter } from "./surveys";
+import { consultationsRouter } from "./consultations";
 import { getKeys, migrate, requireRole } from "./core";
 import { startIssueSweeper } from "./issues/service";
 import { assertProductionSafe } from "./guards";
@@ -15,6 +16,9 @@ import { installProvidersFromEnv, requireKeysReady, startKeyWarmup } from "./pro
 import { createSmsReceiptRouter, getSmsGateway } from "./providers/sms";
 import { isKeyProviderV2 } from "./providers/keys";
 import { getNumberIntelligence } from "./identity/service";
+import { scopeRouter } from "./scope";
+import { degradedGate, degradedPayload } from "../degraded";
+import { notifyRouter } from "./notify";
 
 /** Default JSON body cap for civic routes (the app mounts this router before its own global parser). */
 export const CIVIC_JSON_LIMIT = "64kb";
@@ -31,6 +35,8 @@ export function createCivicRouter(): Router {
   // SMS delivery receipts authenticate themselves (HMAC) and parse their own raw body, so they sit before the key gate and the channels router.
   r.use("/channels/sms-receipt", createSmsReceiptRouter());
   r.use(requireKeysReady);
+  r.use(degradedGate()); // S-46: sheds non-essential routes with 503 + Retry-After while degraded (docs/DEGRADED_MODE.md)
+  r.get("/degraded", (_req, res) => { res.set("Cache-Control", "no-cache"); res.json(degradedPayload()); });
   // Per-router body limits (S-57). identity/households/channels set their own; issues gets a small cap except POST /media, whose
   // route carries a larger base64-JSON limit (and raw/multipart handling).
   r.use("/issues", (req, res, next) => (req.method === "POST" && req.path === "/media" ? next() : express.json({ limit: CIVIC_JSON_LIMIT })(req, res, next)));
@@ -44,8 +50,11 @@ export function createCivicRouter(): Router {
   r.use("/geo", geoRouter);
   r.use("/issues", issuesRouter);
   r.use("/channels", channelsRouter);
+  r.use("/scope", scopeRouter); // S-40: role- and geo-scoped read-only dashboards (docs/ROLES.md)
   r.use("/admin", adminRouter);
   r.use("/audit", auditRouter);
+  r.use("/notify", notifyRouter); // verified-sender government notifications (server/civic/notify, docs/NOTIFICATIONS.md)
+  r.use("/consultations", consultationsRouter); // bill consultations (server/civic/consultations, docs/CONSULTATIONS.md)
   r.use("/surveys", surveysRouter); // Pulse Surveys: registry, credential, published figures (server/civic/surveys)
   if (e2eSeedEnabled()) r.use("/e2e", createE2eSeedRouter()); // Playwright only: NODE_ENV!=production AND CIVIC_E2E_SEED=1 (server/civic/e2e-seed.ts)
   return r;

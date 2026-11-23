@@ -84,11 +84,15 @@ export function windowState(state: string, now: Date = new Date(), opts: Opts = 
   return "open";
 }
 
-export interface ForecastDecision { show: boolean; state: WindowState; reason: "open" | "blackout" | "unknown" | "unknown-fail-open" }
+export interface ForecastDecision { show: boolean; state: WindowState; reason: "open" | "blackout" | "unknown" | "unknown-fail-open" | "count-day" }
+
+/** COUNT_DAY_ACTIVE=1: a count-day feed is active (S-41); no projection of any kind is shown, whatever the calendar says. */
+export const countDayActive = (env: NodeJS.ProcessEnv = process.env): boolean => env.COUNT_DAY_ACTIVE === "1";
 
 export function forecastDecision(state: string, now: Date = new Date(), opts: Opts = {}): ForecastDecision {
   const env = opts.env ?? process.env;
   const w = windowState(state, now, opts);
+  if (countDayActive(env)) return { show: false, state: w, reason: "count-day" };
   if (w === "open") return { show: true, state: w, reason: "open" };
   if (w === "blackout") return { show: false, state: w, reason: "blackout" };
   if (env.ELECTION_WINDOW_FAIL_OPEN_FORECAST === "1") return { show: true, state: w, reason: "unknown-fail-open" };

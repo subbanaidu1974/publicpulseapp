@@ -23,6 +23,7 @@ import type { ManifestIndex } from "./manifest";
 import { comparabilityNotes } from "../src/lib/comparability";
 import { forecastDecision, loadCalendar, notificationsAllowed, surveysAllowed, windowState } from "./window";
 import { createGeoApiRouter } from "./geo-api";
+import { createCountdayRouter } from "./countday/router";
 
 export interface DatasetStatus {
   name: string;
@@ -333,7 +334,8 @@ export function createApiRouter(data: Datasets, opts: { baseDir?: string } = {})
     const decision = forecastDecision(state);
     if (!decision.show) {
       res.set("Cache-Control", "no-store");
-      return res.json({ ...blackoutResponse(state), window: decision.state, withheldReason: decision.reason });
+      const notice = decision.reason === "count-day" ? { notice: { en: "Counting is under way. No forecast or projection is shown during the count.", te: "లెక్కింపు జరుగుతోంది. లెక్కింపు సమయంలో ఎలాంటి అంచనా చూపబడదు." } } : {};
+      return res.json({ ...blackoutResponse(state), window: decision.state, withheldReason: decision.reason, ...notice });
     }
     syncSnapshot();
     let f = forecastCache.get(state);
@@ -356,6 +358,9 @@ export function createApiRouter(data: Datasets, opts: { baseDir?: string } = {})
 
   // Geography, constituency profiles and split voting (S-95, S-98..S-100)
   router.use(createGeoApiRouter(data, { baseDir }));
+
+  // Count-day signed snapshots (S-41)
+  router.use("/countday", createCountdayRouter({ dir: process.env.COUNTDAY_DIR || path.join(baseDir, "data", "generated", "countday") }));
 
   // People pages: parties, office holders, members, contestants, correction/takedown channel (S-104..S-114)
   router.use(createPeopleRouter({ elections: data.elections }, opts));
