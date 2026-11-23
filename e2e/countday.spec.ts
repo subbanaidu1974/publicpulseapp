@@ -6,6 +6,8 @@ import { execFileSync } from "node:child_process";
 // The dev server serves data/generated/countday (git-ignored). The spec seeds SYNTHETIC snapshots there and removes them afterwards.
 const DIR = path.resolve("data/generated/countday");
 test.describe.configure({ mode: "serial" });
+// Both projects would seed/remove the same shared directory at once (parallel workers race): run this spec in the desktop project only.
+test.skip(({ isMobile }) => isMobile, "seeds a shared directory; desktop project only");
 
 test.beforeAll(() => {
   fs.rmSync(DIR, { recursive: true, force: true });

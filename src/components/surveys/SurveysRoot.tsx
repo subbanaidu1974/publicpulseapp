@@ -7,7 +7,8 @@ import { TakePage } from "./Take";
 import { useHash } from "./shared";
 import { useSurveyT } from "./surveysText";
 
-export const isSurveysHash = (h: string) => /^#\/surveys(\/|$)/.test(h);
+/** The survey tab also hosts the bill-consultation area (#/consultations/...), so both hashes select it. */
+export const isSurveysHash = (h: string) => /^#\/(surveys|consultations)(\/|$)/.test(h);
 
 /** Hash router for the Pulse Survey area: #/surveys, /log, /console, /new, /edit/<id>, /panel, /<id>, /<id>/versions, /<id>/take, /<id>/figures. */
 export default function SurveysRoot() {

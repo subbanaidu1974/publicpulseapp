@@ -1,4 +1,5 @@
 /** Typed client for /api/v1/civic (identity, households, geo, issues). The session token is kept in sessionStorage only. */
+import { reportShed, shedFrom, type ShedInfo } from "../lib/degraded";
 const BASE = "/api/v1/civic";
 const TOKEN_KEY = "civic-token";
 
@@ -7,6 +8,8 @@ export class CivicApiError extends Error {
   code: string;
   /** Parsed JSON error body (carries extras such as members, limited, locked, code). */
   body: Record<string, unknown> = {};
+  /** Set when the server shed this call in degraded mode (503); see src/lib/degraded.ts. */
+  shed?: ShedInfo;
   constructor(message: string, status: number, code = "error") { super(message); this.status = status; this.code = code; }
 }
 
@@ -40,6 +43,8 @@ async function call<T>(path: string, init: { method?: string; body?: unknown; au
     const code = typeof e === "string" ? e : e?.code ?? "error";
     const ce = new CivicApiError(typeof e === "object" && e?.message ? e.message : code, res.status, code);
     if (data && typeof data === "object") ce.body = data as Record<string, unknown>;
+    const sh = shedFrom(res.status, data, res.headers.get("retry-after"));
+    if (sh) { ce.shed = sh; reportShed(sh); }
     throw ce;
   }
   return data as T;
@@ -132,9 +137,9 @@ export const civicIdentityApi = {
     return { ...d.person, role: d.role ?? d.person.role, roles: d.roles };
   },
   /** One-time code. purpose recovery uses POST /identity/pin/recover/request. The server never re-sends while a code is still valid (alreadySent). */
-  requestCode: async (phone: string, purpose: "signup" | "recovery" = "signup"): Promise<{ devOtp?: string; alreadySent: boolean }> => {
-    const r = await call<{ ok: boolean; dev_otp?: string; already_sent?: boolean }>(purpose === "recovery" ? "/identity/pin/recover/request" : "/identity/signup/request", { method: "POST", body: { phone: e164(phone) }, auth: false });
-    return { devOtp: r.dev_otp, alreadySent: !!r.already_sent };
+  requestCode: async (phone: string, purpose: "signup" | "recovery" = "signup"): Promise<{ devOtp?: string; alreadySent: boolean; queued?: boolean; expectedDelayS?: number }> => {
+    const r = await call<{ ok: boolean; dev_otp?: string; already_sent?: boolean; queued?: boolean; expected_delay_s?: number }>(purpose === "recovery" ? "/identity/pin/recover/request" : "/identity/signup/request", { method: "POST", body: { phone: e164(phone) }, auth: false });
+    return { devOtp: r.dev_otp, alreadySent: !!r.already_sent, ...(r.queued ? { queued: true, expectedDelayS: Math.max(0, Math.ceil(Number(r.expected_delay_s) || 0)) } : {}) };
   },
   declareResidence: async (a: { residence: string; unitId?: string }): Promise<MePerson> =>
     (await call<{ person: MePerson }>("/identity/residence", { method: "POST", body: { residence: a.residence, ...(a.unitId ? { unit_id: a.unitId } : {}) } })).person,

@@ -23,6 +23,9 @@ import { StateProvider, useStateCtx, defaultYear } from "./state/StateContext";
 import { LangProvider, useT } from "./i18n";
 import ProfilePage from "./components/profiles/ProfilePage";
 import CountDayPage, { isCountDayHash } from "./components/pages/CountDayPage";
+import NotifyRoot, { isNotifyHash } from "./components/notify/NotifyRoot";
+import DegradedBanner from "./components/DegradedBanner";
+import ScopeDashboard, { isDashboardHash } from "./components/scope/ScopeDashboard";
 import PlaceSearch from "./components/profiles/PlaceSearch";
 import { parseProfileHash } from "./api/profiles";
 import { isSurveysHash } from "./components/surveys/SurveysRoot";
@@ -56,9 +59,23 @@ function AppInner() {
   const [currentTab, setCurrentTabRaw] = useState<string>(initialTab);
   // Profile pages (#/constituency/<ST>/<n>, #/place/<ST>/<level>/<code>) take over the main area until a tab is chosen or Back is pressed.
   // Count-day page (#/countday, S-41): plain read-only page that takes over the main area while the hash is set.
+  // Government notifications (#/notifications...): takes over the main area while the hash is set.
+  const [notifyRoute, setNotifyRoute] = useState(() => { try { return isNotifyHash(window.location.hash); } catch { return false; } });
+  useEffect(() => {
+    const on = () => setNotifyRoute(isNotifyHash(window.location.hash));
+    window.addEventListener("hashchange", on);
+    return () => window.removeEventListener("hashchange", on);
+  }, []);
   const [cdRoute, setCdRoute] = useState(() => { try { return isCountDayHash(window.location.hash); } catch { return false; } });
   useEffect(() => {
     const on = () => setCdRoute(isCountDayHash(window.location.hash));
+    window.addEventListener("hashchange", on);
+    return () => window.removeEventListener("hashchange", on);
+  }, []);
+  // Scoped dashboards (#/dashboard, S-40): read-only hub for signed-in role holders; the server decides what each panel shows.
+  const [dashRoute, setDashRoute] = useState(() => { try { return isDashboardHash(window.location.hash); } catch { return false; } });
+  useEffect(() => {
+    const on = () => setDashRoute(isDashboardHash(window.location.hash));
     window.addEventListener("hashchange", on);
     return () => window.removeEventListener("hashchange", on);
   }, []);
@@ -80,6 +97,8 @@ function AppInner() {
   }, []);
   const setCurrentTab = (tab: string) => {
     closeProfile();
+    if (isDashboardHash(window.location.hash)) { window.history.replaceState(null, "", window.location.pathname + window.location.search); setDashRoute(false); }
+    if (isNotifyHash(window.location.hash)) { window.history.replaceState(null, "", window.location.pathname + window.location.search); setNotifyRoute(false); }
     if (isCountDayHash(window.location.hash)) { window.history.replaceState(null, "", window.location.pathname + window.location.search); setCdRoute(false); }
     if (tab !== "people" && isPeopleHash(window.location.hash)) window.history.replaceState(null, "", window.location.pathname + window.location.search);
     if (tab !== "survey" && isSurveysHash(window.location.hash)) window.history.replaceState(null, "", window.location.pathname + window.location.search);
@@ -104,10 +123,11 @@ function AppInner() {
   return (
     <div className={`min-h-screen flex flex-col justify-between font-sans selection:bg-black selection:text-[#F9F7F2] transition-colors duration-300 ${theme} ${bg}`}>
       <ConsentBanner forceOpen={reopenConsent} onClose={() => setReopenConsent(false)} />
+      <DegradedBanner />
       <Navbar currentTab={currentTab} setCurrentTab={setCurrentTab} theme={theme} setTheme={setTheme} />
 
       <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        {cdRoute ? <CountDayPage /> : profileRoute ? (
+        {notifyRoute ? <NotifyRoot /> : dashRoute ? <ScopeDashboard /> : cdRoute ? <CountDayPage /> : profileRoute ? (
           <ProfilePage route={profileRoute} onBack={() => { if (window.history.length > 1) window.history.back(); else closeProfile(); }} />
         ) : (<>
         {currentTab === "home" && <HomePage theme={theme} />}

@@ -86,7 +86,7 @@ Error body: `{error, code, ...}`. Staff = admin, officer of the department, mode
 
 ## Not done / limits
 
-- No UI. The closing report is published by a single panel member (admin or survey_panel, not conflicted), not by two approvals.
+- UI: src/components/consultations/** (hash routes #/consultations*). The closing report is published by a single panel member (admin or survey_panel, not conflicted), not by two approvals.
 - Weighted figures do not apply (no strata collected). Age, gender and region breakdowns beyond mandal are not collected.
 - The default `CommentReviewer` does nothing; a real machine reviewer needs a deployment adapter and counsel sign-off.
 - Language check on comments is script-based (Latin or Telugu), not semantic.
