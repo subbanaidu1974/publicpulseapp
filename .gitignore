@@ -30,3 +30,6 @@ data/civic-media/
 
 # count-day snapshots (S-41): runtime output, may be SYNTHETIC; never commit
 data/generated/countday/
+
+# local pre-migration backups (written automatically before schema changes)
+data/backups/
