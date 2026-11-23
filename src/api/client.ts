@@ -1,10 +1,13 @@
 import type { ElectionType, StateCode } from "../lib/states";
+import { reportShed, shedFrom, type ShedInfo } from "../lib/degraded";
 
 /** Typed client for the read-only /api/v1 contract. Responses carry `demo:boolean`. */
 export class ApiError extends Error {
   status: number;
   /** Machine-readable server code (S-126); the UI shows a localised message for it, never the raw server string. */
   code: string;
+  /** Set when the server shed this call in degraded mode (503 error "degraded"); screens show its notice and retry countdown. */
+  shed?: ShedInfo;
   constructor(message: string, status: number, code = "") {
     super(message);
     this.status = status;
@@ -82,7 +85,10 @@ async function get<T>(path: string, params?: Record<string, string | number | un
   let body: any = null;
   try { body = await res.json(); } catch { /* non-JSON */ }
   if (!res.ok) {
-    throw new ApiError(body?.error?.message ?? body?.error ?? body?.message ?? `Request failed (${res.status})`, res.status, typeof body?.code === "string" ? body.code : "");
+    const ae = new ApiError(body?.error?.message ?? body?.error ?? body?.message ?? `Request failed (${res.status})`, res.status, typeof body?.code === "string" ? body.code : "");
+    const sh = shedFrom(res.status, body, res.headers.get("retry-after"));
+    if (sh) { ae.shed = sh; ae.code = "degraded"; reportShed(sh); }
+    throw ae;
   }
   return body as T;
 }

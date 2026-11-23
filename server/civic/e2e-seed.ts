@@ -15,6 +15,7 @@ import express, { Router } from "express";
 import crypto from "node:crypto";
 import { ROLE_NAMES, createSession, getDb, getKeys, grantRole, type RoleName } from "./core";
 import { createPerson } from "./identity/service";
+import * as notify from "./notify/service";
 
 export const e2eSeedEnabled = (): boolean => process.env.NODE_ENV !== "production" && process.env.CIVIC_ENV !== "production" && process.env.CIVIC_E2E_SEED === "1";
 
@@ -34,6 +35,26 @@ export function createE2eSeedRouter(): Router {
     if (unit) d.prepare("UPDATE persons SET residence_enc = ?, residence_unit = ?, residence_declared_at = ?, tier = 'T1' WHERE id = ?").run(getKeys().encrypt("residence", "e2e village"), unit, new Date().toISOString(), p.id);
     if (back) { const at = new Date(Date.now() - back * 86_400_000).toISOString(); d.prepare("UPDATE persons SET created_at = ?, eligible_from = ? WHERE id = ?").run(at, at, p.id); }
     res.status(201).json({ person_id: p.id, token: createSession(p.id, { label: "e2e" }) });
+  });
+  // Notifications (S-37): a verified sender organisation and a bound sender, made through the real service functions (two seeded admin ids
+  // satisfy dual control). POST /notify/org {name?, kind?} -> {org_id, name}; POST /notify/sender {org_id, person_id, role?} -> {sender_id}.
+  r.post("/notify/org", (req, res) => {
+    if (!e2eSeedEnabled()) return void res.status(404).json({ error: "not found" });
+    try {
+      const name = typeof req.body?.name === "string" && req.body.name.trim().length >= 3 ? req.body.name.trim().slice(0, 100) : "E2E Department " + crypto.randomBytes(3).toString("hex");
+      const kind = req.body?.kind === "eci_liaison" ? "eci_liaison" : "department";
+      const { id } = notify.requestOrg("e2e-seed-admin-a", { name, kind, letter_ref: "E2E/" + crypto.randomBytes(3).toString("hex"), email_domain: "e2e.gov.in", contact: "e2e@e2e.gov.in" });
+      notify.decideOrg("e2e-seed-admin-b", id, true);
+      res.status(201).json({ org_id: id, name });
+    } catch (e) { res.status(400).json({ error: String((e as Error).message) }); }
+  });
+  r.post("/notify/sender", (req, res) => {
+    if (!e2eSeedEnabled()) return void res.status(404).json({ error: "not found" });
+    try {
+      const { id } = notify.requestSender("e2e-seed-admin-a", { org_id: String(req.body?.org_id ?? ""), person_id: String(req.body?.person_id ?? ""), role: typeof req.body?.role === "string" ? req.body.role : "department_sender" });
+      notify.decideSender("e2e-seed-admin-b", id, true);
+      res.status(201).json({ sender_id: id });
+    } catch (e) { res.status(400).json({ error: String((e as Error).message) }); }
   });
   return r;
 }

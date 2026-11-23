@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { civicApi, civicIdentityApi, tokenStore, type Session } from "../../api/civic";
+import { QueuedNotice, ShedNotice } from "../DegradedBanner";
+import { shedOf, type ShedInfo } from "../../lib/degraded";
 import { useCivicT } from "./civicText";
 import ConsentNotice from "./ConsentNotice";
 import GrievanceContact from "./GrievanceContact";
@@ -19,10 +21,12 @@ export default function SignUpFlow({ onDone }: { onDone: (s: Session) => void })
   const [already, setAlready] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [shed, setShed] = useState<ShedInfo | null>(null);
+  const [queued, setQueued] = useState<{ s: number; at: number } | null>(null);
 
   const run = async (fn: () => Promise<void>) => {
-    setBusy(true); setErr(null);
-    try { await fn(); } catch { setErr(c("c.error")); } finally { setBusy(false); }
+    setBusy(true); setErr(null); setShed(null);
+    try { await fn(); } catch (e) { const sh = shedOf(e); if (sh) setShed(sh); else setErr(c("c.error")); } finally { setBusy(false); }
   };
 
   return (
@@ -40,11 +44,12 @@ export default function SignUpFlow({ onDone }: { onDone: (s: Session) => void })
           <Field id="su-phone" label={c("c.phone")}>
             <TextInput id="su-phone" data-testid="su-phone" type="tel" inputMode="numeric" autoComplete="tel-national" maxLength={10} value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} />
           </Field>
-          <Btn data-testid="su-send-otp" disabled={busy || phone.length !== 10} onClick={() => run(async () => { const r = await civicIdentityApi.requestCode(phone); setDevOtp(r.devOtp ?? null); setAlready(r.alreadySent); setStep("otp"); })}>{c("c.sendOtp")}</Btn>
+          <Btn data-testid="su-send-otp" disabled={busy || phone.length !== 10} onClick={() => run(async () => { const r = await civicIdentityApi.requestCode(phone); setDevOtp(r.devOtp ?? null); setAlready(r.alreadySent); setQueued(r.queued ? { s: r.expectedDelayS ?? 0, at: Date.now() } : null); setStep("otp"); })}>{c("c.sendOtp")}</Btn>
         </>
       )}
       {step === "otp" && (
         <>
+          {queued && <QueuedNotice seconds={queued.s} startedAt={queued.at} />}
           {already && <p role="status" data-testid="su-already" className="border border-black p-3 text-sm">{c("c.recover.already")}</p>}
           {devOtp && <p data-testid="dev-otp" className="text-xs font-mono border border-dashed border-black p-2">{c("c.devOtp")}: {devOtp}</p>}
           <Field id="su-otp" label={c("c.otp")}>
@@ -64,6 +69,7 @@ export default function SignUpFlow({ onDone }: { onDone: (s: Session) => void })
           })}>{c("c.submit")}</Btn>
         </>
       )}
+      {shed && <ShedNotice shed={shed} testid="signup-shed" onRetry={() => setShed(null)} />}
       <ErrorNote msg={err} />
     </form>
   );

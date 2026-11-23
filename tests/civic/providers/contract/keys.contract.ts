@@ -57,7 +57,10 @@ export function runKeyProviderContract(name: string, factory: KeyHarnessFactory)
       expect(c1).not.toBe(c2);
       expect(p.decrypt("phone", c1)).toBe("+919876501234 తెలుగు");
       expect(() => p.decrypt("residence", c1)).toThrow();
-      const flipped = c1.slice(0, -2) + (c1.endsWith("A") ? "B" : "A") + c1.slice(-1);
+      // flip a character well inside the ciphertext: the tail can hold unused base64 bits, where a flip may change nothing
+      const mid = c1.lastIndexOf(".") + 1 + Math.floor((c1.length - c1.lastIndexOf(".") - 1) / 2);
+      const flipped = c1.slice(0, mid) + (c1[mid] === "A" ? "B" : "A") + c1.slice(mid + 1);
+      expect(flipped).not.toBe(c1);
       expect(() => p.decrypt("phone", flipped)).toThrow();
       expect(() => p.decrypt("phone", "garbage")).toThrow();
       expect(() => p.decrypt("phone", "v2.1.AAAA")).toThrow();
