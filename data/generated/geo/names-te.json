@@ -1,5 +1,6 @@
 {
 "schema":1,
+"asOf":"2026-11-22",
 "sources":{
 "wikidata":"https://query.wikidata.org/sparql (CC0), 6 requests",
 "lgd":"village/GP/urban-body/block Telugu names are read from lgd-AP.json / lgd-TG.json (nameTe column)"

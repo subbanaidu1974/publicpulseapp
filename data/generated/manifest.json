@@ -191,10 +191,10 @@
     {
       "id": "geo-boundaries-report",
       "path": "data/generated/geo/boundaries-report.json",
-      "bytes": 1124,
-      "sha256": "57b37fc5c060c5687f80e2e6441d8090b4dc14d3147d325951588a84b8360e15",
-      "rows": 9,
-      "asOf": null,
+      "bytes": 1145,
+      "sha256": "da1be20909d5af738ca18a444e1fb467a88e420455f8a0413f3e6d0748a4d909",
+      "rows": 10,
+      "asOf": "2026-11-22",
       "provenance": "unknown",
       "demo": false,
       "sources": [
@@ -229,10 +229,10 @@
     {
       "id": "geo-district-crosswalk",
       "path": "data/generated/geo/district-crosswalk.json",
-      "bytes": 18802,
-      "sha256": "a53f5cd6168eb7b55f7ec70dba48c16523dc9b8b5d4a96ef04ca87d8b40c5796",
-      "rows": 6,
-      "asOf": null,
+      "bytes": 18823,
+      "sha256": "7607f7eab9119fdcbdb88ce0867e96e4e93728bfea79950e4212ca136c9313e1",
+      "rows": 7,
+      "asOf": "2026-11-22",
       "provenance": "unknown",
       "demo": false,
       "sources": [
@@ -367,10 +367,10 @@
     {
       "id": "geo-names-te",
       "path": "data/generated/geo/names-te.json",
-      "bytes": 93548,
-      "sha256": "7a967b4e8e8c597dffc845f6e5fff30a7d60151f5c5d4427cb92dedf4d49af38",
-      "rows": 7,
-      "asOf": null,
+      "bytes": 93569,
+      "sha256": "7c8acb1194d9e4e516b30b6a1faf4732c46b9658639c7e620e11741a8e48baf0",
+      "rows": 8,
+      "asOf": "2026-11-22",
       "provenance": "unknown",
       "demo": false,
       "sources": [
