@@ -11,6 +11,8 @@ import HouseholdPage from "./HouseholdPage";
 import ConsolesHub from "./consoles/ConsolesHub";
 import OfficerApply from "./OfficerApply";
 import IssueFeed from "./IssueFeed";
+import AssistedEntry from "./AssistedEntry";
+import AssistedSegment from "./AssistedSegment";
 import IssueReport from "./IssueReport";
 import MyReports from "./MyReports";
 import LoginFlow from "./LoginFlow";
@@ -83,6 +85,8 @@ export default function CivicHome() {
           <IssueReport onSent={() => setTick((n) => n + 1)} />
           <MyReports refreshKey={tick} />
           <IssueFeed refreshKey={tick} />
+          <AssistedSegment refreshKey={tick} />
+          {me?.role === "volunteer" && <AssistedEntry />}
           <SurveysLink />
           <NotifyLink />
           <ConsultationsLink />

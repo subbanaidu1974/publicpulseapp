@@ -40,6 +40,8 @@ export const STORE_TABLES: Record<StoreName, string[]> = {
   issues: [
     "migrations", "issue", "issue_me_too", "issue_event", "issue_sample", "officer_rebuttal", "issue_appeal", "moderation_action", "lexicon_change",
     "issue_media", "admin_unit", "hamlet", "village_constituency", "ivr_call", "rep_reply", "grievance_link",
+    // assisted participation (server/civic/assisted, docs/ASSISTED_PARTICIPATION.md)
+    "assist_pair", "assisted_record", "assist_recheck", "assisted_switch_request",
   ],
   survey: [
     "migrations", "survey_meta",

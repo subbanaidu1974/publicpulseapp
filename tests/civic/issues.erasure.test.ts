@@ -11,6 +11,7 @@ import { proposeChange, reviewChange } from "../../server/civic/issues/curation"
 import { resetLexiconCache } from "../../server/civic/issues/moderation";
 import { setMediaScanner, storeMedia } from "../../server/civic/issues/media";
 import { sqliteCallStore } from "../../server/civic/channels/callstore";
+import { createPair, recordIssue, submitRecheck, requestSwitch } from "../../server/civic/assisted";
 import { MockGrievanceAdapter, forwardToGrievance, postReply, setGrievanceAdapter } from "../../server/civic/representatives";
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "civic-erase-"));
@@ -92,6 +93,19 @@ describe("erasure completeness (S-143)", () => {
     setGrievanceAdapter(new MockGrievanceAdapter());
     await forwardToGrievance(id, other.id, T0);                                                                              // grievance_link.requested_by
     setGrievanceAdapter(null);
+    // S-49 assisted participation: the victim is a coordinator who formed a pair, one of its two assistants, a reviewer and an admin who asked for the kill switch
+    const mate = createPerson({ phone: "+919876544455", pin: "4821", consentVersion: "v1" }), partner = createPerson({ phone: "+919876544456", pin: "4821", consentVersion: "v1" });
+    for (const p of [mate, partner]) grantCoreRole("system", p.id, "volunteer");
+    grantCoreRole("system", id, "assist_coordinator", ""); grantCoreRole("system", id, "assist_reviewer", ""); grantCoreRole("system", id, "volunteer", "");
+    createPair(id, { village_lgd: "DEMO-V-KLR", member_a: mate.id, member_b: partner.id }, T0);                  // assist_pair.formed_by
+    const coord2 = createPerson({ phone: "+919876544458", pin: "4821", consentVersion: "v1" }), mate2 = createPerson({ phone: "+919876544457", pin: "4821", consentVersion: "v1" });
+    grantCoreRole("system", coord2.id, "assist_coordinator", ""); grantCoreRole("system", mate2.id, "volunteer", "");
+    createPair(coord2.id, { village_lgd: "DEMO-V-ANM", member_a: id, member_b: mate2.id }, T0);                                  // assist_pair.member_a
+    const ticks = { adult: true, explained: true, willing_self: true, deletion_known: true };
+    recordIssue(id, mate2.id, { category: "roads", description_en: "Culvert near the market is broken", adult_attested: true, consent_a: { adult: true, explained: true, willing_self: true, deletion_known: true }, consent_b: { adult: true, explained: true, willing_self: true, deletion_known: true } }, T0); // assisted_record.consent_by_a
+    const rec = recordIssue(mate.id, partner.id, { category: "water", description_en: "Hand pump stopped working near the school", adult_attested: true, consent_a: ticks, consent_b: ticks }, T0);
+    submitRecheck(id, rec.id, "confirmed", "checked by phone", T0);                                                              // assist_recheck.reviewer_id
+    requestSwitch(id, "disable", "test the pause", T0);                                                                          // assisted_switch_request.requested_by
     audit(id, "custom.action", `person:${id}`, { note: "x" });
     void mine; void other;
 
@@ -102,7 +116,7 @@ describe("erasure completeness (S-143)", () => {
     const pseudonyms = pseudonymsOf(id);
     expect(pseudonyms.length).toBeGreaterThan(4);
     const before = tablesWithAny(pseudonyms, ["issues"]);
-    const personTables = ["issue", "issue_me_too", "issue_sample", "issue_appeal", "issue_media", "officer_rebuttal", "moderation_action", "lexicon_change", "ivr_call", "rep_reply", "grievance_link"];
+    const personTables = ["issue", "issue_me_too", "issue_sample", "issue_appeal", "issue_media", "officer_rebuttal", "moderation_action", "lexicon_change", "ivr_call", "rep_reply", "grievance_link", "assist_pair", "assisted_record", "assist_recheck", "assisted_switch_request"];
     for (const t of personTables) expect(before, `table ${t} should hold a pseudonym of the person before erasure`).toContain(t);
     const issueTables = (getStore("issues").prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all() as { name: string }[]).map((r) => r.name);
     for (const t of issueTables) if (!["issue_event", "migrations", "admin_unit", "hamlet", "village_constituency"].includes(t)) expect(personTables, `new table ${t} needs a row in this test and an erasure hook`).toContain(t);
@@ -111,7 +125,7 @@ describe("erasure completeness (S-143)", () => {
 
     // -- delete the account --
     const out = deleteAccount(id);
-    for (const h of ["issue_media", "issues.reporter", "issues.me_too", "issues.samples", "issues.appeals", "issues.officer", "issues.moderation", "issues.rep_reply", "channels.ivr_call"]) expect(out.hooks).toContain(h);
+    for (const h of ["issue_media", "issues.reporter", "issues.me_too", "issues.samples", "issues.appeals", "issues.officer", "issues.moderation", "issues.rep_reply", "channels.ivr_call", "assisted.pseudonyms"]) expect(out.hooks).toContain(h);
 
     // -- dump every table and column --
     const leaks: Record<string, string[]> = {};

@@ -567,3 +567,64 @@ export const representativesApi = {
   heldQueue: async (): Promise<HeldReply[]> => list<Raw>(await call<Raw>("/representatives/moderation/queue", { fresh: true }), "replies").map((r) => ({ id: String(r.id), issueId: String(r.issue_id), version: num(r.version) ?? 1, constituency: String(r.constituency ?? ""), text: String(r.text ?? ""), tags: list<unknown>(r.scheme_tags).map(String), reasons: list<unknown>(r.reasons).map(String) })),
   review: (id: string, decision: "approve" | "hold" | "remove", note?: string) => call<Raw>(`/representatives/replies/${enc(id)}/review`, { method: "POST", body: { decision, note: note || undefined } }),
 };
+
+// ---- Assisted participation (S-49). The server answers 404 {code: "assisted_disabled"} while the feature is off: callers treat that as "hide". ----
+export interface AssistedPlace { lgd: string; name_en: string; name_te: string | null }
+export interface AssistedPair { id: string; village: AssistedPlace; label: string | null; status: string; suspendedReason: string | null; records: number; queued: number; checked: number; notConfirmed: number; notConfirmedRate: number | null }
+export interface AssistedRecheck { recordId: string; pairId: string; village: AssistedPlace | null; category: string; flagged: boolean; textEn: string | null; textTe: string | null; dueBy: string | null; overdue: boolean }
+export interface AssistedAlert { kind: "unconfirmed_rate" | "assisted_share"; pairId: string | null; unit: AssistedPlace | null; rate: number; sample: number }
+export interface AssistedSegmentItem { id: string; category: string; status: string; village: AssistedPlace | null; snippet: string | null; snippetTe: string | null; createdAt: string }
+export interface AssistedSegment { labelEn: string; labelTe: string; noteEn: string; noteTe: string; items: AssistedSegmentItem[] }
+export interface AssistedConsent { adult: boolean; explained: boolean; willing_self: boolean; deletion_known: boolean }
+export interface AssistedReceipt { id: string; held: boolean; receiptCode: string; recheckQueued: boolean }
+export const isAssistedDisabled = (e: unknown): boolean => e instanceof CivicApiError && e.status === 404 && (e.body as { code?: string }).code === "assisted_disabled";
+const place = (p: Raw | null | undefined): AssistedPlace | null => (p ? { lgd: String(p.lgd), name_en: String(p.name_en ?? p.lgd), name_te: str(p.name_te) ?? null } : null);
+
+export const assistedApi = {
+  /** The signed-in volunteer's active pair (null when none). Throws a 404 assisted_disabled error while the feature is off (see isAssistedDisabled). */
+  myPair: async (): Promise<{ pairId: string; village: AssistedPlace | null; label: string | null } | null> => {
+    const d = await call<Raw>("/assisted/my-pair", { fresh: true });
+    return d?.in_pair ? { pairId: String(d.pair_id), village: place(d.village as Raw), label: str(d.label) ?? null } : null;
+  },
+  /** Both assistants must authenticate: the signed-in one in the usual header, the partner with a token from their own sign-in (never stored). */
+  record: async (partnerToken: string, b: { category: string; description_en?: string; description_te?: string; consent_a: AssistedConsent; consent_b: AssistedConsent }): Promise<AssistedReceipt> => {
+    const d = await call<Raw>("/assisted/records", { method: "POST", body: { ...b, adult_attested: true }, headers: { "x-assist-partner-authorization": `Bearer ${partnerToken}` } });
+    return { id: String(d.id), held: d.held === true, receiptCode: String(d.receipt_code), recheckQueued: d.recheck_queued === true };
+  },
+  segment: async (): Promise<AssistedSegment> => {
+    const d = await call<Raw>("/assisted/segment?limit=25", { auth: false, fresh: true });
+    return {
+      labelEn: String(d.label_en), labelTe: String(d.label_te), noteEn: String(d.note_en), noteTe: String(d.note_te),
+      items: list<Raw>(d, "items").map((i) => ({ id: String(i.id), category: String(i.category), status: String(i.status), village: place(i.village as Raw), snippet: str(i.snippet) ?? null, snippetTe: str(i.snippet_te) ?? null, createdAt: String(i.created_at) })),
+    };
+  },
+  receiptStatus: async (code: string): Promise<{ state: string; deleted: boolean; status: string | null }> => { const d = await call<Raw>("/assisted/receipts/status", { method: "POST", body: { code }, auth: false }); return { state: String(d.state), deleted: d.deleted === true, status: str(d.status) ?? null }; },
+  receiptDelete: async (code: string): Promise<boolean> => (await call<Raw>("/assisted/receipts/delete", { method: "POST", body: { code }, auth: false })).deleted === true,
+  pairs: async (): Promise<AssistedPair[]> => {
+    const d = await call<Raw>("/assisted/pairs", { fresh: true });
+    return list<Raw>(d, "pairs").map((p) => ({
+      id: String(p.id), village: place(p.village as Raw) ?? { lgd: "", name_en: "", name_te: null }, label: str(p.label) ?? null, status: String(p.status), suspendedReason: str(p.suspended_reason) ?? null,
+      records: Number(p.records ?? 0), queued: Number(p.queued ?? 0), checked: Number(p.checked ?? 0), notConfirmed: Number(p.not_confirmed ?? 0), notConfirmedRate: typeof p.not_confirmed_rate === "number" ? p.not_confirmed_rate : null,
+    }));
+  },
+  createPair: async (b: { village_lgd: string; member_a: string; member_b: string; label?: string }) => call<Raw>("/assisted/pairs", { method: "POST", body: b }),
+  suspendPair: async (id: string, reason: string) => call<Raw>(`/assisted/pairs/${encodeURIComponent(id)}/suspend`, { method: "POST", body: { reason } }),
+  alerts: async (): Promise<{ alerts: AssistedAlert[]; thresholds: Record<string, number> }> => {
+    const d = await call<Raw>("/assisted/alerts", { fresh: true });
+    return { thresholds: (d.thresholds ?? {}) as Record<string, number>, alerts: list<Raw>(d, "alerts").map((a) => ({ kind: String(a.kind) as AssistedAlert["kind"], pairId: str(a.pair_id) ?? null, unit: place(a.unit as Raw), rate: Number(a.rate ?? 0), sample: Number(a.sample ?? 0) })) };
+  },
+  reinstatePair: async (id: string, reason: string) => call<Raw>(`/assisted/pairs/${encodeURIComponent(id)}/reinstate`, { method: "POST", body: { reason } }),
+  holdArea: async (lgd: string, hold: boolean, reason: string) => call<Raw>(`/assisted/areas/${encodeURIComponent(lgd)}/${hold ? "suspend" : "resume"}`, { method: "POST", body: { reason } }),
+  areaHolds: async (): Promise<{ unit: string; reason: string }[]> => list<Raw>(await call<Raw>("/assisted/areas/holds", { fresh: true }), "holds").map((h) => ({ unit: String(h.unit), reason: String(h.reason) })),
+  pairRecords: async (id: string): Promise<{ recordId: string; category: string; snippet: string | null; deleted: boolean; createdAt: string }[]> =>
+    list<Raw>(await call<Raw>(`/assisted/pairs/${encodeURIComponent(id)}/records`, { fresh: true }), "records").map((r) => ({ recordId: String(r.record_id), category: String(r.category), snippet: str(r.snippet) ?? null, deleted: r.deleted === true, createdAt: String(r.created_at) })),
+  requestDeletion: async (recordId: string, reason: string) => call<Raw>("/assisted/delete-requests", { method: "POST", body: { record_id: recordId, reason } }),
+  deletionRequests: async (): Promise<{ id: string; recordId: string; reason: string; mine: boolean }[]> =>
+    list<Raw>(await call<Raw>("/assisted/delete-requests", { fresh: true }), "requests").map((r) => ({ id: String(r.id), recordId: String(r.record_id), reason: String(r.reason), mine: r.mine === true })),
+  decideDeletion: async (id: string, approve: boolean) => call<Raw>(`/assisted/delete-requests/${encodeURIComponent(id)}/${approve ? "approve" : "reject"}`, { method: "POST", body: {} }),
+  rechecks: async (): Promise<AssistedRecheck[]> => {
+    const d = await call<Raw>("/assisted/rechecks", { fresh: true });
+    return list<Raw>(d, "items").map((r) => ({ recordId: String(r.record_id), pairId: String(r.pair_id), village: place(r.village as Raw), category: String(r.category), flagged: r.flagged === true, textEn: str(r.text_en) ?? null, textTe: str(r.text_te) ?? null, dueBy: str(r.due_by) ?? null, overdue: r.overdue === true }));
+  },
+  submitRecheck: async (recordId: string, outcome: "confirmed" | "not_confirmed" | "unreachable", note?: string) => call<Raw>(`/assisted/rechecks/${encodeURIComponent(recordId)}`, { method: "POST", body: { outcome, note: note || undefined } }),
+};

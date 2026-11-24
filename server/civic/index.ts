@@ -21,6 +21,7 @@ import { degradedGate, degradedPayload } from "../degraded";
 import { notifyRouter } from "./notify";
 import { officersRouter } from "./officers";
 import { representativesRouter } from "./representatives";
+import { assistedRouter } from "./assisted/routes";
 
 /** Default JSON body cap for civic routes (the app mounts this router before its own global parser). */
 export const CIVIC_JSON_LIMIT = "64kb";
@@ -57,6 +58,7 @@ export function createCivicRouter(): Router {
   r.use("/audit", auditRouter);
   r.use("/officers", officersRouter); // verified officer onboarding: applications and the admin verification queue (docs/OFFICERS.md)
   r.use("/representatives", representativesRouter); // representative replies, scheme tags, grievance adapter (docs/REPRESENTATIVES.md)
+  r.use("/assisted", assistedRouter); // assisted participation (S-49): OFF unless ASSISTED_ENABLED=1 + ASSISTED_SUNSET_DATE (docs/ASSISTED_PARTICIPATION.md)
   r.use("/notify", notifyRouter); // verified-sender government notifications (server/civic/notify, docs/NOTIFICATIONS.md)
   r.use("/consultations", consultationsRouter); // bill consultations (server/civic/consultations, docs/CONSULTATIONS.md)
   r.use("/surveys", surveysRouter); // Pulse Surveys: registry, credential, published figures (server/civic/surveys)

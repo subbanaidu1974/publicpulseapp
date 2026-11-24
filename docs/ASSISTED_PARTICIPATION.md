@@ -1,6 +1,6 @@
 # Assisted participation (S-49): design note
 
-Status: **DRAFT for the owner's decision. Nothing is built.** Phase 3, after the pilot, and only if approved. Date: 2026-11-24. Written from `docs/DESIGN_2028.md` (sections 3.9, 5, 8, 9), `docs/THREAT_MODEL.md` and the existing volunteer enrolment code (S-136). Not legal advice; items marked **[VERIFY]** need counsel or a source check.
+Status: **BUILT, default OFF** (owner approved S-49). Switched on only with `ASSISTED_ENABLED=1` plus a required `ASSISTED_SUNSET_DATE`; the go/no-go gate in section 9 still applies before any real use. Code: `server/civic/assisted/**`; UI: assisted entry, labelled segment, coordinator and reviewer consoles; tests: `tests/civic/assisted.test.ts`, `e2e/civic-assisted.spec.ts` (@E2E-59). Original design status: Phase 3, after the pilot. Date: 2026-11-24. Written from `docs/DESIGN_2028.md` (sections 3.9, 5, 8, 9), `docs/THREAT_MODEL.md` and the existing volunteer enrolment code (S-136). Not legal advice; items marked **[VERIFY]** need counsel or a source check.
 
 ## 1. What it is, and what it is not
 
@@ -123,3 +123,14 @@ Existing pieces to reuse: volunteer enrolment (S-136), T2 attestor identity chec
 ## 12. Effort and cost (rough, for planning only)
 
 Engineering is moderate (new tables, two screens, one console, tests) because most pieces exist. The cost and risk are mostly **human**: recruiting, training, paying and auditing assistants and reviewers. Treat the human programme, not the software, as the main workload.
+
+## 13. As built (S-49)
+
+- **Switches.** `ASSISTED_ENABLED` (default 0), `ASSISTED_SUNSET_DATE` (required; off after that UTC day), and a persisted kill switch under dual control (`/assisted/switch`: an admin with TOTP files a disable or enable request, a different admin with TOTP approves; every step audited). Off means every `/assisted` route answers 404 `{code: "assisted_disabled"}` and assisted issue details are hidden. Variables are in `.env.example`.
+- **Two assistants.** The second assistant signs in on the same request (`X-Assist-Partner-Authorization: Bearer <token>`); both must be an active pair formed by a coordinator. Consent ticks (adult, explained, willing themself, deletion known) are required from both; adulthood is attested; any field about the person (name, phone, age, address, GPS, media) is refused.
+- **Caps.** Per pair 15 per rolling 24 hours and per village 40 per day (env). **The per-person cap of 3 per month cannot be enforced**, because no identifier of the assisted person is stored by design. It is covered by the re-check sample, the receipt-based misuse report and the per-pair caps instead.
+- **Re-check.** First 10 records of a pair 100%, then 20% at random (env); a pair with a flagged or not-confirmed record is sampled in full. Outcomes confirmed, not_confirmed (the record is held and leaves the public segment), unreachable. A pair is suspended automatically when not_confirmed exceeds 25% of checked after at least 5 checked (env).
+- **Exclusion.** Stored with `issue.channel = 'assisted'`, `reporter_id = 'assisted'`, no support rows. The organic feed, list, export, department and officer metrics and the scope summary filter them out; organic reports never merge into them; "me too" is refused; survey and consultation code has no reference to them (tests scan for it). They appear only in `GET /assisted/segment` (labelled "Reported with assistance" / Telugu) with `channel: assisted`.
+- **Receipts.** A random 12-character code shown once; only its keyed hash (`assist-receipt` key purpose) is stored. By code, without an account: check status, delete (words erased, stub kept), or report that the record was wrong or pushed on the person (queues it for re-check).
+- **Later controls.** Lifting a suspension (coordinator for a manual one; two admins for an automatic one; the pair gets a fresh re-check count), an area hold (village, mandal or district; a coordinator or reviewer in scope stops or resumes recording immediately, audited, `POST /areas/:lgd/suspend|resume`), warnings (`GET /alerts`: unconfirmed rate above 25% after 5 checks, assisted share above 30% over 7 days; env-tunable, informational only), and deletion for a person who lost the receipt (a coordinator or reviewer files it, a different person in scope approves).
+- **Not built here.** An admin screen for the kill switch (API only), pager or push notification for warnings, alert thresholds from the pilot, and the human programme (training, stipends, reviewers).

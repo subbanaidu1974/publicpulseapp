@@ -24,3 +24,5 @@ One folder per row of `docs/RELEASE_GATE.md` (S-153, E2E-168): `NN/README.md` li
 | 16 | [16](./16/README.md) MCC and survey-publication rules checked for the election calendar |
 | 17 | [17](./17/README.md) IVR personal-PIN step built |
 | 18 | [18](./18/README.md) Cost model for SMS/IVR/data published; who pays decided |
+
+Conditional row A-1 (assisted participation going live, status NOT DONE) is described in [assisted](./assisted/README.md). It is outside the 18 rows above and is not read by `gate:status`.

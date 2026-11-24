@@ -31,7 +31,7 @@ This is DESIGN_2028 section 3.8 item 3 and RELEASE_GATE row 5. Read the "what th
 | Store | Tables | Notes |
 |---|---|---|
 | identity | `persons`, `sessions`, `consents`, `roles`, `otps`, `rate_events`, `attestations`, `has_responded`, `survey_closures`, `pin_failures`, `enrolments`, `hh_*` (households), `admin_mfa*`, `role_requests`, `officer_role`, `officer_application` (S-141), `people_requests`, `people_takedowns`, `store_meta`, `issue_links`, `erasure_outbox` | The historical single database. `getDb()` still returns it. `has_responded` stays here (turnout counts, "has this person answered"); survey answers never come here. |
-| issues | `issue`, `issue_me_too`, `issue_event`, `issue_sample`, `issue_appeal`, `officer_rebuttal`, `moderation_action`, `lexicon_change`, `issue_media`, `admin_unit`, `hamlet`, `village_constituency`, `ivr_call`, `rep_reply`, `grievance_link` (S-145; author and requester are keyed pseudonyms) | Holds **no `persons.id`**. Columns still called `person_id` / `reporter_id` / `actor_id` / `owner_id` hold keyed pseudonyms. |
+| issues | `issue`, `issue_me_too`, `issue_event`, `issue_sample`, `issue_appeal`, `officer_rebuttal`, `moderation_action`, `lexicon_change`, `issue_media`, `admin_unit`, `hamlet`, `village_constituency`, `ivr_call`, `rep_reply`, `grievance_link` (S-145; author and requester are keyed pseudonyms), `assist_pair`, `assisted_record`, `assist_recheck`, `assisted_switch_request` (S-49; assistants, coordinators, reviewers and admins are actor pseudonyms; no identifier of the assisted person; the receipt code is stored only as a keyed hash under purpose `assist-receipt`), plus the `issue.channel` column | Holds **no `persons.id`**. Columns still called `person_id` / `reporter_id` / `actor_id` / `owner_id` hold keyed pseudonyms. |
 | survey | `survey_meta` | Placeholder with its own file and migration runner so Phase 2 can add response tables. Responses must carry no person id. |
 | audit | `audit_log`, `audit_anchors` | The hash chain, in a file that a compromise of another store cannot rewrite. Still anchored externally (`CIVIC_ANCHOR_URL`). |
 
@@ -39,6 +39,7 @@ The authoritative list is `STORE_TABLES` in `server/civic/core/stores.ts`. A tab
 
 Decisions worth knowing:
 
+- **Assisted participation** (S-49): the four tables above hold only actor pseudonyms. Account erasure of an assistant, coordinator, reviewer or admin blanks their pseudonyms (hook `assisted.pseudonyms`) and suspends a pair that loses a member; records, outcomes and receipt hashes remain because they name nobody. A person's deletion request by receipt erases the words and keeps a stub.
 - **officer_role** (the Phase 1 officer/moderator claim stub) and **roles** are keyed to persons, so they live in identity. The issues service asks identity "is this person an officer here" and only ever writes pseudonyms into issue rows.
 - **Geography** (`admin_unit`, `hamlet`, `village_constituency`) is public reference data used by issues and IVR; it is in the issues store, not identity.
 - **IVR call state** (`ivr_call`) is in the issues store but holds person ids (caller, adults on a SIM). They are stored **encrypted** (`ivr-call-person`) and matched for erasure through keyed pseudonyms in `person_keys`; there is no plain id. Rows expire after 15 minutes.

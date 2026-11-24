@@ -56,6 +56,13 @@ CREATE TABLE IF NOT EXISTS lexicon_change (
 );
 `, "issues");
 
+// S-49 assisted participation: where a report came from. 'assisted' reports are written in the presence of the person by an enrolled pair,
+// carry no reporter, and are kept out of every count, ranking, feed ordering and export (see server/civic/assisted and docs/ASSISTED_PARTICIPATION.md).
+registerMigration("issues_004_channel", `
+ALTER TABLE issue ADD COLUMN channel TEXT NOT NULL DEFAULT 'app';
+CREATE INDEX IF NOT EXISTS issue_channel ON issue(channel);
+`, "issues");
+
 // officer_role is a role table keyed to persons, so it lives in the identity store (the issues store only ever sees pseudonyms).
 registerMigration("issues_identity_001_officer_role", `
 CREATE TABLE IF NOT EXISTS officer_role (
@@ -129,7 +136,7 @@ export function escalationChain(village: string, now?: Date): Unit[] {
 }
 
 // ---------- moderation: see ./moderation.ts (layered rules, hold-for-review default) ----------
-function placeNames(village: Unit, now: Date): string[] {
+export function placeNames(village: Unit, now: Date): string[] {
   const names = ancestors(village.lgd, now).flatMap(u => [u.name_en, u.name_te ?? ""]);
   const hamlets = idb().prepare("SELECT name_en, name_te FROM hamlet WHERE village_lgd=?").all(village.lgd) as { name_en: string; name_te: string | null }[];
   for (const h of hamlets) names.push(h.name_en, h.name_te ?? "");
@@ -183,7 +190,7 @@ export function reportIssue(personId: string, b: ReportInput, now = clock.now())
 
   // dedupe against open, visible issues in the same village and category
   const text = tokens(`${en} ${te}`);
-  const cands = db.prepare("SELECT * FROM issue WHERE village_lgd=? AND category=? AND moderation='ok' AND status IN ('Reported','Verified','Assigned','InProgress','Reopened')").all(v.lgd, b.category) as any[];
+  const cands = db.prepare("SELECT * FROM issue WHERE village_lgd=? AND category=? AND moderation='ok' AND channel<>'assisted' AND status IN ('Reported','Verified','Assigned','InProgress','Reopened')").all(v.lgd, b.category) as any[];
   for (const c of cands) {
     const near = lat !== null && c.lat !== null && meters({ lat, lon: lon! }, { lat: c.lat, lon: c.lon }) <= DEDUPE_METERS;
     const similar = jaccard(text, tokens(`${c.desc_en ?? ""} ${c.desc_te ?? ""}`)) >= 0.5;
@@ -232,8 +239,9 @@ function meTooCore(issueId: string, personId: string, now: Date, viaDedupe = fal
 }
 
 export function meToo(issueId: string, personId: string, now = clock.now()) {
-  const i = idb().prepare("SELECT status, moderation FROM issue WHERE id=?").get(issueId) as any;
+  const i = idb().prepare("SELECT status, moderation, channel FROM issue WHERE id=?").get(issueId) as any;
   if (!i || i.moderation !== "ok") throw new HttpError(404, "issue not found");
+  if (i.channel === "assisted") throw new HttpError(409, "support counts are not kept for reports made with assistance", { code: "assisted_no_me_too" });
   return meTooCore(issueId, personId, now);
 }
 
@@ -442,7 +450,7 @@ export function rebuttal(issueId: string, actor: string, text: string, now = clo
 // ---------- public outputs ----------
 export function feed(since = 0, limit = 200) {
   const rows = idb().prepare(`SELECT e.seq, e.issue_id, e.type, e.status, e.village_lgd, e.category, e.department, e.at
-    FROM issue_event e JOIN issue i ON i.id=e.issue_id WHERE e.seq>? AND (i.moderation='ok' OR e.type='taken_down') ORDER BY e.seq LIMIT ?`)
+    FROM issue_event e JOIN issue i ON i.id=e.issue_id WHERE e.seq>? AND i.channel<>'assisted' AND (i.moderation='ok' OR e.type='taken_down') ORDER BY e.seq LIMIT ?`)
     .all(since, Math.min(Math.max(limit, 1), 500)) as any[];
   return { events: rows, next: rows.length ? rows[rows.length - 1].seq : since };
 }
@@ -457,7 +465,8 @@ function summarise(items: any[]) {
     resolution_rate: Math.round((resolved.length / items.length) * 100) / 100, median_response_hours: median(hrs),
   };
 }
-const visible = () => idb().prepare("SELECT * FROM issue WHERE moderation='ok'").all() as any[];
+/** Visible issues for counts and department metrics: assisted reports are never part of any figure (S-49). */
+const visible = () => idb().prepare("SELECT * FROM issue WHERE moderation='ok' AND channel<>'assisted'").all() as any[];
 
 /** Department-level metrics. Cells under MIN_CELL are never shown: they roll up to the parent unit; if the state is still too small the cell is masked. */
 export function departmentMetrics(now = clock.now()) {
@@ -573,6 +582,6 @@ export function officerQueue(actor: string, limit = 100) {
     if (rows.length < 500) break;
   }
   const items = mine
-    .map(i => ({ id: i.id, category: i.category, department: i.department, status: i.status, village_lgd: i.village_lgd, created_at: i.created_at, sla_due: i.sla_due, esc_level: i.esc_level, overdue: i.sla_due < iso(clock.now()), description_en: i.desc_en, description_te: i.desc_te, support: (idb().prepare("SELECT COUNT(*) c FROM issue_me_too WHERE issue_id=?").get(i.id) as { c: number }).c }));
+    .map(i => ({ id: i.id, channel: i.channel === "assisted" ? "assisted" : "app", category: i.category, department: i.department, status: i.status, village_lgd: i.village_lgd, created_at: i.created_at, sla_due: i.sla_due, esc_level: i.esc_level, overdue: i.sla_due < iso(clock.now()), description_en: i.desc_en, description_te: i.desc_te, support: (idb().prepare("SELECT COUNT(*) c FROM issue_me_too WHERE issue_id=?").get(i.id) as { c: number }).c }));
   return { role: { department: r.department, jurisdiction_lgd: r.jurisdiction_lgd }, items };
 }
