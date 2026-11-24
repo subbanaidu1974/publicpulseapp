@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-export type Status = 'todo' | 'in_progress' | 'done' | 'blocked';
+/** 'retired' = superseded or withdrawn; kept for history and excluded from the completion percentage. */
+export type Status = 'todo' | 'in_progress' | 'done' | 'blocked' | 'retired';
 export interface Story {
   id: string;
   epic: string;
@@ -18,7 +19,7 @@ export interface Tracker {
   stories: Story[];
 }
 
-const STATUSES: Status[] = ['done', 'in_progress', 'todo', 'blocked'];
+const STATUSES: Status[] = ['done', 'in_progress', 'todo', 'blocked', 'retired'];
 const TAG_RE = /@?\b((?:E2E|UT)-[A-Za-z0-9-]+)/g;
 const SPEC_EXT = /\.(ts|tsx|js|mjs|cjs)$/;
 const SKIP_DIRS = new Set(['node_modules', 'dist', 'playwright-report', 'test-results', '.git']);
@@ -145,13 +146,13 @@ function breakdown(rows: Row[]): string[] {
     for (const r of rows) {
       const k = key(r);
       if (!k) continue;
-      const c = m.get(k) ?? { done: 0, in_progress: 0, todo: 0, blocked: 0 };
+      const c = m.get(k) ?? { done: 0, in_progress: 0, todo: 0, blocked: 0, retired: 0 };
       c[r.status]++;
       m.set(k, c);
     }
     if (!m.size) return;
-    out.push(`| ${label} | Done | In progress | Todo | Blocked | Total |`, "|---|---|---|---|---|---|");
-    for (const [k, c] of [...m].sort()) out.push(`| ${k} | ${c.done} | ${c.in_progress} | ${c.todo} | ${c.blocked} | ${c.done + c.in_progress + c.todo + c.blocked} |`);
+    out.push(`| ${label} | Done | In progress | Todo | Blocked | Retired | Total (active) |`, "|---|---|---|---|---|---|---|");
+    for (const [k, c] of [...m].sort()) out.push(`| ${k} | ${c.done} | ${c.in_progress} | ${c.todo} | ${c.blocked} | ${c.retired} | ${c.done + c.in_progress + c.todo + c.blocked} |`);
     out.push("");
   };
   group((r) => r.wave, "Wave");
@@ -163,7 +164,7 @@ function breakdown(rows: Row[]): string[] {
 export function render(rows: Row[]): string {
   const counts = Object.fromEntries(STATUSES.map((s) => [s, 0])) as Record<Status, number>;
   rows.forEach((r) => (counts[r.status] = (counts[r.status] ?? 0) + 1));
-  const total = rows.length;
+  const total = rows.length - counts.retired;
   const pct = total === 0 ? 0 : Math.round((counts.done / total) * 100);
   const lines: string[] = [
     '# Story Tracker',
