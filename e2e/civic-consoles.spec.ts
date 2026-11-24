@@ -45,8 +45,9 @@ test.describe('consoles gating', () => {
 
 test.describe('officer console (real queue)', () => {
   test('@E2E-155 queue, status change, reroute and public reply call the real server', async ({ page, request }) => {
-    // A village of its own scopes the officer's queue to this test's report (core roles carry a jurisdiction, not a department).
-    const village = await findVillage(request, 'Bhimavaram', 'Bhim');
+    // A village of its own scopes the officer's queue to this test's report (core roles carry a jurisdiction, not a department). Not the scope
+    // specs' village (Bhimavaram): they fill it with 100+ reports, which would push this one past the queue's 100-row page.
+    const village = await findVillage(request, 'Kolluru');
     const tag = `e2eoff${uniq()}`;
     const reporter = await seedPerson(request);
     const officer = await seedPerson(request, [{ role: 'officer', jurisdiction: village.lgd }]);
@@ -80,7 +81,8 @@ test.describe('officer console (real queue)', () => {
     const village = await findVillage(request, 'Kolluru');
     const tag = `e2ejur${uniq()}`;
     const reporter = await seedPerson(request);
-    const officer = await seedPerson(request, [{ role: 'officer' }]);
+    // scoped to the village: an unscoped officer's queue is the whole platform's oldest 100 open reports, which this test's new report is not part of
+    const officer = await seedPerson(request, [{ role: 'officer', jurisdiction: village.lgd }]);
     await report(request, reporter.token, { category: 'education', village: village.lgd, text: freshText(tag) });
     await page.route(/\/civic\/issues\/[^/]+\/transition$/, (r) => r.fulfill({ status: 403, json: { error: 'outside your jurisdiction', hint: 'out_of_jurisdiction' } }));
     await openCivicAs(page, officer.token);

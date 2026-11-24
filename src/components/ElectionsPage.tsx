@@ -53,7 +53,7 @@ export default function ElectionsPage() {
   return (
     <div className="space-y-8">
       <div className="bg-[#FAF8F5] p-6 sm:p-8 border-y border-black">
-        <span className="text-[9px] uppercase tracking-[0.25em] font-sans font-black text-slate-500 block">{t("nav.elections")}</span>
+        <span className="text-[9px] uppercase tracking-[0.25em] font-sans font-black text-slate-700 block">{t("nav.elections")}</span>
         <h2 className="text-2xl font-serif italic text-black mt-1">{t("el.title")} - {lang === "te" ? config.nameTe : config.name}</h2>
         <p className="text-xs text-slate-600 mt-2 max-w-2xl font-serif">{t("el.provenanceNote")}</p>
         <div className="flex flex-wrap gap-4 mt-4 items-end">

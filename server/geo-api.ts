@@ -5,8 +5,10 @@
  *   (boundary files accept ?version=<set id> or ?asOf=YYYY-MM-DD, default current; S-92)
  *   GET /geo/:state/polling-stations?ac=       polling-station reference list (operator-imported; never voter-level; S-91)
  *   GET /geo/:state/units?level=&parent=       LGD tree, paginated, English + Telugu names (never invented)
+ *   GET /geo/:state/village-points?mandal=     village locations (approximate points, Wikidata CC0 + OSM ODbL; S-90). Not boundaries.
  *   GET /geo/:state/search?q=                  English or Telugu, districts / mandals / villages / ACs
  *   GET /geo/:state/places/:level/:code        mandal / village / district profile data (census when rows exist)
+ *   GET /electors/:state                       electors by AC from the 2024 general-election rolls (not SSR 2025)
  *   GET /constituencies/:state/:acNo           one AC: history across elections, units, PC, links
  *   GET /elections/:state/split-voting?year=   assembly winner vs the Lok Sabha winner of the AC's PC
  * All data is read from data/generated; nothing is fetched at request time.
@@ -139,7 +141,15 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
     return censusSubs;
   };
   const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 1000) / 10 : null);
-  const censusNote = "Census of India 2011 (village and town directories). Literacy is not in the village/sub-district tables loaded here, so it is reported as not available.";
+  const censusNote = "Census of India 2011 (village and town directories; literacy from the Primary Census Abstract). Literacy rate is literates over the population aged 7 and over. Where the Primary Census Abstract population does not match the directory population, literacy is reported as not available and is never estimated. Licence terms for the Census files are pending a human decision.";
+  const LIT_SOURCE = "Census of India 2011, Primary Census Abstract (Census Digital Library, (c) ORGI; licence pending)";
+  /** Literacy block: counts and the official rate, or null with a reason. Never estimated. */
+  const literacyOf = (literate: unknown, pop0to6: unknown, population: number, officialPct?: unknown) => {
+    if (typeof literate !== "number" || typeof pop0to6 !== "number" || !(population > pop0to6)) return null;
+    const rate = typeof officialPct === "number" ? officialPct : pct(literate, population - pop0to6);
+    return { literate, pop0to6, literacyPct: rate, source: LIT_SOURCE, censusYear: 2011, basis: "literates / (population - population aged 0-6)" };
+  };
+  const LIT_NA = "not available: the Primary Census Abstract population does not match the directory population for this unit, so literacy is not reported";
 
   /* ---------- boundary files ---------- */
   const fileCache = new Map<string, { body: Buffer; etag: string }>();
@@ -294,6 +304,39 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
     });
   });
 
+
+  /* ---------- village points (S-90): approximate locations keyed by LGD village code ---------- */
+  type VPoint = { lon: number; lat: number; confidence: number; source: "wikidata" | "osm"; ref: string };
+  const vpCache = new Map<StateCode, Map<string, VPoint> | null>();
+  const villagePoints = (state: StateCode): Map<string, VPoint> | null => {
+    if (vpCache.has(state)) return vpCache.get(state)!;
+    const out = new Map<string, VPoint>();
+    for (const layer of ["wikidata", "osm"] as const) {
+      const f = readJson(path.join(geoDir, `village-points-${layer}-${state}.json`));
+      for (const r of (f?.points ?? []) as (string | number)[][]) if (!out.has(String(r[0]))) out.set(String(r[0]), { lon: Number(r[2]), lat: Number(r[3]), confidence: Number(r[4]), source: layer, ref: String(r[5]) });
+    }
+    const res = out.size ? out : null;
+    vpCache.set(state, res);
+    return res;
+  };
+  const VP_NOTE = "Approximate village locations (a Wikidata coordinate or an OpenStreetMap place node), not boundaries and not surveyed centroids. Villages without a point are simply absent.";
+  const VP_ATTR = "Village locations: Wikidata (CC0); (c) OpenStreetMap contributors, ODbL 1.0 for points with source osm.";
+
+  router.get("/geo/:state/village-points", (req, res) => {
+    const g = stateOr404(req, res); if (!g) return;
+    const mandal = first(req.query.mandal);
+    if (mandal !== undefined && !/^\d{1,8}$/.test(mandal)) return err(res, 400, "invalid_mandal", "mandal must be an LGD mandal code");
+    const pts = villagePoints(g.state);
+    pubCache(res, 300);
+    if (!pts) return res.json({ state: g.state, available: false, total: 0, items: [], note: "No village point data has been built for this state.", source: null });
+    const list = mandal !== undefined ? g.villagesByMandal.get(mandal) ?? [] : g.villages;
+    const items = list.flatMap(v => { const p = pts.get(v.code); return p ? [{ code: v.code, censusCode: v.census, ...nameOf(v), mandal: v.mandal, lon: p.lon, lat: p.lat, confidence: p.confidence, source: p.source }] : []; });
+    res.json({
+      state: g.state, available: true, mandal: mandal ?? null, total: items.length, villagesInScope: list.length, items, note: VP_NOTE, attribution: VP_ATTR,
+      source: sourceOf(`geo-village-points-wikidata-${g.state}`, `geo-village-points-osm-${g.state}`),
+    });
+  });
+
   /* ---------- place profile data (S-99) ---------- */
   router.get("/geo/:state/places/:level/:code", (req, res) => {
     const g = stateOr404(req, res); if (!g) return;
@@ -303,9 +346,10 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
     const stateName = STATES[g.state].name;
     const acRef = (acNo: number) => { const a = g.acByNo.get(acNo)!; return { acNo, ...nameOf(a), reservation: a.reservation, href: hrefOf(g.state, "ac", acNo) }; };
     const census = (row: Json | null, kind: string, extra: Json = {}) => row ? {
-      available: true, censusYear: 2011, kind, ...extra,
-      literacyPct: null, literacyNote: "not available in the loaded census tables",
+      available: true, censusYear: 2011, kind,
+      literacyPct: null, literacyNote: LIT_NA, ...extra,
     } : { available: false, reason: "No Census 2011 row is linked to this unit's census code.", censusYear: 2011 };
+    const litFields = (l: Json | null): Json => l ? { ...l, literacyNote: undefined } : {};
     let body: Json;
     if (level === "village") {
       const v = g.villageByCode.get(code) ?? (code !== "0" ? g.villages.find(x => x.census === code) : undefined);
@@ -317,9 +361,11 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
         level, code: v.code, censusCode: v.census, ...nameOf(v), category: v.category,
         path: [{ level: "state", name: stateName }, { level: "district", code: d.code, ...nameOf(d) }, { level: "mandal", code: m.code, ...nameOf(m) }],
         constituency: acNo ? acRef(acNo) : null,
+        location: (() => { const p = villagePoints(g.state)?.get(v.code); return p ? { lon: p.lon, lat: p.lat, confidence: p.confidence, source: p.source, note: VP_NOTE } : null; })(),
         census: census(row, "village", row ? {
           population: row[7], households: row[6], males: row[8], females: row[9], scPop: row[10], stPop: row[11],
           scPct: pct(row[10], row[7]), stPct: pct(row[11], row[7]), sexRatio: row[8] ? Math.round((row[9] / row[8]) * 1000) : null,
+          ...litFields(literacyOf(row[12], row[13], row[7])),
         } : {}),
         censusNote,
       };
@@ -337,6 +383,7 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
         census: census(row, "sub-district", row ? {
           population: row.population, households: row.households, males: row.males, females: row.females, scPop: row.scPop, stPop: row.stPop,
           scPct: row.scPct, stPct: row.stPct, sexRatio: row.sexRatio,
+          ...litFields(literacyOf(row.literate, row.pop0to6, row.population, row.literacyPct)),
         } : {}),
         censusNote,
       };
@@ -355,10 +402,28 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
         } : {}),
         censusNote,
       };
-      if (body.census.available) { body.census.literacyPct = (row as Json).literacyPct ?? null; if (body.census.literacyPct != null) delete body.census.literacyNote; }
+      if (body.census.available) { body.census.literacyPct = (row as Json).literacyPct ?? null; if (body.census.literacyPct != null) { delete body.census.literacyNote; body.census.literate = (row as Json).literate; body.census.pop0to6 = (row as Json).pop0to6; body.census.source = LIT_SOURCE; } }
     }
     pubCache(res);
     res.json({ state: g.state, ...body, asOf: g.asOf, source: sourceOf("geo-lgd-" + g.state, "census-villages-towns", "census-subdistricts", "geo-ac-units") });
+  });
+
+  /* ---------- electors by AC (GE-2024 rolls, ECI statistical report table 15) ---------- */
+  let electorRows: Json[] | null | undefined;
+  const loadElectors = () => { if (electorRows === undefined) electorRows = (readJson(path.join(baseDir, "data", "generated", "electors-ac.json"))?.rows as Json[]) ?? null; return electorRows; };
+  const ELECTORS_NOTE = "Electors on the rolls used for the 2024 general election (ECI GE-2024 statistical report, table 15). This is not the SSR 2025 roll. Counts only. Votes polled on EVM exclude postal ballots. Licence terms for this ECI report are pending a human decision.";
+  const electorsView = (r: Json) => {
+    const male = r.generalMale + r.nriMale + r.serviceMale, female = r.generalFemale + r.nriFemale + r.serviceFemale, third = r.generalThirdGender + r.nriThirdGender;
+    return { acNo: r.acNo, acName: r.acName, pcName: r.pcName, general: r.generalTotal, nri: r.nriTotal, service: r.serviceTotal, male, female, thirdGender: third, total: r.totalElectors, votesPolledEvm: r.votesPolledEvm, rollYear: 2024, rollBasis: "2024 general election rolls (not SSR 2025)" };
+  };
+  router.get("/electors/:state", (req, res) => {
+    const state = String(req.params.state).toUpperCase();
+    if (!isStateCode(state)) return err(res, 404, "unknown_state", "Unknown state. Valid: AP, TG");
+    const rows = loadElectors();
+    pubCache(res, 3600);
+    if (!rows) return res.json({ state, available: false, total: 0, items: [], note: ELECTORS_NOTE, source: null });
+    const items = rows.filter(r => r.state === state).map(electorsView).sort((a, b) => a.acNo - b.acNo);
+    res.json({ state, available: true, rollYear: 2024, total: items.length, totalElectors: items.reduce((s, r) => s + r.total, 0), items, note: ELECTORS_NOTE, source: sourceOf("electors-ac") });
   });
 
   /* ---------- constituency profile ---------- */
@@ -430,6 +495,7 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
       mandals: ac ? ac.mandals.map(String).map(c => g!.mandalByCode.get(c)).filter(Boolean).map(m => ({ code: m!.code, ...nameOf(m!), href: hrefOf(state, "mandal", m!.code) })) : [],
       electors: latest?.electors ?? null, electorsYear: latest?.electors ? latest.year : null,
       census: censusAgg,
+      electorsRoll: (() => { const r = loadElectors()?.find(x => x.state === state && x.acNo === acNo); return r ? { ...electorsView(r), note: ELECTORS_NOTE } : null; })(),
       history,
       links: { boundary: `/api/v1/geo/${state}/ac.geojson`, pcBoundary: `/api/v1/geo/${state}/pc.geojson`, page: hrefOf(state, "ac", acNo) },
       delimitation: "2008 (in force for all AP/TG elections 2014-2024)",

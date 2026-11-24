@@ -106,7 +106,7 @@ export default function ComparePage() {
                     );
                   })}
                 </svg>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto" tabIndex={0} role="region" aria-label={a("an2.c.parties")}>
                   <table data-testid="party-compare-table" className="w-full text-xs border-collapse min-w-[32rem]">
                     <thead><tr className="text-left border-b border-black"><th className="py-1 pr-2">{a("an2.c.party")}</th><th className="pr-2 text-right">{a("an2.c.asm")} %</th><th className="pr-2 text-right">{a("an2.c.ls")} %</th><th className="pr-2 text-right">{a("an2.c.diff")}</th><th className="pr-2 text-right">{a("an2.c.seatsAsm")}</th><th className="text-right">{a("an2.c.seatsLs")}</th></tr></thead>
                     <tbody>{d.parties.map(p => (
@@ -121,7 +121,7 @@ export default function ComparePage() {
               <section className="space-y-2" data-testid="pc-compare">
                 <h2 className="text-xs font-black uppercase tracking-[0.2em] border-b border-black/20 pb-1">{a("an2.c.pc")}</h2>
                 <p className="text-[11px] text-slate-700">{a("an2.c.pcNote")}</p>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto" tabIndex={0} role="region" aria-label={a("an2.c.pc")}>
                   <table className="w-full text-xs border-collapse min-w-[36rem]">
                     <thead><tr className="text-left border-b border-black"><th className="py-1 pr-2">{a("an2.c.pcName")}</th><th className="pr-2">{a("an2.c.winner")}</th><th className="pr-2 text-right">{a("an2.c.lsShare")} %</th><th className="pr-2 text-right">{a("an2.c.asmShare")} %</th><th className="pr-2 text-right">{a("an2.c.diff")}</th><th className="text-right">{a("an2.c.split")}</th></tr></thead>
                     <tbody>{d.constituencies.map(c => (

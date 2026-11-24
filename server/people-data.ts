@@ -132,11 +132,14 @@ export function parseContestantId(id: string): { state: StateCode; type: Electio
 
 const nameKey = (s: string) => s.toLowerCase().replace(/[^a-z]/g, "");
 
-/** Affidavit sources are LINK-ONLY (ADR forbids scraping/redistribution). MyNeta search pattern verified with a normal fetch on 2026-11-22 (HTTP 200). */
+/**
+ * Affidavit sources are LINK-ONLY: URL construction from the candidate name, nothing fetched or stored (docs/decisions/02-affidavit-link-outs.md).
+ * Identical two links, same order, same wording for every candidate (MCC neutrality).
+ */
 export function affidavitLinks(name: string) {
   return [
-    { label: "MyNeta (Association for Democratic Reforms): search by name", url: `https://www.myneta.info/search_myneta.php?q=${encodeURIComponent(name)}`, verified: "2026-11-22" },
-    { label: "Election Commission of India: candidate affidavits portal", url: "https://affidavit.eci.gov.in/", verified: null },
+    { label: "MyNeta (Association for Democratic Reforms): search by name", labelTe: "MyNeta (అసోసియేషన్ ఫర్ డెమోక్రటిక్ రిఫార్మ్స్): పేరుతో వెతకండి", url: `https://www.myneta.info/search_myneta.php?q=${encodeURIComponent(name)}`, verified: "2026-11-22", external: true as const },
+    { label: "Election Commission of India: candidate affidavits portal", labelTe: "భారత ఎన్నికల సంఘం: అభ్యర్థుల అఫిడవిట్ల పోర్టల్", url: "https://affidavit.eci.gov.in/", verified: null, external: true as const },
   ];
 }
 

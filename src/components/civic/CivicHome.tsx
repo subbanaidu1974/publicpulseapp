@@ -9,6 +9,7 @@ import TierBadge from "./TierBadge";
 import { useCivicT } from "./civicText";
 import HouseholdPage from "./HouseholdPage";
 import ConsolesHub from "./consoles/ConsolesHub";
+import OfficerApply from "./OfficerApply";
 import IssueFeed from "./IssueFeed";
 import IssueReport from "./IssueReport";
 import MyReports from "./MyReports";
@@ -87,6 +88,7 @@ export default function CivicHome() {
           <ConsultationsLink />
           <ScopeLink />
           <ConsolesHub />
+          <OfficerApply />
         </>
       )}
     </div>

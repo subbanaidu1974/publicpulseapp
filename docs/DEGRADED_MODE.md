@@ -33,6 +33,19 @@ Rationale: reads of public data and anything that protects people (reporting, re
 Before that budget is hit, sends are smoothed so a flood in the first minutes cannot drain the hour: each slot (`CIVIC_OTP_SLOT_SECONDS`, default 60) lets `max(CIVIC_OTP_MIN_BURST, ceil(budget / slots_per_hour * CIVIC_OTP_SMOOTH_FACTOR))` texts leave at once. The rest wait in a bounded queue (`CIVIC_OTP_QUEUE_MAX`) and leave slot by slot. The request answers `200 {queued:true, expected_delay_s}`.
 A request is refused with `503` + `Retry-After` when the queue is full or the estimated wait exceeds `CIVIC_OTP_MAX_WAIT_SECONDS` (default 120, inside the 5 minute code lifetime, so a queued code is delivered while still valid). One budget token is spent per accepted request, including the one refused as full (accepted loss).
 
+## OTP answers: `delivery` and the bilingual capacity notice
+
+Every successful code request (`POST /identity/signup/request`, recovery likewise) reports what really happened to the SMS in `delivery` (`sendSmsReport`, S-164):
+
+| `delivery` | Meaning | HTTP |
+|---|---|---|
+| `sent` | the provider accepted or delivered the text | 200 `{ok, purpose, delivery:"sent", expires_in_s}` |
+| `queued` | the vendor has it and will retry, or it waits in our smoothing queue (`queued:true`, `expected_delay_s`) | 200 |
+| `failed` | the send failed or was dropped (dead, budget exhausted at the vendor) | 502 `{delivery:"failed", can_retry:true}`; the stored code is discarded so a resend is allowed at once (still inside the per-phone cap and the SMS budget) |
+
+Clients must show "queued" as "the code is on its way, it may take a minute" and only offer a resend after `expected_delay_s`. A still-valid code is never replaced: a repeat request answers `{already_sent:true}` with the remaining `expires_in_s`.
+When the hourly budget is spent (`429`) or the queue is full (`503`, with `Retry-After`) the body carries `degraded:true`, the English `notice` and the bilingual pair `notice_en` / `notice_te` (same wording as the shed gate's, from the OTP routes), so the sign-up UI shows Telugu without a second request. Existing sessions keep working in both cases.
+
 ## Load test
 
 `npm run load:otp -- --smoke` expects at most budget 2xx and no 5xx other than the documented 503s (queue full, with Retry-After).

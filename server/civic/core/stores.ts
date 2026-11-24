@@ -32,14 +32,14 @@ export const STORE_TABLES: Record<StoreName, string[]> = {
     "migrations", "store_meta", "persons", "sessions", "consents", "roles", "otps", "rate_events", "attestations", "has_responded", "pin_failures",
     "survey_closures", "enrolments", "enrolment_rechecks", "hh_household", "hh_member", "hh_invite", "hh_pin", "hh_invite_cooldown", "hh_transfer", "admin_mfa",
     "admin_mfa_recovery", "role_requests", "officer_role", "issue_links", "erasure_outbox", "people_requests", "people_takedowns", "sms_ledger", "provider_keys",
-    "cred_idem",
+    "cred_idem", "officer_application",
     // government notifications (server/civic/notify)
     "notify_orgs", "notify_senders", "notify_credentials", "notify_challenges", "notify_messages", "notify_approvals", "notify_inbox", "notify_person",
     "notify_prefs", "notify_devices", "notify_block_log", "notify_kill",
   ],
   issues: [
     "migrations", "issue", "issue_me_too", "issue_event", "issue_sample", "officer_rebuttal", "issue_appeal", "moderation_action", "lexicon_change",
-    "issue_media", "admin_unit", "hamlet", "village_constituency", "ivr_call",
+    "issue_media", "admin_unit", "hamlet", "village_constituency", "ivr_call", "rep_reply", "grievance_link",
   ],
   survey: [
     "migrations", "survey_meta",

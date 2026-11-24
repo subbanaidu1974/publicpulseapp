@@ -101,7 +101,7 @@ export default function TurnoutPage() {
                     </select>
                   </label>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto" tabIndex={0} role="region" aria-label={a("an2.t.turnout")}>
                   <table data-testid="turnout-seat-table" className="w-full text-xs border-collapse min-w-[40rem]">
                     <thead><tr className="text-left border-b border-black">
                       <th className="py-1 pr-2">#</th><th className="pr-2">{a("an2.t.seat")}</th><th className="pr-2">{a("an2.t.district")}</th>

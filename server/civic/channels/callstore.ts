@@ -9,11 +9,12 @@
 import { getKeys, getStore, registerMigration, registerStoreErasureHook } from "../core";
 import { ivrPseudonym } from "../core/pseudonyms";
 import { retentionPolicy } from "../issues/media";
+import type { Dialect } from "./dialect";
 
 export type IvrState = "welcome" | "who" | "pin" | "category" | "record" | "confirm" | "status" | "survey" | "done" | "goodbye";
 export interface Call {
   callId: string; phone: string; state: IvrState; category?: string; referenceId?: string; lastRef?: string; createdAt: number; turns: number;
-  adults?: string[]; personId?: string; needsPin?: boolean; verified?: boolean;
+  adults?: string[]; personId?: string; needsPin?: boolean; verified?: boolean; dialect?: Dialect;
 }
 
 const DDL = `
@@ -32,7 +33,13 @@ export const callTtlMs = () => Number(process.env.CIVIC_IVR_CALL_TTL_MS) || rete
 const ensured = new WeakSet<object>();
 function db() {
   const d = getStore("issues");
-  if (!ensured.has(d)) { d.exec(DDL); ensured.add(d); }
+  if (!ensured.has(d)) {
+    d.exec(DDL);
+    // S-151: dialect column, added idempotently (the 001 migration text is unchanged so its checksum stays valid)
+    const cols = d.prepare("PRAGMA table_info(ivr_call)").all() as unknown as { name: string }[];
+    if (!cols.some((c) => c.name === "dialect")) d.exec("ALTER TABLE ivr_call ADD COLUMN dialect TEXT");
+    ensured.add(d);
+  }
   return d;
 }
 
@@ -58,18 +65,18 @@ export const sqliteCallStore: CallStore = {
     return {
       callId: r.call_id, phone: getKeys().decrypt("ivr-call-phone", r.phone_enc), state: r.state, category: r.category ?? undefined, referenceId: r.reference_id ?? undefined,
       lastRef: r.last_ref ?? undefined, createdAt: r.created_at, turns: r.turns, adults: r.adults_enc ? JSON.parse(getKeys().decrypt("ivr-call-person", r.adults_enc)) : undefined,
-      personId: r.person_enc ? getKeys().decrypt("ivr-call-person", r.person_enc) : undefined, needsPin: !!r.needs_pin, verified: !!r.verified,
+      personId: r.person_enc ? getKeys().decrypt("ivr-call-person", r.person_enc) : undefined, needsPin: !!r.needs_pin, verified: !!r.verified, dialect: r.dialect ?? undefined,
     };
   },
   has(callId, nowMs) { return this.get(callId, nowMs) !== null; },
   put(c) {
-    db().prepare(`INSERT INTO ivr_call (call_id,phone_enc,state,category,reference_id,last_ref,adults_enc,person_enc,person_keys,needs_pin,verified,turns,created_at,expires_at)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    db().prepare(`INSERT INTO ivr_call (call_id,phone_enc,state,category,reference_id,last_ref,adults_enc,person_enc,person_keys,needs_pin,verified,turns,created_at,expires_at,dialect)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
       ON CONFLICT(call_id) DO UPDATE SET state=excluded.state, category=excluded.category, reference_id=excluded.reference_id, last_ref=excluded.last_ref,
-        adults_enc=excluded.adults_enc, person_enc=excluded.person_enc, person_keys=excluded.person_keys, needs_pin=excluded.needs_pin, verified=excluded.verified, turns=excluded.turns`)
+        adults_enc=excluded.adults_enc, person_enc=excluded.person_enc, person_keys=excluded.person_keys, needs_pin=excluded.needs_pin, verified=excluded.verified, turns=excluded.turns, dialect=excluded.dialect`)
       .run(c.callId, getKeys().encrypt("ivr-call-phone", c.phone), c.state, c.category ?? null, c.referenceId ?? null, c.lastRef ?? null,
         c.adults ? getKeys().encrypt("ivr-call-person", JSON.stringify(c.adults)) : null, c.personId ? getKeys().encrypt("ivr-call-person", c.personId) : null,
-        keysOf(c), c.needsPin ? 1 : 0, c.verified ? 1 : 0, c.turns, c.createdAt, c.createdAt + callTtlMs());
+        keysOf(c), c.needsPin ? 1 : 0, c.verified ? 1 : 0, c.turns, c.createdAt, c.createdAt + callTtlMs(), c.dialect ?? null);
   },
   delete(callId) { db().prepare("DELETE FROM ivr_call WHERE call_id=?").run(callId); },
   prune(nowMs) { return Number(db().prepare("DELETE FROM ivr_call WHERE expires_at<=?").run(nowMs).changes); },

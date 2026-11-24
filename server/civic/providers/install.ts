@@ -8,11 +8,15 @@
  *   CIVIC_NUMINTEL_URL -> HttpNumberIntel (needs CIVIC_NUMINTEL_SECRET).
  * A vendor adapter replaces any of these by calling the setter in its own module before createCivicRouter() runs.
  */
+import fs from "node:fs";
 import type { NextFunction, Request, Response } from "express";
+import { AwsKmsKeyProvider } from "./awskms";
+import { GenericHttpNumberIntel, type GenericIntelMapping } from "./numberintelHttp";
 import { isDevKeyProvider, isDevSmsProvider, setKeyProvider, setSmsProvider, getKeys } from "../core";
 import { isDevNumberIntelligence, setNumberIntelligence } from "../identity/service";
 import { RemoteKmsKeyProvider, SqlKeyRegistry, isKeyProviderV2 } from "./keys";
 import { HttpNumberIntel } from "./numberintel";
+import { GenericHttpSmsProvider, genericSmsConfigFromEnv } from "./smsgeneric";
 import { HttpSmsProvider, loadTemplateRegistry, setSmsGateway, startSmsRetryLoop } from "./sms";
 import { providerLog } from "./util";
 
@@ -26,6 +30,14 @@ export function installProvidersFromEnv(env: NodeJS.ProcessEnv = process.env): I
     if (!env.CIVIC_KMS_KEK_ID) throw new Error("CIVIC_KMS_URL is set but CIVIC_KMS_KEK_ID is missing");
     setKeyProvider(new RemoteKmsKeyProvider({ url: env.CIVIC_KMS_URL, secret: env.CIVIC_KMS_SECRET ?? "", kekId: env.CIVIC_KMS_KEK_ID, registry: new SqlKeyRegistry(), timeoutMs: n(env.CIVIC_KMS_TIMEOUT_MS), cacheTtlMs: n(env.CIVIC_KMS_CACHE_TTL_MS) }));
     warmState = "cold"; out.keys = true;
+  } else if (env.CIVIC_AWS_KMS_KEY_ID && !env.CIVIC_KMS_URL && isDevKeyProvider()) {
+    // AWS KMS (S-64). Static credentials from the environment; see docs/PROVIDERS.md (not yet run against real AWS).
+    setKeyProvider(new AwsKmsKeyProvider({
+      region: env.CIVIC_AWS_KMS_REGION || env.AWS_REGION || "", endpoint: env.CIVIC_AWS_KMS_ENDPOINT || undefined, kekId: env.CIVIC_AWS_KMS_KEY_ID,
+      credentials: () => ({ accessKeyId: env.AWS_ACCESS_KEY_ID ?? "", secretAccessKey: env.AWS_SECRET_ACCESS_KEY ?? "", sessionToken: env.AWS_SESSION_TOKEN || undefined }),
+      registry: new SqlKeyRegistry(), timeoutMs: n(env.CIVIC_KMS_TIMEOUT_MS), cacheTtlMs: n(env.CIVIC_KMS_CACHE_TTL_MS),
+    }));
+    warmState = "cold"; out.keys = true;
   }
   if (env.CIVIC_SMS_URL && isDevSmsProvider()) {
     const p = new HttpSmsProvider({
@@ -34,8 +46,19 @@ export function installProvidersFromEnv(env: NodeJS.ProcessEnv = process.env): I
     });
     setSmsProvider(p); setSmsGateway(p); startSmsRetryLoop(); out.sms = true;
   }
+  if (env.CIVIC_SMSGW_URL && isDevSmsProvider()) { // generic configurable DLT gateway adapter (S-63); never run against a real gateway, see smsgeneric.ts
+    const cfg = genericSmsConfigFromEnv(env);
+    const p = new GenericHttpSmsProvider(cfg, {
+      registry: loadTemplateRegistry(), senderId: env.CIVIC_SMS_SENDER_ID, timeoutMs: n(env.CIVIC_SMSGW_TIMEOUT_MS) ?? n(env.CIVIC_SMS_TIMEOUT_MS), maxAttempts: n(env.CIVIC_SMS_MAX_ATTEMPTS),
+    });
+    setSmsProvider(p); setSmsGateway(p); startSmsRetryLoop(); out.sms = true;
+  }
   if (env.CIVIC_NUMINTEL_URL && isDevNumberIntelligence()) {
-    setNumberIntelligence(new HttpNumberIntel({ url: env.CIVIC_NUMINTEL_URL, secret: env.CIVIC_NUMINTEL_SECRET ?? "", timeoutMs: n(env.CIVIC_NUMINTEL_TIMEOUT_MS), cacheTtlMs: n(env.CIVIC_NUMINTEL_CACHE_TTL_MS) }));
+    // CIVIC_NUMINTEL_API_KEY selects the generic API-key adapter (mapping from CIVIC_NUMINTEL_MAPPING_FILE); otherwise the neutral signed shape.
+    if (env.CIVIC_NUMINTEL_API_KEY) {
+      const mapping = env.CIVIC_NUMINTEL_MAPPING_FILE ? JSON.parse(fs.readFileSync(env.CIVIC_NUMINTEL_MAPPING_FILE, "utf8")) as GenericIntelMapping : undefined;
+      setNumberIntelligence(new GenericHttpNumberIntel({ url: env.CIVIC_NUMINTEL_URL, apiKey: env.CIVIC_NUMINTEL_API_KEY, mapping, timeoutMs: n(env.CIVIC_NUMINTEL_TIMEOUT_MS), cacheTtlMs: n(env.CIVIC_NUMINTEL_CACHE_TTL_MS) }));
+    } else setNumberIntelligence(new HttpNumberIntel({ url: env.CIVIC_NUMINTEL_URL, secret: env.CIVIC_NUMINTEL_SECRET ?? "", timeoutMs: n(env.CIVIC_NUMINTEL_TIMEOUT_MS), cacheTtlMs: n(env.CIVIC_NUMINTEL_CACHE_TTL_MS) }));
     out.numberIntel = true;
   }
   return out;

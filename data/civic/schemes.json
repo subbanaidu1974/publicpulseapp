@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "ref": "docs/REPRESENTATIVES.md",
+  "note": "Scheme tag registry (S-145). A representative may tag a reply with at most three of these ids. Tags are labels only: they never change how an issue is shown or ranked. Telugu labels and the list itself need review by a native speaker and the programme owner before launch.",
+  "schemes": [
+    { "id": "pm_kisan", "label_en": "PM-KISAN", "label_te": "పీఎం-కిసాన్", "level": "central" },
+    { "id": "mgnrega", "label_en": "MGNREGS (rural employment guarantee)", "label_te": "ఉపాధి హామీ పథకం (ఎంజీఎన్ఆర్ఈజీఎస్)", "level": "central" },
+    { "id": "pmay", "label_en": "PM Awas Yojana (housing)", "label_te": "ప్రధానమంత్రి ఆవాస్ యోజన (గృహ నిర్మాణం)", "level": "central" },
+    { "id": "jal_jeevan", "label_en": "Jal Jeevan Mission (tap water)", "label_te": "జల్ జీవన్ మిషన్ (కుళాయి నీరు)", "level": "central" },
+    { "id": "pmjay", "label_en": "Ayushman Bharat PM-JAY (health cover)", "label_te": "ఆయుష్మాన్ భారత్ పీఎం-జేఏవై (ఆరోగ్య బీమా)", "level": "central" },
+    { "id": "pmgsy", "label_en": "PM Gram Sadak Yojana (rural roads)", "label_te": "ప్రధానమంత్రి గ్రామ సడక్ యోజన (గ్రామీణ రోడ్లు)", "level": "central" },
+    { "id": "state_scheme", "label_en": "A state government scheme", "label_te": "రాష్ట్ర ప్రభుత్వ పథకం", "level": "state" },
+    { "id": "mplads", "label_en": "Local area development fund (MP / MLA)", "label_te": "స్థానిక ప్రాంత అభివృద్ధి నిధి (ఎంపీ / ఎమ్మెల్యే)", "level": "fund" }
+  ]
+}

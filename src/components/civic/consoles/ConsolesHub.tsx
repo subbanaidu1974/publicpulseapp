@@ -5,8 +5,9 @@ import { Btn } from "../ui";
 import AdminConsole from "./AdminConsole";
 import ModeratorConsole from "./ModeratorConsole";
 import OfficerConsole from "./OfficerConsole";
+import PoliticianConsole from "./PoliticianConsole";
 
-type Which = "officer" | "moderator" | "admin";
+type Which = "officer" | "moderator" | "politician" | "admin";
 
 /**
  * Entry to the work consoles. Which tabs appear is a convenience derived from GET /admin/me (or the identity record); it is not a
@@ -17,7 +18,7 @@ export default function ConsolesHub() {
   const [me, setMe] = useState<Me | null>(null);
   const [open, setOpen] = useState<Which | null>(null);
   useEffect(() => { let live = true; issuesApi.me().then((m) => { if (live) setMe(m); }).catch(() => { /* signed out or no roles: show nothing */ }); return () => { live = false; }; }, []);
-  const tabs = (["officer", "moderator", "admin"] as Which[]).filter((r) => me?.roles.includes(r) || (r === "officer" && me?.roles.includes("admin")));
+  const tabs = (["officer", "moderator", "politician", "admin"] as Which[]).filter((r) => me?.roles.includes(r) || (r === "officer" && me?.roles.includes("admin")));
   if (!me || tabs.length === 0) return null;
   return (
     <section data-testid="consoles" aria-labelledby="cons-h" className="space-y-3 border-t border-black pt-4">
@@ -27,6 +28,7 @@ export default function ConsolesHub() {
       </div>
       {open === "officer" && <OfficerConsole />}
       {open === "moderator" && <ModeratorConsole />}
+      {open === "politician" && <PoliticianConsole />}
       {open === "admin" && <AdminConsole personId={me.personId} />}
     </section>
   );

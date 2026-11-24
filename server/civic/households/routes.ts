@@ -1,7 +1,8 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import express, { Router } from "express";
 import type { Request, Response } from "express";
-import { audit, getDb, getSms, recordConsent, registerErasureHook, registerMigration, requireAuth } from "../core";
+import { audit, getDb, getKeys, getSms, recordConsent, registerErasureHook, registerMigration, requireAuth } from "../core";
+import { phoneHashCandidates } from "../providers/rehash";
 import { DEGRADED_NOTICE, WEAK_PIN_MESSAGE, checkPin, getPerson, hashPinAsync, personsOnSim, phoneHash, rateAllow, rateCount, smsBudgetAllow, weakPinReason } from "../identity/service";
 import { ENROL_CONTEXTS, createEnrolment, enrolQuota as enrolQuotaFn } from "../identity/enrolment";
 import householdInviteV1 from "./notices/household_invite.v1.json";
@@ -149,6 +150,13 @@ function expireStaleInvites(now: number): void {
   db().prepare("DELETE FROM hh_invite_cooldown WHERE until <= ?").run(now);
   db().prepare("UPDATE hh_transfer SET status='expired' WHERE status='pending' AND expires_at <= ?").run(now);
 }
+const inList = (n: number) => Array.from({ length: n }, () => "?").join(",");
+/** (S-161) Does this person's verified number match a stored invite hash, whichever key version either side was written under? */
+function samePhone(me: { phone_hash: string | null; phone_enc?: string | null }, inviteHash: string): boolean {
+  if (me.phone_hash === inviteHash) return true;
+  if (!me.phone_enc) return false;
+  try { return phoneHashCandidates(getKeys().decrypt("phone", me.phone_enc)).includes(inviteHash); } catch { return false; }
+}
 function startCooldown(targetHash: string | null | undefined, householdId: string, reason: "declined" | "reported", now: number): void {
   if (!targetHash) return;
   // A report protects the number from every head; a decline only from the household that asked.
@@ -257,14 +265,17 @@ householdRouter.post("/members/invite", async (req: Request, res: Response) => {
   const hid = h.household.id as string;
   const now = Date.now();
   expireStaleInvites(now);
-  const hash = phoneHash(norm);
-  if (db().prepare("SELECT 1 FROM hh_invite WHERE household_id=? AND phone_hash=? AND status='pending'").get(hid, hash)) return fail(res, 409, "already invited");
-  const cool = db().prepare("SELECT until FROM hh_invite_cooldown WHERE target_hash=? AND (household_id=? OR household_id='*') AND until > ? ORDER BY until DESC").get(hash, hid, now) as Row | undefined;
+  // S-161: the WRITE hash is the current key version; every duplicate / cooldown / cap check reads under ALL active versions.
+  const cands = phoneHashCandidates(norm);
+  const hash = cands[0] ?? phoneHash(norm);
+  const marks = inList(cands.length);
+  if (db().prepare(`SELECT 1 FROM hh_invite WHERE household_id=? AND phone_hash IN (${marks}) AND status='pending'`).get(hid, ...cands)) return fail(res, 409, "already invited");
+  const cool = db().prepare(`SELECT until FROM hh_invite_cooldown WHERE target_hash IN (${marks}) AND (household_id=? OR household_id='*') AND until > ? ORDER BY until DESC`).get(...cands, hid, now) as Row | undefined;
   if (cool) return fail(res, 429, "this number recently declined or reported an invitation; it cannot be invited again yet", { code: "invite_cooldown", retryAt: cool.until });
   const pending = (db().prepare("SELECT COUNT(*) AS c FROM hh_invite WHERE household_id=? AND status='pending'").get(hid) as { c: number }).c;
   if (pending >= MAX_PENDING_INVITES) return fail(res, 429, "too many pending invites");
   if (rateCount(`invite:head:${pid}`, DAY_MS, now) >= inviteDailyCap()) return fail(res, 429, "daily invitation limit reached", { code: "invite_daily_cap" });
-  if (rateCount(`invite:target:${hash}`, DAY_MS, now) >= inviteTargetDailyCap()) return fail(res, 429, "this number has received too many invitations today", { code: "invite_target_cap" });
+  if (Math.max(...cands.map((c) => rateCount(`invite:target:${c}`, DAY_MS, now))) >= inviteTargetDailyCap()) return fail(res, 429, "this number has received too many invitations today", { code: "invite_target_cap" });
   if (!smsBudgetAllow(now)) return fail(res, 429, "sms capacity reached; try again later", { code: "sms_budget", degraded: true, notice: DEGRADED_NOTICE });
   rateAllow(`invite:head:${pid}`, Number.MAX_SAFE_INTEGER, DAY_MS, now);
   rateAllow(`invite:target:${hash}`, Number.MAX_SAFE_INTEGER, DAY_MS, now);
@@ -301,7 +312,7 @@ householdRouter.post("/invites/accept", async (req: Request, res: Response) => {
   if (!invite) return fail(res, error![0], error![1]);
   const me = getPerson(pid);
   // The code alone is not enough: the signed-in person's verified phone must be the number the invite was issued for.
-  if (!me || !me.phone_hash || !invite.phone_hash || me.phone_hash !== invite.phone_hash) {
+  if (!me || !me.phone_hash || !invite.phone_hash || !samePhone(me, invite.phone_hash as string)) {
     audit(pid, "household_invite_phone_mismatch", String(invite.id), { householdId: invite.household_id });
     return fail(res, 403, "this invite was not issued for your verified phone number", { code: "phone_mismatch" });
   }

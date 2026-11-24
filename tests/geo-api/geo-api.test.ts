@@ -145,7 +145,9 @@ describe("@E2E-113 @E2E-114 place profiles", () => {
   it("village profile joins Census 2011 by census code and links the constituency", async () => {
     const r = await get("/geo/TG/places/village/568945");
     expect(r.status).toBe(200);
-    expect(r.body.census).toMatchObject({ available: true, population: 2232, scPop: 258, stPop: 795, literacyPct: null });
+    expect(r.body.census).toMatchObject({ available: true, population: 2232, scPop: 258, stPop: 795, literate: 1168, pop0to6: 252 });
+    expect(r.body.census.literacyPct).toBeCloseTo(59, 1);
+    expect(r.body.census.literacyNote).toBeUndefined();
     expect(r.body.census.stPct).toBeCloseTo(35.6, 1);
     expect(r.body.nameTe).toBeTruthy();
     expect(r.body.path.map((p: any) => p.level)).toEqual(["state", "district", "mandal"]);
@@ -153,17 +155,50 @@ describe("@E2E-113 @E2E-114 place profiles", () => {
   });
   it("mandal and district profiles; unknown codes 404", async () => {
     const m = await get("/geo/TG/places/mandal/4305");
-    expect(m.body.census).toMatchObject({ available: true, population: 39631 });
+    expect(m.body.census).toMatchObject({ available: true, population: 39631, literate: 19988, pop0to6: 4347, literacyPct: 56.65 });
     expect(m.body.constituencies.length).toBeGreaterThan(0);
     const d = await get("/geo/TG/places/district/501");
     expect(d.body.mandals).toBeGreaterThan(0);
     expect((await get("/geo/TG/places/village/99999999")).status).toBe(404);
     expect((await get("/geo/TG/places/ward/1")).status).toBe(400);
   });
+  it("keeps literacy as not available (no estimate) for a unit without PCA literacy", async () => {
+    const r = await get("/geo/TG/places/mandal/4305");
+    expect(r.body.censusNote).toMatch(/never estimated/);
+    const d = await get("/geo/TG/places/district/501");
+    expect(d.body.census.literacyPct === null || typeof d.body.census.literacyPct === "number").toBe(true);
+  });
+  it("serves electors by AC labelled as the 2024 general-election rolls", async () => {
+    const r = await get("/electors/AP");
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({ available: true, rollYear: 2024, total: 175, totalElectors: 41401887 });
+    expect(r.body.note).toMatch(/not the SSR 2025/);
+    expect(r.body.items[0]).toMatchObject({ acNo: 1, acName: "Ichchapuram", total: 270180, male: 132646, female: 137517, thirdGender: 17 });
+    expect((await get("/electors/TG")).body.total).toBe(119);
+    expect((await get("/electors/XX")).status).toBe(404);
+    const c = await get("/constituencies/AP/1");
+    expect(c.body.electorsRoll).toMatchObject({ total: 270180, rollYear: 2024 });
+  });
   it("reports census as unavailable (not zero) for a village with no census row", async () => {
     const items = (await get("/geo/AP/units?level=village&limit=200")).body.items as any[];
     let unavailable: any = null;
     for (const v of items) { const p = await get(`/geo/AP/places/village/${v.code}`); if (!p.body.census.available) { unavailable = p.body; break; } }
     if (unavailable) { expect(unavailable.census.reason).toMatch(/No Census/); expect(unavailable.census.population).toBeUndefined(); }
+  });
+});
+
+describe("S-90 village points", () => {
+  it("serves approximate points with a not-boundaries note, attribution and per-point source; validates the mandal filter", async () => {
+    const r = await get("/geo/AP/village-points");
+    expect(r.status).toBe(200);
+    expect(r.body.available).toBe(true);
+    expect(r.body.total).toBeGreaterThan(1000);
+    expect(r.body.note).toMatch(/not boundaries/i);
+    expect(r.body.attribution).toMatch(/OpenStreetMap/);
+    const p = r.body.items[0];
+    expect(["wikidata", "osm"]).toContain(p.source);
+    expect(p.lat).toBeGreaterThan(8); expect(p.lat).toBeLessThan(23);
+    expect((await get("/geo/AP/village-points?mandal=abc")).status).toBe(400);
+    expect((await get("/geo/XX/village-points")).status).toBe(404);
   });
 });

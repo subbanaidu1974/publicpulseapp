@@ -211,6 +211,13 @@ export interface IssueDetail {
   supportCount: number; units: Unit[]; acNo?: number; timeline: TimelineEntry[]; officerResponses: OfficerResponse[];
   hasPhoto: boolean; hasVoice: boolean; photoMediaId?: string; voiceMediaId?: string;
   canConfirm: boolean; canAppeal: boolean;
+  /** S-145: the one labelled reply of the elected representative, shown beside the report. Never affects order or counts. */
+  officialReply?: OfficialReply | null;
+}
+export interface SchemeTagInfo { id: string; labelEn: string; labelTe: string }
+export interface OfficialReply {
+  constituencyEn: string; constituencyTe?: string; text: string; version: number; postedAt?: string; updatedAt?: string; edited: boolean;
+  tags: SchemeTagInfo[]; history: { version: number; text: string; at?: string }[];
 }
 /** S-157: the caller's own report (GET /issues/mine). moderation: ok = public, held = waiting for review, taken_down = removed. Reason classes are coarse, never rule ids. */
 export type OwnerModeration = "ok" | "held" | "taken_down";
@@ -325,8 +332,19 @@ function decodeIssueDetail(r: Raw): IssueDetail {
     officerResponses: list<Raw>(r.officer_responses).map((b) => ({ text: String(b.text ?? ""), officerTag: str(b.officer_tag), at: str(b.at) })),
     hasPhoto: !!r.has_photo, hasVoice: !!r.has_voice, photoMediaId: str(r.photo_media_id), voiceMediaId: str(r.voice_media_id),
     canConfirm: r.can_confirm === true || status === "Resolved", canAppeal: r.can_appeal === true,
+    officialReply: decodeOfficialReply(r.official_reply),
   };
 }
+const decodeOfficialReply = (o: unknown): OfficialReply | null => {
+  const r = o as Raw | null;
+  if (!r || typeof r !== "object" || typeof r.text !== "string") return null;
+  return {
+    constituencyEn: String(r.constituency?.name_en ?? r.constituency?.lgd ?? ""), constituencyTe: str(r.constituency?.name_te), text: r.text, version: num(r.version) ?? 1,
+    postedAt: str(r.posted_at), updatedAt: str(r.updated_at), edited: r.edited === true,
+    tags: list<Raw>(r.scheme_tags).map((t) => ({ id: String(t.id), labelEn: String(t.label_en ?? t.id), labelTe: String(t.label_te ?? t.label_en ?? t.id) })),
+    history: list<Raw>(r.history).map((h) => ({ version: num(h.version) ?? 0, text: String(h.text ?? ""), at: str(h.at) })),
+  };
+};
 
 export const issuesApi = {
   uploadMedia,
@@ -365,6 +383,7 @@ export const issuesApi = {
         timeline: list<Raw>(r.timeline).map((e) => ({ type: String(e.type ?? "status"), status: str(e.status), at: str(e.at) })),
         officerResponses: list<Raw>(r.officer_responses).map((b) => ({ text: String(b.text ?? ""), officerTag: str(b.officer_tag), at: str(b.at) })),
         hasPhoto: !!r.has_photo, hasVoice: !!r.has_voice, photoMediaId: str(r.photo_media_id), voiceMediaId: str(r.voice_media_id),
+        officialReply: decodeOfficialReply(r.official_reply),
         // The public route has no viewer: it never sets can_confirm, and can_appeal is always false. The server enforces who may vote
         // (reporter or a sampled neighbour), so the confirm buttons stay visible on a Resolved issue and a 403 is explained.
         canConfirm: r.can_confirm === true || status === "Resolved", canAppeal: r.can_appeal === true,
@@ -499,4 +518,49 @@ export const issuesApi = {
       throw x;
     }
   },
+};
+
+// ---- S-141 verified officer onboarding (/officers) ----
+export type OfficerAppStatus = "submitted" | "awaiting_second_admin" | "approved" | "rejected" | "withdrawn" | "expired";
+export interface OfficerApplication {
+  id: string; status: OfficerAppStatus; department: string; designation?: string; jurisdiction?: string; emailDomain: string; letterChecked: boolean; createdAt?: string; canWithdraw: boolean;
+  /** Admin queue only. */
+  personId?: string; fullName?: string; officialEmail?: string; roleRequestId?: string; reviewNote?: string;
+}
+const decodeApp = (r: Raw): OfficerApplication => ({
+  id: String(r.id), status: String(r.status) as OfficerAppStatus, department: String(r.department ?? ""), designation: str(r.designation), jurisdiction: str(r.jurisdiction), emailDomain: String(r.email_domain ?? ""),
+  letterChecked: r.letter_checked === true, createdAt: str(r.created_at), canWithdraw: r.can_withdraw === true,
+  personId: str(r.person_id), fullName: str(r.full_name), officialEmail: str(r.official_email), roleRequestId: str(r.role_request_id), reviewNote: str(r.review_note),
+});
+export const officersApi = {
+  domains: async (): Promise<{ domains: { domain: string; bodyEn: string; bodyTe: string }[]; departments: string[] }> => {
+    const d = await call<Raw>("/officers/domains", { auth: false });
+    return { domains: list<Raw>(d, "domains").map((x) => ({ domain: String(x.domain), bodyEn: String(x.body_en ?? x.domain), bodyTe: String(x.body_te ?? x.body_en ?? x.domain) })), departments: list<unknown>(d?.departments).map(String) };
+  },
+  mine: async (): Promise<OfficerApplication[]> => list<Raw>(await call<Raw>("/officers/applications/mine", { fresh: true }), "applications").map(decodeApp),
+  apply: (b: { fullName: string; department: string; designation?: string; email: string; jurisdiction?: string; letterRef: string }) =>
+    call<Raw>("/officers/applications", { method: "POST", body: { full_name: b.fullName, department: b.department, designation: b.designation || undefined, official_email: b.email, jurisdiction: b.jurisdiction || undefined, letter_ref: b.letterRef } }),
+  withdraw: (id: string) => call<Raw>(`/officers/applications/${enc(id)}/withdraw`, { method: "POST", body: {} }),
+  queue: async (status = "submitted"): Promise<OfficerApplication[]> => list<Raw>(await call<Raw>(`/officers/admin/queue?status=${enc(status)}`, { fresh: true }), "applications").map(decodeApp),
+  /** The letter as an object URL (the caller revokes it); null when it cannot be shown. */
+  letterObjectUrl: async (id: string): Promise<string | null> => {
+    const tok = tokenStore.get();
+    if (!tok) return null;
+    try { const res = await fetch(`${BASE}/officers/admin/applications/${enc(id)}/letter`, { headers: { authorization: `Bearer ${tok}` }, cache: "no-store" }); return res.ok ? URL.createObjectURL(await res.blob()) : null; } catch { return null; }
+  },
+  verify: (id: string, note: string, mfa: Mfa) => call<Raw>(`/officers/admin/applications/${enc(id)}/verify`, { method: "POST", headers: mfaHeaders(mfa), body: { letter_checked: true, note: note || undefined } }),
+  reject: (id: string, note: string, mfa: Mfa) => call<Raw>(`/officers/admin/applications/${enc(id)}/reject`, { method: "POST", headers: mfaHeaders(mfa), body: { note } }),
+};
+
+// ---- S-145 representative replies (/representatives) ----
+export interface ReplyVersion { id: string; version: number; status: "visible" | "held" | "removed"; text: string; tags: string[]; holdReasons: string[]; createdAt?: string }
+export interface HeldReply { id: string; issueId: string; version: number; constituency: string; text: string; tags: string[]; reasons: string[] }
+const decodeVersion = (r: Raw): ReplyVersion => ({ id: String(r.id), version: num(r.version) ?? 1, status: r.status === "held" || r.status === "removed" ? r.status : "visible", text: String(r.text ?? ""), tags: list<unknown>(r.scheme_tags).map(String), holdReasons: list<unknown>(r.hold_reasons).map(String), createdAt: str(r.created_at) });
+export const representativesApi = {
+  schemes: async (): Promise<SchemeTagInfo[]> => list<Raw>(await call<Raw>("/representatives/schemes", { auth: false }), "schemes").map((t) => ({ id: String(t.id), labelEn: String(t.label_en), labelTe: String(t.label_te) })),
+  post: async (issueId: string, text: string, tags: string[]): Promise<ReplyVersion> => decodeVersion(await call<Raw>(`/representatives/issues/${enc(issueId)}/reply`, { method: "POST", body: { text, scheme_tags: tags } })),
+  revise: async (issueId: string, text: string, tags: string[]): Promise<ReplyVersion> => decodeVersion(await call<Raw>(`/representatives/issues/${enc(issueId)}/reply/revise`, { method: "POST", body: { text, scheme_tags: tags } })),
+  mine: async (issueId: string): Promise<ReplyVersion[]> => list<Raw>(await call<Raw>(`/representatives/issues/${enc(issueId)}/reply/mine`, { fresh: true }), "versions").map(decodeVersion),
+  heldQueue: async (): Promise<HeldReply[]> => list<Raw>(await call<Raw>("/representatives/moderation/queue", { fresh: true }), "replies").map((r) => ({ id: String(r.id), issueId: String(r.issue_id), version: num(r.version) ?? 1, constituency: String(r.constituency ?? ""), text: String(r.text ?? ""), tags: list<unknown>(r.scheme_tags).map(String), reasons: list<unknown>(r.reasons).map(String) })),
+  review: (id: string, decision: "approve" | "hold" | "remove", note?: string) => call<Raw>(`/representatives/replies/${enc(id)}/review`, { method: "POST", body: { decision, note: note || undefined } }),
 };

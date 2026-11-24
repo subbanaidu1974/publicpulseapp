@@ -40,7 +40,7 @@
       "attribution": "Source: Census of India 2011, Office of the Registrar General and Census Commissioner, India (District Census Handbooks village and town directories).",
       "needsDecision": true,
       "decision": "The catalogue entries show only 'Rights: Office of the Registrar General & Census Commissioner, India (ORGI)' and no open licence. The files download without login. Counsel to confirm redistribution of derived village/town counts; alternatively obtain the data via data.gov.in under GODL-India (needs a key).",
-      "evidence": "Catalogue entry catalog/123 read 2026-11-22; downloads of resources 144 and 145 returned HTTP 200 with no login."
+      "evidence": "Catalogue entry catalog/123 read 2026-11-22; downloads of resources 144 and 145 returned HTTP 200 with no login. 2026-11-24: Primary Census Abstract workbooks (catalog/6723 to 6745, one per 2011 district, and catalog/6191 state and district level) read and downloaded with HTTP 200 and no login; those pages carry no rights text beyond the site footer (c) ORGI Digital Library, All Rights Reserved. Literacy counts (P_LIT, P_06) come from these files."
     },
     "godl-india": {
       "name": "Government Open Data License - India (data.gov.in)",
@@ -107,8 +107,8 @@
       "constraints": ["attribution", "share-alike for derived databases"],
       "attribution": "(c) OpenStreetMap contributors, ODbL.",
       "needsDecision": true,
-      "decision": "data/generated/geo/mandal-AP.geojson and mandal-TG.geojson are derived from OpenStreetMap relations (simplified, re-keyed to LGD). They must stay under ODbL with the OSM attribution, and anyone redistributing them must offer the derived file under ODbL (share-alike). Counsel to confirm that this file is a separable derivative database and that the rest of the repository and the app are not affected, or choose to drop the file.",
-      "evidence": "Standard licence terms (https://www.openstreetmap.org/copyright states ODbL 1.0 and the attribution wording). Applied in S-89."
+      "decision": "data/generated/geo/mandal-AP.geojson and mandal-TG.geojson are derived from OpenStreetMap relations (simplified, re-keyed to LGD). They must stay under ODbL with the OSM attribution, and anyone redistributing them must offer the derived file under ODbL (share-alike). Counsel to confirm that this file is a separable derivative database and that the rest of the repository and the app are not affected, or choose to drop the file. S-90 adds data/generated/geo/village-points-osm-AP.json and village-points-osm-TG.json (OSM place nodes joined to LGD villages, gap fill only). The API merges these points with CC0 Wikidata points in one list (each point has a source field). Counsel to confirm that this is a collective database rather than a derived one, and that attribution to OpenStreetMap contributors must be shown wherever OSM-derived points appear; the OSM file can be dropped without touching the CC0 file. See docs/decisions/S-90-village-boundaries.md.",
+      "evidence": "Standard licence terms (https://www.openstreetmap.org/copyright states ODbL 1.0 and the attribution wording). Applied in S-89 and S-90."
     },
     "ceo-polling-station-list": {
       "name": "Polling-station lists published by the Chief Electoral Officers (AP, TG) and ECI",

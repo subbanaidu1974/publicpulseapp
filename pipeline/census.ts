@@ -20,6 +20,10 @@ export interface CensusDistrict {
   /** Census 2011 district code (3 digits, e.g. "532" Adilabad); present for DCHB-derived rows */
   districtCode?: string;
   households?: number | null;
+  /** Population aged 0-6 (PCA P_06); the denominator of the official literacy rate is population minus this. */
+  pop0to6?: number | null;
+  literateMales?: number | null;
+  literateFemales?: number | null;
 }
 
 /** Sub-district (mandal/taluk) rollup keyed by Census 2011 codes. */
@@ -42,6 +46,10 @@ export interface CensusSubDistrict {
   scPct: number;
   stPct: number;
   sexRatio: number;
+  /** Present when PCA literacy was merged (scripts/ingest-pca-literacy.ts). */
+  literate?: number | null;
+  pop0to6?: number | null;
+  literacyPct?: number | null;
 }
 
 /** Village or town unit (compact record). kind V = village (rural), T = town (statutory or census town). */
@@ -60,6 +68,16 @@ export interface CensusUnit {
   females: number;
   scPop: number;
   stPop: number;
+  /** PCA literates (persons) and population aged 0-6; absent when the PCA literacy merge has not run. */
+  literate?: number;
+  pop0to6?: number;
+}
+
+/** Official Census literacy rate: literates as a percent of the population aged 7 and over. null when it cannot be computed. */
+export function literacyRate(literate: number, population: number, pop0to6: number): number | null {
+  const base = population - pop0to6;
+  if (!Number.isFinite(base) || base <= 0 || literate < 0 || literate > base) return null;
+  return Math.round((literate / base) * 10000) / 100;
 }
 
 const round = (n: number, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
@@ -146,9 +164,10 @@ export function dchbRecordToUnit(kind: "V" | "T", raw: Record<string, string | n
 
 const sexRatioOf = (m: number, f: number) => (m > 0 ? Math.round((f / m) * 1000) : 0);
 
-/** Roll units up to 2011 districts. Literacy is null: the DCHB directories carry no literacy columns. */
+/** Roll units up to 2011 districts. Literacy is null unless every unit of the district carries PCA literacy (see scripts/ingest-pca-literacy.ts). */
 export function rollupDistricts(units: CensusUnit[], source: string): CensusDistrict[] {
   const by = new Map<string, CensusDistrict>();
+  const litBroken = new Set<string>();
   for (const u of units) {
     let d = by.get(u.districtCode);
     if (!d) {
@@ -161,8 +180,13 @@ export function rollupDistricts(units: CensusUnit[], source: string): CensusDist
     }
     d.population += u.population; d.males += u.males; d.females += u.females;
     d.scPop += u.scPop; d.stPop += u.stPop; d.households = (d.households ?? 0) + u.households;
+    if (u.literate !== undefined && u.pop0to6 !== undefined) {
+      d.literate = (d.literate ?? 0) + u.literate; d.pop0to6 = (d.pop0to6 ?? 0) + u.pop0to6;
+    } else { d.literate = null; d.pop0to6 = null; litBroken.add(u.districtCode); }
   }
   for (const d of by.values()) {
+    if (litBroken.has(d.districtCode ?? "")) { d.literate = null; d.pop0to6 = null; }
+    d.literacyPct = d.literate != null && d.pop0to6 != null ? literacyRate(d.literate, d.population, d.pop0to6) : null;
     d.scPct = d.population ? round((d.scPop / d.population) * 100) : 0;
     d.stPct = d.population ? round((d.stPop / d.population) * 100) : 0;
     d.sexRatio = sexRatioOf(d.males, d.females);
@@ -172,6 +196,7 @@ export function rollupDistricts(units: CensusUnit[], source: string): CensusDist
 
 export function rollupSubDistricts(units: CensusUnit[]): CensusSubDistrict[] {
   const by = new Map<string, CensusSubDistrict>();
+  const litBroken = new Set<string>();
   for (const u of units) {
     const key = `${u.districtCode}|${u.subDistrictCode}`;
     let s = by.get(key);
@@ -186,8 +211,13 @@ export function rollupSubDistricts(units: CensusUnit[]): CensusSubDistrict[] {
     s.population += u.population; s.males += u.males; s.females += u.females;
     s.scPop += u.scPop; s.stPop += u.stPop; s.households += u.households;
     if (u.kind === "V") s.villages++; else s.towns++;
+    if (u.literate !== undefined && u.pop0to6 !== undefined) {
+      s.literate = (s.literate ?? 0) + u.literate; s.pop0to6 = (s.pop0to6 ?? 0) + u.pop0to6;
+    } else { litBroken.add(key); }
   }
-  for (const s of by.values()) {
+  for (const [key, s] of by) {
+    if (litBroken.has(key)) { delete s.literate; delete s.pop0to6; }
+    else if (s.literate !== undefined && s.pop0to6 !== undefined) s.literacyPct = literacyRate(s.literate, s.population, s.pop0to6);
     s.scPct = s.population ? round((s.scPop / s.population) * 100) : 0;
     s.stPct = s.population ? round((s.stPop / s.population) * 100) : 0;
     s.sexRatio = sexRatioOf(s.males, s.females);
@@ -196,10 +226,11 @@ export function rollupSubDistricts(units: CensusUnit[]): CensusSubDistrict[] {
 }
 
 /** Column order of the compact village/town array rows in census-units.json. */
-export const UNIT_COLUMNS = ["kind", "state", "districtCode", "subDistrictCode", "code", "name", "households", "population", "males", "females", "scPop", "stPop"] as const;
+export const UNIT_COLUMNS = ["kind", "state", "districtCode", "subDistrictCode", "code", "name", "households", "population", "males", "females", "scPop", "stPop", "literate", "pop0to6"] as const;
 
-export function unitToRow(u: CensusUnit): (string | number)[] {
-  return [u.kind, u.state, u.districtCode, u.subDistrictCode, u.code, u.name, u.households, u.population, u.males, u.females, u.scPop, u.stPop];
+/** literate and pop0to6 are null when the PCA literacy merge has not covered the unit. */
+export function unitToRow(u: CensusUnit): (string | number | null)[] {
+  return [u.kind, u.state, u.districtCode, u.subDistrictCode, u.code, u.name, u.households, u.population, u.males, u.females, u.scPop, u.stPop, u.literate ?? null, u.pop0to6 ?? null];
 }
 
 /**
@@ -237,12 +268,60 @@ export function validateUnits(units: CensusUnit[]): string[] {
 }
 
 /** Inverse of unitToRow for census-units.json (columns + array rows). */
-export function parseUnitRows(columns: readonly string[], rows: (string | number)[][]): CensusUnit[] {
+export function parseUnitRows(columns: readonly string[], rows: (string | number | null)[][]): CensusUnit[] {
   const ix = Object.fromEntries(columns.map((c, i) => [c, i]));
+  const opt = (r: (string | number | null)[], k: string) => (ix[k] !== undefined && r[ix[k]] != null ? { [k]: Number(r[ix[k]]) } : {});
   return rows.map(r => ({
     kind: r[ix.kind] as "V" | "T", state: r[ix.state] as "AP" | "TG", districtCode: String(r[ix.districtCode]), district: "",
     subDistrictCode: String(r[ix.subDistrictCode]), subDistrict: "", code: String(r[ix.code]), name: String(r[ix.name]),
     households: Number(r[ix.households]), population: Number(r[ix.population]), males: Number(r[ix.males]),
     females: Number(r[ix.females]), scPop: Number(r[ix.scPop]), stPop: Number(r[ix.stPop]),
+    ...opt(r, "literate"), ...opt(r, "pop0to6"),
   }));
+}
+
+/** One Primary Census Abstract (PCA TV, MDDS layout) record reduced to the fields the literacy merge needs. */
+export interface PcaRecord {
+  level: "DISTRICT" | "SUB-DISTRICT" | "VILLAGE" | "TOWN";
+  tru: "Total" | "Rural" | "Urban";
+  districtCode: string;
+  subDistrictCode: string;
+  code: string;
+  name: string;
+  population: number;
+  males: number;
+  females: number;
+  pop0to6: number;
+  literate: number;
+  literateMales: number;
+  literateFemales: number;
+}
+
+/** Parse a PCA row keyed by the MDDS headers (State, District, Subdistt, Town/Village, Level, Name, TRU, TOT_P, P_06, P_LIT, ...). Ward rows and bad rows return null. */
+export function pcaRecord(r: Record<string, string | undefined>): PcaRecord | null {
+  const level = (r.Level ?? "").trim().toUpperCase();
+  if (level !== "DISTRICT" && level !== "SUB-DISTRICT" && level !== "VILLAGE" && level !== "TOWN") return null;
+  const tru = (r.TRU ?? "").trim();
+  if (tru !== "Total" && tru !== "Rural" && tru !== "Urban") return null;
+  const districtCode = (r.District ?? "").trim();
+  if (!stateOfDistrict2011(districtCode)) return null;
+  const [population, males, females, pop0to6, literate, literateMales, literateFemales] =
+    [r.TOT_P, r.TOT_M, r.TOT_F, r.P_06, r.P_LIT, r.M_LIT, r.F_LIT].map(num);
+  if ([population, males, females, pop0to6, literate, literateMales, literateFemales].some(Number.isNaN)) return null;
+  return {
+    level, tru, districtCode, subDistrictCode: (r.Subdistt ?? "").trim(), code: (r["Town/Village"] ?? "").trim(),
+    name: (r.Name ?? "").trim(), population, males, females, pop0to6, literate, literateMales, literateFemales,
+  };
+}
+
+/** Consistency checks on PCA records: persons = male + female and literates cannot exceed the 7+ population. */
+export function validatePca(rows: PcaRecord[]): string[] {
+  const errs: string[] = [];
+  for (const r of rows) {
+    const id = `${r.level}|${r.districtCode}|${r.subDistrictCode}|${r.code} ${r.name}`;
+    if (r.males + r.females !== r.population) errs.push(`PCA males+females != population: ${id}`);
+    if (r.literateMales + r.literateFemales !== r.literate) errs.push(`PCA male+female literates != literates: ${id}`);
+    if (r.literate > r.population - r.pop0to6) errs.push(`PCA literates exceed population aged 7+: ${id}`);
+  }
+  return errs;
 }

@@ -42,7 +42,7 @@ beforeEach(() => {
 describe("@E2E-122 office holders", () => {
   it("every record has role, person, party, start date, >=2 source URLs, asOf and confidence", async () => {
     const { body } = await get("/office-holders");
-    expect(body.officeHolders.length).toBeGreaterThanOrEqual(7);
+    expect(body.officeHolders.length).toBeGreaterThanOrEqual(16);
     for (const o of body.officeHolders) {
       expect(o.role && o.person && o.party && /^\d{4}-\d{2}-\d{2}$/.test(o.start) && o.asOf && o.confidence).toBeTruthy();
       expect(o.sources.length).toBeGreaterThanOrEqual(2);
@@ -51,6 +51,9 @@ describe("@E2E-122 office holders", () => {
     const names = body.officeHolders.map((o: any) => `${o.state}:${o.role}:${o.person}`);
     expect(names).toContain("AP:Chief Minister:N. Chandrababu Naidu");
     expect(names).toContain("TG:Chief Minister:A. Revanth Reddy");
+    expect(names).toContain("TG:Deputy Speaker of the Legislative Assembly:Jatoth Ram Chander Naik");
+    const ids = body.officeHolders.map((o: any) => o.id);
+    for (const id of ["YSRCP-president", "BRS-president", "INC-AP-president", "INC-TG-president", "BJP-AP-president", "BJP-TG-president", "AIMIM-president"]) expect(ids).toContain(id);
   });
   it("publishes no biography, family, caste, contact or date-of-birth fields", async () => {
     const { body } = await get("/office-holders");

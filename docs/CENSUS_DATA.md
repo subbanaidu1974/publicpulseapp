@@ -1,7 +1,7 @@
 # Census data: sources, pipeline and manual drop-in (S-84)
 
-Status as of 2026-11-22: the committed `data/generated/census*.json` are **real Census 2011 counts** (not demo) built from the
-District Census Handbook village and town directories. Literacy is **not available** from these files (see below).
+Status as of 2026-11-24: the committed `data/generated/census*.json` are **real Census 2011 counts** (not demo) built from the
+District Census Handbook village and town directories, with **literacy merged from the Primary Census Abstract (PCA)** (section below).
 
 ## What is reachable (checked 2026-11-22)
 
@@ -49,3 +49,22 @@ API, drop-in CSVs, the existing non-demo `census.json` (kept), and only then the
 
 One of: a `DATA_GOV_IN_API_KEY` plus the resource id of the Census 2011 PCA dataset; or a PCA CSV/xlsx (district and sub-district
 level, state codes 28) dropped into `data/raw/census/`; or your approval after reading the Dataful dataset 182 terms (and a sign-in if required).
+
+## Literacy from the Primary Census Abstract (added 2026-11-24)
+
+Source: Census Digital Library, "PCA TV: Primary census abstract at town, village and ward level, Andhra Pradesh - District X - 2011",
+catalog 6723 to 6745 (23 workbooks `DDW_PCA2801_2011_MDDS with UI.xlsx` ... `DDW_PCA2823_...`, download id = catalog id + 3077). Downloads
+return HTTP 200 with no login; the pages state no licence beyond the site footer (c) ORGI Digital Library, so the `census-orgi-2011` register entry
+(needs a human decision) still applies. The state/district file (catalog 6191) agrees with the district rows.
+
+```
+npm run pipeline:census:dchb -- --download           # base counts (rewrites the three census files without literacy)
+npx tsx scripts/ingest-pca-literacy.ts --download    # then merge literacy (idempotent)
+npm run pipeline:manifest && npm run pipeline:attribution && npm run pipeline:validate
+```
+
+Result: all 23 districts (`literate`, `pop0to6`, `literateMales`, `literateFemales`, `literacyPct`); 1,101 of 1,118 sub-districts; 28,095 of 28,155 village/town units
+(`literate`, `pop0to6` appended to `census-units.json` columns). `literacyPct` is the official rate, literates over population aged 7 and over, not literates over total population.
+Left without literacy, never estimated: 60 towns whose PCA population differs from the DCHB figure (towns with outgrowths, e.g. Ramagundam, Karimnagar, GHMC part) and the 17
+sub-districts that depend on them, including the "00000" multi-sub-district towns bucket.
+The place-profile route (`server/geo-api.ts`) now serves literacy (`literate`, `pop0to6`, `literacyPct`) for district, mandal and village profiles; units without PCA literacy keep `literacyPct: null` with a `literacyNote` reason (never estimated).

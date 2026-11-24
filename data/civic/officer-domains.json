@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "ref": "docs/OFFICERS.md",
+  "note": "Allow-list of official e-mail domains for officer applications (S-141). An address matches when its domain equals an entry or is a subdomain of it. A human owner must review this list before launch; a change to it is a reviewed code change.",
+  "domains": [
+    { "domain": "gov.in", "body_en": "Government of India and state governments", "body_te": "భారత ప్రభుత్వం, రాష్ట్ర ప్రభుత్వాలు" },
+    { "domain": "nic.in", "body_en": "National Informatics Centre", "body_te": "నేషనల్ ఇన్ఫర్మాటిక్స్ సెంటర్" },
+    { "domain": "ap.gov.in", "body_en": "Government of Andhra Pradesh", "body_te": "ఆంధ్రప్రదేశ్ ప్రభుత్వం" },
+    { "domain": "telangana.gov.in", "body_en": "Government of Telangana", "body_te": "తెలంగాణ ప్రభుత్వం" }
+  ]
+}
