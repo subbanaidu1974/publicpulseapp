@@ -97,8 +97,20 @@
       "constraints": ["non-commercial", "share-alike"],
       "attribution": "n/a - not used",
       "needsDecision": true,
-      "decision": "Do not ship any NC-SA dataset (including SHRUG village polygons, CC BY-NC-SA) without a human decision on the non-commercial restriction and share-alike obligation.",
+      "decision": "Do not ship any other NC-SA dataset without a human decision on the non-commercial restriction and share-alike obligation. SHRUG village polygons have their own entry (shrug-cc-by-nc-sa) after the owner decision of 2026-11-24.",
       "evidence": "GAP_AUDIT.md sections 2 and 4 (decision 3)."
+    },
+    "shrug-cc-by-nc-sa": {
+      "name": "SHRUG village polygons, Development Data Lab, CC BY-NC-SA 4.0 (Census 2011 boundaries)",
+      "url": "https://www.devdatalab.org/shrug",
+      "status": "restricted",
+      "constraints": ["non-commercial", "share-alike", "attribution"],
+      "nonCommercial": true,
+      "shareAlike": true,
+      "attribution": "Village boundaries: SHRUG, Development Data Lab, CC BY-NC-SA 4.0, 2011 Census based; for non-commercial use",
+      "needsDecision": true,
+      "decision": "Owner chose the non-commercial route on 2026-11-24 (free, no ads, no paid features, no sale of data; see docs/NONCOMMERCIAL.md). Counsel to confirm (a) that a non-profit civic operator qualifies as non-commercial and (b) the share-alike scope: derived boundary files (data/generated/geo/villages-shrug/) must be offered under CC BY-NC-SA 4.0; app code is unaffected while the boundaries stay a separate data layer. If any commercial use is planned, set COMMERCIAL_USE=1: the compliance test then fails until the SHRUG layer is removed or a commercial licence is obtained from Development Data Lab.",
+      "evidence": "devdatalab.org/shrug and /shrug_download/ read 2026-11-24: 'licensed under CC BY-NC-SA 4.0', 'commercial use ... please contact our team'. The README inside shrug-pc11-village-poly-shp.zip (SHRUG v2.2, Copyright 2026 Development Data Lab) repeats the CC BY-NC-SA 4.0 grant. The file is a pre-signed public S3 link listed on the download page; no login, form or checkbox was involved (the page footnote says accepting the data means accepting the DDL disclaimer, which is a no-warranty and no-liability notice)."
     },
     "odbl": {
       "name": "Open Database Licence (OpenStreetMap)",

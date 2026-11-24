@@ -2,6 +2,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { GENERATED, ROOT } from "../pipeline/io";
 import { verifyManifest, MANIFEST_NAME } from "../pipeline/manifest";
+import { commercialViolations } from "../pipeline/compliance";
 import { parseUnitRows, validateUnits } from "../pipeline/census";
 import { STATES } from "../src/lib/states";
 import { geomErrors } from "../pipeline/geo/geometry";
@@ -80,6 +81,26 @@ else {
         console.log(`geo/village-points-${layer}-${state}.json: ${g.points?.length ?? 0} village points`);
       }
     }
+    // S-90: SHRUG village polygons must be known LGD villages of the state, valid, unique, and carry the licence flags.
+    for (const state of ["AP", "TG"] as const) {
+      const f = resolve(geoDir, "villages-shrug", `polygons-${state}.json`);
+      if (!existsSync(f)) continue;
+      const lf = resolve(geoDir, `lgd-${state}.json`);
+      const known = existsSync(lf) ? new Map<string, string>((JSON.parse(readFileSync(lf, "utf8")).villages as (string | number)[][]).map(v => [String(v[0]), String(v[3])])) : null;
+      const g = JSON.parse(readFileSync(f, "utf8"));
+      const tag = `geo/villages-shrug/polygons-${state}.json`;
+      if (g.licence !== "shrug-cc-by-nc-sa" || g.nonCommercial !== true || !g.attribution) errors.push(`${tag}: licence, nonCommercial flag and attribution are required`);
+      const seen = new Set<string>();
+      let bad = 0;
+      for (const [code, , mandal, geom] of g.villages as [string, string, string, never][]) {
+        if (known && known.get(String(code)) !== String(mandal)) errors.push(`${tag}: ${code} is not an LGD village of mandal ${mandal} in ${state}`);
+        if (seen.has(String(code))) errors.push(`${tag}: duplicate ${code}`);
+        seen.add(String(code));
+        const ge = geomErrors(geom);
+        if (ge.length && bad++ < 5) errors.push(`${tag}: ${code} ${ge[0]}`);
+      }
+      console.log(`${tag}: ${g.villages?.length ?? 0} village polygons`);
+    }
     // S-92: the boundary version registry must be consistent with the files it lists.
     const reg = loadRegistry(geoDir);
     if (reg) { errors.push(...validateRegistry(reg, geoDir).map(e => `geo/versions.json: ${e}`)); console.log(`geo/versions.json: ${reg.sets.length} boundary set(s)`); }
@@ -95,6 +116,7 @@ if (existsSync(dir) && existsSync(resolve(dir, "census-units.json"))) {
 // Dataset manifest: checksums, licence keys and completeness. Mandatory for the committed data/generated directory;
 // other directories (tests, scratch runs) are checked only when they carry a manifest.
 if (existsSync(dir) && (dir === resolve(ROOT, "data/generated") || existsSync(resolve(dir, MANIFEST_NAME)))) {
+  errors.push(...commercialViolations(process.env, ROOT, dir));
   const merrs = verifyManifest(dir);
   errors.push(...merrs);
   if (!merrs.length) console.log("manifest.json: checksums and licence keys verified");

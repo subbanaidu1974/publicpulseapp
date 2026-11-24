@@ -6,6 +6,7 @@
  *   GET /geo/:state/polling-stations?ac=       polling-station reference list (operator-imported; never voter-level; S-91)
  *   GET /geo/:state/units?level=&parent=       LGD tree, paginated, English + Telugu names (never invented)
  *   GET /geo/:state/village-points?mandal=     village locations (approximate points, Wikidata CC0 + OSM ODbL; S-90). Not boundaries.
+ *   GET /geo/:state/village-polygons?mandal=   village boundaries (SHRUG, CC BY-NC-SA 4.0, Census 2011 based, non-commercial use only; S-90), GeoJSON per mandal, ETag
  *   GET /geo/:state/search?q=                  English or Telugu, districts / mandals / villages / ACs
  *   GET /geo/:state/places/:level/:code        mandal / village / district profile data (census when rows exist)
  *   GET /electors/:state                       electors by AC from the 2024 general-election rolls (not SSR 2025)
@@ -349,6 +350,49 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
       state: g.state, available: true, mandal: mandal ?? null, total: items.length, villagesInScope: list.length, items, note: VP_NOTE, attribution: VP_ATTR,
       source: sourceOf(`geo-village-points-wikidata-${g.state}`, `geo-village-points-osm-${g.state}`),
     });
+  });
+
+  /* ---------- village polygons (S-90): SHRUG, CC BY-NC-SA 4.0; served per mandal from one pack per state ---------- */
+  type VPack = { meta: Json; byMandal: Map<string, [string, string, Json][]> };
+  const vpolyCache = new Map<StateCode, VPack | null>();
+  const villagePack = (state: StateCode): VPack | null => {
+    if (vpolyCache.has(state)) return vpolyCache.get(state)!;
+    const f = readJson(path.join(geoDir, "villages-shrug", `polygons-${state}.json`));
+    let pack: VPack | null = null;
+    if (f?.villages) {
+      const byMandal = new Map<string, [string, string, Json][]>();
+      for (const [code, census, mandal, geometry] of f.villages as [string, string, string, Json][]) (byMandal.get(String(mandal)) ?? byMandal.set(String(mandal), []).get(String(mandal))!).push([String(code), String(census), geometry]);
+      const { villages: _v, ...meta } = f; void _v;
+      pack = { meta, byMandal };
+    }
+    vpolyCache.set(state, pack);
+    return pack;
+  };
+  const vpolyBodies = new Map<string, { body: Buffer; etag: string }>();
+  router.get("/geo/:state/village-polygons", (req, res) => {
+    const g = stateOr404(req, res); if (!g) return;
+    const mandal = first(req.query.mandal);
+    if (mandal === undefined || !/^\d{1,8}$/.test(mandal)) return err(res, 400, "invalid_mandal", "mandal (an LGD mandal code) is required");
+    if (!g.mandalByCode.has(mandal)) return err(res, 404, "unknown_place", `No mandal ${mandal} in ${g.state}`);
+    const pack = villagePack(g.state);
+    const key = `${g.state}|${mandal}`;
+    let hit = vpolyBodies.get(key);
+    if (!hit) {
+      const rows = pack?.byMandal.get(mandal) ?? [];
+      const body = Buffer.from(JSON.stringify({
+        type: "FeatureCollection",
+        available: !!pack, state: g.state, mandal, total: rows.length, villagesInScope: g.villagesByMandal.get(mandal)?.length ?? 0,
+        asOf: pack?.meta.asOf ?? null, vintage: pack?.meta.vintage ?? null, licence: "shrug-cc-by-nc-sa", nonCommercial: true,
+        attribution: pack?.meta.attribution ?? null, attributionTe: pack?.meta.attributionTe ?? null, shareAlike: pack?.meta.shareAlike ?? null,
+        note: "Census 2011 village boundaries simplified for the web; not survey grade and not today's LGD village extents. Villages without a polygon are absent (use the point from village-points where one exists).",
+        features: rows.map(([code, census, geometry]) => { const v = g.villageByCode.get(code); return { type: "Feature", id: code, properties: { code, censusCode: census, nameEn: v?.en ?? null, ...(v?.te ? { nameTe: v.te } : {}) }, geometry }; }),
+      }));
+      hit = { body, etag: `"${crypto.createHash("sha1").update(body).digest("hex").slice(0, 20)}"` };
+      vpolyBodies.set(key, hit);
+    }
+    res.set({ ETag: hit.etag, "Cache-Control": "public, max-age=3600, must-revalidate", "Content-Type": "application/geo+json; charset=utf-8", "X-Content-Type-Options": "nosniff", "X-Data-Licence": "CC-BY-NC-SA-4.0 (non-commercial use only)" });
+    if (req.headers["if-none-match"] === hit.etag) return res.status(304).end();
+    return res.send(hit.body);
   });
 
   /* ---------- place profile data (S-99) ---------- */

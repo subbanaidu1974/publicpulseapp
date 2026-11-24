@@ -1,10 +1,12 @@
 # ADR S-90: village boundaries for AP and TG under an acceptable licence
 
-Status: **PROPOSED. The owner decides** (items marked DECISION). Date: 2026-11-24. Research-level, not legal advice; counsel must confirm anything touching ODbL scope.
+Status: **ACCEPTED for SHRUG polygons: the owner chose the non-commercial route on 2026-11-24.** Other items marked DECISION remain open. Research-level, not legal advice; counsel must confirm anything touching ODbL scope.
+
+**Owner decision (2026-11-24):** the app is operated non-commercially (free, no ads, no paid features, no sale of data), so the SHRUG village polygons (Development Data Lab, CC BY-NC-SA 4.0) are used under those terms. Implementation: `pipeline/geo/shrug.ts`, `npm run pipeline:shrug`, `data/generated/geo/villages-shrug/`, `GET /api/v1/geo/:state/village-polygons?mandal=`, `VillageBoundaries` on mandal and village profiles; operating conditions in `docs/NONCOMMERCIAL.md`; download procedure in `docs/data/SHRUG_DOWNLOAD.md`; licence key `shrug-cc-by-nc-sa`. **Counsel to confirm:** (1) a non-profit civic operator qualifies as non-commercial; (2) share-alike scope: derived boundary files must be offered under CC BY-NC-SA 4.0, and app code is not affected if the boundaries are kept as a separate data layer. Guard: `COMMERCIAL_USE=1` fails validation and tests while the layer is shipped. Join result: 99.7% of AP and 99.2% of TG LGD villages with a Census code got a polygon; Census 2011 vintage. The sections below are the earlier analysis and still describe the points layers; where they say SHRUG is not used, read them as superseded by this decision.
 
 ## Context
 
-The drill-down map and place profiles want village geometry. The only complete village polygon set found earlier is SHRUG (Development Data Lab), built on 2011 Census polygons and published under CC BY-NC-SA 4.0 (re-read 2026-11-24 at devdatalab.org/shrug: commercial use needs a separate licence from the lab; the page states no separate licence for the polygons, so the same terms are the only terms shown). A public civic app cannot rely on non-commercial and share-alike terms without a decision (docs/ATTRIBUTION.md, `datameet-nc-sa`). **SHRUG data is not used anywhere in this repository.**
+The drill-down map and place profiles want village geometry. The only complete village polygon set found earlier is SHRUG (Development Data Lab), built on 2011 Census polygons and published under CC BY-NC-SA 4.0 (re-read 2026-11-24 at devdatalab.org/shrug: commercial use needs a separate licence from the lab; the page states no separate licence for the polygons, so the same terms are the only terms shown). A public civic app cannot rely on non-commercial and share-alike terms without a decision (docs/ATTRIBUTION.md, `datameet-nc-sa`). **SHRUG data was not used when this ADR was first written; it is used since the owner decision above.**
 
 ## Options
 

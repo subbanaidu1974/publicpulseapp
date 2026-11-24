@@ -47,6 +47,11 @@ export interface PlaceProfileData extends NamePair {
   census: CensusBlock; censusNote: string; asOf: string | null; source?: SourceInfo[];
 }
 
+export interface VillagePolygons {
+  type: "FeatureCollection"; available: boolean; total: number; villagesInScope: number; asOf: string | null;
+  attribution: string | null; attributionTe: string | null; vintage: string | null;
+  features: { type: "Feature"; id?: string; properties: { code: string; censusCode: string; nameEn: string | null; nameTe?: string }; geometry: { type: string; coordinates: any } }[];
+}
 export interface GeoHit { kind: "ac" | "district" | "mandal" | "village"; code: string; nameEn: string; nameTe?: string; path: string[]; href: string; acNo?: number }
 export interface GeoSearch { state: StateCode; q: string; total: number; results: GeoHit[] }
 
@@ -69,6 +74,10 @@ export const profiles = {
   place: (state: StateCode, level: string, code: string) => getJson<PlaceProfileData>(`/geo/${state}/places/${level}/${encodeURIComponent(code)}`),
   search: (state: StateCode, q: string) => getJson<GeoSearch>(`/geo/${state}/search?q=${encodeURIComponent(q)}`),
   boundary: (state: StateCode, kind: "ac" | "pc" | "district") => getJson<any>(`/geo/${state}/${kind}.geojson`),
+  /** S-90: SHRUG village boundaries of one mandal (CC BY-NC-SA 4.0, Census 2011 based; the response carries the attribution text). */
+  villagePolygons: (state: StateCode, mandal: string) => getJson<VillagePolygons>(`/geo/${state}/village-polygons?mandal=${encodeURIComponent(mandal)}`),
+  /** S-90: approximate village points of one mandal (fallback where no polygon exists). */
+  villagePoints: (state: StateCode, mandal: string) => getJson<{ items: { code: string; lon: number; lat: number }[] }>(`/geo/${state}/village-points?mandal=${encodeURIComponent(mandal)}`),
 
   /** Current member, if the members route exists. Any failure (404, network, odd shape) resolves to null: the UI omits the row. */
   async member(state: StateCode, acNo: number): Promise<{ name: string; party?: string; since?: string } | null> {

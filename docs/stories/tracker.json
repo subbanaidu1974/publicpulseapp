@@ -1099,14 +1099,14 @@
       "epic": "Geo data",
       "title": "Village boundary polygons: licence decision (SHRUG is CC BY-NC-SA) or alternative source",
       "agent": "-",
-      "status": "in_progress",
+      "status": "done",
       "tests": [
         "E2E-105"
       ],
       "priority": "P2",
       "wave": "W3",
       "source": "gap-audit: 20",
-      "notes": "Village POINTS only (no polygons): Wikidata CC0 + OSM ODbL gap fill. AP 87.9% (15,789/17,957); TG 36.6% (4,193/11,447), TG districts 690 and 698 still missing (Overpass 502/504; npm run pipeline:villages resumes). SHRUG not used (CC BY-NC-SA). Owner decision needed on polygons licence; counsel on ODbL scope."
+      "notes": "Owner chose the NON-COMMERCIAL route (2026-11-24): SHRUG v2.2 village polygons (CC BY-NC-SA 4.0, Census 2011 based) ingested for AP 17,434 and TG 10,549 villages (join 99.7% / 99.2% to LGD villages with a Census code), served at /geo/:state/village-polygons and drawn on mandal and village profiles with attribution; points remain the fallback (AP 87.9%, TG 36.6%). Valid only while the app stays non-commercial (docs/NONCOMMERCIAL.md; COMMERCIAL_USE guard test). Counsel must confirm that a non-profit civic operator qualifies and the share-alike scope. 2011 boundaries may differ from current villages."
     },
     {
       "id": "S-91",
