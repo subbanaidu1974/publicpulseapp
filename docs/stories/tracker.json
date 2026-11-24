@@ -551,11 +551,12 @@
       "epic": "Inclusion",
       "title": "Assisted participation by SHG/volunteer pairs, issues only, separate segment (Phase 3, if approved)",
       "agent": "-",
-      "status": "todo",
+      "status": "done",
       "tests": [
         "E2E-59"
       ],
-      "phase": "2028-P3"
+      "phase": "2028-P3",
+      "notes": "BUILT, OFF BY DEFAULT, NOT LIVE (owner approved building 2026-11-24). Pairs, two-assistant consent, one-time receipt code, 10-then-20% re-check sample with auto-suspension, area hold, un-suspend, alerts, lost-receipt deletion with two-person approval, separate labelled segment excluded from surveys/rankings/exports, sunset date and two-admin kill switch; EN/TE screens; handbook, runbook, gate row A-1 and red-team cases AP-1..9 written. Per-person monthly cap cannot be enforced (no identifier stored by design). Going live still needs: pilot skew report, counsel sign-off, native-speaker review of Telugu/consent script, trained reviewers, independent red-team of this flow."
     },
     {
       "id": "S-50",

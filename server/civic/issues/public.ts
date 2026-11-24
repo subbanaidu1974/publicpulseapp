@@ -11,6 +11,7 @@ import { ancestors, electionConstituency, getUnit, villageConstituencies, type U
 import { CATEGORY_LIST, TRUST_TIERS } from "./categories";
 import { HttpError, clock } from "./service";
 import { officialReplyFor } from "../representatives/store";
+import { assistedVisible } from "../assisted/config";
 
 // ---------- categories ----------
 export function categoriesPayload() {
@@ -85,7 +86,7 @@ const clampLimit = (n: unknown, def: number, max: number) => Math.min(Math.max(M
 export function publicIssue(id: string, now = clock.now()) {
   const db = getDb();
   const i = db.prepare("SELECT * FROM issue WHERE id=? AND moderation='ok'").get(id) as any;
-  if (!i) throw new HttpError(404, "issue not found");
+  if (!i || (i.channel === "assisted" && !assistedVisible())) throw new HttpError(404, "issue not found");
   const place = createPlaceResolver(now)(i.village_lgd);
   const timeline = (db.prepare("SELECT type, status, at FROM issue_event WHERE issue_id=? ORDER BY seq").all(id) as { type: string; status: string | null; at: string }[])
     .map(e => ({ type: e.type, status: e.status, at: e.at }));
@@ -93,7 +94,7 @@ export function publicIssue(id: string, now = clock.now()) {
   const responses = db.prepare("SELECT officer_tag, text, at FROM officer_rebuttal WHERE issue_id=? ORDER BY at").all(id) as { officer_tag: string; text: string; at: string }[];
   const mediaId = (ref: string | null) => (ref?.startsWith("media:") ? ref.slice(6) : null);
   return {
-    id: i.id, category: i.category, department: i.department, status: i.status,
+    id: i.id, channel: i.channel === "assisted" ? "assisted" : "app", category: i.category, department: i.department, status: i.status,
     village: place.village, mandal: place.mandal, district: place.district, constituency: place.constituency,
     description_en: sanitizeDescription(i.desc_en), description_te: sanitizeDescription(i.desc_te),
     lat: i.lat ?? null, lon: i.lon ?? null, // already rounded to ~100 m at write time
@@ -123,7 +124,7 @@ export function feedPage(q: Record<string, unknown>, now = clock.now()) {
   const limit = clampLimit(q.limit, 200, 500);
   const db = getDb();
   const sql = db.prepare(`SELECT e.seq, e.issue_id, e.type, e.status, e.village_lgd, e.category, e.department, e.at
-    FROM issue_event e JOIN issue i ON i.id=e.issue_id WHERE e.seq>? AND (i.moderation='ok' OR e.type='taken_down') ORDER BY e.seq LIMIT 500`);
+    FROM issue_event e JOIN issue i ON i.id=e.issue_id WHERE e.seq>? AND i.channel<>'assisted' AND (i.moderation='ok' OR e.type='taken_down') ORDER BY e.seq LIMIT 500`);
   const events: any[] = [];
   let cursor = since, exhausted = false;
   scan: for (;;) {
@@ -159,7 +160,7 @@ function pageIssues(q: Record<string, unknown>, now: Date, defLimit: number, max
   const { place, match } = villagePredicate(f, now);
   const limit = clampLimit(q.limit, defLimit, maxLimit);
   const cur = decodeCursor(q.cursor);
-  const where = ["i.moderation='ok'"], params: (string | number)[] = [];
+  const where = ["i.moderation='ok'", "i.channel<>'assisted'"], params: (string | number)[] = [];
   if (f.category) { where.push("i.category=?"); params.push(f.category); }
   if (f.status) { where.push("i.status=?"); params.push(f.status); }
   if (f.village) { where.push("i.village_lgd=?"); params.push(f.village); }

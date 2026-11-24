@@ -46,3 +46,7 @@ S-48 stays open until the artefacts below exist and are linked here. As of this 
 - **Two approvers (above), one independent of the build team.**
 
 Not evidence: passing automated tests (E2E-54, E2E-57, E2E-80, E2E-168), the draft notice text, the placeholder grievance officer, or the existence of a README in `docs/gate/`.
+
+## Conditional gate: assisted participation (S-49), status NOT DONE
+
+If, and only if, the owner decides to switch assisted participation on, row A-1 in `docs/gate/assisted/README.md` must be complete first. It is kept outside the 18-row table above on purpose, so it does not change that table or the tooling that reads it. Go-live checklist: `docs/ASSISTED_RUNBOOK.md` section 9. Owner, date and tick are blank; nothing is attached yet.

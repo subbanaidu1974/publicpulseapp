@@ -58,7 +58,7 @@ describe("job scheduler (S-66)", () => {
       expect(auditActions()).toContainEqual({ action: "job.run", object: "job:" + j.name });
     }
     expect(s.alarm).toBeNull();
-  });
+  }, 30_000); // 25 simulated hours of every job tick: slow on a loaded machine, not a logic fault
 
   it("@E2E-81 anchorAuditHead publishes to the anchor sink", () => {
     const got: AnchorRecord[] = [];

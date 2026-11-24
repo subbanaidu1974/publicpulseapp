@@ -34,7 +34,7 @@ export function createE2eSeedRouter(): Router {
     const d = getDb();
     if (unit) d.prepare("UPDATE persons SET residence_enc = ?, residence_unit = ?, residence_declared_at = ?, tier = 'T1' WHERE id = ?").run(getKeys().encrypt("residence", "e2e village"), unit, new Date().toISOString(), p.id);
     if (back) { const at = new Date(Date.now() - back * 86_400_000).toISOString(); d.prepare("UPDATE persons SET created_at = ?, eligible_from = ? WHERE id = ?").run(at, at, p.id); }
-    res.status(201).json({ person_id: p.id, token: createSession(p.id, { label: "e2e" }) });
+    res.status(201).json({ person_id: p.id, phone: phone.slice(3), pin: "4821", token: createSession(p.id, { label: "e2e" }) }); // phone (10 digits) and PIN let a spec sign a second assistant in through the UI
   });
   // Notifications (S-37): a verified sender organisation and a bound sender, made through the real service functions (two seeded admin ids
   // satisfy dual control). POST /notify/org {name?, kind?} -> {org_id, name}; POST /notify/sender {org_id, person_id, role?} -> {sender_id}.

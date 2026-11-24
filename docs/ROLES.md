@@ -70,3 +70,17 @@ Both go through the dual-control admin API; nobody applies their way into a role
 | journalist | state-level, read-only | the same open data as everyone; bulk feed through `/scope/export` or the public export. |
 | eci_liaison | state-level, read-only | integrity and audit dashboards only; no platform controls. |
 | admin | state-level | operates the platform; reads no individual answers. |
+
+## Assisted participation roles (S-49, docs/ASSISTED_PARTICIPATION.md)
+
+Granted through the dual-control admin API like every other role; all are inert while `ASSISTED_ENABLED` is off.
+
+| Role | Scope | Can | Cannot |
+|---|---|---|---|
+| volunteer (existing) | member of one active pair | with their partner, both signed in on the request, record an issue for a consenting adult | record alone, see others' records, form a pair |
+| assist_coordinator | a village, mandal or district (empty = everywhere) | form pairs of two enrolled volunteers in scope, suspend pairs, see pair statistics (members are never named) | be a member of a pair they form, see report text |
+| assist_reviewer | a village, mandal or district | read the re-check queue (report text, no member identity), record confirmed / not_confirmed / unreachable, suspend a pair | re-check their own pair's records, edit content |
+| admin | state | suspend pairs, file or approve the kill switch (two admins, each with TOTP) | approve their own request |
+
+These roles are not columns of the scope matrix above: they open no dashboard.
+
