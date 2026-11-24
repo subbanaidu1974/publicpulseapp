@@ -6,6 +6,7 @@ import type { StateCode } from "../../lib/states";
 import { useT } from "../../i18n";
 import { ErrorBanner, Loading } from "../ui";
 import { IssuesBlock } from "./ConstituencyProfile";
+import VillageBoundaries from "./VillageBoundaries";
 import { Section, Sources, Stat, num, pctText, useDisplayName } from "./common";
 
 /** Mandal, village or district profile (S-99). Census rows are joined by Census 2011 code; a missing row is shown as not available, never as zero. */
@@ -46,6 +47,11 @@ export default function PlaceProfile({ state, level, code }: { state: StateCode;
         {p.mandals !== undefined && <Stat label={t("prof.mandals")} value={num(p.mandals, na)} />}
         {p.villages !== undefined && <Stat label={t("prof.villages")} value={num(p.villages, na)} />}
       </dl>
+
+      {(level === "mandal" || level === "village") && (() => {
+        const mandalCode = level === "mandal" ? p.code : p.path.find(x => x.level === "mandal")?.code;
+        return mandalCode ? <VillageBoundaries state={state} mandal={mandalCode} villageCode={level === "village" ? p.code : undefined} /> : null;
+      })()}
 
       <Section title={t("prof.constituency")} testId="profile-constituencies">
         {acs.length === 0 ? <p className="text-xs font-sans">{t("prof.noConstituency")}</p> : (

@@ -16,6 +16,7 @@
     "pipeline:names-te": "tsx scripts/fetch-names-te.ts",
     "pipeline:mandals": "tsx scripts/fetch-mandals.ts",
     "pipeline:villages": "tsx scripts/fetch-village-points.ts",
+    "pipeline:shrug": "tsx scripts/ingest-shrug.ts",
     "refresh:data": "tsx scripts/refresh-data.ts",
     "geo:version:check": "tsx scripts/geo-version-check.ts",
     "import:lgd": "tsx scripts/import-lgd.ts",

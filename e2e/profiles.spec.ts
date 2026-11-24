@@ -65,6 +65,21 @@ test.describe("profile pages", () => {
     await expect(page.getByTestId("census-population")).toContainText("39,631");
   });
 
+  test("@E2E-114 S-90 village boundaries (SHRUG) on mandal and village profiles with the attribution in EN and TE", async ({ page }) => {
+    const attrEn = "Village boundaries: SHRUG, Development Data Lab, CC BY-NC-SA 4.0, 2011 Census based; for non-commercial use";
+    await page.goto("/?state=TG#/place/TG/mandal/4305");
+    const vb = page.getByTestId("village-boundaries");
+    await expect(vb.getByTestId("village-boundaries-svg")).toBeVisible();
+    expect(Number(await vb.getByTestId("village-boundaries-svg").getAttribute("data-polygons"))).toBeGreaterThan(5);
+    await expect(vb.getByTestId("village-boundaries-attribution")).toHaveText(attrEn);
+    await page.goto("/?state=TG#/place/TG/village/568945");
+    await expect(page.getByTestId("village-boundaries").locator('path[data-focus="true"]')).toHaveCount(1);
+    await expect(page.getByTestId("village-boundaries-attribution")).toHaveText(attrEn);
+    await page.goto("/?state=TG&lang=te#/place/TG/village/568945");
+    await expect(page.getByTestId("village-boundaries-attribution")).toContainText("SHRUG");
+    await expect(page.getByTestId("village-boundaries-attribution")).toContainText("వాణిజ్యేతర");
+  });
+
   test("@E2E-114 mandal page is reachable from a constituency profile; unknown place shows an error", async ({ page }) => {
     await page.goto("/?state=TG#/constituency/TG/1");
     await page.getByTestId("mandal-link").first().click();

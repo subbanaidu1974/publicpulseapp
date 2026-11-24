@@ -216,3 +216,33 @@ describe("S-90 village points", () => {
     expect((await get("/geo/XX/village-points")).status).toBe(404);
   });
 });
+
+describe("S-90 village polygons (SHRUG, non-commercial)", () => {
+  it("serves a mandal's village boundaries with ETag, 304, licence flags and bilingual attribution", async () => {
+    const mandals = (await get("/geo/AP/units?level=mandal&limit=50")).body.items as { code: string }[];
+    let r = await get(`/geo/AP/village-polygons?mandal=${mandals[0].code}`);
+    for (const m of mandals) { if (r.body.total > 0) break; r = await get(`/geo/AP/village-polygons?mandal=${m.code}`); }
+    expect(r.status).toBe(200);
+    expect(r.headers.get("content-type")).toMatch(/geo\+json/);
+    expect(r.headers.get("cache-control")).toMatch(/public, max-age=\d+/);
+    expect(r.body.type).toBe("FeatureCollection");
+    expect(r.body.licence).toBe("shrug-cc-by-nc-sa");
+    expect(r.body.nonCommercial).toBe(true);
+    expect(r.body.attribution).toBe("Village boundaries: SHRUG, Development Data Lab, CC BY-NC-SA 4.0, 2011 Census based; for non-commercial use");
+    expect(r.body.attributionTe).toMatch(/SHRUG/);
+    expect(r.body.vintage).toMatch(/2011/);
+    expect(r.body.total).toBe(r.body.features.length);
+    expect(r.body.total).toBeGreaterThan(0);
+    const f = r.body.features[0];
+    expect(["Polygon", "MultiPolygon"]).toContain(f.geometry.type);
+    expect(f.properties.code).toBeTruthy();
+    const etag = r.headers.get("etag")!;
+    expect((await get(`/geo/AP/village-polygons?mandal=${r.body.mandal}`, { "If-None-Match": etag })).status).toBe(304);
+  });
+  it("validates the mandal parameter and the state", async () => {
+    expect((await get("/geo/AP/village-polygons")).status).toBe(400);
+    expect((await get("/geo/AP/village-polygons?mandal=abc")).status).toBe(400);
+    expect((await get("/geo/AP/village-polygons?mandal=99999999")).status).toBe(404);
+    expect((await get("/geo/XX/village-polygons?mandal=1")).status).toBe(404);
+  });
+});
