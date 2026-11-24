@@ -115,11 +115,11 @@
       "epic": "UI",
       "title": "Map layers with table fallback",
       "agent": "C",
-      "status": "todo",
+      "status": "retired",
       "tests": [
         "E2E-13"
       ],
-      "notes": "Retired legacy story, superseded by S-96/S-97 (real choropleth). No work planned; left todo, not counted as done."
+      "notes": "RETIRED 2026-11-24: legacy tile-grid map, superseded by the real choropleth (S-96/S-97). Kept for history; excluded from the completion percentage."
     },
     {
       "id": "S-12",
@@ -136,13 +136,13 @@
       "epic": "UI",
       "title": "Survey validation, duplicate guard, n>=30 gating, demo badge",
       "agent": "C",
-      "status": "todo",
+      "status": "retired",
       "tests": [
         "E2E-15",
         "E2E-16",
         "E2E-18"
       ],
-      "notes": "Retired legacy story, superseded by Phase 2 surveys (S-28..S-32). No work planned; left todo, not counted as done."
+      "notes": "RETIRED 2026-11-24: legacy browser-local survey, superseded by the Phase 2 surveys (S-28..S-32). Kept for history; excluded from the completion percentage."
     },
     {
       "id": "S-14",

@@ -2,10 +2,10 @@ const fs = require("fs");
 const root = require("path").resolve(__dirname, "..") + "/";
 const t = JSON.parse(fs.readFileSync(root + "docs/stories/tracker.json", "utf8"));
 const esc = (x) => String(x ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const st = ["done", "in_progress", "todo", "blocked"];
-const col = { done: "#1a7f4b", in_progress: "#b7791f", todo: "#6b7280", blocked: "#c53030" };
+const st = ["done", "in_progress", "todo", "blocked", "retired"];
+const col = { done: "#1a7f4b", in_progress: "#b7791f", todo: "#6b7280", blocked: "#c53030", retired: "#9ca3af" };
 const cnt = (o) => st.map((s) => o.filter((x) => x.status === s).length);
-const tot = t.stories.length, done = t.stories.filter((s) => s.status === "done").length;
+const tot = t.stories.filter((x) => x.status !== "retired").length, done = t.stories.filter((s) => s.status === "done").length;
 const grp = (k) => {
   const m = {};
   for (const s of t.stories) (m[s[k] || "(original design)"] ??= []).push(s);
