@@ -114,3 +114,5 @@ The legacy file must be at the schema of the release before the split (`otps.pur
 - **Not atomic across stores.** Backups of the four files are taken one after the other, and account erasure is staged (above). Both are designed so that a partial state is safe (a spurious audit row; a pseudonym that nothing resolves).
 - **Pseudonyms are keyed, not random.** Rotating the key provider's HMAC key invalidates the mapping; a rotation needs a re-pseudonymisation migration that holds both old and new keys.
 - The `issue_links` village column and `persons.residence_unit` are plaintext in identity (coarse, used for sampling and eligibility).
+
+The local **history store** (public election/people/geo history, `data/history.db`) is not one of these four stores and is not part of their encrypted backups; see docs/HISTORY_STORE.md.

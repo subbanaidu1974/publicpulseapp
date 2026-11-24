@@ -153,6 +153,20 @@ describe("@E2E-113 @E2E-114 place profiles", () => {
     expect(r.body.path.map((p: any) => p.level)).toEqual(["state", "district", "mandal"]);
     expect(r.body.constituency?.href).toMatch(/^#\/constituency\/TG\//);
   });
+  it("an urban LGD village joins its Census 2011 town row (population and literacy)", async () => {
+    const r = await get("/geo/TG/places/village/569017");
+    expect(r.body.category).toBe("U");
+    expect(r.body.census).toMatchObject({ available: true, kind: "town", population: 22216, literate: 15914, pop0to6: 2404, literacyPct: 80.3 });
+  });
+  it("constituency literacy is aggregated from village and town units and labelled approximate", async () => {
+    const r = await get("/constituencies/AP/1");
+    const l = r.body.census.literacy;
+    expect(l).toMatchObject({ approximate: true, townUnits: 2, villageUnits: 137, literacyPct: 64.7, literacyCoveragePct: 100 });
+    expect(l.reasons.join(" ")).toMatch(/not included/);
+    const partial = (await get("/constituencies/AP/120")).body.census.literacy;
+    expect(partial.literacyCoveragePct).toBeLessThan(100);
+    expect(partial.reasons.join(" ")).toMatch(/never estimated/);
+  });
   it("mandal and district profiles; unknown codes 404", async () => {
     const m = await get("/geo/TG/places/mandal/4305");
     expect(m.body.census).toMatchObject({ available: true, population: 39631, literate: 19988, pop0to6: 4347, literacyPct: 56.65 });

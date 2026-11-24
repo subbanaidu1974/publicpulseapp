@@ -36,3 +36,7 @@ data/backups/
 
 # staged data refresh working copies and previous set (scripts/refresh-data.ts)
 data/refresh/
+
+# local history store (rebuildable projection of the JSON; npm run history:build)
+data/history.db
+data/history.db-*

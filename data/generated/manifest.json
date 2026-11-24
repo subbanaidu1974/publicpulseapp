@@ -456,8 +456,8 @@
     {
       "id": "geo-village-points-coverage",
       "path": "data/generated/geo/village-points-coverage.json",
-      "bytes": 6877,
-      "sha256": "9d616880dd8a43fb8a329afc9cf1233d014df9d8469a6a838a17efbb521bbfc4",
+      "bytes": 6700,
+      "sha256": "f6a556a13b68d464139fe4ce08ec5af9aec0fb7270782e999165b7e0a15fb71a",
       "rows": 8,
       "asOf": "2026-11-24",
       "provenance": "unknown",
@@ -477,8 +477,8 @@
     {
       "id": "geo-village-points-osm-AP",
       "path": "data/generated/geo/village-points-osm-AP.json",
-      "bytes": 13925,
-      "sha256": "9685c8e4f353b460c71e22e33f1ba5b90fbaa187acd67809332fa422d18339e8",
+      "bytes": 14228,
+      "sha256": "9cb58d827ad52e4848410fcb8101d2f6b9eaa7c37fbd7ac9ecbcfbf07466a940",
       "rows": 9,
       "asOf": "2026-11-24",
       "provenance": "unknown",
@@ -497,8 +497,8 @@
     {
       "id": "geo-village-points-osm-TG",
       "path": "data/generated/geo/village-points-osm-TG.json",
-      "bytes": 445,
-      "sha256": "20c26cd8c8216ace52990df553c7c3ab902d9fa126cbf31059860eb9b85af69a",
+      "bytes": 230858,
+      "sha256": "7a6a8b461f0aeec516f1a494ab485ac7d01c63c48709ee93456c1205e52e203f",
       "rows": 9,
       "asOf": "2026-11-24",
       "provenance": "unknown",

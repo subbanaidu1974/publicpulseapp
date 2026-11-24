@@ -26,6 +26,7 @@ import { createGeoApiRouter } from "./geo-api";
 import { createRefreshRouter } from "./refresh";
 import { createCountdayRouter } from "./countday/router";
 import { createAnalyticsRouter } from "./analytics-api";
+import { createHistoryRouter } from "./history/api";
 
 export interface DatasetStatus {
   name: string;
@@ -216,6 +217,9 @@ export function createApiRouter(data: Datasets, opts: { baseDir?: string } = {})
     };
     next();
   });
+
+  // Local history store (revisions, per-seat results across elections, office-holder intervals); mounted before analytics so /history/revisions is not read as a state code
+  router.use(createHistoryRouter());
 
   // Turnout/NOTA, assembly-vs-LS comparison, by-elections, pre-bifurcation history, cited party changes (S-112/115/116/117/120). Mounted first so pre-2014 years are served before the main /elections handlers.
   router.use(createAnalyticsRouter(data, opts));

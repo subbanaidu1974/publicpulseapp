@@ -31,3 +31,7 @@ Nothing is shipped. Tooling (schema, validator, legal guard, importer `scripts/i
 | GitHub `aaronrudkin/IndianPollingStations` | Name and coordinates scraped from ECI in April 2017 (before AP/TG delimitation changes and rationalisation), no licence declared (`license: null`). Not ingested. |
 
 Operator route stays as in `data/reference/pollingstations/README.md`: obtain the CEO list with reuse rights, drop CSVs into `data/raw/pollingstations/`, run the importer.
+
+## S-86 NOTA and valid votes per AC (checked 2026-11-24)
+
+`eci.gov.in/robots.txt` allows all. Table 15 prints one combined column, valid votes plus NOTA polled on EVM (`votesPolledEvm`); it has no separate NOTA or valid-votes column. ECI's "Detailed Results" tables in the GE-2024 statistical report are per **parliamentary** constituency (candidate wise, NOTA included), not per assembly segment, and the site (a JavaScript app) has no static index of file names; guessed file names returned 404. So an AC-level NOTA and valid-votes split for the GE-2024 rolls is **not added**. Where an assembly election result exists (AP 2024, TG 2023), `elections.json` already carries a NOTA row per AC from the TCPD-derived data. Operator route: Form 20 (per-AC counts) from the CEOs, or the ECI results site, each needing its own terms check.

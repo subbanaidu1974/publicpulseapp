@@ -9,6 +9,7 @@ import { DevKeyProvider, getDb, getKeys, migrate, resetDbForTests, setKeyProvide
 import { setAttestationVerifier } from "../../../server/civic/identity/network";
 import { getNumberIntelligence, isDevNumberIntelligence, setNumberIntelligence } from "../../../server/civic/identity/service";
 import { assertProductionSafe, productionProblems } from "../../../server/civic/guards";
+import { setMailProvider } from "../../../server/civic/providers/mail";
 import { createCivicRouter } from "../../../server/civic/index";
 import { installProvidersFromEnv, keysReady, markKeysWarmForTests, requireKeysReady, resetProviderStateForTests, startKeyWarmup } from "../../../server/civic/providers/install";
 import { isKeyProviderV2 } from "../../../server/civic/providers/keys";
@@ -28,6 +29,7 @@ function productionReady() {
   const real = new DevKeyProvider("test-master");
   setKeyProvider({ hmac: (p, v) => real.hmac(p, v), encrypt: (p, v) => real.encrypt(p, v), decrypt: (p, v) => real.decrypt(p, v) });
   setSmsProvider({ send: async () => undefined });
+  setMailProvider({ name: "test", send: async () => undefined });
   setNumberIntelligence({ lookup: async () => ({ recently_reissued: false, voip: false }) });
   setAttestationVerifier({ verify: async () => ({ verified: false }) });
   process.env.CIVIC_GENERATED_DIR = gen;
@@ -43,7 +45,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   for (const k of ENV) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
-  setNumberIntelligence(null); setAttestationVerifier(null); setSmsGateway(null); resetProviderStateForTests(); setProviderLogger(null); resetDbForTests(); vi.restoreAllMocks();
+  setMailProvider(null); setNumberIntelligence(null); setAttestationVerifier(null); setSmsGateway(null); resetProviderStateForTests(); setProviderLogger(null); resetDbForTests(); vi.restoreAllMocks();
 });
 
 describe("production guards for providers (S-62/63/64)", () => {

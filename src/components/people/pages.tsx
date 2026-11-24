@@ -232,6 +232,22 @@ export function ContestantPage({ id }: { id: string }) {
 
 /* ---------------- office holders (S-107) ---------------- */
 
+const MINISTER_ROLE = "Minister";
+type Holder = OfficeHolder & { constituency?: string; portfolio?: string[]; portfolioAsOf?: string };
+
+function holderItem(o: Holder, p: (k: PKey) => string) {
+  return (
+    <li key={o.id} data-testid="office-holder" className="border border-black/20 p-2">
+      <strong>{o.role}</strong>: {o.person}
+      <span className="ml-2"><PartyChip party={{ code: o.party, name: o.party, nameTe: null, color: "#555" }} /></span>
+      {o.constituency && <span className="block text-xs">{p("ppl.leaders.constituency")}: {o.constituency}</span>}
+      {o.portfolio && o.portfolio.length > 0 && <span className="block text-xs" data-testid="office-portfolio">{p("ppl.leaders.portfolio")}: {o.portfolio.join("; ")}{o.portfolioAsOf ? ` (${p("ppl.leaders.portfolioasof")} ${o.portfolioAsOf})` : ""}</span>}
+      <span className="block text-xs">{p("ppl.leaders.since")} {o.start}. {p("ppl.leaders.asof")} {o.asOf} ({p("ppl.party.confidence")}: {o.confidence})</span>
+      <span className="block text-[11px]">{p("ppl.leaders.sources")}: {o.sources.map((u, i) => <a key={u} className="underline mr-2" href={u} target="_blank" rel="noopener noreferrer">{i + 1}</a>)}</span>
+    </li>
+  );
+}
+
 export function LeadersPage() {
   const { p } = usePT();
   const s = useOfficeHolders();
@@ -243,21 +259,25 @@ export function LeadersPage() {
           sections={[{ id: "list", heading: p("ppl.leaders"), body: (
             <>
               <BlackoutNotice notice={s.data.notice} />
-              {!s.data.blackout && (["AP", "TG"] as const).map(st => (
-                <div key={st} className="mb-4">
-                  <h3 className="font-bold mb-1">{p(`ppl.state.${st}` as PKey)}</h3>
-                  <ul className="space-y-2">
-                    {s.data!.officeHolders.filter((o: OfficeHolder) => o.state === st).map((o: OfficeHolder) => (
-                      <li key={o.id} data-testid="office-holder" className="border border-black/20 p-2">
-                        <strong>{o.role}</strong>: {o.person}
-                        <span className="ml-2"><PartyChip party={{ code: o.party, name: o.party, nameTe: null, color: "#555" }} /></span>
-                        <span className="block text-xs">{p("ppl.leaders.since")} {o.start}. {p("ppl.leaders.asof")} {o.asOf} ({p("ppl.party.confidence")}: {o.confidence})</span>
-                        <span className="block text-[11px]">{p("ppl.leaders.sources")}: {o.sources.map((u, i) => <a key={u} className="underline mr-2" href={u} target="_blank" rel="noopener noreferrer">{i + 1}</a>)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+              {!s.data.blackout && (["AP", "TG"] as const).map(st => {
+                const mine = (s.data!.officeHolders as Holder[]).filter(o => o.state === st);
+                const ministers = mine.filter(o => o.role === MINISTER_ROLE).sort((a, b) => a.person.localeCompare(b.person, "en"));
+                return (
+                  <div key={st} className="mb-4">
+                    <h3 className="font-bold mb-1">{p(`ppl.state.${st}` as PKey)}</h3>
+                    <ul className="space-y-2">
+                      {mine.filter(o => o.role !== MINISTER_ROLE).map(o => holderItem(o, p))}
+                    </ul>
+                    {ministers.length > 0 && (
+                      <>
+                        <h4 className="font-bold mt-3 mb-1" data-testid="ministers-heading">{p("ppl.leaders.ministers")}</h4>
+                        <p className="text-xs text-black/70 mb-1">{p("ppl.leaders.ministers.note")}</p>
+                        <ul className="space-y-2">{ministers.map(o => holderItem(o, p))}</ul>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
               <p className="text-xs text-black/70">{p("ppl.leaders.note")}</p>
             </>
           ) }]}

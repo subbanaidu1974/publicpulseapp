@@ -1023,7 +1023,7 @@
       "priority": "P0",
       "wave": "W2",
       "source": "gap-audit: 15",
-      "notes": "Census 2011 PCA literacy ingested from Census Digital Library: 23/23 districts, 1,101/1,118 mandals, 28,095/28,155 village/town units; 60 towns and 17 mandals left 'not available' (never estimated). Shown on district, mandal and village pages. Constituency-level literacy and town profiles not covered. Licence is only 'Rights: ORGI'; human decision pending."
+      "notes": "Census 2011 PCA literacy ingested from Census Digital Library: 23/23 districts, 1,101/1,118 mandals, 28,095/28,155 village/town units; shown on district, mandal, village and (where linked to an LGD urban body, 120 of 355 towns) town pages, plus approximate constituency literacy summed from whole units (13 split urban bodies flagged). 60 towns and 17 mandals stay not available, never estimated. Licence is only Rights: ORGI; human decision pending."
     },
     {
       "id": "S-85",
@@ -1051,7 +1051,7 @@
       "priority": "P1",
       "wave": "W2",
       "source": "gap-audit: 16,19",
-      "notes": "Electors by AC for 175 AP + 119 TG ingested from ECI GE-2024 statistical report with totals matching ECI; served at /api/v1/electors/:state and on the constituency page, labelled as 2024 rolls. NOT SSR 2025: CEO AP forbids crawling, CEO Telangana timed out. No separate valid-votes/NOTA columns in this table. Licence undecided."
+      "notes": "Electors by AC for 175 AP + 119 TG from ECI GE-2024 statistical report (totals match ECI), served at /api/v1/electors/:state and on the constituency page, labelled 2024 rolls, NOT SSR 2025 (CEO AP forbids crawling, CEO TG timed out). The ECI table has one combined valid-votes+NOTA column; a split needs CEO Form 20 or the ECI results site. elections.json already has NOTA per AC for AP 2024 and TG 2023. Licence undecided."
     },
     {
       "id": "S-87",
@@ -1106,7 +1106,7 @@
       "priority": "P2",
       "wave": "W3",
       "source": "gap-audit: 20",
-      "notes": "Village POINTS only (no polygons): Wikidata CC0 + OSM ODbL gap fill. AP 87.9% (15,784/17,957), TG 3.5% (395/11,447); OSM pull incomplete (4 AP districts, all TG). SHRUG not used (CC BY-NC-SA). Owner decision needed on polygons licence and counsel on ODbL scope. Route /geo/:state/village-points."
+      "notes": "Village POINTS only (no polygons): Wikidata CC0 + OSM ODbL gap fill. AP 87.9% (15,789/17,957); TG 36.6% (4,193/11,447), TG districts 690 and 698 still missing (Overpass 502/504; npm run pipeline:villages resumes). SHRUG not used (CC BY-NC-SA). Owner decision needed on polygons licence; counsel on ODbL scope."
     },
     {
       "id": "S-91",
@@ -1330,7 +1330,7 @@
       "priority": "P1",
       "wave": "W3",
       "source": "gap-audit: DESIGN 5",
-      "notes": "16 office-holder records (added TG deputy speaker and party presidents), each with two sources and confidence; BRS and AIMIM low confidence. Ministers/cabinet and official-site second sources still missing."
+      "notes": "53 office-holder records: CMs, deputy CMs, speakers, 22 AP and 13 TG ministers (portfolios as allotted on stated dates), party presidents; each has two sources and confidence (all medium or low), 28 Wikidata QIDs verified, rest null. NO record has an official government second source (official sites unreachable from the build environment); portfolios not translated to Telugu."
     },
     {
       "id": "S-108",
@@ -1786,7 +1786,7 @@
       "priority": "P1",
       "wave": "W4",
       "source": "gap-audit: 35",
-      "notes": "Officer application, domain allow-list, letter upload, two-admin approval and scoped role grant built with EN/TE screens and tests. Human steps: sign off domain list and letter checklist, email-ownership proof, PDF handling, browser journey E2E-156 not written, native Telugu review."
+      "notes": "Officer application, domain allow-list, letter upload, email-ownership code, two-admin approval and scoped role built with EN/TE screens, unit tests and browser journey E2E-156 (stable). Production refuses to start until a real MailProvider exists (only a dev mailer built). Human steps: sign off domain list and letter checklist, PDF handling, native Telugu review, mail adapter."
     },
     {
       "id": "S-142",
@@ -1839,7 +1839,7 @@
       "priority": "P2",
       "wave": "W4",
       "source": "gap-audit: 53",
-      "notes": "Politician reply role built: one labelled append-only thread per issue, scheme tags, moderation hold, grievance-adapter contract with mock (501 without adapter). Human steps: who verifies elected members, legal review, real department agreement, browser journey E2E-160 not written."
+      "notes": "Politician reply role built: one labelled append-only thread per issue, scheme tags, moderation hold, grievance-adapter contract with mock (501 without adapter); browser journey E2E-160 passes. Human steps: who verifies elected members, legal review, real department agreement, native Telugu review."
     },
     {
       "id": "S-146",

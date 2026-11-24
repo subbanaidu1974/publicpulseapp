@@ -55,6 +55,35 @@ describe("@E2E-122 office holders", () => {
     const ids = body.officeHolders.map((o: any) => o.id);
     for (const id of ["YSRCP-president", "BRS-president", "INC-AP-president", "INC-TG-president", "BJP-AP-president", "BJP-TG-president", "AIMIM-president"]) expect(ids).toContain(id);
   });
+  it("council of ministers: every minister has a state, party, start date, portfolio list, 2 distinct https sources, asOf and confidence", async () => {
+    const { body } = await get("/office-holders");
+    const mins = body.officeHolders.filter((o: any) => o.role === "Minister");
+    expect(mins.filter((o: any) => o.state === "AP").length).toBeGreaterThanOrEqual(20);
+    expect(mins.filter((o: any) => o.state === "TG").length).toBeGreaterThanOrEqual(12);
+    for (const o of mins) {
+      expect(["AP", "TG"]).toContain(o.state);
+      expect(Array.isArray(o.portfolio) && o.portfolio.length > 0 && o.portfolio.every((x: string) => x.trim().length > 0)).toBe(true);
+      expect(o.portfolioAsOf).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(o.start).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(o.asOf).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(new Set(o.sources).size).toBeGreaterThanOrEqual(2);
+      expect(["high", "medium", "low", "unverified"]).toContain(o.confidence);
+      if (o.wikidata !== null) expect(o.wikidata).toMatch(/^Q\d+$/);
+      if (o.constituency !== undefined) expect(o.constituency.trim().length).toBeGreaterThan(0);
+    }
+    const ids = new Set(body.officeHolders.map((o: any) => o.id));
+    expect(ids.size).toBe(body.officeHolders.length);
+    const names = mins.map((o: any) => `${o.state}:${o.person}`);
+    expect(names).toContain("AP:Nara Lokesh");
+    expect(names).toContain("TG:Duddilla Sridhar Babu");
+    expect(names).not.toContain("TG:Konda Surekha"); // dropped from the council on 2026-09-03
+  });
+  it("every record's wikidata id is well formed and never shared by two different people", async () => {
+    const { body } = await get("/office-holders");
+    const byQid = new Map<string, Set<string>>();
+    for (const o of body.officeHolders) if (o.wikidata) { expect(o.wikidata).toMatch(/^Q\d+$/); (byQid.get(o.wikidata) ?? byQid.set(o.wikidata, new Set()).get(o.wikidata)!).add(o.person); }
+    for (const [, people] of byQid) expect(people.size).toBe(1);
+  });
   it("publishes no biography, family, caste, contact or date-of-birth fields", async () => {
     const { body } = await get("/office-holders");
     const keys = new Set(body.officeHolders.flatMap((o: any) => Object.keys(o)));

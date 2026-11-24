@@ -91,9 +91,10 @@ export default function ConstituencyProfile({ state, acNo, actions }: { state: S
               <Stat label={t("cs.population")} value={num(p.census.population, na)} />
               <Stat label={t("cs.sc")} value={pctText(p.census.scPct, na)} />
               <Stat label={t("cs.st")} value={pctText(p.census.stPct, na)} />
-              <Stat label={t("cs.literacy")} value={t("prof.notAvailable")} />
+              <Stat label={t("cs.literacy")} value={typeof p.census.literacy?.literacyPct === "number" ? `${t("prof.approx")} ${pctText(p.census.literacy.literacyPct, na)}` : t("prof.notAvailable")} testId="ac-literacy" />
             </dl>
             <p className="text-[10px] text-slate-600">{t("prof.censusRural")} {num(p.census.villagesWithCensus, na)} {t("prof.of")} {num(p.census.villagesTotal, na)} {t("prof.villages")}. {t("cs.censusSource")} 2011.</p>
+            {p.census.literacy && <p className="text-[10px] text-slate-600" data-testid="ac-literacy-note">{t("prof.litApprox")} {num(p.census.literacy.unitsMapped, na)} ({num(p.census.literacy.townUnits, na)} {t("prof.towns")}). {t("prof.litCoverage")} {pctText(p.census.literacy.literacyCoveragePct, na)}. {p.census.literacy.reasons.join(" ")}</p>}
           </>
         ) : <p className="text-xs font-sans">{t("prof.noCensus")}</p>}
       </Section>
