@@ -7,9 +7,10 @@ import { ensureGeo } from "../../server/civic/geo/service";
 import { setNumberIntelligence } from "../../server/civic/identity/service";
 import { setAttestationVerifier } from "../../server/civic/identity/network";
 import { assertProductionSafe, isLocalHost } from "../../server/civic/guards";
+import { setMailProvider } from "../../server/civic/providers/mail";
 import { createCivicRouter } from "../../server/civic/index";
 
-const KEYS = ["NODE_ENV", "CIVIC_ENV", "CIVIC_EXPOSE_DEV_OTP", "CIVIC_ALLOW_DEMO", "CIVIC_GENERATED_DIR", "CIVIC_DEV_MASTER_KEY", "CIVIC_SWEEP", "CIVIC_JOBS"];
+const KEYS = ["NODE_ENV", "CIVIC_ENV", "CIVIC_EXPOSE_DEV_OTP", "CIVIC_EXPOSE_DEV_MAIL", "CIVIC_ALLOW_DEMO", "CIVIC_GENERATED_DIR", "CIVIC_DEV_MASTER_KEY", "CIVIC_SWEEP", "CIVIC_JOBS"];
 const saved: Record<string, string | undefined> = {};
 let gen: string;
 
@@ -20,6 +21,7 @@ function productionReady() {
   const real = new DevKeyProvider("test-master");
   setKeyProvider({ hmac: (p, v) => real.hmac(p, v), encrypt: (p, v) => real.encrypt(p, v), decrypt: (p, v) => real.decrypt(p, v) });
   setSmsProvider({ send: async () => undefined });
+  setMailProvider({ name: "test", send: async () => undefined });
   setNumberIntelligence({ lookup: async () => ({ recently_reissued: false, voip: false }) });
   setAttestationVerifier({ verify: async () => ({ verified: false }) }); // a real verifier is installed (S-62/63/64 guard)
   process.env.CIVIC_GENERATED_DIR = gen;
@@ -34,7 +36,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   for (const k of KEYS) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
-  setNumberIntelligence(null); setAttestationVerifier(null); resetDbForTests(); vi.restoreAllMocks();
+  setMailProvider(null); setNumberIntelligence(null); setAttestationVerifier(null); resetDbForTests(); vi.restoreAllMocks();
 });
 
 describe("production startup guards (S-55)", () => {
@@ -54,6 +56,13 @@ describe("production startup guards (S-55)", () => {
   it("@E2E-70 refuses the dev SMS provider", () => {
     productionReady(); setSmsProvider(null);
     expect(() => assertProductionSafe()).toThrow(/dev SMS provider/);
+  });
+
+  it("refuses the dev mail provider and CIVIC_EXPOSE_DEV_MAIL=1", () => {
+    productionReady(); setMailProvider(null);
+    expect(() => assertProductionSafe()).toThrow(/dev mail provider/);
+    productionReady(); process.env.CIVIC_EXPOSE_DEV_MAIL = "1";
+    expect(() => assertProductionSafe()).toThrow(/CIVIC_EXPOSE_DEV_MAIL/);
   });
 
   it("@E2E-70 refuses CIVIC_EXPOSE_DEV_OTP=1", () => {

@@ -7,6 +7,7 @@
  */
 import { join } from "node:path";
 import { ROOT } from "../pipeline/io";
+import { recordRefreshRevision } from "../server/history/store";
 import { defaultSteps, gateValidator, rollbackRefresh, runRefresh } from "../pipeline/refresh/stage";
 
 async function main() {
@@ -24,6 +25,7 @@ async function main() {
   for (const s of rep.steps) console.log(`[refresh] ${s.ok ? "ok  " : "FAIL"} ${s.name} (${s.ms} ms)${s.error ? " " + s.error : ""}`);
   if (rep.unchanged) console.log("[refresh] no dataset changed; live set kept");
   else if (rep.swapped) console.log(`[refresh] swapped in; changed ${rep.changed.length}, added ${rep.added.length}, removed ${rep.removed.length}. Run npm run pipeline:attribution.`);
+  if (rep.ok && rep.swapped) { const h = recordRefreshRevision(ROOT); console.log(h.ok ? `[refresh] history store: ${h.skipped ?? `${h.recorded} revision(s) recorded`}` : `[refresh] history store not updated: ${h.error}`); }
   for (const e of rep.errors) console.error("[refresh] " + e);
   console.log("[refresh] report: data/refresh/last-report.json");
   process.exit(rep.ok ? 0 : 1);

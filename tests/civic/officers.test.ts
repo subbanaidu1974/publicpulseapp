@@ -13,6 +13,7 @@ process.env.CIVIC_MEDIA_DIR = mediaDir;
 import { createSession, getDb, getStore, grantRole, hasRole, listRolesDetailed, migrate, resetDbForTests, verifyAuditChain } from "../../server/civic/core";
 import { adminRouter, base32Decode, totp } from "../../server/civic/admin/routes";
 import { officersRouter, checkOfficialEmail, officerDomains } from "../../server/civic/officers";
+import { lastMailTo, mailOutbox, setMailProvider, DevMailProvider } from "../../server/civic/providers/mail";
 import { createIssuesRouter } from "../../server/civic/issues/routes";
 import { roleOf } from "../../server/civic/issues/service";
 
@@ -28,8 +29,8 @@ beforeAll(async () => {
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/v1/civic`;
 });
 afterAll(() => { server.close(); fs.rmSync(mediaDir, { recursive: true, force: true }); });
-beforeEach(() => { resetDbForTests(); migrate(); process.env.CIVIC_TOTP_WINDOW = "60"; });
-afterEach(() => { delete process.env.CIVIC_TOTP_WINDOW; delete process.env.CIVIC_OFFICER_DOMAINS; delete process.env.CIVIC_OFFICER_APPLY_PER_30D; });
+beforeEach(() => { resetDbForTests(); migrate(); mailOutbox.length = 0; setMailProvider(null); process.env.CIVIC_TOTP_WINDOW = "60"; });
+afterEach(() => { delete process.env.CIVIC_TOTP_WINDOW; delete process.env.CIVIC_OFFICER_DOMAINS; delete process.env.CIVIC_OFFICER_APPLY_PER_30D; delete process.env.CIVIC_EXPOSE_DEV_MAIL; delete process.env.CIVIC_OFFICER_EMAIL_SENDS; });
 
 const crc = Buffer.alloc(4);
 const chunk = (type: string, data: Buffer) => { const l = Buffer.alloc(4); l.writeUInt32BE(data.length); return Buffer.concat([l, Buffer.from(type, "latin1"), data, crc]); };
@@ -64,6 +65,14 @@ async function uploadLetter(token: string): Promise<string> {
   const r = await fetch(base + "/issues/media", { method: "POST", headers: { "content-type": "image/png", authorization: "Bearer " + token }, body: letterPng() });
   expect(r.status).toBe(201);
   return ((await r.json()) as { ref: string }).ref;
+}
+/** The applicant types the code from the (dev) mailbox. */
+async function confirmMail(token: string, id: string, email = "a.officer@ap.gov.in") {
+  const m = lastMailTo(email);
+  expect(m, "a confirmation e-mail was sent").toBeTruthy();
+  const code = /code is (\d{6})/.exec(m!.text)![1];
+  const r = await call(token, "POST", `/officers/applications/${id}/email/confirm`, { code });
+  expect(r.status, JSON.stringify(r.body)).toBe(200);
 }
 const application = (letter_ref: string, over: Record<string, unknown> = {}) => ({
   full_name: "A. Sample Officer", department: "Rural Water Supply", designation: "Assistant Engineer", official_email: "a.officer@ap.gov.in", jurisdiction: "", letter_ref, ...over,
@@ -143,12 +152,98 @@ describe("applying (S-141)", () => {
   });
 });
 
+describe("official e-mail ownership proof (S-141 follow-up, MailProvider)", () => {
+  const post = (t: string, id: string, p: string, b: unknown = {}) => call(t, "POST", `/officers/applications/${id}/email/${p}`, b);
+  const codeOf = (email = "a.officer@ap.gov.in") => /code is (\d{6})/.exec(lastMailTo(email)!.text)![1];
+  const age = () => getDb().prepare("UPDATE officer_application SET email_sent_at = ?").run(new Date(Date.now() - 120_000).toISOString());
+  async function apply(over: Record<string, unknown> = {}) {
+    const p = mk();
+    const r = await call(p.token, "POST", "/officers/applications", application(await uploadLetter(p.token), over));
+    expect(r.status).toBe(201);
+    return { p, id: r.body.id as string, body: r.body };
+  }
+
+  it("submitting sends one code to the official address; the code is not in the API response unless the dev flag is on, and is stored only hashed", async () => {
+    const { p, id, body } = await apply();
+    expect(body.email_confirmation).toBe("sent");
+    expect(body.dev_email_code).toBeUndefined();
+    expect(mailOutbox).toHaveLength(1);
+    expect(mailOutbox[0].to).toBe("a.officer@ap.gov.in");
+    expect(mailOutbox[0].text).not.toContain("Sample Officer");
+    expect(JSON.stringify(getDb().prepare("SELECT * FROM officer_application").all())).not.toContain(codeOf());
+    expect((await call(p.token, "GET", "/officers/applications/mine")).body.applications[0]).toMatchObject({ id, email_confirmed: false, can_confirm_email: true });
+    process.env.CIVIC_EXPOSE_DEV_MAIL = "1";
+    const p2 = mk();
+    const again = await call(p2.token, "POST", "/officers/applications", application(await uploadLetter(p2.token), { official_email: "b@nic.in" }));
+    expect(again.body.dev_email_code).toBe(codeOf("b@nic.in")); // fetch() from 127.0.0.1 is a local host
+  });
+
+  it("a wrong code is refused, five wrong codes burn it, a new code works, and the right code confirms", async () => {
+    const { p, id } = await apply();
+    expect((await post(p.token, id, "confirm", { code: "abc" })).body.code).toBe("email_code_wrong");
+    const good = codeOf();
+    const wrong = good === "000000" ? "111111" : "000000";
+    for (let i = 0; i < 3; i++) expect((await post(p.token, id, "confirm", { code: wrong })).body.code).toBe("email_code_wrong");
+    expect((await post(p.token, id, "confirm", { code: wrong })).body.code).toBe("email_code_expired");
+    expect((await post(p.token, id, "confirm", { code: good })).body.code).toBe("email_code_expired"); // burnt even for the right code
+    age();
+    expect((await post(p.token, id, "resend")).status).toBe(200);
+    expect(mailOutbox).toHaveLength(2);
+    expect((await post(mk().token, id, "confirm", { code: codeOf() })).status).toBe(404); // another person's application
+    expect((await post(p.token, id, "confirm", { code: codeOf() })).body).toMatchObject({ ok: true, email_confirmed: true });
+    expect((await call(p.token, "GET", "/officers/applications/mine")).body.applications[0]).toMatchObject({ email_confirmed: true, can_confirm_email: false });
+    expect((await post(p.token, id, "resend")).body.code).toBe("email_already_confirmed");
+  });
+
+  it("resends are spaced and capped; an expired code is refused", async () => {
+    process.env.CIVIC_OFFICER_EMAIL_SENDS = "2";
+    const { p, id } = await apply();
+    expect((await post(p.token, id, "resend")).body.code).toBe("email_resend_wait");
+    age();
+    expect((await post(p.token, id, "resend")).status).toBe(200);
+    age();
+    expect((await post(p.token, id, "resend")).body.code).toBe("email_send_limit");
+    getDb().prepare("UPDATE officer_application SET email_code_expires = ?").run(new Date(Date.now() - 1000).toISOString());
+    expect((await post(p.token, id, "confirm", { code: codeOf() })).body.code).toBe("email_code_expired");
+  });
+
+  it("a mail failure keeps the application and reports it; the person can ask again", async () => {
+    setMailProvider({ name: "down", send: async () => { throw new Error("smtp down"); } });
+    const { p, id, body } = await apply();
+    expect(body.email_confirmation).toBe("failed");
+    setMailProvider(new DevMailProvider());
+    expect((await post(p.token, id, "resend")).status).toBe(200);
+    expect(mailOutbox).toHaveLength(1);
+  });
+
+  it("the dev mailer refuses to run in production", async () => {
+    const was = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    try { await expect(new DevMailProvider().send({ to: "a@gov.in", subject: "s", text: "t" })).rejects.toThrow(/production/); }
+    finally { process.env.NODE_ENV = was; }
+  });
+
+  it("the admin queue shows e-mail confirmed, and verification is refused until the applicant has confirmed", async () => {
+    const { p: applicant, id } = await apply({ jurisdiction: "DEMO-M-KLP" });
+    const a1 = await adminWithMfa();
+    expect((await call(a1.token, "GET", "/officers/admin/queue")).body.applications[0].email_confirmed).toBe(false);
+    const early = await call(a1.token, "POST", `/officers/admin/applications/${id}/verify`, { letter_checked: true }, a1.mfa());
+    expect(early.status).toBe(409);
+    expect(early.body.code).toBe("email_not_confirmed");
+    await confirmMail(applicant.token, id);
+    expect((await call(a1.token, "GET", "/officers/admin/queue")).body.applications[0].email_confirmed).toBe(true);
+    expect((await call(a1.token, "POST", `/officers/admin/applications/${id}/verify`, { letter_checked: true }, a1.mfa())).status).toBe(201);
+    expect(getStore("audit").prepare("SELECT COUNT(*) c FROM audit_log WHERE action IN ('officer.application.email_sent','officer.application.email_confirmed')").get()).toEqual({ c: 2 });
+  });
+});
+
 describe("verification queue with dual control (S-141, human letter check)", () => {
   async function submitted() {
     const applicant = mk();
     const ref = await uploadLetter(applicant.token);
     const r = await call(applicant.token, "POST", "/officers/applications", application(ref, { jurisdiction: "DEMO-M-KLP" }));
     expect(r.status).toBe(201);
+    await confirmMail(applicant.token, r.body.id);
     return { applicant, id: r.body.id as string };
   }
 
@@ -205,6 +300,7 @@ describe("verification queue with dual control (S-141, human letter check)", () 
     const ref = await uploadLetter(a1.token);
     const sub = await call(a1.token, "POST", "/officers/applications", application(ref));
     expect(sub.status).toBe(201);
+    await confirmMail(a1.token, sub.body.id);
     const own = await call(a1.token, "POST", `/officers/admin/applications/${sub.body.id}/verify`, { letter_checked: true }, a1.mfa());
     expect(own.status).toBe(403);
     expect(own.body.code).toBe("self_grant");

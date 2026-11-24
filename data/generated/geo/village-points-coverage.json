@@ -7,7 +7,7 @@
 "polygons":"Village polygons are NOT shipped: no licence-compatible village polygon source exists for AP/TG (see docs/decisions/S-90-village-boundaries.md).",
 "AP":{
 "lgdVillages":17957,
-"withPoint":15784,
+"withPoint":15789,
 "coveragePct":87.9,
 "wikidata":{
 "shipped":15556,
@@ -19,8 +19,8 @@
 "outsideBounds":0
 },
 "osm":{
-"shipped":228,
-"detail":{"nodes":38930,"matched":228,"skippedAlreadyHavePoint":9909,"noName":9,"unmatched":21768,"ambiguous":733,"outsideState":6228,"agreementWithWikidata":{"pairs":9909,"medianKm":0.11,"p90Km":4.12},"districtsFailedToDownload":["754","755","790","791"],"districtsQueried":28}
+"shipped":233,
+"detail":{"nodes":41337,"matched":233,"skippedAlreadyHavePoint":10379,"noName":11,"unmatched":22777,"ambiguous":756,"outsideState":7124,"agreementWithWikidata":{"pairs":10379,"medianKm":0.11,"p90Km":3.59},"districtsFailedToDownload":[],"districtsQueried":28}
 },
 "rejectedWikidataTotal":1915,
 "rejectedWikidataSamples":{
@@ -29,7 +29,7 @@
 "several Wikidata coordinates for this code disagree by more than 2 km":["583350 Q57441112","583387 Q13010912","583410 Q12992479","583423 Q57437650","583428 Q13004418","583430 Q13005121","583471 Q12997817","583488 Q57438250","583493 Q57441087","583502 Q13000180","583562 Q16315340","583567 Q13002640","583603 Q13008678","583610 Q12995821","583613 Q16343555","583626 Q57434411","583670 Q15692967","583672 Q15702453","583679 Q13002639","583718 Q13002153","583731 Q13000519","583738 Q15695176","583746 Q15704582","583782 Q15701865","583802 Q16343666"],
 "census code shared by several LGD villages":["595091 Q12415548"]
 },
-"lgdVillagesWithoutPointTotal":2173,
+"lgdVillagesWithoutPointTotal":2168,
 "lgdVillagesWithoutPointByMandal":[
 "4732 (Chinturu): 89",
 "6063 (Yetapaka): 72",
@@ -58,8 +58,8 @@
 "4897 (Gokavaram): 19",
 "5399 (Vadamalapet): 19",
 "4869 (Gajuwaka): 17",
-"4887 (Addateegala): 17",
 "4915 (Pedapudi): 17",
+"4887 (Addateegala): 16",
 "5174 (Kaluvoya): 16",
 "5011 (Vijayawada (Rural)): 15",
 "5395 (Pulicherla): 15",
@@ -75,8 +75,8 @@
 },
 "TG":{
 "lgdVillages":11447,
-"withPoint":395,
-"coveragePct":3.5,
+"withPoint":4193,
+"coveragePct":36.6,
 "wikidata":{
 "shipped":395,
 "wikidataRows":794,
@@ -87,8 +87,8 @@
 "outsideBounds":5
 },
 "osm":{
-"shipped":0,
-"detail":{"nodes":0,"matched":0,"skippedAlreadyHavePoint":0,"noName":0,"unmatched":0,"ambiguous":0,"outsideState":0,"agreementWithWikidata":{"pairs":0,"medianKm":null,"p90Km":null},"districtsFailedToDownload":["501","507","508","509","512","513","514","516","518","522","680","681","682","683","684","685","686","687","688","689","690","691","692","693","694","695","696","697","698","699","700","720","721"],"districtsQueried":33}
+"shipped":3798,
+"detail":{"nodes":13909,"matched":3798,"skippedAlreadyHavePoint":190,"noName":12,"unmatched":7626,"ambiguous":351,"outsideState":1754,"agreementWithWikidata":{"pairs":190,"medianKm":0.81,"p90Km":13.99},"districtsFailedToDownload":["690","698"],"districtsQueried":33}
 },
 "rejectedWikidataTotal":376,
 "rejectedWikidataSamples":{
@@ -97,48 +97,48 @@
 "coordinates outside the AP/TG bounding region":["569482 Q1022305","571024 Q6433955","572910 Q12992459","573883 Q12992531","576402 Q15701756"],
 "several Wikidata coordinates for this code disagree by more than 2 km":["570590 Q6706382","571208 Q13009270","571808 Q6752062","573130 Q13001074","573642 Q59060279","573956 Q542856","574072 Q6428594","578603 Q6732721"]
 },
-"lgdVillagesWithoutPointTotal":11052,
+"lgdVillagesWithoutPointTotal":7254,
 "lgdVillagesWithoutPointByMandal":[
-"4729 (Dummugudem): 82",
+"4729 (Dummugudem): 79",
 "4726 (Cherla): 77",
-"4687 (Tadvai): 72",
 "4724 (Venkatapuram): 72",
-"4319 (Asifabad): 65",
 "4723 (Wajedu): 61",
-"4646 (Nalgonda): 52",
-"4710 (Kothaguda): 47",
-"4313 (Kerameri): 46",
-"4543 (Shamshabad): 44",
-"4325 (Neradigonda): 42",
-"4308 (Bela): 41",
-"4559 (Farooqnagar): 40",
+"4687 (Tadvai): 53",
+"4646 (Nalgonda): 51",
+"4710 (Kothaguda): 46",
+"4319 (Asifabad): 44",
 "4321 (Utnoor): 39",
-"4473 (Nyalkal): 39",
-"4530 (Vikarabad): 39",
 "4589 (Makthal): 39",
-"4333 (Tiryani): 38",
-"4338 (Kubeer): 38",
-"4370 (Bodhan): 38",
-"4472 (Raikode): 38",
 "4534 (Tandur): 38",
-"4685 (Eturunagaram): 38",
-"4314 (Wankidi): 37",
-"4318 (Kagaznagar): 37",
-"4488 (Narsapur): 37",
-"4351 (Kotapally): 36",
 "4489 (Hathnoora): 36",
-"4529 (Chevella): 36",
-"4569 (Koilkonda): 36",
-"4628 (Bhongir): 36",
 "4401 (Manthani): 35",
-"4476 (Jharasangam): 35",
-"6221 (Adilabad Rural): 35",
-"4322 (Ichoda): 34",
-"4477 (Munipally): 34",
-"4531 (Dharur): 34",
-"4541 (Pudur): 34",
-"4567 (Jadcherla): 34",
-"4627 (Valigonda): 34"
+"4569 (Koilkonda): 35",
+"4530 (Vikarabad): 34",
+"4536 (Yelal): 33",
+"4313 (Kerameri): 32",
+"4531 (Dharur): 32",
+"4559 (Farooqnagar): 32",
+"4370 (Bodhan): 31",
+"4535 (Basheerabad): 31",
+"4516 (Serilingampally): 29",
+"4543 (Shamshabad): 29",
+"4627 (Valigonda): 29",
+"4656 (Kanagal): 29",
+"4685 (Eturunagaram): 29",
+"4537 (Doma): 28",
+"4654 (Nampally): 28",
+"4333 (Tiryani): 27",
+"4628 (Bhongir): 27",
+"6225 (Gadiguda): 27",
+"4533 (Peddemul): 26",
+"4571 (Utkoor): 26",
+"4631 (Choutuppal): 26",
+"4650 (Chinthapally): 26",
+"4657 (Gurrampode): 26",
+"4660 (Anumula): 26",
+"4711 (Gudur): 26",
+"4330 (Vemanpally): 25",
+"4351 (Kotapally): 25"
 ]
 }
 }

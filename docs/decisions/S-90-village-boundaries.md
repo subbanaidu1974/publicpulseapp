@@ -45,7 +45,8 @@ The drill-down map and place profiles want village geometry. The only complete v
 * Wikidata coordinates are CC0 and need no attribution; the register still lists them.
 * Overpass fair use: the script is one-off, per-district bounding boxes, sequential, cached. Do not schedule it in CI. For regular refreshes use a Geofabrik extract instead (owner to approve the download size).
 
-## Measured coverage (2026-11-24 run; see village-points-coverage.json)
+## Measured coverage (final run 2026-11-24; see village-points-coverage.json)
 
-* AP: 15,784 of 17,957 LGD villages (87.9%): 15,556 Wikidata, 228 OSM gap fills. OSM downloaded for 24 of 28 AP districts only (Overpass 502s and slowness; 4 districts failed). Where OSM and Wikidata both exist, median disagreement 0.11 km, p90 4.1 km.
-* TG: 395 of 11,447 (3.5%), Wikidata only. The OSM download for TG was NOT done (run stopped on the coordinator's request); this is the main gap. Rerun `npm run pipeline:villages` (cached, resumable) to complete it.
+* AP: 15,789 of 17,957 LGD villages (87.9%): 15,556 Wikidata, 233 OSM gap fills. OSM downloaded for all 28 AP districts (the four that failed in the first run, LGD 754, 755, 790, 791, succeeded on resume). OSM/Wikidata median disagreement 0.11 km, p90 3.59 km.
+* TG: 4,193 of 11,447 (36.6%): 395 Wikidata, 3,798 OSM. OSM downloaded for 31 of 33 TG districts. LGD districts 690 and 698 are missing: Overpass (overpass-api.de) returned 502 repeatedly; one attempt on a second public mirror (overpass.kumi.systems) got 691 and 720 but timed out on 690 and returned 504 for 698. Stopped there as agreed. TG matching is name-only and 7,119 OSM nodes were unmatched, 314 ambiguous, so coverage stays well below AP.
+* The pull ran from a one-off build machine, sequential with 15 s gaps and back-off; do not schedule it. Rerun `npm run pipeline:villages` (cache in data/raw/geo-village) later to fill 690 and 698, or use a Geofabrik extract.

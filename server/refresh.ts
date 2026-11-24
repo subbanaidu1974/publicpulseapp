@@ -11,6 +11,7 @@ import { Router } from "express";
 import { runRefresh, defaultSteps } from "../pipeline/refresh/stage";
 import { registerJob } from "./civic/jobs";
 import { alertFrom, computeFreshness, setFreshnessAlert } from "./freshness";
+import { recordRefreshRevision } from "./history/store";
 import { log } from "./obs";
 
 export function createRefreshRouter(opts: { baseDir?: string; now?: () => Date } = {}): Router {
@@ -42,6 +43,7 @@ if (process.env.REFRESH_ENABLED === "1") {
       const root = process.cwd();
       const r = await runRefresh({ root, genDir: path.join(root, "data", "generated"), steps: defaultSteps(root) });
       log[r.ok ? "info" : "error"]("data refresh", { ok: r.ok, swapped: r.swapped, errors: r.errors.slice(0, 5) });
+      if (r.ok && r.swapped) { const h = recordRefreshRevision(root); if (!h.ok) log.warn("history revision not recorded", { error: h.error }); }
       return { ok: r.ok, swapped: r.swapped };
     },
   });

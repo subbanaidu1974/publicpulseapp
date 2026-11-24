@@ -5,7 +5,7 @@ import { Btn, ErrorNote, Field, TextInput, inputCls } from "./ui";
 
 const errKey = (code: string): CivicKey => ({
   domain_not_allowed: "c.off.errDomain", bad_email: "c.off.errEmail", letter_required: "c.off.errLetter", application_open: "c.off.errOpen", rate_limited: "c.off.errRate",
-  already_officer: "c.off.errAlready", name_required: "c.off.errName", unknown_department: "c.off.errDept", jurisdiction_format: "c.off.errArea", unknown_jurisdiction: "c.off.errArea",
+  already_officer: "c.off.errAlready", email_code_wrong: "c.off.errMailWrong", email_code_expired: "c.off.errMailExpired", email_resend_wait: "c.off.errMailWait", email_send_limit: "c.off.errMailLimit", email_delivery_failed: "c.off.errMailFail", name_required: "c.off.errName", unknown_department: "c.off.errDept", jurisdiction_format: "c.off.errArea", unknown_jurisdiction: "c.off.errArea",
 } as Record<string, CivicKey>)[code] ?? "c.error";
 
 /**
@@ -21,6 +21,7 @@ export default function OfficerApply() {
   const [name, setName] = useState(""), [dept, setDept] = useState(""), [desig, setDesig] = useState(""), [email, setEmail] = useState(""), [area, setArea] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+  const [mailCode, setMailCode] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const reload = () => { officersApi.mine().then(setApps).catch(() => { /* signed out */ }); };
@@ -33,9 +34,18 @@ export default function OfficerApply() {
     setBusy(true);
     try {
       const up = await issuesApi.uploadMedia(file);
-      await officersApi.apply({ fullName: name.trim(), department: dept, designation: desig.trim(), email: email.trim(), jurisdiction: area.trim(), letterRef: up.ref });
-      setMsg(c("c.off.sent")); setFile(null); setName(""); setEmail(""); setDesig(""); setArea(""); setOpen(false); reload();
+      const made = await officersApi.apply({ fullName: name.trim(), department: dept, designation: desig.trim(), email: email.trim(), jurisdiction: area.trim(), letterRef: up.ref });
+      setMsg(made.email_confirmation === "failed" ? c("c.off.mailFailed") : c("c.off.sent")); setFile(null); setName(""); setEmail(""); setDesig(""); setArea(""); setOpen(false); reload();
     } catch (x) { setErr(c(x instanceof CivicApiError ? errKey(String((x.body as { code?: unknown }).code ?? "")) : "c.error")); } finally { setBusy(false); }
+  };
+  const failure = (x: unknown) => setErr(c(x instanceof CivicApiError ? errKey(String((x.body as { code?: unknown }).code ?? "")) : "c.error"));
+  const confirm = async (id: string) => {
+    setErr(null); setMsg(null);
+    try { await officersApi.confirmEmail(id, mailCode.trim()); setMailCode(""); setMsg(c("c.off.mailDone")); reload(); } catch (x) { failure(x); }
+  };
+  const resend = async (id: string) => {
+    setErr(null); setMsg(null);
+    try { await officersApi.resendEmail(id); setMsg(c("c.off.mailResent")); } catch (x) { failure(x); }
   };
   return (
     <section data-testid="officer-apply" aria-labelledby="oa-h" className="space-y-3 border-t border-black pt-4">
@@ -47,6 +57,19 @@ export default function OfficerApply() {
             {apps.map((a) => (
               <li key={a.id} data-testid="officer-app" className="border border-black p-2 break-words">
                 <span data-testid="officer-app-status">{c(`c.off.s.${a.status}` as CivicKey)}</span> - {a.department}
+                {a.status === "submitted" && (
+                  <span data-testid="officer-app-mail" className="block text-xs">{a.emailConfirmed ? c("c.off.mailOk") : c("c.off.mailPending")}</span>
+                )}
+                {a.canConfirmEmail && (
+                  <span className="block space-y-1 mt-1">
+                    <span className="block text-xs">{c("c.off.mailSent")}</span>
+                    <Field id={`oa-mail-${a.id}`} label={c("c.off.mailCode")}><TextInput id={`oa-mail-${a.id}`} data-testid="oa-mailcode" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={mailCode} onChange={(e) => setMailCode(e.target.value.replace(/\D/g, ""))} /></Field>
+                    <span className="flex flex-wrap gap-2">
+                      <Btn data-testid="oa-mailconfirm" disabled={mailCode.length !== 6} onClick={() => void confirm(a.id)}>{c("c.off.mailConfirm")}</Btn>
+                      <Btn secondary data-testid="oa-mailresend" onClick={() => void resend(a.id)}>{c("c.off.mailResend")}</Btn>
+                    </span>
+                  </span>
+                )}
                 {a.canWithdraw && <Btn secondary data-testid="officer-app-withdraw" onClick={async () => { try { await officersApi.withdraw(a.id); setMsg(c("c.off.withdrawn")); reload(); } catch { setErr(c("c.error")); } }}>{c("c.off.withdraw")}</Btn>}
               </li>
             ))}

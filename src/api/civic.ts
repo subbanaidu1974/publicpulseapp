@@ -523,13 +523,13 @@ export const issuesApi = {
 // ---- S-141 verified officer onboarding (/officers) ----
 export type OfficerAppStatus = "submitted" | "awaiting_second_admin" | "approved" | "rejected" | "withdrawn" | "expired";
 export interface OfficerApplication {
-  id: string; status: OfficerAppStatus; department: string; designation?: string; jurisdiction?: string; emailDomain: string; letterChecked: boolean; createdAt?: string; canWithdraw: boolean;
+  id: string; status: OfficerAppStatus; department: string; designation?: string; jurisdiction?: string; emailDomain: string; letterChecked: boolean; emailConfirmed: boolean; canConfirmEmail: boolean; createdAt?: string; canWithdraw: boolean;
   /** Admin queue only. */
   personId?: string; fullName?: string; officialEmail?: string; roleRequestId?: string; reviewNote?: string;
 }
 const decodeApp = (r: Raw): OfficerApplication => ({
   id: String(r.id), status: String(r.status) as OfficerAppStatus, department: String(r.department ?? ""), designation: str(r.designation), jurisdiction: str(r.jurisdiction), emailDomain: String(r.email_domain ?? ""),
-  letterChecked: r.letter_checked === true, createdAt: str(r.created_at), canWithdraw: r.can_withdraw === true,
+  letterChecked: r.letter_checked === true, emailConfirmed: r.email_confirmed === true, canConfirmEmail: r.can_confirm_email === true, createdAt: str(r.created_at), canWithdraw: r.can_withdraw === true,
   personId: str(r.person_id), fullName: str(r.full_name), officialEmail: str(r.official_email), roleRequestId: str(r.role_request_id), reviewNote: str(r.review_note),
 });
 export const officersApi = {
@@ -539,8 +539,11 @@ export const officersApi = {
   },
   mine: async (): Promise<OfficerApplication[]> => list<Raw>(await call<Raw>("/officers/applications/mine", { fresh: true }), "applications").map(decodeApp),
   apply: (b: { fullName: string; department: string; designation?: string; email: string; jurisdiction?: string; letterRef: string }) =>
-    call<Raw>("/officers/applications", { method: "POST", body: { full_name: b.fullName, department: b.department, designation: b.designation || undefined, official_email: b.email, jurisdiction: b.jurisdiction || undefined, letter_ref: b.letterRef } }),
+    call<{ id: string; status: string; email_confirmation?: string; dev_email_code?: string }>("/officers/applications", { method: "POST", body: { full_name: b.fullName, department: b.department, designation: b.designation || undefined, official_email: b.email, jurisdiction: b.jurisdiction || undefined, letter_ref: b.letterRef } }),
   withdraw: (id: string) => call<Raw>(`/officers/applications/${enc(id)}/withdraw`, { method: "POST", body: {} }),
+  /** Proof of e-mail ownership: ask for a new code, then send the code the applicant received. */
+  resendEmail: (id: string) => call<{ ok: boolean; dev_email_code?: string }>(`/officers/applications/${enc(id)}/email/resend`, { method: "POST", body: {} }),
+  confirmEmail: (id: string, code: string) => call<Raw>(`/officers/applications/${enc(id)}/email/confirm`, { method: "POST", body: { code } }),
   queue: async (status = "submitted"): Promise<OfficerApplication[]> => list<Raw>(await call<Raw>(`/officers/admin/queue?status=${enc(status)}`, { fresh: true }), "applications").map(decodeApp),
   /** The letter as an object URL (the caller revokes it); null when it cannot be shown. */
   letterObjectUrl: async (id: string): Promise<string | null> => {

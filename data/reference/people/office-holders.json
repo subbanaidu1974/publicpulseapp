@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "asOf": "2026-11-24",
-  "note": "Office/role facts only (role, name, party, start date). No biography, family, caste/religion, contact details or date of birth are published. Every record cites >= 2 source URLs and was read from English Wikipedia (infobox term_start fields) on 2026-11-22; official government sites were NOT read (the 2026-11-24 additions cite news reports instead: Business Standard, Deccan Herald, Deccan Chronicle, TheNewsMinute, All India Radio), so confidence is 'medium' (secondary sources) and dates are as stated by those pages. Re-verify against the official sites before launch. Records carry no end date because each was the current holder on the read date.",
+  "note": "Office/role facts only (role, name, party, start date). No biography, family, caste/religion, contact details or date of birth are published. Every record cites >= 2 source URLs and was read from English Wikipedia (infobox term_start fields) on 2026-11-22; official government sites were NOT read (the 2026-11-24 additions cite news reports instead: Business Standard, Deccan Herald, Deccan Chronicle, TheNewsMinute, All India Radio), so confidence is 'medium' (secondary sources) and dates are as stated by those pages. Re-verify against the official sites before launch. Records carry no end date because each was the current holder on the read date. 2026-11-24 (council of ministers): AP and TG ministers (Role 'Minister') were read from the English Wikipedia council pages and from news reports of the portfolio orders (Business Today, National Herald, Siasat, Deccan Chronicle); the official portals (ap.gov.in, telangana.gov.in, aplegislature.org, telanganalegislature.org.in) could not be fetched on that date, so no record has an official second source and all stay 'medium'. Portfolios are as allotted on portfolioAsOf and may have changed since. Konda Surekha (TG) was removed from the council on 2026-09-03 and is not listed. Mohammad Azharuddin (TG) has no constituency listed because the source did not state one. Wikidata ids were added only where the record's name matched and the item's party claim (P102) matched the record's party; items without a matching party claim were left null. Ministers are an unordered list; the UI sorts them alphabetically.",
   "records": [
     {
       "id": "AP-cm",
@@ -17,7 +17,8 @@
       ],
       "wikidata": "Q3518013",
       "asOf": "2026-11-22",
-      "confidence": "medium"
+      "confidence": "medium",
+      "constituency": "Kuppam"
     },
     {
       "id": "AP-deputy-cm",
@@ -33,7 +34,8 @@
       ],
       "wikidata": "Q6067643",
       "asOf": "2026-11-22",
-      "confidence": "medium"
+      "confidence": "medium",
+      "constituency": "Pithapuram"
     },
     {
       "id": "AP-speaker",
@@ -44,9 +46,10 @@
       "start": "2024-06-22",
       "sources": [
         "https://en.wikipedia.org/wiki/Chintakayala_Ayyanna_Patrudu",
-        "https://en.wikipedia.org/wiki/List_of_speakers_of_the_Andhra_Pradesh_Legislative_Assembly"
+        "https://en.wikipedia.org/wiki/List_of_speakers_of_the_Andhra_Pradesh_Legislative_Assembly",
+        "https://www.wikidata.org/wiki/Q5101295"
       ],
-      "wikidata": null,
+      "wikidata": "Q5101295",
       "asOf": "2026-11-22",
       "confidence": "medium"
     },
@@ -59,9 +62,10 @@
       "start": "2024-11-14",
       "sources": [
         "https://en.wikipedia.org/wiki/Raghu_Rama_Krishna_Raju",
-        "https://en.wikipedia.org/wiki/List_of_speakers_of_the_Andhra_Pradesh_Legislative_Assembly"
+        "https://en.wikipedia.org/wiki/List_of_speakers_of_the_Andhra_Pradesh_Legislative_Assembly",
+        "https://www.wikidata.org/wiki/Q64011064"
       ],
-      "wikidata": null,
+      "wikidata": "Q64011064",
       "asOf": "2026-11-22",
       "confidence": "medium"
     },
@@ -79,7 +83,8 @@
       ],
       "wikidata": "Q7317733",
       "asOf": "2026-11-22",
-      "confidence": "medium"
+      "confidence": "medium",
+      "constituency": "Kodangal"
     },
     {
       "id": "TG-deputy-cm",
@@ -95,7 +100,8 @@
       ],
       "wikidata": "Q6744315",
       "asOf": "2026-11-22",
-      "confidence": "medium"
+      "confidence": "medium",
+      "constituency": "Madhira"
     },
     {
       "id": "TG-speaker",
@@ -153,9 +159,10 @@
       "start": "2025-06-08",
       "sources": [
         "https://en.wikipedia.org/wiki/Jatoth_Ram_Chander_Naik",
-        "https://deccanchronicle.com/southern-states/telangana/dornakal-mla-naik-appointed-deputy-speaker-1884130"
+        "https://deccanchronicle.com/southern-states/telangana/dornakal-mla-naik-appointed-deputy-speaker-1884130",
+        "https://www.wikidata.org/wiki/Q127425275"
       ],
-      "wikidata": null,
+      "wikidata": "Q127425275",
       "asOf": "2026-11-24",
       "confidence": "medium"
     },
@@ -168,9 +175,10 @@
       "start": "2011-03-12",
       "sources": [
         "https://en.wikipedia.org/wiki/YSR_Congress_Party",
-        "https://www.thenewsminute.com/article/jagan-mohan-reddy-elected-lifetime-president-ysrcp-165700"
+        "https://www.thenewsminute.com/article/jagan-mohan-reddy-elected-lifetime-president-ysrcp-165700",
+        "https://www.wikidata.org/wiki/Q3531971"
       ],
-      "wikidata": null,
+      "wikidata": "Q3531971",
       "asOf": "2026-11-24",
       "confidence": "medium"
     },
@@ -183,9 +191,10 @@
       "start": "2001-04-27",
       "sources": [
         "https://en.wikipedia.org/wiki/Bharat_Rashtra_Samithi",
-        "https://www.deccanherald.com/india/south/20-years-of-trs-kcrs-journey-from-lets-shut-shop-to-receiving-invites-to-form-party-in-andhra-1044153.html"
+        "https://www.deccanherald.com/india/south/20-years-of-trs-kcrs-journey-from-lets-shut-shop-to-receiving-invites-to-form-party-in-andhra-1044153.html",
+        "https://www.wikidata.org/wiki/Q33168"
       ],
-      "wikidata": null,
+      "wikidata": "Q33168",
       "asOf": "2026-11-24",
       "confidence": "low"
     },
@@ -198,9 +207,10 @@
       "start": "2024-01-16",
       "sources": [
         "https://en.wikipedia.org/wiki/Andhra_Pradesh_Congress_Committee",
-        "https://business-standard.com/politics/ys-sharmila-appointed-andhra-congress-chief-after-g-rudra-raju-quits-post-124011600670_1.html"
+        "https://business-standard.com/politics/ys-sharmila-appointed-andhra-congress-chief-after-g-rudra-raju-quits-post-124011600670_1.html",
+        "https://www.wikidata.org/wiki/Q8045769"
       ],
-      "wikidata": null,
+      "wikidata": "Q8045769",
       "asOf": "2026-11-24",
       "confidence": "medium"
     },
@@ -213,9 +223,10 @@
       "start": "2024-09-06",
       "sources": [
         "https://en.wikipedia.org/wiki/Telangana_Pradesh_Congress_Committee",
-        "https://www.business-standard.com/india-news/congress-appoints-b-mahesh-kumar-goud-as-telangana-unit-s-president-124090600805_1.html"
+        "https://www.business-standard.com/india-news/congress-appoints-b-mahesh-kumar-goud-as-telangana-unit-s-president-124090600805_1.html",
+        "https://www.wikidata.org/wiki/Q124388826"
       ],
-      "wikidata": null,
+      "wikidata": "Q124388826",
       "asOf": "2026-11-24",
       "confidence": "medium"
     },
@@ -228,9 +239,10 @@
       "start": "2025-07-01",
       "sources": [
         "https://www.business-standard.com/india-news/bjp-gets-5-new-state-chiefs-stage-set-for-party-president-s-poll-125070101405_1.html",
-        "https://www.thenewsminute.com/andhra-pradesh/pvn-madhav-takes-charge-as-andhras-new-bjp-chief"
+        "https://www.thenewsminute.com/andhra-pradesh/pvn-madhav-takes-charge-as-andhras-new-bjp-chief",
+        "https://www.wikidata.org/wiki/Q70300177"
       ],
-      "wikidata": null,
+      "wikidata": "Q70300177",
       "asOf": "2026-11-24",
       "confidence": "medium"
     },
@@ -258,11 +270,801 @@
       "start": "2008-09-29",
       "sources": [
         "https://en.wikipedia.org/wiki/All_India_Majlis-e-Ittehadul_Muslimeen",
-        "https://en.wikipedia.org/wiki/Sultan_Salahuddin_Owaisi"
+        "https://en.wikipedia.org/wiki/Sultan_Salahuddin_Owaisi",
+        "https://www.wikidata.org/wiki/Q3210225"
+      ],
+      "wikidata": "Q3210225",
+      "asOf": "2026-11-24",
+      "confidence": "low"
+    },
+    {
+      "id": "AP-minister-satya-kumar-yadav",
+      "state": "AP",
+      "role": "Minister",
+      "person": "Satya Kumar Yadav",
+      "party": "BJP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fourth_N._Chandrababu_Naidu_ministry",
+        "https://www.businesstoday.in/india/story/andhra-pradesh-portfolio-allocation-chandrababu-naidu-keeps-law-and-order-pawan-kalyan-gets-panchayati-raj-check-full-list-here-433321-2024-06-14"
       ],
       "wikidata": null,
       "asOf": "2026-11-24",
-      "confidence": "low"
+      "confidence": "medium",
+      "constituency": "Dharmavaram",
+      "portfolio": [
+        "Health",
+        "Family Welfare & Medical Education"
+      ],
+      "portfolioAsOf": "2024-06-14"
+    },
+    {
+      "id": "AP-minister-atchannaidu",
+      "state": "AP",
+      "role": "Minister",
+      "person": "Kinjarapu Atchannaidu",
+      "party": "TDP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fourth_N._Chandrababu_Naidu_ministry",
+        "https://www.businesstoday.in/india/story/andhra-pradesh-portfolio-allocation-chandrababu-naidu-keeps-law-and-order-pawan-kalyan-gets-panchayati-raj-check-full-list-here-433321-2024-06-14",
+        "https://www.wikidata.org/wiki/Q110253549"
+      ],
+      "wikidata": "Q110253549",
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Tekkali",
+      "portfolio": [
+        "Agriculture",
+        "Co-operation",
+        "Marketing",
+        "Animal Husbandry",
+        "Dairy Development & Fisheries"
+      ],
+      "portfolioAsOf": "2024-06-14"
+    },
+    {
+      "id": "AP-minister-kollu-ravindra",
+      "state": "AP",
+      "role": "Minister",
+      "person": "Kollu Ravindra",
+      "party": "TDP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fourth_N._Chandrababu_Naidu_ministry",
+        "https://www.businesstoday.in/india/story/andhra-pradesh-portfolio-allocation-chandrababu-naidu-keeps-law-and-order-pawan-kalyan-gets-panchayati-raj-check-full-list-here-433321-2024-06-14",
+        "https://www.wikidata.org/wiki/Q25564058"
+      ],
+      "wikidata": "Q25564058",
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Machilipatnam",
+      "portfolio": [
+        "Mines & Geology",
+        "Excise"
+      ],
+      "portfolioAsOf": "2024-06-14"
+    },
+    {
+      "id": "AP-minister-nadendla-manohar",
+      "state": "AP",
+      "role": "Minister",
+      "person": "Nadendla Manohar",
+      "party": "JSP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fourth_N._Chandrababu_Naidu_ministry",
+        "https://www.businesstoday.in/india/story/andhra-pradesh-portfolio-allocation-chandrababu-naidu-keeps-law-and-order-pawan-kalyan-gets-panchayati-raj-check-full-list-here-433321-2024-06-14",
+        "https://www.wikidata.org/wiki/Q6957544"
+      ],
+      "wikidata": "Q6957544",
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Tenali",
+      "portfolio": [
+        "Food & Civil Supplies",
+        "Consumer Affairs"
+      ],
+      "portfolioAsOf": "2024-06-14"
+    },
+    {
+      "id": "AP-minister-narayana",
+      "state": "AP",
+      "role": "Minister",
+      "person": "Ponguru Narayana",
+      "party": "TDP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fourth_N._Chandrababu_Naidu_ministry",
+        "https://www.businesstoday.in/india/story/andhra-pradesh-portfolio-allocation-chandrababu-naidu-keeps-law-and-order-pawan-kalyan-gets-panchayati-raj-check-full-list-here-433321-2024-06-14",
+        "https://www.wikidata.org/wiki/Q20561374"
+      ],
+      "wikidata": "Q20561374",
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Nellore City",
+      "portfolio": [
+        "Municipal Administration & Urban Development"
+      ],
+      "portfolioAsOf": "2024-06-14"
+    },
+    {
+      "id": "AP-minister-vangalapudi-anitha",
+      "state": "AP",
+      "role": "Minister",
+      "person": "Vangalapudi Anitha",
+      "party": "TDP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fourth_N._Chandrababu_Naidu_ministry",
+        "https://www.businesstoday.in/india/story/andhra-pradesh-portfolio-allocation-chandrababu-naidu-keeps-law-and-order-pawan-kalyan-gets-panchayati-raj-check-full-list-here-433321-2024-06-14",
+        "https://www.wikidata.org/wiki/Q125116741"
+      ],
+      "wikidata": "Q125116741",
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Payakaraopet",
+      "portfolio": [
+        "Home Affairs & Disaster Management"
+      ],
+      "portfolioAsOf": "2024-06-14"
+    },
+    {
+      "id": "AP-minister-nara-lokesh",
+      "state": "AP",
+      "role": "Minister",
+      "person": "Nara Lokesh",
+      "party": "TDP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fourth_N._Chandrababu_Naidu_ministry",
+        "https://www.businesstoday.in/india/story/andhra-pradesh-portfolio-allocation-chandrababu-naidu-keeps-law-and-order-pawan-kalyan-gets-panchayati-raj-check-full-list-here-433321-2024-06-14",
+        "https://www.wikidata.org/wiki/Q13561072"
+      ],
+      "wikidata": "Q13561072",
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Mangalagiri",
+      "portfolio": [
+        "Human Resources Development",
+        "Information Technology, Electronics & Communication",
+        "Real Time Governance"
+      ],
+      "portfolioAsOf": "2024-06-14"
+    },
+    {
+      "id": "AP-minister-nimmala-rama-naidu",
+      "state": "AP",
+      "role": "Minister",
+      "person": "Nimmala Rama Naidu",
+      "party": "TDP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fourth_N._Chandrababu_Naidu_ministry",
+        "https://www.businesstoday.in/india/story/andhra-pradesh-portfolio-allocation-chandrababu-naidu-keeps-law-and-order-pawan-kalyan-gets-panchayati-raj-check-full-list-here-433321-2024-06-14",
+        "https://www.wikidata.org/wiki/Q24263582"
+      ],
+      "wikidata": "Q24263582",
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Palakollu",
+      "portfolio": [
+        "Water Resources Development"
+      ],
+      "portfolioAsOf": "2024-06-14"
+    },
+    {
+      "id": "AP-minister-nmd-farooq",
+      "state": "AP",
+      "role": "Minister",
+      "person": "Nasyam Mohammed Farooq",
+      "party": "TDP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fourth_N._Chandrababu_Naidu_ministry",
+        "https://www.businesstoday.in/india/story/andhra-pradesh-portfolio-allocation-chandrababu-naidu-keeps-law-and-order-pawan-kalyan-gets-panchayati-raj-check-full-list-here-433321-2024-06-14",
+        "https://www.wikidata.org/wiki/Q42932309"
+      ],
+      "wikidata": "Q42932309",
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Nandyal",
+      "portfolio": [
+        "Law & Justice",
+        "Minority Welfare"
+      ],
+      "portfolioAsOf": "2024-06-14"
+    },
+    {
+      "id": "AP-minister-anam-ramanarayana-reddy",
+      "state": "AP",
+      "role": "Minister",
+      "person": "Anam Ramanarayana Reddy",
+      "party": "TDP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fourth_N._Chandrababu_Naidu_ministry",
+        "https://www.businesstoday.in/india/story/andhra-pradesh-portfolio-allocation-chandrababu-naidu-keeps-law-and-order-pawan-kalyan-gets-panchayati-raj-check-full-list-here-433321-2024-06-14",
+        "https://www.wikidata.org/wiki/Q4751171"
+      ],
+      "wikidata": "Q4751171",
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Atmakur",
+      "portfolio": [
+        "Endowments"
+      ],
+      "portfolioAsOf": "2024-06-14"
+    },
+    {
+      "id": "AP-minister-payyavula-keshav",
+      "state": "AP",
+      "role": "Minister",
+      "person": "Payyavula Keshav",
+      "party": "TDP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fourth_N._Chandrababu_Naidu_ministry",
+        "https://www.businesstoday.in/india/story/andhra-pradesh-portfolio-allocation-chandrababu-naidu-keeps-law-and-order-pawan-kalyan-gets-panchayati-raj-check-full-list-here-433321-2024-06-14",
+        "https://www.wikidata.org/wiki/Q7156945"
+      ],
+      "wikidata": "Q7156945",
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Uravakonda",
+      "portfolio": [
+        "Finance",
+        "Planning",
+        "Commercial Taxes",
+        "Legislative Affairs"
+      ],
+      "portfolioAsOf": "2024-06-14"
+    },
+    {
+      "id": "AP-minister-anagani-satya-prasad",
+      "state": "AP",
+      "role": "Minister",
+      "person": "Anagani Satya Prasad",
+      "party": "TDP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fourth_N._Chandrababu_Naidu_ministry",
+        "https://www.businesstoday.in/india/story/andhra-pradesh-portfolio-allocation-chandrababu-naidu-keeps-law-and-order-pawan-kalyan-gets-panchayati-raj-check-full-list-here-433321-2024-06-14",
+        "https://www.wikidata.org/wiki/Q26464776"
+      ],
+      "wikidata": "Q26464776",
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Repalle",
+      "portfolio": [
+        "Revenue",
+        "Registration & Stamps"
+      ],
+      "portfolioAsOf": "2024-06-14"
+    },
+    {
+      "id": "AP-minister-kolusu-parthasarathy",
+      "state": "AP",
+      "role": "Minister",
+      "person": "Kolusu Parthasarathy",
+      "party": "TDP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fourth_N._Chandrababu_Naidu_ministry",
+        "https://www.businesstoday.in/india/story/andhra-pradesh-portfolio-allocation-chandrababu-naidu-keeps-law-and-order-pawan-kalyan-gets-panchayati-raj-check-full-list-here-433321-2024-06-14"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Nuzvid",
+      "portfolio": [
+        "Housing",
+        "Information & Public Relations"
+      ],
+      "portfolioAsOf": "2024-06-14"
+    },
+    {
+      "id": "AP-minister-dola-bala-veeranjaneya-swamy",
+      "state": "AP",
+      "role": "Minister",
+      "person": "Dola Sree Bala Veeranjaneya Swamy",
+      "party": "TDP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fourth_N._Chandrababu_Naidu_ministry",
+        "https://www.businesstoday.in/india/story/andhra-pradesh-portfolio-allocation-chandrababu-naidu-keeps-law-and-order-pawan-kalyan-gets-panchayati-raj-check-full-list-here-433321-2024-06-14"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Kondapi",
+      "portfolio": [
+        "Social Welfare",
+        "Disabled & Senior Citizen Welfare",
+        "Sachivalayam & Village Volunteer"
+      ],
+      "portfolioAsOf": "2024-06-14"
+    },
+    {
+      "id": "AP-minister-gottipati-ravi-kumar",
+      "state": "AP",
+      "role": "Minister",
+      "person": "Gottipati Ravi Kumar",
+      "party": "TDP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fourth_N._Chandrababu_Naidu_ministry",
+        "https://www.businesstoday.in/india/story/andhra-pradesh-portfolio-allocation-chandrababu-naidu-keeps-law-and-order-pawan-kalyan-gets-panchayati-raj-check-full-list-here-433321-2024-06-14"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Addanki",
+      "portfolio": [
+        "Energy"
+      ],
+      "portfolioAsOf": "2024-06-14"
+    },
+    {
+      "id": "AP-minister-kandula-durgesh",
+      "state": "AP",
+      "role": "Minister",
+      "person": "Kandula Durgesh",
+      "party": "JSP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fourth_N._Chandrababu_Naidu_ministry",
+        "https://www.businesstoday.in/india/story/andhra-pradesh-portfolio-allocation-chandrababu-naidu-keeps-law-and-order-pawan-kalyan-gets-panchayati-raj-check-full-list-here-433321-2024-06-14"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Nidadavole",
+      "portfolio": [
+        "Tourism",
+        "Culture",
+        "Cinematography"
+      ],
+      "portfolioAsOf": "2024-06-14"
+    },
+    {
+      "id": "AP-minister-gummadi-sandhya-rani",
+      "state": "AP",
+      "role": "Minister",
+      "person": "Gummadi Sandhya Rani",
+      "party": "TDP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fourth_N._Chandrababu_Naidu_ministry",
+        "https://www.businesstoday.in/india/story/andhra-pradesh-portfolio-allocation-chandrababu-naidu-keeps-law-and-order-pawan-kalyan-gets-panchayati-raj-check-full-list-here-433321-2024-06-14"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Salur",
+      "portfolio": [
+        "Women & Child Welfare",
+        "Tribal Welfare"
+      ],
+      "portfolioAsOf": "2024-06-14"
+    },
+    {
+      "id": "AP-minister-bc-janardhan-reddy",
+      "state": "AP",
+      "role": "Minister",
+      "person": "B. C. Janardhan Reddy",
+      "party": "TDP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fourth_N._Chandrababu_Naidu_ministry",
+        "https://www.businesstoday.in/india/story/andhra-pradesh-portfolio-allocation-chandrababu-naidu-keeps-law-and-order-pawan-kalyan-gets-panchayati-raj-check-full-list-here-433321-2024-06-14"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Banaganapalle",
+      "portfolio": [
+        "Roads & Buildings",
+        "Infrastructure & Investments"
+      ],
+      "portfolioAsOf": "2024-06-14"
+    },
+    {
+      "id": "AP-minister-tg-bharath",
+      "state": "AP",
+      "role": "Minister",
+      "person": "T. G. Bharath",
+      "party": "TDP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fourth_N._Chandrababu_Naidu_ministry",
+        "https://www.businesstoday.in/india/story/andhra-pradesh-portfolio-allocation-chandrababu-naidu-keeps-law-and-order-pawan-kalyan-gets-panchayati-raj-check-full-list-here-433321-2024-06-14"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Kurnool",
+      "portfolio": [
+        "Industries & Commerce",
+        "Food Processing"
+      ],
+      "portfolioAsOf": "2024-06-14"
+    },
+    {
+      "id": "AP-minister-s-savitha",
+      "state": "AP",
+      "role": "Minister",
+      "person": "S. Savitha",
+      "party": "TDP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fourth_N._Chandrababu_Naidu_ministry",
+        "https://www.businesstoday.in/india/story/andhra-pradesh-portfolio-allocation-chandrababu-naidu-keeps-law-and-order-pawan-kalyan-gets-panchayati-raj-check-full-list-here-433321-2024-06-14"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Penukonda",
+      "portfolio": [
+        "Backward Classes Welfare",
+        "Economically Weaker Sections Welfare",
+        "Handlooms & Textiles"
+      ],
+      "portfolioAsOf": "2024-06-14"
+    },
+    {
+      "id": "AP-minister-vasamsetti-subhash",
+      "state": "AP",
+      "role": "Minister",
+      "person": "Vasamsetti Subhash",
+      "party": "TDP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fourth_N._Chandrababu_Naidu_ministry",
+        "https://www.businesstoday.in/india/story/andhra-pradesh-portfolio-allocation-chandrababu-naidu-keeps-law-and-order-pawan-kalyan-gets-panchayati-raj-check-full-list-here-433321-2024-06-14"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Ramachandrapuram",
+      "portfolio": [
+        "Labour",
+        "Factories",
+        "Boilers & Insurance Medical Services"
+      ],
+      "portfolioAsOf": "2024-06-14"
+    },
+    {
+      "id": "AP-minister-kondapalli-srinivas",
+      "state": "AP",
+      "role": "Minister",
+      "person": "Kondapalli Srinivas",
+      "party": "TDP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fourth_N._Chandrababu_Naidu_ministry",
+        "https://www.businesstoday.in/india/story/andhra-pradesh-portfolio-allocation-chandrababu-naidu-keeps-law-and-order-pawan-kalyan-gets-panchayati-raj-check-full-list-here-433321-2024-06-14",
+        "https://www.wikidata.org/wiki/Q126373294"
+      ],
+      "wikidata": "Q126373294",
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Gajapathinagaram",
+      "portfolio": [
+        "Micro, Small & Medium Enterprises",
+        "Society for Elimination of Rural Poverty",
+        "NRI Empowerment & Relations"
+      ],
+      "portfolioAsOf": "2024-06-14"
+    },
+    {
+      "id": "AP-minister-mandipalli-ramprasad-reddy",
+      "state": "AP",
+      "role": "Minister",
+      "person": "Mandipalli Ramprasad Reddy",
+      "party": "TDP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fourth_N._Chandrababu_Naidu_ministry",
+        "https://www.businesstoday.in/india/story/andhra-pradesh-portfolio-allocation-chandrababu-naidu-keeps-law-and-order-pawan-kalyan-gets-panchayati-raj-check-full-list-here-433321-2024-06-14"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Rayachoti",
+      "portfolio": [
+        "Transport",
+        "Youth & Sports"
+      ],
+      "portfolioAsOf": "2024-06-14"
+    },
+    {
+      "id": "TG-minister-uttam-kumar-reddy",
+      "state": "TG",
+      "role": "Minister",
+      "person": "Nalamada Uttam Kumar Reddy",
+      "party": "INC",
+      "start": "2023-12-07",
+      "sources": [
+        "https://www.nationalheraldindia.com/national/telangana-chief-minister-revanth-reddy-assigns-portfolios-to-ministers-in-cabinet",
+        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Huzurnagar",
+      "portfolio": [
+        "Irrigation & Command Area Development",
+        "Food & Civil Supplies"
+      ],
+      "portfolioAsOf": "2023-12-09"
+    },
+    {
+      "id": "TG-minister-ponnam-prabhakar",
+      "state": "TG",
+      "role": "Minister",
+      "person": "Ponnam Prabhakar",
+      "party": "INC",
+      "start": "2023-12-07",
+      "sources": [
+        "https://www.nationalheraldindia.com/national/telangana-chief-minister-revanth-reddy-assigns-portfolios-to-ministers-in-cabinet",
+        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers",
+        "https://www.wikidata.org/wiki/Q7227895"
+      ],
+      "wikidata": "Q7227895",
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Husnabad",
+      "portfolio": [
+        "Transport",
+        "Backward Classes Welfare"
+      ],
+      "portfolioAsOf": "2023-12-09"
+    },
+    {
+      "id": "TG-minister-komatireddy-venkat-reddy",
+      "state": "TG",
+      "role": "Minister",
+      "person": "Komatireddy Venkat Reddy",
+      "party": "INC",
+      "start": "2023-12-07",
+      "sources": [
+        "https://www.nationalheraldindia.com/national/telangana-chief-minister-revanth-reddy-assigns-portfolios-to-ministers-in-cabinet",
+        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers",
+        "https://www.wikidata.org/wiki/Q6428202"
+      ],
+      "wikidata": "Q6428202",
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Nalgonda",
+      "portfolio": [
+        "Roads & Buildings",
+        "Cinematography"
+      ],
+      "portfolioAsOf": "2023-12-09"
+    },
+    {
+      "id": "TG-minister-seethakka",
+      "state": "TG",
+      "role": "Minister",
+      "person": "Dansari Anasuya Seethakka",
+      "party": "INC",
+      "start": "2023-12-07",
+      "sources": [
+        "https://www.nationalheraldindia.com/national/telangana-chief-minister-revanth-reddy-assigns-portfolios-to-ministers-in-cabinet",
+        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Mulug",
+      "portfolio": [
+        "Panchayat Raj & Rural Development (incl. Rural Water Supply)",
+        "Women & Child Welfare"
+      ],
+      "portfolioAsOf": "2023-12-09"
+    },
+    {
+      "id": "TG-minister-sridhar-babu",
+      "state": "TG",
+      "role": "Minister",
+      "person": "Duddilla Sridhar Babu",
+      "party": "INC",
+      "start": "2023-12-07",
+      "sources": [
+        "https://www.nationalheraldindia.com/national/telangana-chief-minister-revanth-reddy-assigns-portfolios-to-ministers-in-cabinet",
+        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers",
+        "https://www.wikidata.org/wiki/Q7586360"
+      ],
+      "wikidata": "Q7586360",
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Manthani",
+      "portfolio": [
+        "Information Technology",
+        "Electronics & Communications",
+        "Industries & Commerce",
+        "Legislative Affairs"
+      ],
+      "portfolioAsOf": "2023-12-09"
+    },
+    {
+      "id": "TG-minister-ponguleti-srinivas-reddy",
+      "state": "TG",
+      "role": "Minister",
+      "person": "Ponguleti Srinivasa Reddy",
+      "party": "INC",
+      "start": "2023-12-07",
+      "sources": [
+        "https://www.nationalheraldindia.com/national/telangana-chief-minister-revanth-reddy-assigns-portfolios-to-ministers-in-cabinet",
+        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Palair",
+      "portfolio": [
+        "Revenue",
+        "Housing",
+        "Information & Public Relations"
+      ],
+      "portfolioAsOf": "2023-12-09"
+    },
+    {
+      "id": "TG-minister-thummala-nageswara-rao",
+      "state": "TG",
+      "role": "Minister",
+      "person": "Thummala Nageswara Rao",
+      "party": "INC",
+      "start": "2023-12-07",
+      "sources": [
+        "https://www.nationalheraldindia.com/national/telangana-chief-minister-revanth-reddy-assigns-portfolios-to-ministers-in-cabinet",
+        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Khammam",
+      "portfolio": [
+        "Agriculture",
+        "Marketing",
+        "Co-operation",
+        "Handlooms & Textiles"
+      ],
+      "portfolioAsOf": "2023-12-09"
+    },
+    {
+      "id": "TG-minister-damodar-raja-narasimha",
+      "state": "TG",
+      "role": "Minister",
+      "person": "Cilarapu Damodar Raja Narasimha",
+      "party": "INC",
+      "start": "2023-12-07",
+      "sources": [
+        "https://www.nationalheraldindia.com/national/telangana-chief-minister-revanth-reddy-assigns-portfolios-to-ministers-in-cabinet",
+        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers",
+        "https://www.wikidata.org/wiki/Q5212779"
+      ],
+      "wikidata": "Q5212779",
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Andole",
+      "portfolio": [
+        "Health",
+        "Medical & Family Welfare",
+        "Science & Technology"
+      ],
+      "portfolioAsOf": "2023-12-09"
+    },
+    {
+      "id": "TG-minister-jupally-krishna-rao",
+      "state": "TG",
+      "role": "Minister",
+      "person": "Jupally Krishna Rao",
+      "party": "INC",
+      "start": "2023-12-07",
+      "sources": [
+        "https://www.nationalheraldindia.com/national/telangana-chief-minister-revanth-reddy-assigns-portfolios-to-ministers-in-cabinet",
+        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers",
+        "https://www.wikidata.org/wiki/Q6314533"
+      ],
+      "wikidata": "Q6314533",
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Kollapur",
+      "portfolio": [
+        "Prohibition & Excise",
+        "Tourism & Culture",
+        "Archaeology"
+      ],
+      "portfolioAsOf": "2023-12-09"
+    },
+    {
+      "id": "TG-minister-gaddam-vivekanand",
+      "state": "TG",
+      "role": "Minister",
+      "person": "Gaddam Vivekanand",
+      "party": "INC",
+      "start": "2025-06-08",
+      "sources": [
+        "https://www.siasat.com/three-newly-inducted-telangana-ministers-assigned-portfolios-3231874/",
+        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Chennur",
+      "portfolio": [
+        "Labour, Employment, Training & Factories",
+        "Mines & Geology"
+      ],
+      "portfolioAsOf": "2025-06-11"
+    },
+    {
+      "id": "TG-minister-adluri-laxman-kumar",
+      "state": "TG",
+      "role": "Minister",
+      "person": "Adluri Laxman Kumar",
+      "party": "INC",
+      "start": "2025-06-08",
+      "sources": [
+        "https://www.siasat.com/three-newly-inducted-telangana-ministers-assigned-portfolios-3231874/",
+        "https://deccanchronicle.com/southern-states/telangana/md-azharuddin-gets-public-enterprises-and-minorities-welfare-portfolios-1914731",
+        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers",
+        "https://www.wikidata.org/wiki/Q127429181"
+      ],
+      "wikidata": "Q127429181",
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Dharmapuri",
+      "portfolio": [
+        "SC Development",
+        "Tribal Welfare",
+        "Empowerment of Persons with Disabilities, Senior Citizens & Transgender Persons"
+      ],
+      "portfolioAsOf": "2025-11-04"
+    },
+    {
+      "id": "TG-minister-vakiti-srihari",
+      "state": "TG",
+      "role": "Minister",
+      "person": "Vakiti Srihari",
+      "party": "INC",
+      "start": "2025-06-08",
+      "sources": [
+        "https://www.siasat.com/three-newly-inducted-telangana-ministers-assigned-portfolios-3231874/",
+        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers",
+        "https://www.wikidata.org/wiki/Q127505077"
+      ],
+      "wikidata": "Q127505077",
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "constituency": "Makthal",
+      "portfolio": [
+        "Animal Husbandry, Dairy Development & Fisheries",
+        "Sports & Youth Services"
+      ],
+      "portfolioAsOf": "2025-06-11"
+    },
+    {
+      "id": "TG-minister-azharuddin",
+      "state": "TG",
+      "role": "Minister",
+      "person": "Mohammad Azharuddin",
+      "party": "INC",
+      "start": "2025-10-31",
+      "sources": [
+        "https://deccanchronicle.com/southern-states/telangana/md-azharuddin-gets-public-enterprises-and-minorities-welfare-portfolios-1914731",
+        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "medium",
+      "portfolio": [
+        "Minorities Welfare",
+        "Public Enterprises"
+      ],
+      "portfolioAsOf": "2025-11-04"
     }
   ]
 }

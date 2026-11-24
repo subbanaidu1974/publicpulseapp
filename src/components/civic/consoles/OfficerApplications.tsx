@@ -42,6 +42,7 @@ export default function OfficerApplications() {
     <li key={a.id} data-testid="oq-item" className="border border-black p-2 text-sm space-y-2 break-words">
       <p><strong>{a.fullName}</strong>{a.designation ? `, ${a.designation}` : ""} - {a.department}{a.jurisdiction ? ` @ ${a.jurisdiction}` : ""}</p>
       <p className="text-xs">{a.officialEmail} - {c("c.offq.domainOk")} ({a.emailDomain}) - {c("c.offq.person")}: <span className="font-mono">{a.personId}</span></p>
+      <p data-testid="oq-mail" className="text-xs font-bold">{a.emailConfirmed ? c("c.offq.mailOk") : c("c.offq.mailNo")}</p>
       {!actions && <p data-testid="oq-awaiting">{c("c.offq.awaiting")}</p>}
       {actions && (
         <>
@@ -50,7 +51,7 @@ export default function OfficerApplications() {
           <label className="flex items-start gap-2"><input type="checkbox" data-testid="oq-checked" className="mt-1 w-5 h-5" checked={!!checked[a.id]} onChange={(e) => setChecked({ ...checked, [a.id]: e.target.checked })} /><span>{c("c.offq.checked")}</span></label>
           <Field id={`oq-note-${a.id}`} label={`${c("c.offq.note")} / ${c("c.offq.rejectWhy")}`}><TextInput id={`oq-note-${a.id}`} data-testid="oq-note" maxLength={300} value={note[a.id] ?? ""} onChange={(e) => setNote({ ...note, [a.id]: e.target.value })} /></Field>
           <div className="flex flex-wrap gap-2">
-            <Btn data-testid="oq-verify" disabled={!checked[a.id] || needCode} onClick={() => void run((m) => officersApi.verify(a.id, note[a.id] ?? "", m), "c.offq.verified")}>{c("c.offq.verify")}</Btn>
+            <Btn data-testid="oq-verify" disabled={!checked[a.id] || needCode || !a.emailConfirmed} onClick={() => void run((m) => officersApi.verify(a.id, note[a.id] ?? "", m), "c.offq.verified")}>{c("c.offq.verify")}</Btn>
             <Btn secondary data-testid="oq-reject" disabled={needCode || (note[a.id] ?? "").trim().length < 5} onClick={() => void run((m) => officersApi.reject(a.id, (note[a.id] ?? "").trim(), m), "c.offq.rejected")}>{c("c.offq.reject")}</Btn>
           </div>
         </>

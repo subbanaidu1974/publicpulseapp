@@ -10,6 +10,7 @@ import { isDevKeyProvider, isDevSmsProvider } from "./core";
 import { isDevNumberIntelligence } from "./identity/service";
 import { isDevAttestationVerifier } from "./identity/network";
 import { getSmsGateway } from "./providers/sms";
+import { isDevMailProvider } from "./providers/mail";
 
 export const isProductionEnv = (): boolean => process.env.NODE_ENV === "production" || process.env.CIVIC_ENV === "production";
 
@@ -70,7 +71,9 @@ export function productionProblems(): string[] {
     const missing = gw.registry.unregistered();
     if (missing.length) p.push(`SMS templates without a DLT template id (they would be refused at send time): ${missing.join(", ")} (CIVIC_SMS_TEMPLATES_FILE)`);
   }
+  if (isDevMailProvider()) p.push("dev mail provider is installed (officer e-mail confirmation needs a real one: setMailProvider; no SMTP/API adapter ships in this repository)");
   if (process.env.CIVIC_EXPOSE_DEV_OTP === "1") p.push("CIVIC_EXPOSE_DEV_OTP=1");
+  if (process.env.CIVIC_EXPOSE_DEV_MAIL === "1") p.push("CIVIC_EXPOSE_DEV_MAIL=1");
   if (isDevNumberIntelligence()) p.push("number-intelligence dev fixtures are active (use setNumberIntelligence)");
   if (process.env.CIVIC_ALLOW_DEMO !== "1") {
     const demo = demoProvenance();

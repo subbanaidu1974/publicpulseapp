@@ -21,6 +21,8 @@ function readJson<T>(baseDir: string, rel: string, fallback: T): T {
 export interface OfficeHolder {
   id: string; state: StateCode; role: string; person: string; party: string; start: string;
   sources: string[]; wikidata: string | null; asOf: string; confidence: "high" | "medium" | "low" | "unverified";
+  /** Optional, council-of-ministers records only. Portfolios are as allotted on `portfolioAsOf` (government order date), in the source's order. */
+  constituency?: string; portfolio?: string[]; portfolioAsOf?: string;
 }
 export interface OverlayRecord {
   id: string; state: StateCode; type: ElectionType; acNo: number; kind: "vacancy" | "by-election" | "defection"; status: "confirmed" | "reported";
@@ -248,7 +250,7 @@ export function buildPartyProfile(rows: CandidateResult[], store: PeopleStore, r
       seatsWon: tally[code] ?? 0, totalSeats: seats.length, voteSharePct: share === undefined ? null : Math.round(share * 100) / 100, alliances,
     });
   }
-  const leaders = store.officeHolders.filter(o => o.party === code && !hidden("office-holder", o.id));
+  const leaders = store.officeHolders.filter(o => o.party === code && o.role !== "Minister" && !hidden("office-holder", o.id));
   const media = (kind: "flag" | "symbol") => store.partyMedia[`${code}-${kind}`] ?? null;
   const founded = party.history.find(h => h.event.toLowerCase().includes("found") || h.event.toLowerCase().includes("launch"));
   return {

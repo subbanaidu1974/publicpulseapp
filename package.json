@@ -20,6 +20,7 @@
     "geo:version:check": "tsx scripts/geo-version-check.ts",
     "import:lgd": "tsx scripts/import-lgd.ts",
     "pipeline:lsmap": "tsx pipeline/lsmap/build.ts",
+    "history:build": "tsx scripts/history-build.ts",
     "pipeline:history": "tsx scripts/build-history.ts",
     "pipeline:validate": "tsx scripts/validate-data.ts",
     "pipeline:manifest": "tsx scripts/build-manifest.ts",

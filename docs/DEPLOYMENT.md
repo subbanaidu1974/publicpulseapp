@@ -12,6 +12,7 @@ Scope: running People Pulse (one Node process, SQLite for civic data, static bun
 | Dev SMS provider installed | `setSmsProvider` with a DLT-registered sender. |
 | Number-intelligence dev fixtures active | `setNumberIntelligence` with a real adapter. |
 | `CIVIC_EXPOSE_DEV_OTP=1` | Unset it. |
+| Dev mail provider installed (officer e-mail confirmation) / `CIVIC_EXPOSE_DEV_MAIL=1` | `setMailProvider` with a real adapter (none ships yet; `docs/PROVIDERS.md` 2b); unset the flag. |
 | Demo data provenance in `data/generated` | Run the real data pipeline (`npm run pipeline:all`), or set `CIVIC_ALLOW_DEMO=1` on a staging box only. |
 
 Also required by the code paths, not by the start-up guard: `CIVIC_BACKUP_KEY` (backups refuse to run in production without it), `CIVIC_IVR_WEBHOOK_SECRET` or `CIVIC_IVR_ALLOWED_IPS` (IVR webhooks answer 401 in production without them), and `TRUST_PROXY` when behind a proxy.

@@ -200,11 +200,11 @@
 | S-138 | Civic | WebP and HEIC photo support with EXIF stripping | - | done | E2E-153 | yes |
 | S-139 | Civic | Issue detail page, feed filters by village/mandal/constituency, paginated bulk export | - | done | E2E-154 | yes |
 | S-140 | Civic | Officer/moderator consoles and audited admin role grants with MFA; unify roles tables | - | done | E2E-155 | yes |
-| S-141 | Civic | Verified government officer onboarding (letter and domain check) | - | in_progress | E2E-156 | no (missing: E2E-156) |
+| S-141 | Civic | Verified government officer onboarding (letter and domain check) | - | in_progress | E2E-156 | yes |
 | S-142 | Civic | Moderation lexicon curation workflow, queue UI and false-positive metrics | - | done | E2E-157 | yes |
 | S-143 | Civic | Erasure completeness for all issue tables and a dump-all-tables test | - | done | E2E-158 | yes |
 | S-144 | Civic | Audit log: public redacted view, real external anchor sink, privileged-read calls wired | - | done | E2E-159 | yes |
-| S-145 | Civic | Politician reply role, scheme tags and grievance-system adapter | - | in_progress | E2E-160 | no (missing: E2E-160) |
+| S-145 | Civic | Politician reply role, scheme tags and grievance-system adapter | - | in_progress | E2E-160 | yes |
 | S-146 | Civic | IVR upgrades: recording fetch, full category set, persisted call state, unified lockout | - | done | E2E-161 | yes |
 | S-147 | Civic | Media hardening: encryption at rest, GPS rounding, AV scan, retention alignment | - | done | E2E-162 | yes |
 | S-148 | Civic | Icon-led categories, trust-tier badges, category parity across web and IVR | - | done | E2E-163 | yes |

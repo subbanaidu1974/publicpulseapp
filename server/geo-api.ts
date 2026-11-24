@@ -50,11 +50,14 @@ interface StateGeo {
   villages: { code: string; en: string; te?: string; mandal: string; census: string; category: string }[];
   villageByCode: Map<string, StateGeo["villages"][number]>;
   villagesByMandal: Map<string, StateGeo["villages"]>;
-  acs: { acNo: number; en: string; te?: string; lgd: string; district: string | null; districtShare: number; pcNo: number | null; reservation: string | null; counts: Json; mandals: number[]; villages: number[] }[];
+  acs: { acNo: number; en: string; te?: string; lgd: string; district: string | null; districtShare: number; pcNo: number | null; reservation: string | null; counts: Json; mandals: number[]; villages: number[]; urbanBodies: number[] }[];
   acByNo: Map<number, StateGeo["acs"][number]>;
   /** LGD village code -> acNo, LGD mandal code -> acNos */
   villageAc: Map<string, number>;
   mandalAcs: Map<string, number[]>;
+  /** LGD urban body code -> Census 2011 town code, and how many ACs list the body (more than one = split) */
+  urbanCensus: Map<string, string>;
+  urbanAcCount: Map<string, number>;
   pcs: Map<number, { pcNo: number; en: string | null; te?: string; reservation: string | null }>;
   asOf: string | null;
 }
@@ -93,7 +96,7 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
       state, districts, districtByCode: new Map(districts.map(d => [d.code, d])),
       mandals, mandalByCode: new Map(mandals.map(m => [m.code, m])), mandalsByDistrict: new Map(),
       villages, villageByCode: new Map(villages.map(v => [v.code, v])), villagesByMandal: new Map(),
-      acs: [], acByNo: new Map(), villageAc: new Map(), mandalAcs: new Map(), pcs: new Map(), asOf: lgd.asOf ?? null,
+      acs: [], acByNo: new Map(), villageAc: new Map(), urbanCensus: new Map(((lgd.urbanBodies ?? []) as string[][]).map(u => [String(u[0]), String(u[4])])), urbanAcCount: new Map(), mandalAcs: new Map(), pcs: new Map(), asOf: lgd.asOf ?? null,
     };
     for (const m of mandals) (g.mandalsByDistrict.get(m.district) ?? g.mandalsByDistrict.set(m.district, []).get(m.district)!).push(m);
     for (const v of villages) (g.villagesByMandal.get(v.mandal) ?? g.villagesByMandal.set(v.mandal, []).get(v.mandal)!).push(v);
@@ -103,11 +106,12 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
       const ac = {
         acNo, en: String(u.name), lgd: String(u.lgd), district: u.district ? String(u.district) : null, districtShare: Number(u.districtShare ?? 0),
         pcNo: (l?.pcNo ?? null) as number | null, reservation: (l?.reservation ?? null) as string | null, counts: u.counts ?? {},
-        mandals: (u.mandals ?? []) as number[], villages: (u.villages ?? []) as number[],
+        mandals: (u.mandals ?? []) as number[], villages: (u.villages ?? []) as number[], urbanBodies: (u.urbanBodies ?? []) as number[],
         ...(te("acs", acNo) ? { te: te("acs", acNo) } : {}),
       };
       g.acs.push(ac); g.acByNo.set(acNo, ac);
       for (const v of ac.villages) g.villageAc.set(String(v), acNo);
+      for (const b of new Set(ac.urbanBodies.map(String))) g.urbanAcCount.set(b, (g.urbanAcCount.get(b) ?? 0) + 1);
       for (const m of ac.mandals) (g.mandalAcs.get(String(m)) ?? g.mandalAcs.set(String(m), []).get(String(m)!)!).push(acNo);
     }
     g.acs.sort((a, b) => a.acNo - b.acNo);
@@ -131,6 +135,16 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
     // columns: kind,state,districtCode,subDistrictCode,code,name,households,population,males,females,scPop,stPop
     for (const u of raw.units as Json[][]) if (u[0] === "V") censusUnits.set(`${u[1]}|${u[4]}`, u as number[]);
     return censusUnits;
+  };
+  /** Town rows (kind T) by Census 2011 town code. Kept apart from villages so the rural aggregates stay unchanged. */
+  let censusTowns: Map<string, number[]> | null | undefined;
+  const loadCensusTowns = () => {
+    if (censusTowns !== undefined) return censusTowns;
+    const raw = readJson(path.join(baseDir, "data", "generated", "census-units.json"));
+    if (!raw?.units) return (censusTowns = null);
+    censusTowns = new Map();
+    for (const u of raw.units as Json[][]) if (u[0] === "T") censusTowns.set(`${u[1]}|${u[4]}`, u as number[]);
+    return censusTowns;
   };
   const loadCensusSubs = () => {
     if (censusSubs !== undefined) return censusSubs;
@@ -355,14 +369,17 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
       const v = g.villageByCode.get(code) ?? (code !== "0" ? g.villages.find(x => x.census === code) : undefined);
       if (!v) return err(res, 404, "unknown_place", `No village ${code} in ${g.state}`);
       const m = g.mandalByCode.get(v.mandal)!, d = g.districtByCode.get(m.district)!;
-      const row = v.census !== "0" ? loadCensusUnits()?.get(`${g.state}|${v.census}`) ?? null : null;
+      const rowKey = `${g.state}|${v.census}`;
+      const villageRow = v.census !== "0" ? loadCensusUnits()?.get(rowKey) ?? null : null;
+      const townRow = !villageRow && v.census !== "0" ? loadCensusTowns()?.get(rowKey) ?? null : null;
+      const row = villageRow ?? townRow;
       const acNo = g.villageAc.get(v.code);
       body = {
         level, code: v.code, censusCode: v.census, ...nameOf(v), category: v.category,
         path: [{ level: "state", name: stateName }, { level: "district", code: d.code, ...nameOf(d) }, { level: "mandal", code: m.code, ...nameOf(m) }],
         constituency: acNo ? acRef(acNo) : null,
         location: (() => { const p = villagePoints(g.state)?.get(v.code); return p ? { lon: p.lon, lat: p.lat, confidence: p.confidence, source: p.source, note: VP_NOTE } : null; })(),
-        census: census(row, "village", row ? {
+        census: census(row, townRow ? "town" : "village", row ? {
           population: row[7], households: row[6], males: row[8], females: row[9], scPop: row[10], stPop: row[11],
           scPct: pct(row[10], row[7]), stPct: pct(row[11], row[7]), sexRatio: row[8] ? Math.round((row[9] / row[8]) * 1000) : null,
           ...litFields(literacyOf(row[12], row[13], row[7])),
@@ -481,7 +498,38 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
         const row = v ? cu.get(`${state}|${v.census}`) : undefined;
         if (row) { hit++; pop += row[7]; sc += row[10]; st += row[11]; }
       }
-      return hit ? { basis: "sum of Census 2011 village rows linked to this constituency (rural villages only; towns and urban wards are not included)", villagesWithCensus: hit, villagesTotal: ac.villages.length, population: pop, scPop: sc, stPop: st, scPct: pct(sc, pop), stPct: pct(st, pop) } : null;
+      const lit = (() => {
+        const towns = loadCensusTowns();
+        const seen = new Set<string>();
+        let units = 0, villageUnits = 0, townUnits = 0, popMapped = 0, popLit = 0, literate = 0, pop0to6 = 0, split = 0;
+        const add = (row: number[] | undefined, isSplit: boolean) => {
+          if (!row || seen.has(String(row[4]))) return;
+          seen.add(String(row[4])); units++; popMapped += row[7];
+          if ((row[0] as unknown) === "T") townUnits++; else villageUnits++;
+          if (isSplit) split++;
+          if (typeof row[12] === "number" && typeof row[13] === "number" && row[7] > row[13]) { popLit += row[7]; literate += row[12]; pop0to6 += row[13]; }
+        };
+        for (const vc of ac.villages) {
+          const v = g!.villageByCode.get(String(vc)); if (!v || v.census === "0") continue;
+          add(cu.get(`${state}|${v.census}`) ?? towns?.get(`${state}|${v.census}`), false);
+        }
+        for (const b of new Set(ac.urbanBodies.map(String))) {
+          const code = g!.urbanCensus.get(b); if (!code || code === "0") continue;
+          add(towns?.get(`${state}|${code}`), (g!.urbanAcCount.get(b) ?? 1) > 1);
+        }
+        const denom = popLit - pop0to6;
+        if (!units || denom <= 0) return null;
+        const reasons = ["Villages are assigned to one constituency by the LGD link; wards, outgrowths and census towns without an LGD link are not included."];
+        if (split) reasons.unshift(`${split} urban unit(s) are listed under more than one constituency and are counted here in full, so they overstate this constituency's population.`);
+        if (popLit < popMapped) reasons.push("Units without Primary Census Abstract literacy are left out of the rate, never estimated.");
+        return {
+          approximate: true, basis: "Census 2011 village and town rows mapped to this constituency (units are not split by constituency boundary)",
+          literate, pop0to6, literacyPct: pct(literate, denom), unitsMapped: units, villageUnits, townUnits, splitUnits: split,
+          populationMapped: popMapped, populationWithLiteracy: popLit, literacyCoveragePct: pct(popLit, popMapped), reasons, source: LIT_SOURCE,
+        };
+      })();
+      if (!hit && lit) return { basis: "no Census 2011 village rows are linked to this constituency; see literacy for the town rows mapped to it", villagesWithCensus: 0, villagesTotal: ac.villages.length, population: null, scPop: null, stPop: null, scPct: null, stPct: null, literacy: lit };
+      return hit ? { basis: "sum of Census 2011 village rows linked to this constituency (rural villages only; towns and urban wards are not included)", villagesWithCensus: hit, villagesTotal: ac.villages.length, population: pop, scPop: sc, stPop: st, scPct: pct(sc, pop), stPct: pct(st, pop), literacy: lit } : null;
     })();
     const latest = history[history.length - 1];
     pubCache(res);

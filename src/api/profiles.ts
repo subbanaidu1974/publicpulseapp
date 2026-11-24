@@ -22,12 +22,17 @@ export interface ConstituencyProfileData extends NamePair {
   electors: number | null; electorsYear: number | null;
   /** GE-2024 rolls (not SSR 2025), counts only; null when the ECI file has no row. */
   electorsRoll?: { general: number; nri: number; service: number; male: number; female: number; thirdGender: number; total: number; votesPolledEvm: number; rollYear: number; rollBasis: string; note: string } | null;
-  census: { basis: string; villagesWithCensus: number; villagesTotal: number; population: number; scPop: number; stPop: number; scPct: number | null; stPct: number | null } | null;
+  census: { basis: string; villagesWithCensus: number; villagesTotal: number; population: number | null; scPop: number | null; stPop: number | null; scPct: number | null; stPct: number | null; literacy?: AcLiteracy | null } | null;
   history: HistoryRow[];
   links: { boundary: string; pcBoundary: string; page: string };
   delimitation: string; asOf: string | null; demo: boolean; source?: SourceInfo[];
 }
 
+/** Approximate constituency literacy from whole Census 2011 village and town units (S-84). */
+export interface AcLiteracy {
+  approximate: true; basis: string; literate: number; pop0to6: number; literacyPct: number | null; unitsMapped: number; villageUnits: number; townUnits: number; splitUnits: number;
+  populationMapped: number; populationWithLiteracy: number; literacyCoveragePct: number | null; reasons: string[]; source: string;
+}
 export interface CensusBlock {
   available: boolean; censusYear: number; reason?: string; kind?: string;
   population?: number; households?: number; males?: number; females?: number; scPop?: number; stPop?: number;
