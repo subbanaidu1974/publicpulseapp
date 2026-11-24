@@ -555,7 +555,8 @@
       "tests": [
         "E2E-59"
       ],
-      "phase": "2028-P3"
+      "phase": "2028-P3",
+      "notes": "Design note drafted (docs/ASSISTED_PARTICIPATION.md): scope, roles, flow, data model, controls, go/no-go gate and build plan. Nothing built; needs the owner decision (DESIGN_2028 section 8 question 5), counsel sign-off and a favourable pilot skew report."
     },
     {
       "id": "S-50",
