@@ -59,6 +59,27 @@ else {
       }
       console.log(`geo/mandal-${state}.geojson: ${g.features?.length ?? 0} mandal polygons`);
     }
+    // S-90: village points must be known LGD villages, inside the region, unique across both layers and at or above the threshold.
+    for (const state of ["AP", "TG"] as const) {
+      const lf = resolve(geoDir, `lgd-${state}.json`);
+      const known = existsSync(lf) ? new Set<string>((JSON.parse(readFileSync(lf, "utf8")).villages as (string | number)[][]).map(v => String(v[0]))) : null;
+      const seen = new Set<string>();
+      for (const layer of ["wikidata", "osm"] as const) {
+        const f = resolve(geoDir, `village-points-${layer}-${state}.json`);
+        if (!existsSync(f)) continue;
+        const g = JSON.parse(readFileSync(f, "utf8"));
+        for (const r of (g.points ?? []) as (string | number)[][]) {
+          const [code, , lon, lat, conf] = r;
+          const tag = `geo/village-points-${layer}-${state}.json: ${code}`;
+          if (known && !known.has(String(code))) errors.push(`${tag} is not an LGD village of ${state}`);
+          if (seen.has(String(code))) errors.push(`${tag} appears in more than one layer or twice`);
+          seen.add(String(code));
+          if (!(typeof lon === "number" && typeof lat === "number" && lon >= 76 && lon <= 85 && lat >= 12 && lat <= 20)) errors.push(`${tag} has coordinates outside the AP/TG region`);
+          if (!(Number(conf) >= 0.8)) errors.push(`${tag} has match confidence ${conf} below 0.8`);
+        }
+        console.log(`geo/village-points-${layer}-${state}.json: ${g.points?.length ?? 0} village points`);
+      }
+    }
     // S-92: the boundary version registry must be consistent with the files it lists.
     const reg = loadRegistry(geoDir);
     if (reg) { errors.push(...validateRegistry(reg, geoDir).map(e => `geo/versions.json: ${e}`)); console.log(`geo/versions.json: ${reg.sets.length} boundary set(s)`); }

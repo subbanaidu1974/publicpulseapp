@@ -35,7 +35,7 @@ test.describe("profile pages", () => {
     const prof = page.getByTestId("place-profile");
     await expect(prof).toBeVisible();
     await expect(prof.getByTestId("census-population")).toContainText("2,232");
-    await expect(prof.getByTestId("census-literacy")).toContainText(/not available/i);
+    await expect(prof.getByTestId("census-literacy")).toContainText(/\d+(\.\d+)?%/); // literacy now ingested from the Census PCA (S-84)
     await expect(prof.getByTestId("profile-name-other")).toContainText("కరంజి");
     await expect(prof.getByTestId("constituency-link").first()).toBeVisible();
     await expect(prof.getByTestId("profile-sources")).toContainText(/Census/i);

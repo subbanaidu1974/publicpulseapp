@@ -49,7 +49,7 @@ const wrap = (fn: (req: Request, res: Response) => Promise<void> | void) => asyn
 };
 
 /** Requires a valid TOTP (or recovery) code from the signed-in admin on the request. */
-function requireMfa(req: Request, res: Response, next: NextFunction): void {
+export function requireMfa(req: Request, res: Response, next: NextFunction): void {
   const pid = req.person!.id;
   if (!rateAllow("mfa:" + pid, 10, 15 * 60 * 1000)) return void fail(res, 429, "too many MFA attempts; wait and retry");
   const st = mfaStatus(pid);
@@ -94,6 +94,34 @@ adminRouter.post("/mfa/verify", requireRole("admin"), wrap((req, res) => {
   res.json({ ok: true, mfa: mfaStatus(pid) });
 }));
 
+export class RoleRequestError extends Error {
+  constructor(public status: number, message: string, public extra: Record<string, unknown> = {}) { super(message); }
+}
+/**
+ * The dual-control filing step, shared by the admin API and the officer onboarding queue (server/civic/officers): validates, refuses a
+ * self grant and an identical pending request, stores the pending request and audits it. A DIFFERENT admin must approve it.
+ * The caller has already authenticated the admin and checked the second factor.
+ */
+export function insertRoleRequest(me: string, a: { action: "grant" | "revoke"; personId: string; role: RoleName; jurisdiction: string; department: string; reason: string }): { id: string; status: "pending"; expires_at: string } {
+  const { action, personId, role, jurisdiction, department, reason } = a;
+  if (!ROLE_NAMES.includes(role)) throw new RoleRequestError(400, "unknown role", { roles: ROLE_NAMES });
+  if (action === "grant") { const bad = validateGrantUnit(role, jurisdiction); if (bad) throw new RoleRequestError(400, "invalid jurisdiction for this role", { code: bad }); } // S-40: politician = a constituency; journalist / eci_liaison = state-level
+  const d = getDb();
+  if (!d.prepare("SELECT 1 AS x FROM persons WHERE id = ? AND deleted_at IS NULL").get(personId)) throw new RoleRequestError(404, "person not found");
+  if (action === "grant" && personId === me) throw new RoleRequestError(403, "you cannot request a role for yourself", { code: "self_grant" });
+  expireRequests();
+  if (d.prepare("SELECT 1 AS x FROM role_requests WHERE status = 'pending' AND action = ? AND person_id = ? AND role = ? AND jurisdiction = ?").get(action, personId, role, jurisdiction)) {
+    throw new RoleRequestError(409, "an identical request is already waiting for approval");
+  }
+  const id = crypto.randomUUID();
+  const now = Date.now();
+  const expires = new Date(now + REQUEST_TTL_MS).toISOString();
+  d.prepare("INSERT INTO role_requests (id, action, person_id, role, jurisdiction, department, reason, requested_by, status, created_at, expires_at) VALUES (?,?,?,?,?,?,?,?, 'pending', ?, ?)")
+    .run(id, action, personId, role, jurisdiction, department, reason, me, new Date(now).toISOString(), expires);
+  audit(me, "admin.role_request.create", "person:" + personId, { request: id, action, role, jurisdiction });
+  return { id, status: "pending", expires_at: expires };
+}
+
 adminRouter.get("/roles", requireRole("admin"), wrap((req, res) => {
   const where: string[] = ["p.deleted_at IS NULL"], args: string[] = [];
   const pid = str(req.query.person_id), role = str(req.query.role);
@@ -127,22 +155,9 @@ adminRouter.post(["/roles/requests", "/role-requests"], requireRole("admin"), re
   const action = str(req.body?.action), personId = str(req.body?.person_id), role = str(req.body?.role) as RoleName;
   const jurisdiction = str(req.body?.jurisdiction).slice(0, 64), department = str(req.body?.department).slice(0, 64), reason = str(req.body?.reason).trim();
   if (action !== "grant" && action !== "revoke") return fail(res, 400, "action must be grant or revoke");
-  if (!ROLE_NAMES.includes(role)) return fail(res, 400, "unknown role", { roles: ROLE_NAMES });
   if (reason.length < 5 || reason.length > 300) return fail(res, 400, "reason (5 to 300 characters) is required");
-  if (action === "grant") { const bad = validateGrantUnit(role, jurisdiction); if (bad) return fail(res, 400, "invalid jurisdiction for this role", { code: bad }); } // S-40: politician = a constituency; journalist / eci_liaison = state-level
-  const d = getDb();
-  if (!d.prepare("SELECT 1 AS x FROM persons WHERE id = ? AND deleted_at IS NULL").get(personId)) return fail(res, 404, "person not found");
-  if (action === "grant" && personId === me) return fail(res, 403, "you cannot request a role for yourself", { code: "self_grant" });
-  expireRequests();
-  if (d.prepare("SELECT 1 AS x FROM role_requests WHERE status = 'pending' AND action = ? AND person_id = ? AND role = ? AND jurisdiction = ?").get(action, personId, role, jurisdiction)) {
-    return fail(res, 409, "an identical request is already waiting for approval");
-  }
-  const id = crypto.randomUUID();
-  const now = Date.now();
-  d.prepare("INSERT INTO role_requests (id, action, person_id, role, jurisdiction, department, reason, requested_by, status, created_at, expires_at) VALUES (?,?,?,?,?,?,?,?, 'pending', ?, ?)")
-    .run(id, action, personId, role, jurisdiction, department, reason, me, new Date(now).toISOString(), new Date(now + REQUEST_TTL_MS).toISOString());
-  audit(me, "admin.role_request.create", "person:" + personId, { request: id, action, role, jurisdiction });
-  res.status(201).json({ id, status: "pending", expires_at: new Date(now + REQUEST_TTL_MS).toISOString() });
+  try { res.status(201).json(insertRoleRequest(me, { action, personId, role, jurisdiction, department, reason })); }
+  catch (e) { if (e instanceof RoleRequestError) return fail(res, e.status, e.message, e.extra); throw e; }
 }));
 
 adminRouter.post(["/roles/requests/:id/approve", "/role-requests/:id/approve"], requireRole("admin"), requireMfa, wrap((req, res) => {
@@ -153,6 +168,7 @@ adminRouter.post(["/roles/requests/:id/approve", "/role-requests/:id/approve"], 
   if (r.status === "expired") return fail(res, 410, "request expired", { code: "request_expired" });
   if (r.status !== "pending") return fail(res, 409, `request already ${r.status}`);
   if (r.requested_by === me) { audit(me, "admin.role_request.self_approval_refused", "request:" + r.id, {}); return fail(res, 403, "a different admin must approve this request", { code: "dual_control" }); }
+  if (r.action === "grant" && r.person_id === me) { audit(me, "admin.role_request.self_approval_refused", "request:" + r.id, { subject: "self_grant" }); return fail(res, 403, "you cannot approve a role for yourself", { code: "self_grant" }); }
   try {
     runInTransaction(() => {
       if (r.action === "grant") grantRole(me, r.person_id, r.role as RoleName, r.jurisdiction || null, r.department || null);

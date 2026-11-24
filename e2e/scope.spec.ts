@@ -99,7 +99,12 @@ test.describe('what you can see', () => {
     const totals = await rows.evaluateAll((trs) => trs.map((tr) => Number(tr.children[1].textContent)));
     for (const t of totals) expect(t).toBeGreaterThanOrEqual(30);
     // a masked cell (if any) is listed by name without a count
-    if (await page.getByTestId('issues-masked').count()) await expect(page.getByTestId('issues-masked')).not.toContainText(/\b\d+ reports\b(?!,)/);
+    // (the notice states the threshold itself, "fewer than 30 reports", so what must be free of digits is the part after the colon: the names)
+    if (await page.getByTestId('issues-masked').count()) {
+      const named = (await page.getByTestId('issues-masked').innerText()).split(':').slice(-1)[0];
+      expect(named.trim().length).toBeGreaterThan(0);
+      expect(named).not.toMatch(/\d/);
+    }
   });
 });
 
@@ -113,10 +118,13 @@ test.describe('capabilities per role', () => {
     await expect(page.getByTestId('surveys-same')).toContainText(/No early access/);
     await page.getByTestId('scope-tab-export').click();
     await expect(page.getByTestId('export-same')).toContainText(/Identical to the public/);
+    // Other workers keep reporting issues, which moves the first part of the (newest-first) export between two fetches: bracket the download
+    // with a public fetch on each side; the journalist's bytes must equal the public ones at one of those two instants.
+    const pubBefore = await (await request.get(`${API}/issues/export?format=ndjson`)).text();
     const [dl] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-download').click()]);
     const got = fs.readFileSync(await dl.path(), 'utf8');
-    const pub = await (await request.get(`${API}/issues/export?format=ndjson`)).text();
-    expect(got).toBe(pub);
+    const pubAfter = await (await request.get(`${API}/issues/export?format=ndjson`)).text();
+    expect([pubBefore, pubAfter]).toContain(got);
     await expect(page.getByTestId('export-done')).toHaveAttribute('data-part', '1');
     // the server caps parts at 2 rows in this suite (CIVIC_EXPORT_MAX_ROWS), so there is a next part
     await expect(page.getByTestId('export-done')).toHaveAttribute('data-has-next', '1');

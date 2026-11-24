@@ -86,6 +86,7 @@ async function main() {
   }
   const doc = {
     schema: 1,
+    asOf: [lgd.AP.asOf, lgd.TG.asOf].filter(Boolean).sort().pop() ?? new Date().toISOString().slice(0, 10), // the LGD snapshot the village names come from
     sources: { wikidata: `${WIKIDATA_ENDPOINT} (CC0), ${requests} requests`, lgd: "village/GP/urban-body/block Telugu names are read from lgd-AP.json / lgd-TG.json (nameTe column)" },
     note: "Keys: district and mandal = LGD code, acs = state-specific acNo, pcs = pcNo. Missing key = no Telugu name found (never guessed). qid = Wikidata item of the match.",
     coverage: cov, gaps, names: out, qid,

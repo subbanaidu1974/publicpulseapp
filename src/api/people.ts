@@ -44,7 +44,7 @@ export interface ContestantProfile {
   id: string; name: string; initials: string; party: PartyRef; record: ContestantRecord;
   attributes: { sex: "M" | "F" | "O" | null; age: number | null; incumbent: boolean | null };
   otherElections: ContestantRecord[];
-  links: { label: string; url: string; verified: string | null }[];
+  links: { label: string; labelTe: string; url: string; verified: string | null; external: true }[];
   source: { provenance: string | null; attribution: string };
 }
 export interface ContestantHit { id: string; name: string; party: PartyRef; state: "AP" | "TG"; type: "assembly" | "ls"; year: number; acNo: number; acName: string; position: number }

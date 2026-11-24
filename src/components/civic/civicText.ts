@@ -1,5 +1,6 @@
 import { useT } from "../../i18n";
 import { ISSUE_EN, ISSUE_TE } from "./civicText.issues";
+import { OFFICER_EN, OFFICER_TE } from "./civicText.officers";
 
 const EN = {
   "c.title": "Civic: report and track local issues",
@@ -39,6 +40,7 @@ const EN = {
   "s.pending": "Pending", "s.accepted": "Accepted", "s.dependent": "Dependent",
   "r.spouse": "Spouse", "r.parent": "Parent", "r.son": "Son", "r.daughter": "Daughter", "r.sibling": "Sibling", "r.relative": "Relative", "r.other": "Other", "r.grandchild": "Grandchild", "r.ward": "Ward",
   ...ISSUE_EN,
+  ...OFFICER_EN,
   "c.login.who": "Who is signing in?",
   "c.login.whoHelp": "Several adults use this mobile number. Choose your own name, then enter your own PIN. Nobody can see another person's PIN.",
   "c.login.adult": "Adult",
@@ -205,6 +207,7 @@ const TE: Record<CivicKey, string> = {
   "s.pending": "పెండింగ్", "s.accepted": "అంగీకరించారు", "s.dependent": "ఆధారితుడు",
   "r.spouse": "భార్య/భర్త", "r.parent": "తల్లి/తండ్రి", "r.son": "కొడుకు", "r.daughter": "కూతురు", "r.sibling": "తోబుట్టువు", "r.relative": "బంధువు", "r.other": "ఇతరం", "r.grandchild": "మనవడు/మనవరాలు", "r.ward": "సంరక్షణలో ఉన్నవారు",
   ...ISSUE_TE,
+  ...OFFICER_TE,
   "c.login.who": "ఎవరు లాగిన్ అవుతున్నారు?",
   "c.login.whoHelp": "ఈ మొబైల్ నంబర్‌ను అనేక మంది పెద్దలు వాడుతున్నారు. మీ సొంత పేరు ఎంచుకుని, మీ సొంత PIN ఇవ్వండి. ఎవరి PIN ఇతరులకు కనపడదు.",
   "c.login.adult": "పెద్దవారు",

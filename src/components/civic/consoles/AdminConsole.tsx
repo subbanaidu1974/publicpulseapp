@@ -3,6 +3,7 @@ import { issuesApi } from "../../../api/civic";
 import { useCivicT } from "../civicText";
 import { Btn, ErrorNote, Field, TextInput } from "../ui";
 import JobsStatus from "./JobsStatus";
+import OfficerApplications from "./OfficerApplications";
 import RoleRequests from "./RoleRequests";
 import { Gate, actionError, useGuarded } from "./shared";
 
@@ -50,6 +51,7 @@ export default function AdminConsole({ personId }: { personId?: string }) {
     <section data-testid="admin-console" aria-labelledby="ac-h" className="space-y-6">
       <h3 id="ac-h" className="text-lg font-bold">{c("c.adm.title")}</h3>
       <MfaPanel />
+      <OfficerApplications />
       <RoleRequests me={personId} />
       <JobsStatus />
     </section>

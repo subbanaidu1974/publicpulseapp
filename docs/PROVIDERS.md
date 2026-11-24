@@ -57,6 +57,12 @@ POST CIVIC_SMS_URL     X-Civic-Timestamp, X-Civic-Signature (same scheme, secret
 -> 200 { "message_id": "...", "status": "queued|sent|delivered|failed", "unit_cost": 0.12?, "currency": "INR"? }
 ```
 
+### Generic configurable gateway adapter (`GenericHttpSmsProvider`, `server/civic/providers/smsgeneric.ts`)
+
+A `SmsTransport` for typical Indian DLT gateways (one HTTP POST per message, an auth header, destination/text/sender/DLT template id/DLT entity id in the body, delivery receipts posted back). It is **configuration-driven and has not been run against any real gateway**: it is certified only against the invented simulator `mock/genericSmsServer.ts` through `runSmsProviderContract` (`tests/civic/providers/smsgeneric.test.ts`). No vendor is chosen. Request field names, response paths, receipt body and signature scheme **must be confirmed against the chosen vendor's documentation and sandbox** before use; a vendor whose flow does not fit (OAuth tokens, multi-step submit, XML, GET with query strings) needs its own `SmsTransport`.
+
+Installed by `installProvidersFromEnv()` when `CIVIC_SMSGW_URL` is set and `CIVIC_SMS_URL` is not (and nothing else installed a non-dev provider). Env vars (all in `.env.example`): `CIVIC_SMSGW_URL`, `CIVIC_SMSGW_AUTH_HEADER` (default `Authorization`), `CIVIC_SMSGW_AUTH_VALUE` (secret), `CIVIC_SMSGW_ENTITY_ID`, `CIVIC_SMSGW_FORMAT` (`json`|`form`), `CIVIC_SMSGW_REQUEST_FIELDS`, `CIVIC_SMSGW_STATIC_FIELDS`, `CIVIC_SMSGW_RESPONSE_PATHS`, `CIVIC_SMSGW_RECEIPT_PATHS`, `CIVIC_SMSGW_RECEIPT_SECRET` or `CIVIC_SMSGW_RECEIPT_TOKEN` (+ `_SIG_HEADER` / `_TOKEN_HEADER`), `CIVIC_SMSGW_TIMEOUT_MS`; shared with the neutral adapter: `CIVIC_SMS_TEMPLATES_FILE`, `CIVIC_SMS_SENDER_ID`, `CIVIC_SMS_RECEIPT_URL`, `CIVIC_SMS_MAX_ATTEMPTS`, `CIVIC_SMS_UNIT_COST`, `CIVIC_SMS_DAILY_COST_CAP`. The JSON-valued vars take objects; malformed JSON fails at startup. Receipts arrive at the existing `/api/v1/civic/channels/sms-receipt` route and are authenticated by the adapter (HMAC-SHA256 hex over the raw body, or a static token, constant-time compare); with neither configured every receipt is refused. Retries, dead letters, cost accounting, DLT refusal and the quiet policy are inherited. Production guards: `productionProblems()` flags a missing auth value, no receipt secret/token, a non-https URL, and templates without DLT ids. Unknown vendor status words are treated as "accepted, outcome pending" at submit and ignored in receipts, so a mapping error shows as messages that never reach `delivered`, never as false deliveries. Vendor-reported price (`cost` path) is used when present; otherwise `CIVIC_SMS_UNIT_COST`.
+
 ## 3. KMS/HSM (S-64)
 
 ### Why envelope encryption
@@ -130,6 +136,54 @@ Neutral shape (`CIVIC_NUMINTEL_URL`, secret `CIVIC_NUMINTEL_SECRET`, signed as a
 -> { "line_type": "...", "recycled": bool, "ported_recently": bool, "carrier_circle": "AP"|null,
      "activation_age_days": number|null, "activation_confidence": 0..1|null }
 ```
+
+## 4a. AWS KMS adapter (S-64) and generic HTTP number-intelligence adapter (S-62)
+
+**Status, read this first: neither adapter has been run against a real vendor.** Both pass the contract suites against local simulators written from public API documentation (`mock/awsKmsServer.ts`, `mock/vendorIntelServer.ts`). A simulator proves the adapter's own logic (request shapes, SigV4, error mapping, failure policy), not AWS or any vendor's real behaviour (latency, quotas, key policy, undocumented errors). S-62 and S-64 stay **blocked** until the checklist below is done against real endpoints.
+
+### AWS KMS (`server/civic/providers/awskms.ts`)
+
+`AwsKmsKeyProvider` is an `EnvelopeKeyProvider` over `AwsKmsBackend`: KMS `Encrypt` wraps each locally generated 32-byte data key under the KEK with `EncryptionContext {"aad": "civic-key:<purpose>:<version>"}`, `Decrypt` unwraps it at warm-up/refresh (same context or it fails). `generateDataKey` (KMS `GenerateDataKey`) exists on the backend but the envelope provider does not use it. Requests are `POST` JSON (`application/x-amz-json-1.1`, `X-Amz-Target: TrentService.<Op>`) signed with SigV4 implemented on `node:crypto` (no AWS SDK). Hot paths never call KMS (cache + TTL, fail closed), as for every KMS.
+
+Selection: set `CIVIC_AWS_KMS_KEY_ID` (and not `CIVIC_KMS_URL`). `installProvidersFromEnv` installs it only while the dev key provider is still active; the production guard still refuses the dev stand-in and reports missing region, credentials, a non-https endpoint, or both KMS variables set.
+
+| Variable | Meaning |
+|---|---|
+| `CIVIC_AWS_KMS_KEY_ID` | key id, ARN or alias (the KEK) |
+| `CIVIC_AWS_KMS_REGION` (or `AWS_REGION`) | region |
+| `CIVIC_AWS_KMS_ENDPOINT` | optional override (VPC/FIPS endpoint); https in production |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` | static credentials. No instance-role / SSO / web-identity chain is implemented; a deployment that needs one passes a `credentials` function to `AwsKmsKeyProvider` from its own module and calls `setKeyProvider` |
+| `CIVIC_KMS_TIMEOUT_MS`, `CIVIC_KMS_CACHE_TTL_MS` | shared with the neutral KMS |
+
+Errors: `ThrottlingException`/`LimitExceededException` map to HTTP 429 (retryable, counts toward the 3-failure circuit breaker), `KMSInternalException`/`DependencyTimeoutException`/5xx to 5xx (same), `AccessDeniedException`, `DisabledException`, `NotFoundException`, `InvalidCiphertextException` and other 4xx are permanent and do not trip the breaker. Credentials, key material and numbers are never logged.
+
+Minimal IAM policy for the service principal (key policy must also allow the principal):
+
+```json
+{ "Version": "2012-10-17", "Statement": [ { "Effect": "Allow", "Action": ["kms:Encrypt", "kms:Decrypt"], "Resource": "arn:aws:kms:<region>:<account>:key/<key-id>",
+  "Condition": { "StringEquals": { "kms:EncryptionContext:aad": [] } } } ] }
+```
+
+Drop the `Condition` unless you enumerate the exact contexts (`civic-key:<purpose>:<version>` for every purpose and version, including after rotation); `kms:GenerateDataKey` is only needed if you adopt `generateDataKey`. Use a symmetric `ENCRYPT_DECRYPT` key, enable automatic rotation of the KEK (old ciphertext stays decryptable), and give the break-glass recovery KEK (`CIVIC_KMS_RECOVERY_KEY_ID`) a separate key and policy.
+
+**Certifying against real AWS (a human must do this).** In a sandbox account with a throwaway key: put the variables above in the environment, then run a copy of `tests/civic/providers/awskms.test.ts` whose harness uses the real endpoint instead of `startAwsKmsSim()`: no `endpoint` override, real credentials, `kekId` = your key, and `breakKms()` implemented by swapping in a credentials function that returns a wrong secret (outage) and back. Expect 20+ `Encrypt` calls on first warm-up. Also check CloudTrail shows the `aad` encryption context on every Encrypt/Decrypt and that a disabled key and a revoked grant make warm-up fail (never half-keyed). Record the result in the story.
+
+### Generic HTTP number intelligence (`server/civic/providers/numberintelHttp.ts`)
+
+`GenericHttpNumberIntel` = `ManagedNumberIntel` (failure policy, cache, breaker, hashed logs, all unchanged and covered by the contract suite) over `GenericHttpIntelTransport`: one JSON POST over https with an API key header and a configurable mapping. It does not name or favour any vendor.
+
+Selection: `CIVIC_NUMINTEL_URL` plus `CIVIC_NUMINTEL_API_KEY` (instead of `CIVIC_NUMINTEL_SECRET`), optional `CIVIC_NUMINTEL_MAPPING_FILE` pointing at JSON of this shape (all fields optional; defaults reproduce the neutral shape):
+
+```json
+{ "numberField": "phone_number", "requestIdField": null, "extraBody": {}, "apiKeyHeader": "x-api-key", "apiKeyPrefix": "",
+  "response": { "lineType": "data.carrier.type", "carrierCircle": "data.carrier.circle", "portedRecently": "data.flags.ported", "recycled": "data.flags.recycled",
+                "activationAgeDays": "data.activation.days", "activationConfidence": "data.activation.confidence",
+                "lineTypeMap": { "PREPAID": "mobile_prepaid", "POSTPAID": "mobile_postpaid", "VOIP": "voip", "FIXED": "landline" } } }
+```
+
+Paths are dot paths. Unmapped line types become `unknown`; non-boolean flags become unknown (null); an out-of-range confidence or negative age is dropped rather than trusted. Any HTTP error (401 bad key, 429, 5xx), timeout, non-JSON answer or open circuit yields the contract's failure policy (`risk: "unknown"`, `trust: "reduced"`, sign-up continues). The only personal datum sent is the E.164 number (plus the configured constant fields and optional random request id).
+
+**Vendor-specific mapping must be confirmed against the real vendor's documentation and sandbox before use**, for example for any Indian MNP/number-intelligence provider: the exact field names, what the vendor means by "ported" and "recycled" (a vendor may expose only the current operator/circle, in which case `recycled`/`activationAgeDays` stay null and risk is judged on line type and porting only, so the "recently re-issued" signal may not exist), the line-type vocabulary, authentication scheme (a vendor needing OAuth, request signing or a query-string key needs a small transport rather than this configuration), rate limits, error body format, data-residency and retention terms, and DPDP processor terms (section 6). Then run `numberintelHttp.test.ts` with the simulator replaced by the vendor sandbox.
 
 ## 5. How to implement and certify a vendor adapter
 

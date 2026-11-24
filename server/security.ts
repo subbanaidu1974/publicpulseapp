@@ -1,5 +1,6 @@
 import express from "express";
-import type { Express, Request, RequestHandler, Response, Router } from "express";
+import type { Express, NextFunction, Request, RequestHandler, Response, Router } from "express";
+import { log } from "./obs";
 import crypto from "crypto";
 import zlib from "zlib";
 
@@ -213,6 +214,17 @@ export function buildApiApp(opts: BuildOptions): Express {
   // Removed endpoints answer with a plain 404 (S-51, S-52)
   app.all(["/api/admin", "/api/admin/*", "/api/send-otp"], (_req, res) => {
     res.status(404).json({ error: "Not found" });
+  });
+
+  // Red-team finding (internal self-assessment): a malformed or oversized body made the body parser fall through to express' default
+  // error page, which prints the stack trace and absolute file paths outside production. Answer with JSON and no internals instead.
+  app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
+    if (res.headersSent) return next(err);
+    const e = err as { status?: number; statusCode?: number; type?: string };
+    const status = Number.isInteger(e?.status ?? e?.statusCode) && (e.status ?? e.statusCode)! >= 400 && (e.status ?? e.statusCode)! < 600 ? (e.status ?? e.statusCode)! : 500;
+    const code = status === 413 ? "payload_too_large" : e?.type === "entity.parse.failed" ? "bad_json" : status < 500 ? "bad_request" : "internal_error";
+    if (status >= 500) log.error("unhandled api error", { message: err instanceof Error ? err.message : "unknown" });
+    res.status(status).json({ error: code });
   });
   return app;
 }

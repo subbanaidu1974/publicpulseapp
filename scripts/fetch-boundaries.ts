@@ -69,7 +69,9 @@ async function main() {
     lgdAc: (s, n) => units[s][String(n)]?.lgd,
   });
   const pcs = buildPcFeatures(pcFc);
-  const report: Record<string, any> = { schema: 1, sources: { ac: "DataMeet maps/assembly-constituencies/India_AC.shp (CC BY 2.5 India)", pc: "DataMeet maps/parliamentary-constituencies/india_pc_2019_simplified.geojson (CC0)", reservation: "DataMeet india-election-data/constituencies/2008-constituencies.csv" }, droppedUnnamedPolygons: dropped, reservationConflicts: rec.conflicts, problems: [...meta.errors, ...build.problems, ...pcs.problems], counts: {}, vertices: {} };
+  // asOf = the LGD snapshot the district assignment was read from (else today), like the other geo outputs
+  const asOf: string = (haveLgd ? readJsonFile(join(GEO_OUT, "lgd-AP.json")).asOf : undefined) ?? new Date().toISOString().slice(0, 10);
+  const report: Record<string, any> = { schema: 1, asOf, sources: { ac: "DataMeet maps/assembly-constituencies/India_AC.shp (CC BY 2.5 India)", pc: "DataMeet maps/parliamentary-constituencies/india_pc_2019_simplified.geojson (CC0)", reservation: "DataMeet india-election-data/constituencies/2008-constituencies.csv" }, droppedUnnamedPolygons: dropped, reservationConflicts: rec.conflicts, problems: [...meta.errors, ...build.problems, ...pcs.problems], counts: {}, vertices: {} };
   let failed = false;
   for (const s of ["AP", "TG"] as StateCode[]) {
     const acFc = fc(build.features[s], `ac-${s}`, { generator: "scripts/fetch-boundaries.ts", note: "ECI acNo (state-specific), 2008 delimitation, simplified" });
@@ -101,7 +103,7 @@ async function main() {
   if (haveLgd) {
     const rows = (["AP", "TG"] as StateCode[]).flatMap(s => build.features[s].filter(f => f.properties.districtLgd).map(f => ({
       state: s, acNo: f.properties.acNo, oldName: f.properties.districtPre2014, currentLgd: f.properties.districtLgd, currentName: f.properties.district, share: f.properties.districtShare })));
-    const xw = buildCrosswalk(rows);
+    const xw = { ...buildCrosswalk(rows), asOf };
     writeCompact(join(GEO_OUT, "district-crosswalk.json"), xw, 3);
     report.crosswalk = { vintages: xw.vintages, acsMapped: rows.length };
     console.log(`[fetch-boundaries] crosswalk: AP ${xw.vintages.pre2014.AP}->${xw.vintages.current.AP}, TG ${xw.vintages.pre2014.TG}->${xw.vintages.current.TG} districts (${rows.length} ACs)`);

@@ -119,7 +119,7 @@
       "tests": [
         "E2E-13"
       ],
-      "notes": "Legacy tile-grid map retired in Wave 1; superseded by S-96/S-97 (real choropleth)."
+      "notes": "Retired legacy story, superseded by S-96/S-97 (real choropleth). No work planned; left todo, not counted as done."
     },
     {
       "id": "S-12",
@@ -142,7 +142,7 @@
         "E2E-16",
         "E2E-18"
       ],
-      "notes": "Legacy localStorage survey retired in Wave 1; superseded by Phase 2 surveys (S-28..S-32)."
+      "notes": "Retired legacy story, superseded by Phase 2 surveys (S-28..S-32). No work planned; left todo, not counted as done."
     },
     {
       "id": "S-14",
@@ -544,7 +544,7 @@
         "E2E-58"
       ],
       "phase": "2028-P1",
-      "notes": "Traceability test and red-team scope/pilot skew tooling exist; red-team report, pilot skew report, review sign-off and two approvers do not. Survey credential crypto review is now an additional required item."
+      "notes": "Internal self-assessment pack built (docs/gate/evidence: npm audit now 0 findings, secrets/PII scan, a11y sweep 112/112, red-team self-assessment with 26 new tests, crypto review pack, smoke-scale capacity). All labelled NOT independent. Still needs the independent red-team, pilot skew report, independent crypto review (RFC 9474 vectors not yet run), sign-off and two approvers. Known-flaky e2e specs (issue-feed pagination, scope small cells, notify admin, officer console) were root-caused and fixed; stable under workers=2 with Vite HMR disabled (now set in playwright.config.ts)."
     },
     {
       "id": "S-49",
@@ -729,7 +729,7 @@
       "priority": "P1",
       "wave": "W4",
       "source": "gap-audit: 61",
-      "notes": "Contract, mock server, failure policy and contract suite built; needs a real vendor adapter that passes the suite. Note: some vendors only expose MNP data in India, so a recently-re-issued signal may not exist."
+      "notes": "Generic HTTP number-intelligence adapter (config mapping, failure policy) passes the contract suite against an invented simulator; NOT run against any real vendor. Needs vendor choice, real field mapping, DPDP processor terms."
     },
     {
       "id": "S-63",
@@ -743,7 +743,7 @@
       "priority": "P0",
       "wave": "W4",
       "source": "gap-audit: 92",
-      "notes": "Contract v2, DLT template registry, receipts, retries, cost accounting, mock server and contract suite built; needs a real SMS vendor adapter and DLT template ids."
+      "notes": "Generic HTTP SMS-gateway adapter (DLT fields, receipt auth, retries, cost) passes the contract suite against a simulator; NOT run against a real gateway. Needs vendor, DLT entity/templates, real-handset checks."
     },
     {
       "id": "S-64",
@@ -757,7 +757,7 @@
       "priority": "P0",
       "wave": "W4",
       "source": "gap-audit: 91",
-      "notes": "Envelope encryption, rotation, rehash migration, break-glass, remote KMS provider, mock and contract suite built; needs a real KMS/HSM backend. Identity does not yet use dual-hash lookups, so phone-key rotation must be offline."
+      "notes": "AWS KMS adapter (SigV4 on node:crypto, encryption-context binding) passes the key contract suite against a KMS simulator; NOT run against real AWS; static credentials only. Phone-key rotation online path exists from the earlier round."
     },
     {
       "id": "S-65",
@@ -1016,14 +1016,14 @@
       "epic": "Geo data",
       "title": "Census 2011 PCA ingest at district, mandal and village with LGD census-code crosswalk; remove demo census",
       "agent": "-",
-      "status": "in_progress",
+      "status": "done",
       "tests": [
         "E2E-99"
       ],
       "priority": "P0",
       "wave": "W2",
       "source": "gap-audit: 15",
-      "notes": "Real Census 2011 population for AP+TG villages/towns/mandals ingested; no literacy (needs data.gov.in key, PCA file, or Dataful approval). Licence stated only as Rights: ORGI; human review needed."
+      "notes": "Census 2011 PCA literacy ingested from Census Digital Library: 23/23 districts, 1,101/1,118 mandals, 28,095/28,155 village/town units; 60 towns and 17 mandals left 'not available' (never estimated). Shown on district, mandal and village pages. Constituency-level literacy and town profiles not covered. Licence is only 'Rights: ORGI'; human decision pending."
     },
     {
       "id": "S-85",
@@ -1044,13 +1044,14 @@
       "epic": "Geo data",
       "title": "Electors by AC (CEO PDF parser, SSR 2025) with turnout, NOTA and gender fields in the API",
       "agent": "-",
-      "status": "blocked",
+      "status": "in_progress",
       "tests": [
         "E2E-101"
       ],
       "priority": "P1",
       "wave": "W2",
-      "source": "gap-audit: 16,19"
+      "source": "gap-audit: 16,19",
+      "notes": "Electors by AC for 175 AP + 119 TG ingested from ECI GE-2024 statistical report with totals matching ECI; served at /api/v1/electors/:state and on the constituency page, labelled as 2024 rolls. NOT SSR 2025: CEO AP forbids crawling, CEO Telangana timed out. No separate valid-votes/NOTA columns in this table. Licence undecided."
     },
     {
       "id": "S-87",
@@ -1098,27 +1099,28 @@
       "epic": "Geo data",
       "title": "Village boundary polygons: licence decision (SHRUG is CC BY-NC-SA) or alternative source",
       "agent": "-",
-      "status": "blocked",
+      "status": "in_progress",
       "tests": [
         "E2E-105"
       ],
       "priority": "P2",
       "wave": "W3",
-      "source": "gap-audit: 20"
+      "source": "gap-audit: 20",
+      "notes": "Village POINTS only (no polygons): Wikidata CC0 + OSM ODbL gap fill. AP 87.9% (15,784/17,957), TG 3.5% (395/11,447); OSM pull incomplete (4 AP districts, all TG). SHRUG not used (CC BY-NC-SA). Owner decision needed on polygons licence and counsel on ODbL scope. Route /geo/:state/village-points."
     },
     {
       "id": "S-91",
       "epic": "Geo data",
       "title": "Polling-station reference list (number, name, location only); never ingest electoral-roll PDFs",
       "agent": "-",
-      "status": "in_progress",
+      "status": "blocked",
       "tests": [
         "E2E-106"
       ],
       "priority": "P2",
       "wave": "W3",
       "source": "gap-audit: DESIGN 8",
-      "notes": "Schema, validator, legal guard (rejects voter-level fields), importer and route are built and tested, but NO station data is shipped: CEO/ECI sources were unreachable and need an operator-supplied list and a terms check."
+      "notes": "Schema, validator, legal guard, importer and route built; NO station data: CEO AP forbids crawling, CEO Telangana unreachable, no open list found (attempts logged in docs/data/ELECTORS_AND_STATIONS.md). Needs an operator-supplied list and terms check."
     },
     {
       "id": "S-92",
@@ -1328,7 +1330,7 @@
       "priority": "P1",
       "wave": "W3",
       "source": "gap-audit: DESIGN 5",
-      "notes": "9 office-holder records from Wikipedia infoboxes (medium confidence); party presidents for YSRCP/BRS/INC and TG deputy speaker not yet sourced."
+      "notes": "16 office-holder records (added TG deputy speaker and party presidents), each with two sources and confidence; BRS and AIMIM low confidence. Ministers/cabinet and official-site second sources still missing."
     },
     {
       "id": "S-108",
@@ -1382,7 +1384,8 @@
       ],
       "priority": "P1",
       "wave": "W3",
-      "source": "gap-audit: DESIGN 4"
+      "source": "gap-audit: DESIGN 4",
+      "notes": "Neutral MyNeta and ECI affidavit link-outs (name-built URLs, EN/TE, no fetching) built with ADR and an unsent consent-request draft. Stays in progress until written consent exists for any bulk use."
     },
     {
       "id": "S-112",
@@ -1776,13 +1779,14 @@
       "epic": "Civic",
       "title": "Verified government officer onboarding (letter and domain check)",
       "agent": "-",
-      "status": "blocked",
+      "status": "in_progress",
       "tests": [
         "E2E-156"
       ],
       "priority": "P1",
       "wave": "W4",
-      "source": "gap-audit: 35"
+      "source": "gap-audit: 35",
+      "notes": "Officer application, domain allow-list, letter upload, two-admin approval and scoped role grant built with EN/TE screens and tests. Human steps: sign off domain list and letter checklist, email-ownership proof, PDF handling, browser journey E2E-156 not written, native Telugu review."
     },
     {
       "id": "S-142",
@@ -1828,13 +1832,14 @@
       "epic": "Civic",
       "title": "Politician reply role, scheme tags and grievance-system adapter",
       "agent": "-",
-      "status": "blocked",
+      "status": "in_progress",
       "tests": [
         "E2E-160"
       ],
       "priority": "P2",
       "wave": "W4",
-      "source": "gap-audit: 53"
+      "source": "gap-audit: 53",
+      "notes": "Politician reply role built: one labelled append-only thread per issue, scheme tags, moderation hold, grievance-adapter contract with mock (501 without adapter). Human steps: who verifies elected members, legal review, real department agreement, browser journey E2E-160 not written."
     },
     {
       "id": "S-146",
@@ -1914,7 +1919,7 @@
       "priority": "P1",
       "wave": "W5",
       "source": "gap-audit: 126",
-      "notes": "Recording scripts for 13 prompts and a recording guide are ready; needs a linguist and recorded audio per dialect. IVR has no dialect selector yet."
+      "notes": "Recording scripts ready; IVR dialect selector (standard/coastal/rayalaseema/telangana) with reviewed-asset fallback and missing-recordings report built. Needs a linguist and recorded audio per dialect; no spoken dialect menu yet."
     },
     {
       "id": "S-152",
@@ -1942,7 +1947,7 @@
       "priority": "P0",
       "wave": "W5",
       "source": "gap-audit: 102",
-      "notes": "Tooling built (npm run gate:status, per-row evidence folders, red-team scope, pilot skew tool). All 18 gate rows still need human owners, dates and evidence; release stays blocked."
+      "notes": "Tooling plus internal evidence exist (see S-48). All 18 gate rows still need human owners, dates and sign-off; gate:status shows 0 of 18 done, release stays blocked."
     },
     {
       "id": "S-154",

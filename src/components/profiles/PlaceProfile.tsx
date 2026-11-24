@@ -69,6 +69,8 @@ export default function PlaceProfile({ state, level, code }: { state: StateCode;
               <Stat label={t("prof.sexRatio")} value={num(c.sexRatio, na)} />
               <Stat label={t("cs.literacy")} value={typeof c.literacyPct === "number" ? pctText(c.literacyPct, na) : t("prof.notAvailable")} testId="census-literacy" />
             </dl>
+            {typeof c.literate === "number" && <p className="text-[10px] text-slate-600" data-testid="census-literate">{num(c.literate, na)} {t("prof.literateCount")}: {num(c.pop0to6, na)}</p>}
+            {typeof c.literacyPct !== "number" && c.literacyNote && <p className="text-[10px] text-slate-600" data-testid="census-literacy-note">{c.literacyNote}</p>}
             <p className="text-[10px] text-slate-600">{t("cs.censusSource")} {c.censusYear}.</p>
           </>
         ) : <p className="text-xs font-sans" data-testid="census-unavailable">{t("prof.noCensus")}</p>}

@@ -1,5 +1,6 @@
 {
 "schema":1,
+"asOf":"2026-11-22",
 "sources":{
 "ac":"DataMeet maps/assembly-constituencies/India_AC.shp (CC BY 2.5 India)",
 "pc":"DataMeet maps/parliamentary-constituencies/india_pc_2019_simplified.geojson (CC0)",

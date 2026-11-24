@@ -54,12 +54,19 @@ Columns are the routes under `/api/v1/civic/scope`: `me` = `GET /me`, `issues_su
 - **Read-only.** The scope router answers `405` to anything but GET and HEAD. The ECI liaison holds no admin role, so every mutating admin route answers 403.
 - **Audit.** Denials and aggregate reads are in the hash-chained audit log; the audit summary returns the head, anchors, job health and block-log counts with no actor ids.
 
+## How the officer and politician roles are obtained
+
+Both go through the dual-control admin API; nobody applies their way into a role without two admins.
+
+* **officer** (S-141, `docs/OFFICERS.md`): a person applies with an official e-mail (automated domain allow-list check) and a posting letter (checked by a human admin). The first admin's verification files the grant request, a different admin approves it, and the role carries the department and area. A self grant or self approval is refused.
+* **politician** (S-145, `docs/REPRESENTATIVES.md`): granted directly by two admins with a constituency. The holder may post one clearly labelled, append-only reply per issue in that constituency, tagged with up to three registered schemes. Replies are moderated like reports, are never ranked, and the optional forwarding to a grievance system goes through an adapter contract (mock only in this repository).
+
 ## Per role
 
 | Role | Scope | Notes |
 |---|---|---|
-| politician | own constituency only | own geography; cannot read another constituency (403). No notifications, no individuals. |
-| officer | own jurisdiction and department | other department or outside jurisdiction is 403. |
+| politician | own constituency only | own geography; cannot read another constituency (403). No notifications, no individuals. May post one labelled official reply per issue in the constituency (docs/REPRESENTATIVES.md). |
+| officer | own jurisdiction and department | other department or outside jurisdiction is 403. Obtained by verified onboarding (docs/OFFICERS.md). |
 | journalist | state-level, read-only | the same open data as everyone; bulk feed through `/scope/export` or the public export. |
 | eci_liaison | state-level, read-only | integrity and audit dashboards only; no platform controls. |
 | admin | state-level | operates the platform; reads no individual answers. |

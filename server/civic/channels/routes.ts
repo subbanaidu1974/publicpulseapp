@@ -17,6 +17,7 @@ import type { Request, Response } from "express";
 import { audit, createSession, getSms } from "../core";
 import { MediaError, storeMedia, voiceMaxBytes } from "../issues/media";
 import { IVR_CATEGORY_DIGITS, ivrCategoryPrompt } from "../issues/categories";
+import { defaultDialect, normalizeDialect, resolveAudio, ttsFallbackEnabled, type AudioFallback, type Dialect } from "./dialect";
 import { sqliteCallStore, type Call, type CallStore, type IvrState } from "./callstore";
 import { createWebhookAuth, webhookAuthConfigured } from "./webhook";
 import { ivrSurveyStep, isSurveyIntent, type IvrSurveyStep } from "../surveys/assisted";
@@ -25,7 +26,7 @@ import { checkPin, getPerson, personsOnPhone, rateAllow, type PinResult } from "
 export type { IvrState };
 export type IvrExpect = "digit" | "recording" | "none";
 
-export interface IvrPrompt { id: string; audioKey: string; textTe: string; textEn: string }
+export interface IvrPrompt { id: string; audioKey: string; textTe: string; textEn: string; /** dialect actually used for audioKey */ dialect?: Dialect; /** "standard": a dialect was requested but is not recorded/reviewed, so the standard key is used */ fallback?: AudioFallback; /** no reviewed recording exists at all (text-to-speech candidate) */ tts?: boolean }
 export interface IvrReply {
   callId: string;
   state: IvrState;
@@ -81,7 +82,7 @@ export const PROMPTS: Record<string, { textTe: string; textEn: string }> = {
 /** Key pressed -> category id; the same nine categories as the web app (S-148). */
 export const CATEGORIES: Record<string, string> = IVR_CATEGORY_DIGITS;
 
-const prompt = (id: string): IvrPrompt => ({ id, audioKey: `audio/te/${id}.wav`, ...PROMPTS[id] });
+const prompt = (id: string, dialect: Dialect = "standard"): IvrPrompt => { const a = resolveAudio(id, dialect); return { id, audioKey: a.audioKey, ...PROMPTS[id], dialect: a.dialect, fallback: a.fallback, tts: a.tts }; };
 
 const PIN_RE = /^\d{4,6}$/;
 /** S-56: PIN is required for every caller unless explicitly disabled with CIVIC_IVR_PIN_ALWAYS=0 (default on). */
@@ -132,7 +133,8 @@ const normPhone = (p: unknown): string | null => {
 };
 
 function renderXml(reply: Omit<IvrReply, "xml">): string {
-  const body = reply.prompts.map((p) => `<Play src="${p.audioKey}" id="${p.id}"/>`).join("");
+  const xmlEsc = (s: string) => s.replace(/[<>&"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "\"": "&quot;" })[c]!);
+  const body = reply.prompts.map((p) => (p.tts && ttsFallbackEnabled() ? `<Say language="te-IN" id="${p.id}">${xmlEsc(p.textTe)}</Say>` : `<Play src="${p.audioKey}" id="${p.id}"/>`)).join("");
   const input = reply.sensitive ? `<Gather numDigits="6" finishOnKey="#" timeout="12" secret="true">${body}</Gather>`
     : reply.expect === "digit" ? `<Gather numDigits="1" timeout="6">${body}</Gather>`
     : reply.expect === "recording" ? `${body}<Record maxLength="60" finishOnKey="#"/>` : `${body}<Hangup/>`;
@@ -211,7 +213,7 @@ export function createChannelsRouter(deps: ChannelDeps = defaultDeps(), opts: { 
 
   const reply = (c: Call, state: IvrState, expect: IvrExpect, ids: string[], extra: Partial<IvrReply> = {}): IvrReply => {
     c.state = state;
-    const base = { callId: c.callId, state, expect, prompts: ids.map(prompt), ...extra };
+    const base = { callId: c.callId, state, expect, prompts: ids.map((i) => prompt(i, c.dialect)), ...extra };
     return { ...base, xml: renderXml(base) };
   };
 
@@ -224,7 +226,7 @@ export function createChannelsRouter(deps: ChannelDeps = defaultDeps(), opts: { 
       const opts = (l: "te" | "en") => scale ? (l === "te" ? "1 నుండి 5 వరకు నొక్కండి: 1 తక్కువ, 5 ఎక్కువ" : "Press 1 to 5, where 1 is lowest and 5 is highest")
         : q.digits.map((d) => (l === "te" ? (d.label_te ?? d.label_en) : d.label_en) + " " + d.digit).join(", ");
       const dyn: IvrPrompt = { id: "survey_q", audioKey: "audio/te/survey_q.wav", textEn: `${q.text_en} ${opts("en")}.`, textTe: `${q.text_te ?? q.text_en} ${opts("te")}.` };
-      const lead = step.notice ? [prompt("survey_notice")] : [];
+      const lead = step.notice ? [prompt("survey_notice", c.dialect)] : [];
       return reply(c, "survey", "digit", [], { prompts: [...lead, dyn] });
     }
     safeAudit("ivr_survey_assisted", c.callId, { result: step.kind });
@@ -248,7 +250,9 @@ export function createChannelsRouter(deps: ChannelDeps = defaultDeps(), opts: { 
     if (agg !== undefined && !(typeof agg === "string" && AGG_ID_RE.test(agg))) return void res.status(400).json({ error: "invalid_aggregator_call_id" });
     if (typeof agg === "string" && store.has(agg, deps.now())) return void res.status(409).json({ error: "duplicate_call" });
     const callId = typeof agg === "string" ? agg : `c${deps.now().toString(36)}${(++seq).toString(36)}`;
-    store.put({ callId, phone, state: "welcome", createdAt: deps.now(), turns: 0 });
+    const dialect = req.body?.dialect === undefined ? defaultDialect() : normalizeDialect(req.body.dialect);
+    if (!dialect) return void res.status(400).json({ error: "invalid_dialect" });
+    store.put({ callId, phone, state: "welcome", createdAt: deps.now(), turns: 0, dialect });
     safeAudit("missed_call", callId);
     // The adapter dials back; the callback is free to the citizen. No OTP, no SMS is sent at this stage.
     res.status(202).json({ status: "callback_queued", callId, callbackTo: `${phone.slice(0, 2)}******${phone.slice(-2)}` });
@@ -262,6 +266,7 @@ export function createChannelsRouter(deps: ChannelDeps = defaultDeps(), opts: { 
     const sendJson = res.json.bind(res);
     res.json = ((b: unknown) => { if (!dead.has(c.callId)) store.put(c); dead.delete(c.callId); return sendJson(b); }) as typeof res.json; // persist the new state before the reply leaves
     if (++c.turns > MAX_TURNS) { drop(callId); return void res.json(reply(c, "goodbye", "none", ["goodbye"])); }
+    if (req.body?.dialect !== undefined) { const d = normalizeDialect(req.body.dialect); if (!d) return void res.status(400).json({ error: "invalid_dialect" }); c.dialect = d; }
     const digits = typeof req.body?.digits === "string" ? req.body.digits.slice(0, 8) : undefined;
     const recording = typeof req.body?.recording === "string" ? req.body.recording : undefined;
 

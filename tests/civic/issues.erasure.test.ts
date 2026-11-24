@@ -2,7 +2,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { STORE_NAMES, audit, createSession, getDb, getStore, migrate, resetDbForTests, verifyAuditChain, type StoreName } from "../../server/civic/core";
+import { STORE_NAMES, audit, createSession, grantRole as grantCoreRole, getDb, getStore, migrate, resetDbForTests, verifyAuditChain, type StoreName } from "../../server/civic/core";
 import { pseudonymsOf, reporterPseudonym } from "../../server/civic/core/pseudonyms";
 import { loadDemoGeo } from "../../server/civic/geo/service";
 import { createPerson, deleteAccount } from "../../server/civic/identity/service";
@@ -11,6 +11,7 @@ import { proposeChange, reviewChange } from "../../server/civic/issues/curation"
 import { resetLexiconCache } from "../../server/civic/issues/moderation";
 import { setMediaScanner, storeMedia } from "../../server/civic/issues/media";
 import { sqliteCallStore } from "../../server/civic/channels/callstore";
+import { MockGrievanceAdapter, forwardToGrievance, postReply, setGrievanceAdapter } from "../../server/civic/representatives";
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "civic-erase-"));
 process.env.CIVIC_MEDIA_DIR = path.join(tmp, "media");
@@ -85,6 +86,12 @@ describe("erasure completeness (S-143)", () => {
     reviewChange(id, p3.id, "reject", T0);
     // IVR call state naming the person (and a shared-SIM neighbour)
     sqliteCallStore.put({ callId: "call-erase-1", phone: "9876522222", state: "pin", createdAt: Date.now(), turns: 1, adults: [id, "someone-else"], personId: id, needsPin: true });
+    // S-145: the victim is also a representative who replied on an issue and forwarded it to the (mock) grievance system
+    grantCoreRole("system", id, "politician", "DEMO-C-TNL");
+    postReply(id, other.id, { text: "We have asked the department to look into the transformer problem this week." }, T0);   // rep_reply.author_id
+    setGrievanceAdapter(new MockGrievanceAdapter());
+    await forwardToGrievance(id, other.id, T0);                                                                              // grievance_link.requested_by
+    setGrievanceAdapter(null);
     audit(id, "custom.action", `person:${id}`, { note: "x" });
     void mine; void other;
 
@@ -95,7 +102,7 @@ describe("erasure completeness (S-143)", () => {
     const pseudonyms = pseudonymsOf(id);
     expect(pseudonyms.length).toBeGreaterThan(4);
     const before = tablesWithAny(pseudonyms, ["issues"]);
-    const personTables = ["issue", "issue_me_too", "issue_sample", "issue_appeal", "issue_media", "officer_rebuttal", "moderation_action", "lexicon_change", "ivr_call"];
+    const personTables = ["issue", "issue_me_too", "issue_sample", "issue_appeal", "issue_media", "officer_rebuttal", "moderation_action", "lexicon_change", "ivr_call", "rep_reply", "grievance_link"];
     for (const t of personTables) expect(before, `table ${t} should hold a pseudonym of the person before erasure`).toContain(t);
     const issueTables = (getStore("issues").prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all() as { name: string }[]).map((r) => r.name);
     for (const t of issueTables) if (!["issue_event", "migrations", "admin_unit", "hamlet", "village_constituency"].includes(t)) expect(personTables, `new table ${t} needs a row in this test and an erasure hook`).toContain(t);
@@ -104,7 +111,7 @@ describe("erasure completeness (S-143)", () => {
 
     // -- delete the account --
     const out = deleteAccount(id);
-    for (const h of ["issue_media", "issues.reporter", "issues.me_too", "issues.samples", "issues.appeals", "issues.officer", "issues.moderation", "channels.ivr_call"]) expect(out.hooks).toContain(h);
+    for (const h of ["issue_media", "issues.reporter", "issues.me_too", "issues.samples", "issues.appeals", "issues.officer", "issues.moderation", "issues.rep_reply", "channels.ivr_call"]) expect(out.hooks).toContain(h);
 
     // -- dump every table and column --
     const leaks: Record<string, string[]> = {};

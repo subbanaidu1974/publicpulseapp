@@ -15,9 +15,9 @@ export function AnalyticsLinks() {
     <nav data-testid="analytics-links" aria-label={a("an2.title")} className="mb-6 border border-black p-3 font-sans text-xs space-y-1">
       <strong className="block uppercase tracking-widest text-[10px]">{a("an2.title")}</strong>
       <ul className="list-disc pl-5">
-        <li><a className="underline" data-testid="link-turnout" href={analyticsHref("turnout")}>{a("an2.link.turnout")}</a></li>
-        <li><a className="underline" data-testid="link-compare" href={analyticsHref("compare")}>{a("an2.link.compare")}</a></li>
-        <li><a className="underline" data-testid="link-history" href={analyticsHref("history")}>{a("an2.link.history")}</a></li>
+        <li><a className="underline inline-block py-1" data-testid="link-turnout" href={analyticsHref("turnout")}>{a("an2.link.turnout")}</a></li>
+        <li><a className="underline inline-block py-1" data-testid="link-compare" href={analyticsHref("compare")}>{a("an2.link.compare")}</a></li>
+        <li><a className="underline inline-block py-1" data-testid="link-history" href={analyticsHref("history")}>{a("an2.link.history")}</a></li>
       </ul>
     </nav>
   );

@@ -1,52 +1,268 @@
 {
   "schema": 1,
-  "asOf": "2026-11-22",
-  "note": "Office/role facts only (role, name, party, start date). No biography, family, caste/religion, contact details or date of birth are published. Every record cites >= 2 source URLs and was read from English Wikipedia (infobox term_start fields) on 2026-11-22; official government sites were NOT read, so confidence is 'medium' (secondary sources) and dates are as stated by those pages. Re-verify against the official sites before launch. Records carry no end date because each was the current holder on the read date.",
+  "asOf": "2026-11-24",
+  "note": "Office/role facts only (role, name, party, start date). No biography, family, caste/religion, contact details or date of birth are published. Every record cites >= 2 source URLs and was read from English Wikipedia (infobox term_start fields) on 2026-11-22; official government sites were NOT read (the 2026-11-24 additions cite news reports instead: Business Standard, Deccan Herald, Deccan Chronicle, TheNewsMinute, All India Radio), so confidence is 'medium' (secondary sources) and dates are as stated by those pages. Re-verify against the official sites before launch. Records carry no end date because each was the current holder on the read date.",
   "records": [
     {
-      "id": "AP-cm", "state": "AP", "role": "Chief Minister", "person": "N. Chandrababu Naidu", "party": "TDP", "start": "2024-06-12",
-      "sources": ["https://en.wikipedia.org/wiki/N._Chandrababu_Naidu", "https://en.wikipedia.org/wiki/Chief_Minister_of_Andhra_Pradesh", "https://www.wikidata.org/wiki/Q3518013"],
-      "wikidata": "Q3518013", "asOf": "2026-11-22", "confidence": "medium"
+      "id": "AP-cm",
+      "state": "AP",
+      "role": "Chief Minister",
+      "person": "N. Chandrababu Naidu",
+      "party": "TDP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/N._Chandrababu_Naidu",
+        "https://en.wikipedia.org/wiki/Chief_Minister_of_Andhra_Pradesh",
+        "https://www.wikidata.org/wiki/Q3518013"
+      ],
+      "wikidata": "Q3518013",
+      "asOf": "2026-11-22",
+      "confidence": "medium"
     },
     {
-      "id": "AP-deputy-cm", "state": "AP", "role": "Deputy Chief Minister", "person": "Pawan Kalyan", "party": "JSP", "start": "2024-06-12",
-      "sources": ["https://en.wikipedia.org/wiki/Pawan_Kalyan", "https://en.wikipedia.org/wiki/Deputy_Chief_Minister_of_Andhra_Pradesh", "https://www.wikidata.org/wiki/Q6067643"],
-      "wikidata": "Q6067643", "asOf": "2026-11-22", "confidence": "medium"
+      "id": "AP-deputy-cm",
+      "state": "AP",
+      "role": "Deputy Chief Minister",
+      "person": "Pawan Kalyan",
+      "party": "JSP",
+      "start": "2024-06-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Pawan_Kalyan",
+        "https://en.wikipedia.org/wiki/Deputy_Chief_Minister_of_Andhra_Pradesh",
+        "https://www.wikidata.org/wiki/Q6067643"
+      ],
+      "wikidata": "Q6067643",
+      "asOf": "2026-11-22",
+      "confidence": "medium"
     },
     {
-      "id": "AP-speaker", "state": "AP", "role": "Speaker of the Legislative Assembly", "person": "Chintakayala Ayyanna Patrudu", "party": "TDP", "start": "2024-06-22",
-      "sources": ["https://en.wikipedia.org/wiki/Chintakayala_Ayyanna_Patrudu", "https://en.wikipedia.org/wiki/List_of_speakers_of_the_Andhra_Pradesh_Legislative_Assembly"],
-      "wikidata": null, "asOf": "2026-11-22", "confidence": "medium"
+      "id": "AP-speaker",
+      "state": "AP",
+      "role": "Speaker of the Legislative Assembly",
+      "person": "Chintakayala Ayyanna Patrudu",
+      "party": "TDP",
+      "start": "2024-06-22",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Chintakayala_Ayyanna_Patrudu",
+        "https://en.wikipedia.org/wiki/List_of_speakers_of_the_Andhra_Pradesh_Legislative_Assembly"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-22",
+      "confidence": "medium"
     },
     {
-      "id": "AP-deputy-speaker", "state": "AP", "role": "Deputy Speaker of the Legislative Assembly", "person": "Raghu Rama Krishna Raju", "party": "TDP", "start": "2024-11-14",
-      "sources": ["https://en.wikipedia.org/wiki/Raghu_Rama_Krishna_Raju", "https://en.wikipedia.org/wiki/List_of_speakers_of_the_Andhra_Pradesh_Legislative_Assembly"],
-      "wikidata": null, "asOf": "2026-11-22", "confidence": "medium"
+      "id": "AP-deputy-speaker",
+      "state": "AP",
+      "role": "Deputy Speaker of the Legislative Assembly",
+      "person": "Raghu Rama Krishna Raju",
+      "party": "TDP",
+      "start": "2024-11-14",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Raghu_Rama_Krishna_Raju",
+        "https://en.wikipedia.org/wiki/List_of_speakers_of_the_Andhra_Pradesh_Legislative_Assembly"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-22",
+      "confidence": "medium"
     },
     {
-      "id": "TG-cm", "state": "TG", "role": "Chief Minister", "person": "A. Revanth Reddy", "party": "INC", "start": "2023-12-07",
-      "sources": ["https://en.wikipedia.org/wiki/Revanth_Reddy", "https://en.wikipedia.org/wiki/Chief_Minister_of_Telangana", "https://www.wikidata.org/wiki/Q7317733"],
-      "wikidata": "Q7317733", "asOf": "2026-11-22", "confidence": "medium"
+      "id": "TG-cm",
+      "state": "TG",
+      "role": "Chief Minister",
+      "person": "A. Revanth Reddy",
+      "party": "INC",
+      "start": "2023-12-07",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Revanth_Reddy",
+        "https://en.wikipedia.org/wiki/Chief_Minister_of_Telangana",
+        "https://www.wikidata.org/wiki/Q7317733"
+      ],
+      "wikidata": "Q7317733",
+      "asOf": "2026-11-22",
+      "confidence": "medium"
     },
     {
-      "id": "TG-deputy-cm", "state": "TG", "role": "Deputy Chief Minister", "person": "Mallu Bhatti Vikramarka", "party": "INC", "start": "2023-12-07",
-      "sources": ["https://en.wikipedia.org/wiki/Mallu_Bhatti_Vikramarka", "https://en.wikipedia.org/wiki/List_of_deputy_chief_ministers_of_Telangana", "https://www.wikidata.org/wiki/Q6744315"],
-      "wikidata": "Q6744315", "asOf": "2026-11-22", "confidence": "medium"
+      "id": "TG-deputy-cm",
+      "state": "TG",
+      "role": "Deputy Chief Minister",
+      "person": "Mallu Bhatti Vikramarka",
+      "party": "INC",
+      "start": "2023-12-07",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Mallu_Bhatti_Vikramarka",
+        "https://en.wikipedia.org/wiki/List_of_deputy_chief_ministers_of_Telangana",
+        "https://www.wikidata.org/wiki/Q6744315"
+      ],
+      "wikidata": "Q6744315",
+      "asOf": "2026-11-22",
+      "confidence": "medium"
     },
     {
-      "id": "TG-speaker", "state": "TG", "role": "Speaker of the Legislative Assembly", "person": "Gaddam Prasad Kumar", "party": "INC", "start": "2023-12-14",
-      "sources": ["https://en.wikipedia.org/wiki/Gaddam_Prasad_Kumar", "https://en.wikipedia.org/wiki/List_of_speakers_of_the_Telangana_Legislative_Assembly"],
-      "wikidata": null, "asOf": "2026-11-22", "confidence": "medium"
+      "id": "TG-speaker",
+      "state": "TG",
+      "role": "Speaker of the Legislative Assembly",
+      "person": "Gaddam Prasad Kumar",
+      "party": "INC",
+      "start": "2023-12-14",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Gaddam_Prasad_Kumar",
+        "https://en.wikipedia.org/wiki/List_of_speakers_of_the_Telangana_Legislative_Assembly"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-22",
+      "confidence": "medium"
     },
     {
-      "id": "TDP-president", "state": "AP", "role": "National President (party)", "person": "N. Chandrababu Naidu", "party": "TDP", "start": "2015-05-29",
-      "sources": ["https://en.wikipedia.org/wiki/N._Chandrababu_Naidu", "https://en.wikipedia.org/wiki/Telugu_Desam_Party", "https://www.wikidata.org/wiki/Q3518013"],
-      "wikidata": "Q3518013", "asOf": "2026-11-22", "confidence": "medium"
+      "id": "TDP-president",
+      "state": "AP",
+      "role": "National President (party)",
+      "person": "N. Chandrababu Naidu",
+      "party": "TDP",
+      "start": "2015-05-29",
+      "sources": [
+        "https://en.wikipedia.org/wiki/N._Chandrababu_Naidu",
+        "https://en.wikipedia.org/wiki/Telugu_Desam_Party",
+        "https://www.wikidata.org/wiki/Q3518013"
+      ],
+      "wikidata": "Q3518013",
+      "asOf": "2026-11-22",
+      "confidence": "medium"
     },
     {
-      "id": "JSP-president", "state": "AP", "role": "President (party)", "person": "Pawan Kalyan", "party": "JSP", "start": "2014-09-14",
-      "sources": ["https://en.wikipedia.org/wiki/Pawan_Kalyan", "https://en.wikipedia.org/wiki/Janasena_Party", "https://www.wikidata.org/wiki/Q6067643"],
-      "wikidata": "Q6067643", "asOf": "2026-11-22", "confidence": "medium"
+      "id": "JSP-president",
+      "state": "AP",
+      "role": "President (party)",
+      "person": "Pawan Kalyan",
+      "party": "JSP",
+      "start": "2014-09-14",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Pawan_Kalyan",
+        "https://en.wikipedia.org/wiki/Janasena_Party",
+        "https://www.wikidata.org/wiki/Q6067643"
+      ],
+      "wikidata": "Q6067643",
+      "asOf": "2026-11-22",
+      "confidence": "medium"
+    },
+    {
+      "id": "TG-deputy-speaker",
+      "state": "TG",
+      "role": "Deputy Speaker of the Legislative Assembly",
+      "person": "Jatoth Ram Chander Naik",
+      "party": "INC",
+      "start": "2025-06-08",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Jatoth_Ram_Chander_Naik",
+        "https://deccanchronicle.com/southern-states/telangana/dornakal-mla-naik-appointed-deputy-speaker-1884130"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "medium"
+    },
+    {
+      "id": "YSRCP-president",
+      "state": "AP",
+      "role": "President (party)",
+      "person": "Y. S. Jagan Mohan Reddy",
+      "party": "YSRCP",
+      "start": "2011-03-12",
+      "sources": [
+        "https://en.wikipedia.org/wiki/YSR_Congress_Party",
+        "https://www.thenewsminute.com/article/jagan-mohan-reddy-elected-lifetime-president-ysrcp-165700"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "medium"
+    },
+    {
+      "id": "BRS-president",
+      "state": "TG",
+      "role": "President (party)",
+      "person": "K. Chandrashekar Rao",
+      "party": "BRS",
+      "start": "2001-04-27",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Bharat_Rashtra_Samithi",
+        "https://www.deccanherald.com/india/south/20-years-of-trs-kcrs-journey-from-lets-shut-shop-to-receiving-invites-to-form-party-in-andhra-1044153.html"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "low"
+    },
+    {
+      "id": "INC-AP-president",
+      "state": "AP",
+      "role": "State President (party unit)",
+      "person": "Y. S. Sharmila",
+      "party": "INC",
+      "start": "2024-01-16",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Andhra_Pradesh_Congress_Committee",
+        "https://business-standard.com/politics/ys-sharmila-appointed-andhra-congress-chief-after-g-rudra-raju-quits-post-124011600670_1.html"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "medium"
+    },
+    {
+      "id": "INC-TG-president",
+      "state": "TG",
+      "role": "State President (party unit)",
+      "person": "Bomma Mahesh Kumar Goud",
+      "party": "INC",
+      "start": "2024-09-06",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Telangana_Pradesh_Congress_Committee",
+        "https://www.business-standard.com/india-news/congress-appoints-b-mahesh-kumar-goud-as-telangana-unit-s-president-124090600805_1.html"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "medium"
+    },
+    {
+      "id": "BJP-AP-president",
+      "state": "AP",
+      "role": "State President (party unit)",
+      "person": "P. V. N. Madhav",
+      "party": "BJP",
+      "start": "2025-07-01",
+      "sources": [
+        "https://www.business-standard.com/india-news/bjp-gets-5-new-state-chiefs-stage-set-for-party-president-s-poll-125070101405_1.html",
+        "https://www.thenewsminute.com/andhra-pradesh/pvn-madhav-takes-charge-as-andhras-new-bjp-chief"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "medium"
+    },
+    {
+      "id": "BJP-TG-president",
+      "state": "TG",
+      "role": "State President (party unit)",
+      "person": "N. Ramchander Rao",
+      "party": "BJP",
+      "start": "2025-07-01",
+      "sources": [
+        "https://www.newsonair.gov.in/former-mlc-n-ramchander-rao-appointed-as-bjp-telangana-president",
+        "https://www.deccanherald.com/india/telangana/ex-mlc-ramchander-rao-elected-as-telangana-bjp-president-3610490"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "medium"
+    },
+    {
+      "id": "AIMIM-president",
+      "state": "TG",
+      "role": "President (party)",
+      "person": "Asaduddin Owaisi",
+      "party": "AIMIM",
+      "start": "2008-09-29",
+      "sources": [
+        "https://en.wikipedia.org/wiki/All_India_Majlis-e-Ittehadul_Muslimeen",
+        "https://en.wikipedia.org/wiki/Sultan_Salahuddin_Owaisi"
+      ],
+      "wikidata": null,
+      "asOf": "2026-11-24",
+      "confidence": "low"
     }
   ]
 }

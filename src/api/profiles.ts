@@ -20,6 +20,8 @@ export interface ConstituencyProfileData extends NamePair {
   units: { mandals: number; villages: number; wards: number; urbanBodies: number } | null;
   mandals: (NamePair & { code: string; href: string })[];
   electors: number | null; electorsYear: number | null;
+  /** GE-2024 rolls (not SSR 2025), counts only; null when the ECI file has no row. */
+  electorsRoll?: { general: number; nri: number; service: number; male: number; female: number; thirdGender: number; total: number; votesPolledEvm: number; rollYear: number; rollBasis: string; note: string } | null;
   census: { basis: string; villagesWithCensus: number; villagesTotal: number; population: number; scPop: number; stPop: number; scPct: number | null; stPct: number | null } | null;
   history: HistoryRow[];
   links: { boundary: string; pcBoundary: string; page: string };
@@ -29,7 +31,7 @@ export interface ConstituencyProfileData extends NamePair {
 export interface CensusBlock {
   available: boolean; censusYear: number; reason?: string; kind?: string;
   population?: number; households?: number; males?: number; females?: number; scPop?: number; stPop?: number;
-  scPct?: number | null; stPct?: number | null; sexRatio?: number | null; literacyPct?: number | null; literacyNote?: string;
+  scPct?: number | null; stPct?: number | null; sexRatio?: number | null; literacyPct?: number | null; literacyNote?: string; literate?: number; pop0to6?: number;
 }
 export interface PlaceProfileData extends NamePair {
   state: StateCode; level: "district" | "mandal" | "village"; code: string; censusCode: string; category?: string;

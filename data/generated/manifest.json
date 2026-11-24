@@ -23,53 +23,56 @@
     {
       "id": "census-districts",
       "path": "data/generated/census.json",
-      "bytes": 13778,
-      "sha256": "10ac21537ed3bdcaa309bd6ca09dbc73ee5cbb0fa535ca7ac545e32dd6b6cef1",
+      "bytes": 20665,
+      "sha256": "4847507c5216fbea520da99b0f73699ea8b9844c36382acbf709772e6786fab5",
       "rows": 23,
       "asOf": "2011-03-01",
       "provenance": "census-dchb-2011",
       "demo": false,
       "sources": [
-        "https://censusindia.gov.in/nada/index.php/catalog/123"
+        "https://censusindia.gov.in/nada/index.php/catalog/123",
+        "https://censusindia.gov.in/nada/index.php/catalog/6723"
       ],
       "licences": [
         "census-orgi-2011"
       ],
-      "attribution": "Source: Census of India 2011, Office of the Registrar General and Census Commissioner, India (District Census Handbooks village and town directories). Derived rollups by People Pulse."
+      "attribution": "Source: Census of India 2011, Office of the Registrar General and Census Commissioner, India (District Census Handbooks village and town directories; Primary Census Abstract for literacy). Derived rollups by People Pulse."
     },
     {
       "id": "census-subdistricts",
       "path": "data/generated/census-subdistricts.json",
-      "bytes": 491296,
-      "sha256": "b2f20de44947a1e18e6098870a5dd67bc6ab370df72f3bd03dc4659693be3044",
+      "bytes": 575210,
+      "sha256": "08ab3192796a1f566b2a4d5ce22f7b00bf84bc380207dddba5c511aaf0bf2ed9",
       "rows": 1118,
       "asOf": "2011-03-01",
       "provenance": "census-dchb-2011",
       "demo": false,
       "sources": [
-        "https://censusindia.gov.in/nada/index.php/catalog/123"
+        "https://censusindia.gov.in/nada/index.php/catalog/123",
+        "https://censusindia.gov.in/nada/index.php/catalog/6723"
       ],
       "licences": [
         "census-orgi-2011"
       ],
-      "attribution": "Source: Census of India 2011, Office of the Registrar General and Census Commissioner, India (District Census Handbooks village and town directories). Derived rollups by People Pulse."
+      "attribution": "Source: Census of India 2011, Office of the Registrar General and Census Commissioner, India (District Census Handbooks village and town directories; Primary Census Abstract for literacy). Derived rollups by People Pulse."
     },
     {
       "id": "census-villages-towns",
       "path": "data/generated/census-units.json",
-      "bytes": 4647039,
-      "sha256": "309cfb89e34003b1f0da51eb9145b98bfd7582c4e7ebb7e76e0c19f7c34738cd",
+      "bytes": 5257269,
+      "sha256": "6e3f3700ace1543bc1d80c98babab49f4eb511bec0db84bfd21d6b58e412851d",
       "rows": 28155,
       "asOf": "2011-03-01",
       "provenance": "census-dchb-2011",
       "demo": false,
       "sources": [
-        "https://censusindia.gov.in/nada/index.php/catalog/123"
+        "https://censusindia.gov.in/nada/index.php/catalog/123",
+        "https://censusindia.gov.in/nada/index.php/catalog/6723"
       ],
       "licences": [
         "census-orgi-2011"
       ],
-      "attribution": "Source: Census of India 2011, Office of the Registrar General and Census Commissioner, India (District Census Handbooks village and town directories). Derived rollups by People Pulse."
+      "attribution": "Source: Census of India 2011, Office of the Registrar General and Census Commissioner, India (District Census Handbooks village and town directories; Primary Census Abstract for literacy). Derived rollups by People Pulse."
     },
     {
       "id": "elections",
@@ -91,6 +94,23 @@
         "in-rolls-eci-results"
       ],
       "attribution": "Election results: Election Commission of India; compiled by TCPD (Trivedi Centre for Political Data, Ashoka University) Lok Dhaba, and ECI results via in-rolls/eci_results. TCPD data is for non-commercial use with citation."
+    },
+    {
+      "id": "electors-ac",
+      "path": "data/generated/electors-ac.json",
+      "bytes": 137207,
+      "sha256": "43400b4e74e19a9aa261f1e92e2ee4a86261abb45ebf0a0fc0250a7c6821fa19",
+      "rows": 294,
+      "asOf": "2024",
+      "provenance": "eci-ge2024-statistical-report",
+      "demo": false,
+      "sources": [
+        "https://www.eci.gov.in/eci-backend/public/all_files/GE-2024-statistical-report/15-Assembly-SegmentWise-Information-Electors.pdf"
+      ],
+      "licences": [
+        "eci-statistical-reports"
+      ],
+      "attribution": "Electors by assembly constituency: Election Commission of India, General Election 2024 statistical report (table 15). Counts only, as on the rolls used for the 2024 election."
     },
     {
       "id": "geo-ac-AP",
@@ -171,10 +191,10 @@
     {
       "id": "geo-boundaries-report",
       "path": "data/generated/geo/boundaries-report.json",
-      "bytes": 1124,
-      "sha256": "57b37fc5c060c5687f80e2e6441d8090b4dc14d3147d325951588a84b8360e15",
-      "rows": 9,
-      "asOf": null,
+      "bytes": 1145,
+      "sha256": "da1be20909d5af738ca18a444e1fb467a88e420455f8a0413f3e6d0748a4d909",
+      "rows": 10,
+      "asOf": "2026-11-22",
       "provenance": "unknown",
       "demo": false,
       "sources": [
@@ -209,10 +229,10 @@
     {
       "id": "geo-district-crosswalk",
       "path": "data/generated/geo/district-crosswalk.json",
-      "bytes": 18802,
-      "sha256": "a53f5cd6168eb7b55f7ec70dba48c16523dc9b8b5d4a96ef04ca87d8b40c5796",
-      "rows": 6,
-      "asOf": null,
+      "bytes": 18823,
+      "sha256": "7607f7eab9119fdcbdb88ce0867e96e4e93728bfea79950e4212ca136c9313e1",
+      "rows": 7,
+      "asOf": "2026-11-22",
       "provenance": "unknown",
       "demo": false,
       "sources": [
@@ -347,10 +367,10 @@
     {
       "id": "geo-names-te",
       "path": "data/generated/geo/names-te.json",
-      "bytes": 93548,
-      "sha256": "7a967b4e8e8c597dffc845f6e5fff30a7d60151f5c5d4427cb92dedf4d49af38",
-      "rows": 7,
-      "asOf": null,
+      "bytes": 93569,
+      "sha256": "7c8acb1194d9e4e516b30b6a1faf4732c46b9658639c7e620e11741a8e48baf0",
+      "rows": 8,
+      "asOf": "2026-11-22",
       "provenance": "unknown",
       "demo": false,
       "sources": [
@@ -432,6 +452,107 @@
         "project-derived"
       ],
       "attribution": "Boundary version registry generated by People Pulse (delimitation sets with validity dates and checksums)."
+    },
+    {
+      "id": "geo-village-points-coverage",
+      "path": "data/generated/geo/village-points-coverage.json",
+      "bytes": 6877,
+      "sha256": "9d616880dd8a43fb8a329afc9cf1233d014df9d8469a6a838a17efbb521bbfc4",
+      "rows": 8,
+      "asOf": "2026-11-24",
+      "provenance": "unknown",
+      "demo": false,
+      "sources": [
+        "https://www.openstreetmap.org/copyright",
+        "https://www.wikidata.org/",
+        "https://ramseraph.github.io/opendata/lgd/data/metadata.json"
+      ],
+      "licences": [
+        "odbl",
+        "wikidata-cc0",
+        "project-derived"
+      ],
+      "attribution": "Village point coverage report generated by People Pulse from Wikidata (CC0) and OpenStreetMap (ODbL) joined to LGD."
+    },
+    {
+      "id": "geo-village-points-osm-AP",
+      "path": "data/generated/geo/village-points-osm-AP.json",
+      "bytes": 13925,
+      "sha256": "9685c8e4f353b460c71e22e33f1ba5b90fbaa187acd67809332fa422d18339e8",
+      "rows": 9,
+      "asOf": "2026-11-24",
+      "provenance": "unknown",
+      "demo": false,
+      "sources": [
+        "https://www.openstreetmap.org/copyright",
+        "https://ramseraph.github.io/opendata/lgd/data/metadata.json"
+      ],
+      "licences": [
+        "odbl",
+        "lgd-public",
+        "project-derived"
+      ],
+      "attribution": "Village locations: (c) OpenStreetMap contributors, ODbL 1.0, joined to LGD village codes by name by People Pulse (gap fill only; approximate points)."
+    },
+    {
+      "id": "geo-village-points-osm-TG",
+      "path": "data/generated/geo/village-points-osm-TG.json",
+      "bytes": 445,
+      "sha256": "20c26cd8c8216ace52990df553c7c3ab902d9fa126cbf31059860eb9b85af69a",
+      "rows": 9,
+      "asOf": "2026-11-24",
+      "provenance": "unknown",
+      "demo": false,
+      "sources": [
+        "https://www.openstreetmap.org/copyright",
+        "https://ramseraph.github.io/opendata/lgd/data/metadata.json"
+      ],
+      "licences": [
+        "odbl",
+        "lgd-public",
+        "project-derived"
+      ],
+      "attribution": "Village locations: (c) OpenStreetMap contributors, ODbL 1.0, joined to LGD village codes by name by People Pulse (gap fill only; approximate points)."
+    },
+    {
+      "id": "geo-village-points-wikidata-AP",
+      "path": "data/generated/geo/village-points-wikidata-AP.json",
+      "bytes": 816008,
+      "sha256": "bead303a207e7e2848a4ba0ba2ffcf88c0280fa4801c1bf5072398b19ab004b8",
+      "rows": 9,
+      "asOf": "2026-11-24",
+      "provenance": "unknown",
+      "demo": false,
+      "sources": [
+        "https://www.wikidata.org/",
+        "https://ramseraph.github.io/opendata/lgd/data/metadata.json"
+      ],
+      "licences": [
+        "wikidata-cc0",
+        "lgd-public",
+        "project-derived"
+      ],
+      "attribution": "Village locations: Wikidata (CC0), joined to LGD village codes by Census 2011 code by People Pulse. Approximate points, not boundaries."
+    },
+    {
+      "id": "geo-village-points-wikidata-TG",
+      "path": "data/generated/geo/village-points-wikidata-TG.json",
+      "bytes": 20495,
+      "sha256": "04502cf6345eec37c4947984d0e6a90c2105292432eebcb24f1f82031054f0ea",
+      "rows": 9,
+      "asOf": "2026-11-24",
+      "provenance": "unknown",
+      "demo": false,
+      "sources": [
+        "https://www.wikidata.org/",
+        "https://ramseraph.github.io/opendata/lgd/data/metadata.json"
+      ],
+      "licences": [
+        "wikidata-cc0",
+        "lgd-public",
+        "project-derived"
+      ],
+      "attribution": "Village locations: Wikidata (CC0), joined to LGD village codes by Census 2011 code by People Pulse. Approximate points, not boundaries."
     },
     {
       "id": "history-prebifurcation",

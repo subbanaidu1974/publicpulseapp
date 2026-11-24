@@ -148,7 +148,7 @@ export function PartyProfilePage({ code }: { code: string }) {
                 </>
               ) },
               { id: "sources", heading: p("ppl.party.sources"), body: (
-                <ul className="list-disc pl-5">{d.sources.map(x => <li key={x.url}><a className="underline" href={x.url} target="_blank" rel="noopener noreferrer">{x.name}</a></li>)}</ul>
+                <ul className="list-disc pl-5">{d.sources.map(x => <li key={x.url}><a className="underline inline-block py-1" href={x.url} target="_blank" rel="noopener noreferrer">{x.name}</a></li>)}</ul>
               ) },
             ]}
             report={<ReportControl page={`/people/party/${d.code}`} />}
@@ -215,7 +215,10 @@ export function ContestantPage({ id }: { id: string }) {
                 </div>
               ) : <p>{p("ppl.cand.none")}</p> },
               { id: "links", heading: p("ppl.cand.links"), body: (
-                <ul className="list-disc pl-5">{d.links.map(l => <li key={l.url}><a data-testid="affidavit-link" className="underline break-words" href={l.url} target="_blank" rel="noopener noreferrer">{l.label}</a></li>)}</ul>
+                <>
+                  <ul className="list-disc pl-5">{d.links.map(l => <li key={l.url}><a data-testid="affidavit-link" className="underline break-words" href={l.url} target="_blank" rel="noopener noreferrer">{lang === "te" ? l.labelTe : l.label}</a></li>)}</ul>
+                  <p data-testid="affidavit-note" className="text-[11px] text-black/70 mt-1">{p("ppl.cand.links.note")}</p>
+                </>
               ) },
               { id: "source", heading: p("ppl.cand.source"), body: <p>{d.source.attribution}{d.source.provenance ? ` (${d.source.provenance})` : ""}</p> },
             ]}

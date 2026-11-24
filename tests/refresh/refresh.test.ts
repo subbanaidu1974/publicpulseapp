@@ -54,6 +54,8 @@ describe("@E2E-91 freshness report", () => {
     expect(thresholdFor("geo-lgd-AP", { "geo-lgd-AP": 30 })).toBe(30);
     expect(thresholdFor("census-units")).toBeGreaterThan(thresholdFor("geo-lgd-AP"));
     expect(thresholdFor("something-new")).toBe(365);
+    expect(thresholdFor("census")).toBe(7300);
+    expect(thresholdFor("electors-ac")).toBe(730);
     expect(parseAsOf("2024 (latest election in file)")?.toISOString().slice(0, 10)).toBe("2024-12-31");
     expect(parseAsOf("2026-11-22")?.toISOString().slice(0, 10)).toBe("2026-11-22");
     expect(parseAsOf("soon")).toBeNull();

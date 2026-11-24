@@ -10,7 +10,9 @@ import { openCivic } from './civic-helpers';
 export const API = '/api/v1/civic';
 export interface Seeded { token: string; personId: string }
 export const bearer = (t: string) => ({ authorization: `Bearer ${t}` });
-export const uniq = () => crypto.randomBytes(5).toString('hex');
+// Letters only (hex with the digits mapped to g-p): these tokens are pasted into report text, and the moderation filter holds text with a
+// 10-digit mobile-like or 12-digit run (it also joins digits split by spaces), which hid ~3% of seeded reports and made feed counts flaky.
+export const uniq = () => crypto.randomBytes(5).toString('hex').replace(/[0-9]/g, (d) => String.fromCharCode(103 + Number(d)));
 
 export async function seedPerson(request: APIRequestContext, roles: { role: string; jurisdiction?: string }[] = []): Promise<Seeded> {
   const r = await request.post(`${API}/e2e/person`, { data: { roles } });

@@ -21,8 +21,34 @@ async function virtualAuthenticator(page: Page) {
   const { authenticatorId } = await cdp.send('WebAuthn.addVirtualAuthenticator', { options: { protocol: 'ctap2', transport: 'usb', hasResidentKey: false, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
   return { cdp, authenticatorId };
 }
+// The public notify reads (policy, status, keys, senders, block log...) are limited per client address (60-120 a minute), and every notify screen
+// loads some of them on mount. All pages and API calls of every worker here come from one address, so under load the limit answers 429, and a
+// screen never retries a refused load (the compose form then has an empty category list, the window notice never shows). The server's limit is
+// left alone; what changes is that these specs wait out a 429 (the window is a minute) instead of failing on it: page requests are re-issued by
+// the route handler, direct API reads go through publicGet.
+const PUBLIC_READ = /\/api\/v1\/civic\/notify\/(policy|status|keys|senders|block-log|templates)(\/[^?]*)?(\?.*)?$/;
+const backoff = (retryAfter: string | undefined, i: number) => new Promise((res) => setTimeout(res, Math.min(15_000, (Number(retryAfter) || 0) * 1000 || 3000 * (i + 1))));
+async function publicGet(request: APIRequestContext, url: string) {
+  for (let i = 0; ; i++) {
+    const r = await request.get(url);
+    if (r.status() !== 429 || i >= 12) return r;
+    await backoff(r.headers()['retry-after'], i);
+  }
+}
+const retryPublicReads = async (ctx: BrowserContext) => {
+  await ctx.route(PUBLIC_READ, async (route) => {
+    if (route.request().method() !== 'GET') return route.continue();
+    try {
+      let res = await route.fetch();
+      for (let i = 0; res.status() === 429 && i < 12; i++) { await backoff(res.headers()['retry-after'], i); res = await route.fetch(); }
+      await route.fulfill({ response: res });
+    } catch { /* the test (and its page) ended while this read was waiting out a 429 */ }
+  });
+};
+test.beforeEach(async ({ context }) => { await retryPublicReads(context); });
 async function newSenderPage(browser: Browser, token: string, hash = '#/notifications/send', lang: 'en' | 'te' = 'en'): Promise<{ ctx: BrowserContext; page: Page; va: Awaited<ReturnType<typeof virtualAuthenticator>> }> {
   const ctx = await browser.newContext({ baseURL: test.info().project.use.baseURL as string });
+  await retryPublicReads(ctx);
   const page = await ctx.newPage();
   const va = await virtualAuthenticator(page);
   await openNotify(page, token, hash, lang);
@@ -109,7 +135,7 @@ test.describe('recipient screens', () => {
   });
 
   test('@E2E-170 the public home shows the election-period notice from the status route', async ({ page, request }) => {
-    const st = await (await request.get(`${N}/status?state=AP`)).json();
+    const st = await (await publicGet(request, `${N}/status?state=AP`)).json();
     expect(['open', 'blackout', 'unknown']).toContain(st.window.status);
     expect(st.kill).toHaveProperty('engaged');
     await openNotify(page, null, '#/notifications');
@@ -196,7 +222,7 @@ test.describe('sender console and delivery (virtual FIDO2 authenticator)', () =>
       // verify the signature with the published key, as the page explains
       const inbox = await (await request.get(`${N}/inbox`, { headers: bearer(rcpt.token) })).json();
       const it = inbox.items[0];
-      const keys = (await (await request.get(`${N}/keys`)).json()).keys as { key_id: string; spki: string }[];
+      const keys = (await (await publicGet(request, `${N}/keys`)).json()).keys as { key_id: string; spki: string }[];
       const key = keys.find((k) => k.key_id === it.key_id)!;
       const pub = crypto.createPublicKey({ key: Buffer.from(key.spki, 'base64url'), format: 'der', type: 'spki' });
       expect(crypto.verify(null, Buffer.from(it.signed_payload), pub, Buffer.from(it.signature, 'base64url'))).toBe(true);
@@ -317,7 +343,7 @@ test.describe('sender console and delivery (virtual FIDO2 authenticator)', () =>
       await pb.page.getByTestId('adm-totp-input').fill(await totpB.next());
       await rowB.getByTestId('adm-org-verify').click();
       await expect(rowB).toHaveAttribute('data-status', 'verified');
-      const orgId = (await request.get(`${N}/senders`).then((r) => r.json())).senders.find((s: { name: string }) => s.name === name).id as string;
+      const orgId = (await publicGet(request, `${N}/senders`).then((r) => r.json())).senders.find((s: { name: string }) => s.name === name).id as string;
       // A binds the sender, B approves
       await pa.page.reload();
       await pa.page.getByTestId('sender-org').selectOption(orgId);
@@ -347,15 +373,18 @@ test.describe('sender console and delivery (virtual FIDO2 authenticator)', () =>
       await pa.page.reload();
       await pa.page.getByTestId('kill-scope').selectOption('org');
       await pa.page.getByTestId('kill-org').selectOption(orgId);
-      await pa.page.getByTestId('kill-reason').fill('e2e: suspected account takeover');
+      // a reason of its own: the admin console lists every kill switch, and a parallel run's switch must not be released (or asserted on) by mistake
+      const killReason = 'e2e: suspected account takeover ' + uniq();
+      await pa.page.getByTestId('kill-reason').fill(killReason);
       await pa.page.getByTestId('adm-totp-input').fill(await totpA.next());
       await expect(pa.page.getByTestId('kill-engage')).toBeEnabled({ timeout: 5000 });
       await pa.page.getByTestId('kill-engage').click();
-      await expect(pa.page.getByTestId('kill-active')).toBeVisible();
+      // (kill-active shows while ANY kill switch is engaged, e.g. a parallel run's: wait for this run's own row)
+      await expect(pa.page.getByTestId('adm-kill').filter({ hasText: killReason })).toBeVisible();
       // the public status route shows it (no reason) before the sender tries anything, and the console banner reads it
-      const pubStatus = await (await request.get(`${N}/status?state=AP&org_id=${orgId}`)).json();
+      const pubStatus = await (await publicGet(request, `${N}/status?state=AP&org_id=${orgId}`)).json();
       expect(pubStatus.kill).toMatchObject({ engaged: true, scope: 'org' });
-      expect(JSON.stringify(pubStatus)).not.toContain('suspected account takeover');
+      expect(JSON.stringify(pubStatus)).not.toContain(killReason);
       await ps.page.reload();
       await expect(ps.page.getByTestId('status-kill')).toContainText('suspended');
       // the sender is stopped and the banner explains it
@@ -368,16 +397,18 @@ test.describe('sender console and delivery (virtual FIDO2 authenticator)', () =>
       await expect(ps.page.getByTestId('kill-banner')).toBeVisible();
       // release: A requests, A cannot approve, B approves
       await pa.page.getByTestId('adm-totp-input').fill(await totpA.next());
-      await pa.page.getByTestId('kill-release-request').click();
-      await expect(pa.page.getByTestId('kill-release-pending')).toBeVisible();
+      const killA = pa.page.getByTestId('adm-kill').filter({ hasText: killReason });
+      await killA.getByTestId('kill-release-request').click();
+      await expect(killA.getByTestId('kill-release-pending')).toBeVisible();
       await pa.page.getByTestId('adm-totp-input').fill(await totpA.next());
-      await pa.page.getByTestId('kill-release-approve').click();
+      await killA.getByTestId('kill-release-approve').click();
       await expect(pa.page.getByTestId('civic-error')).toContainText('different');
       await pb.page.reload();
       await pb.page.getByTestId('adm-totp-input').fill(await totpB.next());
-      await pb.page.getByTestId('kill-release-approve').click();
-      await expect(pb.page.getByTestId('adm-kill').first()).toHaveAttribute('data-released', '1');
-      expect((await (await request.get(`${N}/status?state=AP&org_id=${orgId}`)).json()).kill.engaged).toBe(false);
+      const killB = pb.page.getByTestId('adm-kill').filter({ hasText: killReason });
+      await killB.getByTestId('kill-release-approve').click();
+      await expect(killB).toHaveAttribute('data-released', '1');
+      expect((await (await publicGet(request, `${N}/status?state=AP&org_id=${orgId}`)).json()).kill.engaged).toBe(false);
       // the security keys are listed per sender (no pasted ids) and one is revoked
       await pb.page.reload();
       const srow = pb.page.getByTestId('adm-sender').filter({ hasText: name });

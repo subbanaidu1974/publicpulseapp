@@ -45,13 +45,24 @@ export function productionProblems(): string[] {
     if (!process.env.CIVIC_KMS_KEK_ID) p.push("CIVIC_KMS_URL is set but CIVIC_KMS_KEK_ID is missing");
     if (!/^https:\/\//i.test(process.env.CIVIC_KMS_URL)) p.push("CIVIC_KMS_URL must be https");
   }
+  if (process.env.CIVIC_AWS_KMS_KEY_ID) {
+    if (process.env.CIVIC_KMS_URL) p.push("CIVIC_AWS_KMS_KEY_ID and CIVIC_KMS_URL are both set (pick one KMS)");
+    if (!(process.env.CIVIC_AWS_KMS_REGION || process.env.AWS_REGION)) p.push("CIVIC_AWS_KMS_KEY_ID is set but CIVIC_AWS_KMS_REGION is missing");
+    if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) p.push("CIVIC_AWS_KMS_KEY_ID is set but AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY are missing");
+    if (process.env.CIVIC_AWS_KMS_ENDPOINT && !/^https:\/\//i.test(process.env.CIVIC_AWS_KMS_ENDPOINT)) p.push("CIVIC_AWS_KMS_ENDPOINT must be https");
+  }
   if (process.env.CIVIC_SMS_URL) {
     if (!process.env.CIVIC_SMS_SECRET) p.push("CIVIC_SMS_URL is set but CIVIC_SMS_SECRET is missing");
     if (!process.env.CIVIC_SMS_RECEIPT_SECRET) p.push("CIVIC_SMS_URL is set but CIVIC_SMS_RECEIPT_SECRET is missing (delivery receipts could not be authenticated)");
     if (!/^https:\/\//i.test(process.env.CIVIC_SMS_URL)) p.push("CIVIC_SMS_URL must be https");
   }
+  if (process.env.CIVIC_SMSGW_URL) {
+    if (!process.env.CIVIC_SMSGW_AUTH_VALUE) p.push("CIVIC_SMSGW_URL is set but CIVIC_SMSGW_AUTH_VALUE is missing");
+    if (!process.env.CIVIC_SMSGW_RECEIPT_SECRET && !process.env.CIVIC_SMSGW_RECEIPT_TOKEN) p.push("CIVIC_SMSGW_URL is set but neither CIVIC_SMSGW_RECEIPT_SECRET nor CIVIC_SMSGW_RECEIPT_TOKEN is set (delivery receipts could not be authenticated)");
+    if (!/^https:\/\//i.test(process.env.CIVIC_SMSGW_URL)) p.push("CIVIC_SMSGW_URL must be https");
+  }
   if (process.env.CIVIC_NUMINTEL_URL) {
-    if (!process.env.CIVIC_NUMINTEL_SECRET) p.push("CIVIC_NUMINTEL_URL is set but CIVIC_NUMINTEL_SECRET is missing");
+    if (!process.env.CIVIC_NUMINTEL_SECRET && !process.env.CIVIC_NUMINTEL_API_KEY) p.push("CIVIC_NUMINTEL_URL is set but CIVIC_NUMINTEL_SECRET is missing");
     if (!/^https:\/\//i.test(process.env.CIVIC_NUMINTEL_URL)) p.push("CIVIC_NUMINTEL_URL must be https (the clear number is sent)");
   }
   const gw = getSmsGateway();

@@ -168,11 +168,11 @@ function AppInner() {
         <div className="md:col-span-5 space-y-2 font-sans text-[10px]">
           <strong className="block uppercase tracking-[0.2em] font-black pb-2 border-b border-black/10">{t("footer.links")}</strong>
           {(["elections", "constituencies", "methodology", "civic", "privacy", "terms", "who", "people"] as const).map((tab) => (
-            <button key={tab} data-testid={`footer-link-${tab}`} type="button" onClick={() => { setCurrentTab(tab); window.scrollTo?.(0, 0); }} className="block hover:underline text-left cursor-pointer">
+            <button key={tab} data-testid={`footer-link-${tab}`} type="button" onClick={() => { setCurrentTab(tab); window.scrollTo?.(0, 0); }} className="block hover:underline text-left cursor-pointer py-1 min-h-[24px]">
               {tab === "people" ? PEOPLE_TEXT[lang]["ppl.tab"] : tab === "constituencies" ? t("nav.constituencies") : tab === "elections" ? t("nav.elections") : tab === "civic" ? t("nav.civic") : tab === "privacy" ? t("nav.privacy") : tab === "terms" ? t("nav.terms") : tab === "who" ? t("nav.who") : t("nav.methodology")}
             </button>
           ))}
-          <button data-testid="footer-consent" type="button" onClick={() => { setReopenConsent(true); window.scrollTo?.(0, 0); }} className="block hover:underline text-left cursor-pointer">{t("consent.change")}</button>
+          <button data-testid="footer-consent" type="button" onClick={() => { setReopenConsent(true); window.scrollTo?.(0, 0); }} className="block hover:underline text-left cursor-pointer py-1 min-h-[24px]">{t("consent.change")}</button>
         </div>
       </footer>
     </div>

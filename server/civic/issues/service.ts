@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { audit, getDb, getKeys, getStore, hasRole, listRoles, registerErasureHook, registerErasureSubjects, registerMigration, registerStoreErasureHook } from "../core";
+import { audit, getDb, getKeys, getStore, hasRole, listRolesDetailed, registerErasureHook, registerErasureSubjects, registerMigration, registerStoreErasureHook } from "../core";
 import { actorPseudonym, linkPerson, pseudonymsOf, randomVillageReporters, reporterPseudonym } from "../core/pseudonyms";
 import { rateAllow } from "../identity/service";
 import { ancestors, ensureGeo, getUnit, villageConstituencies, type Unit } from "../geo/service";
@@ -98,9 +98,10 @@ export function roleOf(personId: string, role: string, scopeUnit?: string): Role
   if (role !== "officer" && role !== "moderator") return null;
   try {
     if (!hasRole(personId, role)) return null;
-    const scopes = listRoles(personId).filter(r => r.role === role).map(r => r.jurisdiction);
-    const pick = scopeUnit ? scopes.find(j => !j || inUnit(scopeUnit, j)) ?? scopes[0] : scopes[0];
-    return { role, department: null, jurisdiction_lgd: pick ?? null, label: `${role}@${pick ?? "any"}` };
+    // a core grant carries its department (S-141: verified officers are granted one); an unscoped grant (no department) acts for any
+    const grants = listRolesDetailed(personId).filter(r => r.role === role);
+    const pick = scopeUnit ? grants.find(g => !g.jurisdiction || inUnit(scopeUnit, g.jurisdiction)) ?? grants[0] : grants[0];
+    return { role, department: pick?.department ?? null, jurisdiction_lgd: pick?.jurisdiction ?? null, label: `${role}@${pick?.jurisdiction ?? "any"}` };
   } catch { return null; } // core roles table not migrated
 }
 /** Does this role's jurisdiction cover the village (unit is the village itself or an ancestor)? */
@@ -561,8 +562,17 @@ registerStoreErasureHook("issues", "issues.moderation", (subjects) => {
 export function officerQueue(actor: string, limit = 100) {
   const r = roleOf(actor, "officer");
   if (!r) throw new HttpError(403, "officer role required");
-  const rows = idb().prepare("SELECT * FROM issue WHERE moderation='ok' AND status IN ('Reported','Verified','Assigned','InProgress','Reopened') ORDER BY sla_due LIMIT 1000").all() as any[];
-  const items = rows.filter(i => covers(r, i.village_lgd) && (!r.department || r.department === i.department)).slice(0, Math.min(Math.max(limit, 1), 200))
+  // Scan the open queue in SLA order in chunks until enough rows in THIS role's scope are found. (A fixed LIMIT before the scope filter hid a scoped
+  // officer's whole queue as soon as 1000 earlier-due issues existed elsewhere.)
+  const want = Math.min(Math.max(limit, 1), 200);
+  const scan = idb().prepare("SELECT * FROM issue WHERE moderation='ok' AND status IN ('Reported','Verified','Assigned','InProgress','Reopened') ORDER BY sla_due, id LIMIT 500 OFFSET ?");
+  const mine: any[] = [];
+  for (let off = 0; mine.length < want; off += 500) {
+    const rows = scan.all(off) as any[];
+    for (const i of rows) if (covers(r, i.village_lgd) && (!r.department || r.department === i.department)) { mine.push(i); if (mine.length >= want) break; }
+    if (rows.length < 500) break;
+  }
+  const items = mine
     .map(i => ({ id: i.id, category: i.category, department: i.department, status: i.status, village_lgd: i.village_lgd, created_at: i.created_at, sla_due: i.sla_due, esc_level: i.esc_level, overdue: i.sla_due < iso(clock.now()), description_en: i.desc_en, description_te: i.desc_te, support: (idb().prepare("SELECT COUNT(*) c FROM issue_me_too WHERE issue_id=?").get(i.id) as { c: number }).c }));
   return { role: { department: r.department, jurisdiction_lgd: r.jurisdiction_lgd }, items };
 }

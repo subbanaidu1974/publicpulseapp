@@ -99,6 +99,23 @@ export default function IssueDetail({ id, fallback, onBack, owner = false, onCha
               <ul data-testid="detail-responses" className="space-y-1">{d.officerResponses.map((r, i) => <li key={i} className="border border-black p-2 break-words">{r.text}{r.officerTag ? <span className="block text-xs">{r.officerTag}{r.at ? " - " + when(r.at) : ""}</span> : null}</li>)}</ul>
             </div>
           )}
+          {d.officialReply && (
+            <section data-testid="official-reply" aria-labelledby="or-h" className="border-2 border-black p-3 space-y-2 text-sm">
+              <p id="or-h" className="font-bold">{c("c.rep.label")} {lang === "te" ? d.officialReply.constituencyTe ?? d.officialReply.constituencyEn : d.officialReply.constituencyEn}</p>
+              <p className="break-words whitespace-pre-line" data-testid="official-reply-text">{d.officialReply.text}</p>
+              {d.officialReply.tags.length > 0 && (
+                <ul data-testid="official-reply-tags" className="flex flex-wrap gap-1">{d.officialReply.tags.map((t) => <li key={t.id} className="border border-black px-2 py-1 text-xs">{lang === "te" ? t.labelTe : t.labelEn}</li>)}</ul>
+              )}
+              <p className="text-xs">{c("c.rep.posted")}: {when(d.officialReply.postedAt)}{d.officialReply.edited ? ` - ${c("c.rep.updated")}: ${when(d.officialReply.updatedAt)}` : ""}</p>
+              {d.officialReply.history.length > 0 && (
+                <details data-testid="official-reply-history" className="text-xs">
+                  <summary>{c("c.rep.edited")} ({d.officialReply.history.length})</summary>
+                  <ol className="space-y-1 mt-1">{d.officialReply.history.map((h) => <li key={h.version} className="border border-black p-2 break-words">{c("c.rep.version")} {h.version}{h.at ? ` - ${when(h.at)}` : ""}<br />{h.text}</li>)}</ol>
+                </details>
+              )}
+              <p className="text-xs">{c("c.rep.note")}</p>
+            </section>
+          )}
           <div className="flex items-center gap-3 flex-wrap text-sm">
             {moderation === "ok" && <Btn data-testid="issue-metoo" onClick={() => void act(() => issuesApi.meToo(id), "c.issue.meTooDone", (e) => (e.status === 429 ? "c.issue.meTooLimit" : null))}>{c("c.issue.meToo")}</Btn>}
             <span data-testid="detail-metoo-count">{d.supportCount} {c("c.issue.meTooCount")}</span>

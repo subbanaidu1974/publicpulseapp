@@ -67,7 +67,7 @@ export function WhoSeesPage() {
   const { t, lang } = useT();
   return (
     <Shell testId="who-sees-page" title={t("legal.whoTitle")} lead={t("legal.whoLead")} status={reviewStatus.whoSees}>
-      <div lang={lang} className="overflow-x-auto bg-[#FAF8F5] border border-black/20">
+      <div lang={lang} tabIndex={0} role="region" aria-label={t("legal.whoTitle")} className="overflow-x-auto bg-[#FAF8F5] border border-black/20">
         <table data-testid="who-sees-table" className="w-full text-xs font-sans border-collapse min-w-[720px]">
           <caption className="sr-only">{t("legal.whoTitle")}</caption>
           <thead>

@@ -23,7 +23,8 @@ const DAY = 86_400_000;
 /** First matching rule wins. */
 const DEFAULT_RULES: { match: RegExp; days: number }[] = [
   { match: /^elections$/, days: 2000 },
-  { match: /^census-/, days: 7300 },
+  { match: /^census(-|$)/, days: 7300 }, // static: Census 2011 only changes with the next census
+  { match: /^electors-ac$/, days: 730 }, // GE-2024 rolls: annual-ish, review before the next general election or SSR
   { match: /^geo-(ac|pc|district)-(AP|TG)$|^geo-(ac-units|ac-link|district-crosswalk)$|^lsmap-/, days: 3650 },
   { match: /^geo-mandal/, days: 1095 },
   { match: /^geo-(lgd|names-te|boundaries-report|review)/, days: 365 },

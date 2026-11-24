@@ -45,13 +45,13 @@ export function PartyChip({ party, media = false, href = true, lang = "en" }: { 
   const inner = (
     <span data-testid={`party-chip-${party.code}`} className="inline-flex items-center gap-1.5 border-2 px-1.5 py-0.5 text-[11px] font-sans font-bold bg-white text-[#121212]" style={{ borderColor: color }}>
       {m && <img data-testid={`party-media-${party.code}`} src={m.path} alt="" width={18} height={18} className="h-[18px] w-auto object-contain" loading="lazy" />}
-      <span>{party.code}</span>
+      <span>{party.code}{" "}</span>
       <span className="font-normal hidden sm:inline">{label}</span>
     </span>
   );
   return (
     <span className="inline-flex items-center gap-1 flex-wrap">
-      {href && party.code !== "OTH" ? <a href={peopleHref("party", party.code)} aria-label={label}>{inner}</a> : inner}
+      {href && party.code !== "OTH" ? <a href={peopleHref("party", party.code)} aria-label={`${party.code} ${label}`}>{inner}</a> : inner}
       {m && (
         <CreditPopover testId={`party-credit-${party.code}`} label={p("ppl.party.credit")} author={m.author} licence={m.licence} licenceUrl={m.licenceUrl} source={m.source}
           caption={m.use === "identification-only" ? p("ppl.party.identonly") : undefined} />

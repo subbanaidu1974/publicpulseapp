@@ -1,0 +1,20 @@
+{
+"schema":1,
+"state":"TG",
+"layer":"osm",
+"asOf":"2026-11-24",
+"columns":[
+"lgdCode",
+"censusCode",
+"lon",
+"lat",
+"confidence",
+"ref"
+],
+"attribution":"(c) OpenStreetMap contributors, ODbL 1.0. Place nodes joined to LGD village codes by name by People Pulse; only villages with no Wikidata point, confidence >= 0.8.",
+"license":"ODbL-1.0",
+"precision":"a place node or Wikidata coordinate, not a surveyed centroid or boundary",
+"points":[
+
+]
+}

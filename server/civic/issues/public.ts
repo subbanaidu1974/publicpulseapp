@@ -10,6 +10,7 @@ const getDb = () => getStore("issues");
 import { ancestors, electionConstituency, getUnit, villageConstituencies, type Unit } from "../geo/service";
 import { CATEGORY_LIST, TRUST_TIERS } from "./categories";
 import { HttpError, clock } from "./service";
+import { officialReplyFor } from "../representatives/store";
 
 // ---------- categories ----------
 export function categoriesPayload() {
@@ -102,7 +103,16 @@ export function publicIssue(id: string, now = clock.now()) {
     timeline,
     counts: { support, officer_responses: responses.length },
     officer_responses: responses.map(r => ({ officer_tag: r.officer_tag, text: sanitizeDescription(r.text), at: r.at })),
+    official_reply: publicOfficialReply(id, now), // S-145: one labelled representative reply, shown beside the report; never changes order or counts
   };
+}
+
+/** The representative reply with the constituency named; texts pass the same sanitiser as report text. */
+function publicOfficialReply(id: string, now: Date) {
+  const r = officialReplyFor(id, (t) => sanitizeDescription(t, 1000));
+  if (!r) return null;
+  const u = getUnit(r.constituency, now);
+  return { ...r, constituency: { lgd: r.constituency, name_en: u?.name_en ?? r.constituency, name_te: u?.name_te ?? null } };
 }
 
 // ---------- feed with filters ----------

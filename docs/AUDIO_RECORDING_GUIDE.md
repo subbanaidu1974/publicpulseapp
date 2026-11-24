@@ -40,7 +40,7 @@ Follow the `tone` and `pronunciation` fields per prompt. Read the `formal` text 
 ## File naming and layout
 - Existing convention in the manifest: `audio/te/<id>.wav` (served from `public/`). For dialect recordings use `audio/te/<dialect>/<id>.wav`, dialect one of `coastal`, `rayalaseema`, `telangana`. Lower-case ASCII, no spaces. Example: `public/audio/te/coastal/welcome.wav`.
 - Master files are **not committed** (large); keep them in the operator's storage with the sign-off form.
-- Note: the IVR code today plays one file per prompt id and has no dialect selector. Dialect routing is a build task that is not part of this pack.
+- Dialect routing is built (`server/civic/channels/dialect.ts`): the telephony aggregator sends `dialect` (`standard|coastal|rayalaseema|telangana`) on `/missed-call` or any `/ivr` turn, else `CIVIC_IVR_DEFAULT_DIALECT` applies. The IVR plays a dialect file ONLY when the manifest lists that prompt+dialect as `reviewed`; otherwise it plays the standard key, and with `CIVIC_IVR_TTS_FALLBACK=1` a prompt with no reviewed recording at all is rendered as text-to-speech. There is no spoken in-call dialect menu (that needs its own recorded prompt). List what is still missing with `npx tsx scripts/audio-missing.ts` (`--strict` exits 1 while anything is missing). Recording and linguist review are still human steps.
 
 ## Linguist review checklist (tick per prompt, per dialect)
 - [ ] The recorded words equal the approved script text exactly.

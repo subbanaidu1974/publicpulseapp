@@ -72,6 +72,18 @@ export default function ConstituencyProfile({ state, acNo, actions }: { state: S
         </dl>
       </div>
 
+      {p.electorsRoll && (
+        <Section title={t("prof.rollGe2024")} testId="profile-electors-roll">
+          <dl className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-sans">
+            <Stat label={t("prof.electors")} value={num(p.electorsRoll.total, na)} testId="roll-total" />
+            <Stat label={t("prof.male")} value={num(p.electorsRoll.male, na)} testId="roll-male" />
+            <Stat label={t("prof.female")} value={num(p.electorsRoll.female, na)} testId="roll-female" />
+            <Stat label={t("prof.thirdGender")} value={num(p.electorsRoll.thirdGender, na)} testId="roll-third" />
+          </dl>
+          <p className="text-[10px] text-slate-600">{p.electorsRoll.note}</p>
+        </Section>
+      )}
+
       <Section title={t("prof.population")} testId="profile-census">
         {p.census ? (
           <>

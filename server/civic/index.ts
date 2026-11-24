@@ -19,6 +19,8 @@ import { getNumberIntelligence } from "./identity/service";
 import { scopeRouter } from "./scope";
 import { degradedGate, degradedPayload } from "../degraded";
 import { notifyRouter } from "./notify";
+import { officersRouter } from "./officers";
+import { representativesRouter } from "./representatives";
 
 /** Default JSON body cap for civic routes (the app mounts this router before its own global parser). */
 export const CIVIC_JSON_LIMIT = "64kb";
@@ -53,6 +55,8 @@ export function createCivicRouter(): Router {
   r.use("/scope", scopeRouter); // S-40: role- and geo-scoped read-only dashboards (docs/ROLES.md)
   r.use("/admin", adminRouter);
   r.use("/audit", auditRouter);
+  r.use("/officers", officersRouter); // verified officer onboarding: applications and the admin verification queue (docs/OFFICERS.md)
+  r.use("/representatives", representativesRouter); // representative replies, scheme tags, grievance adapter (docs/REPRESENTATIVES.md)
   r.use("/notify", notifyRouter); // verified-sender government notifications (server/civic/notify, docs/NOTIFICATIONS.md)
   r.use("/consultations", consultationsRouter); // bill consultations (server/civic/consultations, docs/CONSULTATIONS.md)
   r.use("/surveys", surveysRouter); // Pulse Surveys: registry, credential, published figures (server/civic/surveys)
