@@ -1,6 +1,9 @@
 /**
  * Geography and profile API (S-100, S-98/99 backing, S-95), mounted from server/api.ts under /api/v1:
  *   GET /geo/:state/(ac|pc|district).geojson   boundary files with ETag + Cache-Control
+ *   GET /geo/:state/mandal.geojson             mandal polygons (OSM, ODbL; only units matched to LGD with confidence >= 0.8)
+ *   (boundary files accept ?version=<set id> or ?asOf=YYYY-MM-DD, default current; S-92)
+ *   GET /geo/:state/polling-stations?ac=       polling-station reference list (operator-imported; never voter-level; S-91)
  *   GET /geo/:state/units?level=&parent=       LGD tree, paginated, English + Telugu names (never invented)
  *   GET /geo/:state/search?q=                  English or Telugu, districts / mandals / villages / ACs
  *   GET /geo/:state/places/:level/:code        mandal / village / district profile data (census when rows exist)
@@ -20,11 +23,14 @@ import { STATES, isStateCode } from "../src/lib/states";
 import type { StateCode } from "../src/lib/states";
 import { splitVotingReport } from "../src/lib/splitvoting";
 import { loadSegments } from "../pipeline/lsmap/segments";
+import { loadRegistry, selectSet, VersionError } from "../pipeline/geo/versions";
+import { toReference } from "../pipeline/geo/pollingstations";
+import type { PollingStation } from "../pipeline/geo/pollingstations";
 import type { SegmentsFile } from "../pipeline/lsmap/segments";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
-const GEOJSON = { ac: "ac", pc: "pc", district: "district" } as const;
+const GEOJSON = { ac: "ac", pc: "pc", district: "district", mandal: "mandal" } as const;
 const LEVELS = ["district", "mandal", "village"] as const;
 type Level = (typeof LEVELS)[number];
 
@@ -137,12 +143,27 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
 
   /* ---------- boundary files ---------- */
   const fileCache = new Map<string, { body: Buffer; etag: string }>();
-  router.get("/geo/:state/:file(ac|pc|district).geojson", (req, res) => sendGeojson(req, res));
+  router.get("/geo/:state/:file(ac|pc|district|mandal).geojson", (req, res) => sendGeojson(req, res));
   function sendGeojson(req: Request, res: Response) {
     const state = String(req.params.state).toUpperCase();
     if (!isStateCode(state)) return err(res, 404, "unknown_state", "Unknown state. Valid: AP, TG");
     const kind = GEOJSON[req.params.file as keyof typeof GEOJSON];
-    const file = path.join(geoDir, `${kind}-${state}.geojson`);
+    let file = path.join(geoDir, `${kind}-${state}.geojson`);
+    // S-92: ?version= / ?asOf= select a boundary set; default is the set in force today.
+    const reg = loadRegistry(geoDir);
+    const qv = first(req.query.version), qa = first(req.query.asOf);
+    let setId: string | null = reg ? (selectSetSafe(reg)?.id ?? null) : null;
+    if (reg && (qv !== undefined || qa !== undefined)) {
+      try {
+        const set = selectSet(reg, { version: qv, asOf: qa });
+        const rel = set.files?.[kind]?.[state];
+        if (!rel) return err(res, 404, "no_data", `Boundary set ${set.id} has no ${kind} boundaries for ${state}`);
+        file = path.join(geoDir, rel); setId = set.id;
+      } catch (e) {
+        if (e instanceof VersionError) return err(res, e.code === "unknown_version" || e.code === "no_set_for_date" ? 404 : 400, e.code, e.message);
+        throw e;
+      }
+    } else if (!reg && (qv !== undefined || qa !== undefined)) return err(res, 404, "no_versions", "No boundary version registry is available");
     let hit = fileCache.get(file);
     if (!hit) {
       try {
@@ -151,10 +172,13 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
         fileCache.set(file, hit);
       } catch { return err(res, 404, "no_data", `No ${kind} boundaries for ${state}`); }
     }
+    if (setId) res.set("X-Boundary-Version", setId);
     res.set({ ETag: hit.etag, "Cache-Control": "public, max-age=3600, must-revalidate", "Content-Type": "application/geo+json; charset=utf-8", "X-Content-Type-Options": "nosniff" });
     if (req.headers["if-none-match"] === hit.etag) return res.status(304).end();
     return res.send(hit.body);
   }
+
+  const selectSetSafe = (reg: NonNullable<ReturnType<typeof loadRegistry>>) => { try { return selectSet(reg); } catch { return null; } };
 
   const stateOr404 = (req: Request, res: Response): StateGeo | null => {
     const state = String(req.params.state).toUpperCase();
@@ -167,6 +191,29 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
   const pubCache = (res: Response, seconds = 300) => res.set("Cache-Control", `public, max-age=${seconds}`);
   const nameOf = (x: { en: string; te?: string }) => ({ nameEn: x.en, ...(x.te ? { nameTe: x.te } : {}) });
   const hrefOf = (st: StateCode, level: string, code: string | number) => level === "ac" ? `#/constituency/${st}/${code}` : `#/place/${st}/${level}/${code}`;
+
+  /* ---------- polling-station reference list (S-91): operator-imported, reference fields only ---------- */
+  router.get("/geo/:state/polling-stations", (req, res) => {
+    const state = String(req.params.state).toUpperCase();
+    if (!isStateCode(state)) return err(res, 404, "unknown_state", "Unknown state. Valid: AP, TG");
+    const acq = first(req.query.ac);
+    if (acq !== undefined && !/^\d{1,3}$/.test(acq)) return err(res, 400, "invalid_ac", "ac must be an assembly constituency number");
+    const limit = Math.min(Math.max(parseInt(first(req.query.limit) ?? "", 10) || 100, 1), 500);
+    const page = Math.max(parseInt(first(req.query.page) ?? "", 10) || 1, 1);
+    const file = readJson(path.join(geoDir, `polling-stations-${state}.json`));
+    pubCache(res, 300);
+    if (!file || !Array.isArray(file.records)) {
+      return res.json({ state, available: false, total: 0, page, limit, items: [], note: "No polling-station reference list has been imported for this state.", source: null });
+    }
+    // project to reference fields even if the file carries more: nothing voter-level can leave through this route
+    let list: PollingStation[] = (file.records as PollingStation[]).map(toReference);
+    if (acq !== undefined) list = list.filter(s => s.acNo === Number(acq));
+    res.json({
+      state, available: true, ac: acq !== undefined ? Number(acq) : null, total: list.length, page, limit, pages: Math.max(1, Math.ceil(list.length / limit)),
+      items: list.slice((page - 1) * limit, page * limit), asOf: file.asOf ?? null, provenance: file.provenance ?? null,
+      note: "Reference list only: station number, name, location and part. No voter data.", source: sourceOf("geo-polling-stations-" + state),
+    });
+  });
 
   /* ---------- units tree ---------- */
   router.get("/geo/:state/units", (req, res) => {

@@ -102,6 +102,7 @@ const ID_OK = /^[A-Za-z0-9._-]{8,64}$/;
 
 /** Class of route for logs and metrics. Low cardinality by construction: never includes ids or query strings. */
 import { degradedPayload, recordOutcome } from "./degraded";
+import { freshnessAlert } from "./freshness";
 
 export function routeClass(p: string): string {
   if (p === "/healthz" || p === "/readyz" || p === "/metrics") return p.slice(1);
@@ -242,7 +243,7 @@ export function obsRouter(deps: ReadyDeps, env: NodeJS.ProcessEnv = process.env)
   r.get("/healthz", noStore, (_req, res) => { res.json({ ok: true, uptimeSeconds: Math.round(process.uptime()) }); });
   r.get("/readyz", noStore, (_req, res) => {
     const rd = computeReadiness(deps);
-    res.status(rd.ok ? 200 : 503).json({ ...rd, info: { degraded: degradedPayload() } });
+    res.status(rd.ok ? 200 : 503).json({ ...rd, info: { degraded: degradedPayload(), dataFreshness: freshnessAlert() } });
   });
   r.get("/api/v1/degraded", (_req, res) => { res.setHeader("Cache-Control", "public, max-age=5, stale-while-revalidate=30, stale-if-error=300"); res.json(degradedPayload()); });
   r.get("/metrics", noStore, (req, res) => {

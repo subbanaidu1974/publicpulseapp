@@ -5,6 +5,7 @@ import type { StateCode } from "../../src/lib/states";
 import type { AcMeta } from "./constituency";
 import { acNoFromEci, type AcUnit } from "./lgd";
 import { nameClose } from "./util";
+import { CURRENT_SET_ID, selectSet, VersionError, type VersionRegistry } from "./versions";
 
 /** 2008 delimitation order in force for all AP/TG ECI elections to date. Exact date inferred, not verified. */
 export const DELIMITATION_2008_FROM = "2008-02-19";
@@ -12,6 +13,8 @@ export const DELIMITATION_2008_FROM = "2008-02-19";
 export interface AcLinkRow {
   state: StateCode; acNo: number; eci: number; lgd: string; name: string; pcNo: number | null; reservation: string | null;
   validFrom: string; validTo: string | null; datesInferred: true;
+  /** S-92: boundary set the row belongs to (absent = the 2008 delimitation) and the AC's district (filled from ac-units on load) */
+  set?: string; districtLgd?: string | null;
 }
 
 export function buildAcLink(state: StateCode, units: Record<string, AcUnit>, meta: AcMeta[]): { rows: AcLinkRow[]; issues: string[] } {
@@ -48,4 +51,36 @@ export class AcLink {
   byAcNo(state: StateCode, acNo: number, asOf = new Date().toISOString().slice(0, 10)): AcLinkRow | null {
     return this.rows.find(r => r.state === state && r.acNo === acNo && valid(r, asOf)) ?? null;
   }
+  /* ---------- S-92: version-aware lookups. Every call names (or defaults) ONE boundary set; rows of other sets are never read. ---------- */
+  private reg: VersionRegistry | null = null;
+  /** Attach the registry so lookups can select a set by id or date. */
+  withRegistry(reg: VersionRegistry | null): this { this.reg = reg; return this; }
+  /** Fill districtLgd on legacy rows from ac-units.json (state -> acNo -> unit with .district). */
+  withDistricts(units: Record<string, Record<string, { district?: string | null }>>): this {
+    for (const r of this.rows) if (r.districtLgd === undefined) r.districtLgd = units?.[r.state]?.[String(r.acNo)]?.district ?? null;
+    return this;
+  }
+  /** The set a selector resolves to; with no registry only the legacy 2008 set exists. */
+  setIdFor(sel: VersionSel = {}, now?: string): string {
+    if (!this.reg) {
+      if (sel.version && sel.version !== CURRENT_SET_ID) throw new VersionError("unknown_version", `No boundary set '${sel.version}'`);
+      return CURRENT_SET_ID;
+    }
+    return selectSet(this.reg, sel, now).id;
+  }
+  rowIn(state: StateCode, acNo: number, sel: VersionSel = {}, now?: string): AcLinkRow | null {
+    const id = this.setIdFor(sel, now);
+    return this.rows.find(r => r.state === state && r.acNo === acNo && (r.set ?? CURRENT_SET_ID) === id) ?? null;
+  }
+  pcOf(state: StateCode, acNo: number, sel: VersionSel = {}, now?: string): number | null { return this.rowIn(state, acNo, sel, now)?.pcNo ?? null; }
+  districtOf(state: StateCode, acNo: number, sel: VersionSel = {}, now?: string): string | null { return this.rowIn(state, acNo, sel, now)?.districtLgd ?? null; }
+  acsOfPc(state: StateCode, pcNo: number, sel: VersionSel = {}, now?: string): number[] {
+    const id = this.setIdFor(sel, now);
+    return this.rows.filter(r => r.state === state && r.pcNo === pcNo && (r.set ?? CURRENT_SET_ID) === id).map(r => r.acNo).sort((a, b) => a - b);
+  }
+  acsOfDistrict(state: StateCode, districtLgd: string, sel: VersionSel = {}, now?: string): number[] {
+    const id = this.setIdFor(sel, now);
+    return this.rows.filter(r => r.state === state && r.districtLgd === districtLgd && (r.set ?? CURRENT_SET_ID) === id).map(r => r.acNo).sort((a, b) => a - b);
+  }
 }
+export interface VersionSel { asOf?: string; version?: string }

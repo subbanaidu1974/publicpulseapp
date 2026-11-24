@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { civicIdentityApi, type SessionRow } from "../../api/civic";
 import { useCivicT } from "./civicText";
+import ChangePin from "./ChangePin";
 import { Btn } from "./ui";
 
 /** Lists where the person is signed in and lets them sign out other places. Hidden when the server has no sessions route yet. */
@@ -32,6 +33,7 @@ export default function SessionsPage() {
         ))}
       </ul>
       {msg && <p role="status" data-testid="session-msg" className="text-sm font-bold">{msg}</p>}
+      <ChangePin />
     </section>
   );
 }

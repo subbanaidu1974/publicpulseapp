@@ -43,6 +43,10 @@ A test (`tests/civic/scope/roles-matrix.test.ts`) parses this table and checks e
 Columns are the routes under `/api/v1/civic/scope`: `me` = `GET /me`, `issues_summary` = `GET /issues/summary?unit=`, `surveys_summary` = `GET /surveys/summary`,
 `audit_summary` = `GET /audit/summary`, `export` = `GET /export`.
 
+## Unit tree for the picker (S-156)
+
+`GET /scope/units?parent=<unit code>&level=<state|district|constituency|mandal|village>` (politician, officer, journalist, admin) returns one level of the tree for the dashboard's unit picker, only units inside the caller's grants: `{parent, level, units:[{lgd, level, name_en, name_te, parent, has_children}], total, truncated}`. Without `parent` it lists the top: the states for a state-level grant, otherwise the unit each scoped grant names (a constituency politician sees just their constituency). A constituency's children are the mandals (or stray villages) that hold its villages; a district's children are its mandals; constituencies are not listed under a district unless `level=constituency` is asked. `level=` alone lists a whole level (district, constituency, mandal; villages must be reached through a `parent`). The `lgd` codes are exactly what `/scope/issues/summary?unit=` accepts. A `parent` outside the caller's scope answers 403 `outside_scope` (audited), an unknown one 400 `unknown_unit`, a role without a dashboard 403 `role_required`; the route is GET-only like the rest of the router.
+
 ## Rules that hold for every role
 
 - **No early access.** `/scope/surveys/summary` lists only figures already published (same gate as the public `/surveys/:id/results`); the journalist export is byte-identical to the public `/issues/export`.

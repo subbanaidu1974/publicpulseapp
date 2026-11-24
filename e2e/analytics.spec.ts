@@ -1,0 +1,113 @@
+import { expect, test } from "@playwright/test";
+
+/** Turnout, comparison, history, by-elections and cited party changes (S-112, S-115, S-116, S-117, S-120). Real AP/TG snapshot. */
+
+test("@E2E-135 turnout page shows turnout by district and seat with sources, NOTA, and says gender turnout is not available", async ({ page }) => {
+  await page.goto("/?state=AP#/analytics/turnout");
+  await expect(page.getByTestId("turnout-page")).toBeVisible();
+  await expect(page.getByTestId("analytics-source")).toContainText(/TCPD|Election Commission/);
+  await expect(page.getByTestId("analytics-source")).toContainText(/Provenance/);
+  await expect(page.getByTestId("state-turnout")).toContainText(/^\d\d\.\d\d%$/);
+  await expect(page.getByTestId("state-nota")).toContainText(/%$/);
+  await expect(page.getByTestId("turnout-seat-row")).toHaveCount(175);
+  await expect(page.getByTestId("chart-district-turnout").locator("svg")).toBeVisible();
+  // table fallback holds the same figures
+  await page.getByTestId("chart-district-turnout-table").locator("summary").click();
+  expect(await page.getByTestId("chart-district-turnout-table").locator("tbody tr").count()).toBeGreaterThanOrEqual(20);
+  // gender turnout is never fabricated
+  await expect(page.getByTestId("gender-turnout-na")).toContainText(/not available/i);
+  await expect(page.getByTestId("cand-sex-summary")).toContainText("/");
+  // sorting works
+  await page.getByTestId("turnout-sort").selectOption("turnout");
+  const first = await page.getByTestId("turnout-seat-row").first().innerText();
+  const last = await page.getByTestId("turnout-seat-row").last().innerText();
+  const pct = (t: string) => Number(/(\d+\.\d+)%/.exec(t)![1]);
+  expect(pct(first)).toBeGreaterThanOrEqual(pct(last));
+});
+
+test("@E2E-135 turnout page works in Telugu and for Telangana 2009 with the pre-bifurcation flag and no NOTA", async ({ page }) => {
+  await page.goto("/?state=TG#/analytics/turnout");
+  await page.getByTestId("turnout-year").selectOption("2009");
+  await expect(page.getByTestId("prebif-flag")).toContainText(/undivided Andhra Pradesh/);
+  await expect(page.getByTestId("state-nota")).toHaveText(/not available/i);
+  await expect(page.getByTestId("turnout-seat-row")).toHaveCount(119);
+  await page.evaluate(() => localStorage.setItem("pp-lang", "te"));
+  await page.reload();
+  await expect(page.getByTestId("gender-turnout-na")).toContainText(/అందుబాటులో లేదు/);
+});
+
+test("@E2E-132 comparison page: assembly vs Lok Sabha shares, per-seat table, incumbency with honest coverage, candidate trails with confidence", async ({ page }) => {
+  await page.goto("/?state=AP#/analytics/compare");
+  await page.getByTestId("compare-year").selectOption("2019");
+  await expect(page.getByTestId("party-compare-row").first()).toBeVisible();
+  await expect(page.getByTestId("pc-compare-row")).toHaveCount(25);
+  await expect(page.getByTestId("analytics-source")).toBeVisible();
+  await expect(page.getByTestId("compare-caveats")).toContainText(/per parliamentary constituency/);
+  await expect(page.getByTestId("inc-winrate").first()).toContainText(/%/);
+  await page.getByTestId("compare-year").selectOption("2024");
+  await expect(page.getByTestId("inc-unavailable").first()).toContainText(/incumbent flag/);
+  await page.getByTestId("trail-query").fill("naidu");
+  await page.getByTestId("trail-go").click();
+  await expect(page.getByTestId("trail-item").first()).toBeVisible();
+  await expect(page.getByTestId("trail-confidence").first()).toContainText(/high|medium/);
+  await expect(page.getByTestId("trails")).not.toContainText(/turncoat/i);
+});
+
+test("@E2E-131 history page lists 2009 and 2014 elections with comparability notes and shows their seat tally", async ({ page }) => {
+  await page.goto("/?state=TG#/analytics/history");
+  await expect(page.getByTestId("history-notes")).toContainText(/undivided Andhra Pradesh/);
+  const pre = page.getByTestId("history-election").and(page.locator("[data-comparability='pre-bifurcation']"));
+  await expect(pre).toHaveCount(3);
+  await expect(pre.filter({ hasText: "2009" }).first()).toContainText(/119|17/);
+  await page.getByTestId("history-pick").selectOption("2009|assembly");
+  await expect(page.getByTestId("chart-history-tally")).toBeVisible();
+  await page.getByTestId("chart-history-tally-table").locator("summary").click();
+  await expect(page.getByTestId("chart-history-tally-table")).toContainText("INC");
+  await expect(page.getByTestId("prebif-flag")).toBeVisible();
+});
+
+test("@E2E-130 Jubilee Hills 2025 by-election appears in the seat history and on the constituency page", async ({ page }) => {
+  await page.goto("/?state=TG#/analytics/history");
+  const jh = page.getByTestId("byelection-item").filter({ hasText: "JUBILEE HILLS" });
+  await expect(jh).toContainText("2025-11");
+  await expect(jh).toContainText(/NAVEEN YADAV/i);
+  await expect(jh).toContainText("INC");
+  await expect(jh.getByTestId("byelection-verified")).toContainText(/second source/);
+  await page.goto("/?state=TG#/constituency/TG/61");
+  await expect(page.getByTestId("profile-byelections")).toContainText("2025-11");
+  await expect(page.getByTestId("profile-byelections")).toContainText(/Maganti Gopinath/);
+  // a seat without one says so
+  await page.goto("/?state=TG#/constituency/TG/1");
+  await expect(page.getByTestId("profile-byelections")).toContainText(/No by-election/);
+});
+
+test("@E2E-127 party changes (cited): same section for every candidate, entries carry two sources and a date, none is invented", async ({ page, request }) => {
+  const find = async (q: string) => (await (await request.get(`/api/v1/contestants?q=${encodeURIComponent(q)}&state=TG&type=assembly&year=2023`)).json()).results as { id: string; name: string }[];
+  const [dn] = await find("Danam Nagender");
+  expect(dn).toBeTruthy();
+  await page.goto(`/#/people/candidate/${encodeURIComponent(dn.id)}`);
+  const sec = page.getByTestId("partychanges-section");
+  await expect(sec).toBeVisible();
+  const item = sec.getByTestId("partychange-item");
+  await expect(item).toContainText("2024-03-17");
+  await expect(item).toContainText(/BRS/);
+  await expect(item).toContainText(/INC/);
+  expect(await item.locator("a").count()).toBeGreaterThanOrEqual(2);
+  await expect(sec).not.toContainText(/turncoat|defect/i);
+  // another candidate: identical section, neutral none-recorded sentence
+  const other = (await find("Revanth"))[0];
+  await page.goto(`/#/people/candidate/${encodeURIComponent(other.id)}`);
+  await expect(page.getByTestId("partychanges-section").locator("h2")).toHaveText((await sec.locator("h2").textContent())!);
+  await expect(page.getByTestId("partychanges-none")).toContainText(/No party change is recorded/);
+});
+
+test("@E2E-135 analytics pages fit a 375px screen without sideways page scroll", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  for (const h of ["turnout", "compare", "history"]) {
+    await page.goto(`/?state=AP#/analytics/${h}`);
+    await expect(page.getByTestId("analytics-root")).toBeVisible();
+    await expect(page.getByTestId("analytics-source")).toBeVisible();
+    const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(over).toBeLessThanOrEqual(1);
+  }
+});

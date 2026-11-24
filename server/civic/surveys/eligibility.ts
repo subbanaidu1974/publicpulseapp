@@ -112,7 +112,8 @@ export function checkEligibility(personId: string, survey: SurveyForResponse | n
   if (!p.residence_unit) return { ok: false, code: "residence_missing", status: 403, message: "declare where you live (a village) to answer surveys" };
   if (!villageInScope(p.residence_unit, survey.scope, now)) return { ok: false, code: "outside_scope", status: 403, message: "this survey is for people living elsewhere" };
   if (flags.includes("recently_reissued")) return { ok: false, code: "number_recycled", status: 403, message: "this phone number was recently reissued; confirm it with a volunteer to answer" };
-  const quality: "normal" | "low" = flags.includes("voip") ? "low" : "normal";
+  // S-162: a number the intelligence vendor rated medium/high risk (ported, young prepaid, ...) is also admitted at reduced trust, in the *_LOW key class.
+  const quality: "normal" | "low" = flags.includes("voip") || flags.includes("number_risk_medium") || flags.includes("number_risk_high") ? "low" : "normal";
   const keyClass = `${p.tier}${quality === "low" ? "_LOW" : ""}` as KeyClass;
   return { ok: true, keyClass, tier: p.tier, quality, mandal: mandalOfResidence(p.residence_unit) };
 }

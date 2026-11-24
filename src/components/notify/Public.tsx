@@ -5,15 +5,19 @@ import { useNotifyT } from "./notifyText";
 /** Current election-window state per state, from the same calendar-driven, fail-closed service the server uses. */
 export function MccNotice() {
   const t = useNotifyT();
-  const w = useLoad(() => Promise.all([notifyApi.window("AP"), notifyApi.window("TG")]), []);
+  const lang = useLang();
+  const w = useLoad(() => Promise.all([notifyApi.status("AP"), notifyApi.status("TG")]), []);
   return (
     <section aria-labelledby="mcc-h" className={card} data-testid="mcc-notice">
       <h3 id="mcc-h" className="font-bold text-lg">{t("mcc.title")}</h3>
       <p className="text-sm">{t("mcc.explain")}</p>
       {w.loading ? <p role="status">{t("loading")}</p> : w.error || !w.data ? <p role="alert">{t("mcc.unavailable")}</p> : (
-        <ul className="text-sm space-y-1">{w.data.map((s) => (
-          <li key={s.state} data-testid={`mcc-${s.state}`} data-window={s.window}><strong>{s.state}</strong>: {t(`mcc.state.${s.window}`)}</li>
-        ))}</ul>
+        <>
+          {w.data[0].kill.engaged && <p role="alert" data-testid="mcc-kill" data-scope={w.data[0].kill.scope ?? ""} className="border-2 border-black bg-red-100 text-black p-2 font-bold text-sm">{t("status.kill")}: {lang === "te" ? w.data[0].kill.notice_te : w.data[0].kill.notice_en}</p>}
+          <ul className="text-sm space-y-1">{w.data.map((s) => (
+            <li key={s.window.state} data-testid={`mcc-${s.window.state}`} data-window={s.window.status}><strong>{s.window.state}</strong>: {t(`mcc.state.${s.window.status}`)}<br /><span data-testid={`mcc-notice-${s.window.state}`}>{lang === "te" ? s.window.notice_te : s.window.notice_en}</span></li>
+          ))}</ul>
+        </>
       )}
     </section>
   );

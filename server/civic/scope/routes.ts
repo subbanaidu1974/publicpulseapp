@@ -4,6 +4,7 @@
  * Matrix of who may call what: docs/ROLES.md (a test parses it).
  *
  *  GET /scope/me                       any signed-in person: own roles, scope, and which dashboards they may open
+ *  GET /scope/units?parent=&level=     politician | officer | journalist | admin: the units inside the caller's scope, one tree level at a time (names EN+TE, codes /scope/issues/summary accepts)
  *  GET /scope/issues/summary?unit=     politician | officer | journalist | admin: issue counts at the caller's scope, cells under 30 withheld
  *  GET /scope/surveys/summary          politician | officer | journalist | eci_liaison | admin: the PUBLISHED survey figures (same as /surveys/:id/results)
  *  GET /scope/audit/summary            eci_liaison | admin: audit head, anchors, job health, block-log counts (no actor ids)
@@ -21,6 +22,7 @@ import { isPoliticalTopic } from "../surveys/publish";
 import { registryNow } from "../surveys/types";
 import { surveysAllowed } from "../../window";
 import { describeUnit, grantsOf, scopeCovers, unitsReaching } from "./model";
+import type { Unit } from "../geo/service";
 import type { Grant } from "./model";
 
 declare module "express-serve-static-core" {
@@ -95,6 +97,70 @@ scopeRouter.get("/me", requireAuth, (req, res) => {
   const roles = held.map((r) => ({ role: r.role, jurisdiction: r.jurisdiction, department: r.department, unit: r.jurisdiction ? describeUnit(getUnit(r.jurisdiction)) : null, scope: r.jurisdiction ? "unit" : r.role === "politician" ? "none" : "state" }));
   const can = Object.fromEntries((Object.keys(DASHBOARDS) as Dashboard[]).map((d) => [d, (DASHBOARDS[d] as readonly string[]).some((r) => names.has(r))]));
   res.json({ roles, can, read_only: true, early_access: false, individual_data: false, min_cell: MIN_CELL, notice_en: "You see the same published data as everyone, within your scope.", notice_te: "మీ పరిధిలో అందరికీ కనిపించే ప్రచురిత సమాచారమే మీకు కనిపిస్తుంది." });
+});
+
+// ---------------------------------------------------------------------------------------------
+// unit tree (S-156): only units inside the caller's scope, so the picker never offers a unit the summary would refuse
+// ---------------------------------------------------------------------------------------------
+const TREE_ROLES: RoleName[] = ["politician", "officer", "journalist", "admin"];
+const TREE_LEVELS = ["state", "district", "constituency", "mandal", "village"];
+const TREE_MAX = 300;
+const today = () => new Date().toISOString().slice(0, 10);
+const VALID_SQL = "valid_from <= ? AND (valid_to IS NULL OR valid_to > ?)";
+
+/** Direct children of a unit in the picker tree. A constituency has no parent/child rows: its tree is the mandals (and stray villages) holding its villages. */
+function treeChildren(parent: Unit): Unit[] {
+  const db = getStore("issues"), a = today();
+  const toUnit = (r: Record<string, any>): Unit => ({ lgd: r.lgd_code, level: r.level, name_en: r.name_en, name_te: r.name_te, parent: r.parent_lgd, valid_from: r.valid_from, valid_to: r.valid_to });
+  if (parent.level === "constituency") {
+    const vill = db.prepare(`SELECT v.* FROM village_constituency vc JOIN admin_unit v ON v.lgd_code = vc.village_lgd AND v.level = 'village'
+      WHERE vc.constituency_lgd = ? AND vc.valid_from <= ? AND (vc.valid_to IS NULL OR vc.valid_to > ?) AND v.valid_from <= ? AND (v.valid_to IS NULL OR v.valid_to > ?) LIMIT 5000`).all(parent.lgd, a, a, a, a) as Record<string, any>[];
+    const out = new Map<string, Unit>();
+    for (const v of vill) {
+      const m = v.parent_lgd ? getUnit(v.parent_lgd) : null;
+      if (m && m.level === "mandal") out.set(m.lgd, m); else out.set(v.lgd_code, toUnit(v));
+    }
+    return [...out.values()];
+  }
+  // constituencies hang under their district in the data, but the picker walks district -> mandal -> village (ask level=constituency for them)
+  return (db.prepare(`SELECT * FROM admin_unit WHERE parent_lgd = ? AND level <> 'constituency' AND ${VALID_SQL} ORDER BY name_en LIMIT 5000`).all(parent.lgd, a, a) as Record<string, any>[]).map(toUnit);
+}
+const hasChildren = (u: Unit): boolean => {
+  if (u.level === "village") return false;
+  if (u.level === "constituency") return true;
+  const a = today();
+  return !!getStore("issues").prepare(`SELECT 1 AS x FROM admin_unit WHERE parent_lgd = ? AND ${VALID_SQL} LIMIT 1`).get(u.lgd, a, a);
+};
+
+scopeRouter.get("/units", requireAuth, (req, res) => {
+  const pid = req.person!.id;
+  const grants = TREE_ROLES.flatMap((r) => grantsOf(pid, r));
+  const parentCode = str(req.query.parent), level = str(req.query.level);
+  if (!grants.length) return denied(req, res, TREE_ROLES, parentCode || null, "role_required", 403);
+  if (level && !TREE_LEVELS.includes(level)) return deny(res, 400, "level_invalid", { code: "level_invalid", levels: TREE_LEVELS });
+  const wide = grants.some((g) => !g.jurisdiction && g.role !== "politician"); // a state-level grant reaches every existing unit
+  const inScope = (u: Unit): boolean => wide || grants.some((g) => scopeCovers(g, u.lgd));
+  let parent: Unit | null = null, list: Unit[];
+  if (parentCode) {
+    parent = getUnit(parentCode);
+    if (!parent) return denied(req, res, TREE_ROLES, parentCode, "unknown_unit", 400);
+    if (!inScope(parent)) return denied(req, res, TREE_ROLES, parentCode, "outside_scope", 403);
+    list = treeChildren(parent);
+  } else if (level && level !== "state") {
+    // a whole level at once (district, constituency or mandal lists; villages are reached through their mandal)
+    if (level === "village") return deny(res, 400, "parent_required", { code: "parent_required", hint: "list villages through their mandal" });
+    list = (getStore("issues").prepare(`SELECT * FROM admin_unit WHERE level = ? AND ${VALID_SQL} ORDER BY name_en LIMIT 2000`).all(level, today(), today()) as Record<string, any>[])
+      .map((r) => ({ lgd: r.lgd_code, level: r.level, name_en: r.name_en, name_te: r.name_te, parent: r.parent_lgd, valid_from: r.valid_from, valid_to: r.valid_to }));
+  } else {
+    // the top of the caller's tree: states for a state-level grant, otherwise the unit each scoped grant names
+    const roots = new Map<string, Unit>();
+    if (wide) for (const r of getStore("issues").prepare(`SELECT * FROM admin_unit WHERE parent_lgd IS NULL AND level = 'state' AND ${VALID_SQL} ORDER BY name_en`).all(today(), today()) as Record<string, any>[]) roots.set(r.lgd_code, { lgd: r.lgd_code, level: r.level, name_en: r.name_en, name_te: r.name_te, parent: r.parent_lgd, valid_from: r.valid_from, valid_to: r.valid_to });
+    for (const g of grants) { const u = g.jurisdiction ? getUnit(g.jurisdiction) : null; if (u) roots.set(u.lgd, u); }
+    list = [...roots.values()];
+  }
+  const filtered = list.filter((u) => (!level || u.level === level) && inScope(u)).sort((a, b) => a.name_en.localeCompare(b.name_en));
+  const units = filtered.slice(0, TREE_MAX).map((u) => ({ ...describeUnit(u)!, parent: u.parent, has_children: hasChildren(u) }));
+  res.json({ parent: describeUnit(parent), level: level || null, units, total: filtered.length, truncated: filtered.length > TREE_MAX, read_only: true });
 });
 
 // ---------------------------------------------------------------------------------------------

@@ -106,8 +106,19 @@
       "status": "attribution-sharealike",
       "constraints": ["attribution", "share-alike for derived databases"],
       "attribution": "(c) OpenStreetMap contributors, ODbL.",
-      "needsDecision": false,
-      "evidence": "Standard licence terms."
+      "needsDecision": true,
+      "decision": "data/generated/geo/mandal-AP.geojson and mandal-TG.geojson are derived from OpenStreetMap relations (simplified, re-keyed to LGD). They must stay under ODbL with the OSM attribution, and anyone redistributing them must offer the derived file under ODbL (share-alike). Counsel to confirm that this file is a separable derivative database and that the rest of the repository and the app are not affected, or choose to drop the file.",
+      "evidence": "Standard licence terms (https://www.openstreetmap.org/copyright states ODbL 1.0 and the attribution wording). Applied in S-89."
+    },
+    "ceo-polling-station-list": {
+      "name": "Polling-station lists published by the Chief Electoral Officers (AP, TG) and ECI",
+      "url": "https://eci.gov.in/",
+      "status": "unstated",
+      "constraints": ["cite the CEO/ECI list", "reference fields only: no voter-level data, no electoral-roll PDFs"],
+      "attribution": "Source: Office of the Chief Electoral Officer / Election Commission of India (polling-station list).",
+      "needsDecision": true,
+      "decision": "No list is shipped. Before an operator imports one, confirm the list's reuse terms with counsel; the CEO and ECI portals were unreachable or blocked when this was checked, so no terms were read.",
+      "evidence": "Not read: ceoandhra.nic.in, ceotelangana.nic.in and eci.gov.in were unreachable from the build machine (GAP_AUDIT.md section 2)."
     },
     "wikidata-cc0": {
       "name": "Wikidata structured data (CC0)",

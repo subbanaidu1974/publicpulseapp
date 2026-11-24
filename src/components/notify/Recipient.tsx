@@ -98,6 +98,7 @@ function SettingsBody() {
   const lang = useLang();
   const policy = usePolicy();
   const prefs = useLoad(() => notifyApi.prefs(), []);
+  const devices = useLoad(() => notifyApi.devices(), []);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [qs, setQs] = useState<string | null>(null);
@@ -106,7 +107,7 @@ function SettingsBody() {
   const p: Prefs | null = prefs.data;
   const apply = async (fn: () => Promise<unknown>, ok: string) => {
     setErr(null); setMsg(null);
-    try { await fn(); setMsg(ok); prefs.reload(); } catch (e) { setErr(errorText(t, e)); }
+    try { await fn(); setMsg(ok); prefs.reload(); devices.reload(); } catch (e) { setErr(errorText(t, e)); }
   };
   if (prefs.loading) return <p role="status">{t("loading")}</p>;
   if (prefs.error || !p) return <p role="alert" data-testid="nt-load-fail" className="font-bold">{errorText(t, prefs.error)}</p>;
@@ -160,6 +161,15 @@ function SettingsBody() {
         <p className="text-sm">{t("chan.smsNote")}</p>
         <label className="flex items-start gap-3 min-h-[44px]"><input type="checkbox" data-testid="push-blocked" checked={p.push_blocked} onChange={(e) => apply(() => notifyApi.putPrefs({ push_blocked: e.target.checked }), t("saved"))} /><span>{t("chan.pushBlock")}</span></label>
         <p className="text-sm" data-testid="push-state">{t("chan.pushState")}</p>
+        <div data-testid="devices-panel" data-count={devices.data?.count ?? ""}>
+          <h4 className="font-bold text-sm">{t("dev.title")}</h4>
+          {devices.loading ? <p role="status" className="text-sm">{t("loading")}</p> : devices.error || !devices.data ? <p role="alert" className="text-sm">{errorText(t, devices.error)}</p> : devices.data.count === 0 ? <p className="text-sm" data-testid="devices-none">{t("dev.none")}</p> : (
+            <>
+              <p className="text-sm" data-testid="devices-count">{t("dev.count", { n: devices.data.count })}</p>
+              <ul className="text-sm list-disc pl-5">{devices.data.devices.map((d) => <li key={d.id} data-testid="device-item" data-platform={d.platform}>{t("dev.item", { label: lang === "te" ? d.label_te : d.label_en, at: fmtTime(d.created_at) })}</li>)}</ul>
+            </>
+          )}
+        </div>
         <Btn secondary data-testid="devices-remove" onClick={() => apply(() => notifyApi.removeDevices(), t("chan.devicesRemoved"))}>{t("chan.devicesRemove")}</Btn>
         <Field id="lang-sel" label={t("chan.lang")}>
           <select id="lang-sel" data-testid="pref-lang" className="min-h-[44px] border border-black bg-white text-black px-3 text-base" value={p.language} onChange={(e) => apply(() => notifyApi.putPrefs({ language: e.target.value === "en" ? "en" : "te" }), t("saved"))}>

@@ -97,4 +97,10 @@ export class BreakGlass {
   }
 
   status(id: string): BreakGlassStatus { return this.get(id).status; }
+
+  /** Snapshot of every request (newest first) with expiry applied. Holds no key material; approvers are admin person ids. */
+  list(): BreakGlassRequest[] {
+    return [...this.reqs.keys()].map((id) => ({ ...this.get(id) })).sort((a, b) => b.createdAt - a.createdAt);
+  }
+  one(id: string): BreakGlassRequest { return { ...this.get(id) }; }
 }

@@ -5,12 +5,13 @@
  *  GET  /:id/mine            auth: the caller's own feedback (all clauses) and eligibility
  *  GET  /:id/figures         public: per-clause aggregates (k-suppressed, rounded), only after close + delay
  *  GET  /:id/comments        public: opted-in comments that passed moderation, location at mandal level only, no name; flagged clusters marked
- *  POST /:id/comments/:fid/moderate   moderator | admin: release or keep a held comment
+ *  GET  /:id/comments/held   moderator | admin: held comments with feedback ids (?status=rejected for the rejected ones)
+ *  POST /:id/comments/:fid/moderate   moderator | admin: {decision: release | reject | keep_held}; a rejected comment never becomes public
  */
 import crypto from "node:crypto";
 import { Router } from "express";
 import express from "express";
-import { audit, requireAuth, requireRole, runInStore } from "../core";
+import { audit, auditPrivilegedRead, requireAuth, requireRole, runInStore } from "../core";
 import { rateAllow } from "../identity/service";
 import { assessText } from "../issues/moderation";
 import { checkEligibility, isIneligible } from "../surveys/eligibility";
@@ -83,7 +84,7 @@ export function submitFeedback(personId: string, consultationId: string, input: 
                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                    ON CONFLICT(consultation_id, clause_n, person_key) DO UPDATE SET stance = excluded.stance, comment = excluded.comment, public_ok = excluded.public_ok,
                      mod_verdict = excluded.mod_verdict, mod_reasons = excluded.mod_reasons, mandal = excluded.mandal, tier = excluded.tier, quality = excluded.quality,
-                     net_key = excluded.net_key, updated_at = excluded.updated_at, edits = consultation_feedback.edits + 1`)
+                     net_key = excluded.net_key, updated_at = excluded.updated_at, mod_rejected = 0, edits = consultation_feedback.edits + 1`)
       .run(crypto.randomUUID(), c.id, n, key, stance, comment, publicOk, verdict, JSON.stringify(reasons), el.mandal, el.tier, el.quality, nk, iso(now), iso(now));
     cdb().prepare("INSERT INTO consultation_burst (consultation_id, minute, n, limited) VALUES (?,?,1,0) ON CONFLICT(consultation_id, minute) DO UPDATE SET n = n + 1").run(c.id, minute);
   });
@@ -160,17 +161,35 @@ feedbackRouter.get("/:id/comments", wrap((req, res) => {
   });
 }));
 
+/** Moderator queue: comments held by the text check, with the feedback ids the moderate route takes. No author identity is stored on the row. */
+feedbackRouter.get("/:id/comments/held", requireRole("moderator", "admin"), wrap((req, res) => {
+  const c = getConsultation(req.params.id);
+  if (!visible(c)) return fail(res, 404, "not_found");
+  const rejected = str(req.query.status) === "rejected";
+  const limit = Math.min(200, Math.max(1, Math.floor(Number(req.query.limit)) || 100));
+  const rows = cdb().prepare(`SELECT id, clause_n, stance, comment, mod_reasons, public_ok, mod_rejected, created_at, updated_at FROM consultation_feedback
+    WHERE consultation_id = ? AND mod_verdict = 'hold' AND mod_rejected = ? AND comment IS NOT NULL ORDER BY updated_at, id LIMIT ?`)
+    .all(c.id, rejected ? 1 : 0, limit) as unknown as { id: string; clause_n: number; stance: string; comment: string; mod_reasons: string; public_ok: number; mod_rejected: number; created_at: string; updated_at: string }[];
+  auditPrivilegedRead(req.person!.id, "consultation:" + c.id + ":held_comments", "moderator queue read");
+  res.setHeader("Cache-Control", "private, no-store");
+  res.json({
+    consultation_id: c.id, status: rejected ? "rejected" : "held",
+    comments: rows.map((r) => ({ feedback_id: r.id, clause: r.clause_n, stance: r.stance, comment: r.comment, reasons: JSON.parse(r.mod_reasons) as string[], public_ok: !!r.public_ok, created_at: r.created_at, updated_at: r.updated_at })),
+    decisions: ["release", "reject", "keep_held"],
+  });
+}));
+
 feedbackRouter.post("/:id/comments/:fid/moderate", requireRole("moderator", "admin"), wrap((req, res) => {
   const c = getConsultation(req.params.id);
   if (!visible(c)) return fail(res, 404, "not_found");
   const decision = str(req.body?.decision);
-  if (decision !== "release" && decision !== "keep_held") return fail(res, 400, "decision_invalid");
+  if (decision !== "release" && decision !== "keep_held" && decision !== "reject") return fail(res, 400, "decision_invalid");
   if (!UUID.test(req.params.fid)) return fail(res, 404, "not_found");
   const r = cdb().prepare("SELECT mod_verdict FROM consultation_feedback WHERE id = ? AND consultation_id = ?").get(req.params.fid, c.id) as { mod_verdict: string } | undefined;
   if (!r || r.mod_verdict === "none") return fail(res, 404, "not_found");
   const next = decision === "release" ? "released" : "hold";
   runInStore("survey", () => {
-    cdb().prepare("UPDATE consultation_feedback SET mod_verdict = ? WHERE id = ?").run(next, req.params.fid);
+    cdb().prepare("UPDATE consultation_feedback SET mod_verdict = ?, mod_rejected = ? WHERE id = ?").run(next, decision === "reject" ? 1 : 0, req.params.fid);
     logEvent(c.id, "comment_moderated", { decision }, registryNow());
     audit(req.person!.id, "consultation.comment.moderate", "consultation:" + c.id, { decision });
   });

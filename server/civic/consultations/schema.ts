@@ -188,4 +188,23 @@ WHEN NEW.status = 'completed' AND NOT EXISTS (SELECT 1 FROM consultation_reports
 BEGIN SELECT RAISE(ABORT, 'closing_report_required'); END;
 `, "survey");
 
+// S-154: stored recordings (uploaded by staff; served only once a panel reviewer marked them reviewed) and a moderator "reject" marker on held comments.
+registerMigration("consult_002_audio_files", `
+CREATE TABLE consultation_audio_files (
+  id TEXT PRIMARY KEY,
+  consultation_id TEXT NOT NULL REFERENCES consultations(id),
+  clause_n INTEGER NOT NULL,
+  group_key TEXT NOT NULL,
+  file_id TEXT NOT NULL,
+  mime TEXT NOT NULL,
+  bytes INTEGER NOT NULL,
+  sha256 TEXT NOT NULL,
+  path TEXT NOT NULL,
+  uploader_pseudonym TEXT NOT NULL,
+  uploaded_at TEXT NOT NULL,
+  UNIQUE (consultation_id, file_id)
+);
+ALTER TABLE consultation_feedback ADD COLUMN mod_rejected INTEGER NOT NULL DEFAULT 0;
+`, "survey");
+
 export const cdb = () => getStore("survey");

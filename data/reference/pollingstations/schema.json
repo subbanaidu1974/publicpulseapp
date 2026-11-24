@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PollingStation (reference only)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["stationNo", "name", "acNo", "location", "source", "asOf"],
+  "properties": {
+    "stationNo": { "type": "string", "pattern": "^[0-9]{1,4}[A-Za-z]{0,2}$" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "acNo": { "type": "integer", "minimum": 1, "maximum": 300 },
+    "partNo": { "type": ["integer", "null"], "minimum": 1, "maximum": 9999 },
+    "location": { "type": "string", "minLength": 1, "maxLength": 200, "description": "Building or landmark text, never an individual's address" },
+    "lat": { "type": ["number", "null"], "minimum": 5, "maximum": 40 },
+    "lon": { "type": ["number", "null"], "minimum": 60, "maximum": 100 },
+    "source": { "type": "string", "minLength": 1 },
+    "asOf": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+  },
+  "x-forbidden": "Voter-level fields (elector or relative names, EPIC, age, gender, house number, individual address, phone, photo, Aadhaar) are rejected by pipeline/geo/pollingstations.ts."
+}

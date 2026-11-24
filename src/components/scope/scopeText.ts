@@ -37,9 +37,6 @@ export const EN = {
   "sc.iss.own": "My scope",
   "sc.iss.state": "the whole state",
   "sc.iss.showing": "Showing: {unit}",
-  "sc.iss.search": "Find a village",
-  "sc.iss.searchBtn": "Search",
-  "sc.iss.noHits": "No village found.",
   "sc.iss.pick": "Pick",
   "sc.iss.dept": "Department (officers)",
   "sc.iss.apply": "Apply",
@@ -82,6 +79,9 @@ export const EN = {
   "sc.err.rate_limit": "Too many downloads for now. Try again in {n} seconds.",
   "sc.err.network": "The service could not be reached. Check your connection and try again.",
   "sc.err.error": "Something went wrong. Please try again.",
+  "sc.tree.title": "Choose an area", "sc.tree.path": "Where you are", "sc.tree.root": "Top level", "sc.tree.open": "Open", "sc.tree.show": "Show issues", "sc.tree.none": "Nothing below this level inside your scope.",
+  "sc.tree.more": "Only the first {n} areas are listed.", "sc.tree.loading": "Loading areas...", "sc.tree.hint": "Only areas inside your scope are listed. Open one to go lower, or show its issues.",
+  "sc.lvl.state": "state", "sc.lvl.district": "district", "sc.lvl.constituency": "constituency", "sc.lvl.mandal": "mandal", "sc.lvl.village": "village",
 } as const;
 
 export const TE: Record<keyof typeof EN, string> = {
@@ -116,9 +116,6 @@ export const TE: Record<keyof typeof EN, string> = {
   "sc.iss.own": "నా పరిధి",
   "sc.iss.state": "రాష్ట్రమంతా",
   "sc.iss.showing": "చూపబడుతున్నది: {unit}",
-  "sc.iss.search": "గ్రామాన్ని వెతకండి",
-  "sc.iss.searchBtn": "వెతుకు",
-  "sc.iss.noHits": "గ్రామం కనబడలేదు.",
   "sc.iss.pick": "ఎంచుకోండి",
   "sc.iss.dept": "శాఖ (అధికారులకు)",
   "sc.iss.apply": "వర్తింపజేయి",
@@ -157,6 +154,9 @@ export const TE: Record<keyof typeof EN, string> = {
   "sc.err.rate_limit": "ప్రస్తుతానికి చాలా డౌన్‌లోడ్‌లు అయ్యాయి. {n} సెకన్ల తర్వాత ప్రయత్నించండి.",
   "sc.err.network": "సేవను చేరుకోలేకపోయాము. కనెక్షన్ చూసి మళ్లీ ప్రయత్నించండి.",
   "sc.err.error": "ఏదో తప్పు జరిగింది. దయచేసి మళ్లీ ప్రయత్నించండి.",
+  "sc.tree.title": "ఒక ప్రాంతాన్ని ఎంచుకోండి", "sc.tree.path": "మీరు ఉన్న చోటు", "sc.tree.root": "అగ్ర స్థాయి", "sc.tree.open": "తెరవండి", "sc.tree.show": "సమస్యలు చూపండి", "sc.tree.none": "మీ పరిధిలో ఈ స్థాయి కింద ఏమీ లేదు.",
+  "sc.tree.more": "మొదటి {n} ప్రాంతాలు మాత్రమే చూపబడ్డాయి.", "sc.tree.loading": "ప్రాంతాలను లోడ్ చేస్తున్నాం...", "sc.tree.hint": "మీ పరిధిలోని ప్రాంతాలు మాత్రమే ఇక్కడ ఉంటాయి. కిందికి వెళ్లడానికి ఒకదాన్ని తెరవండి, లేదా దాని సమస్యలను చూపండి.",
+  "sc.lvl.state": "రాష్ట్రం", "sc.lvl.district": "జిల్లా", "sc.lvl.constituency": "నియోజకవర్గం", "sc.lvl.mandal": "మండలం", "sc.lvl.village": "గ్రామం",
 };
 
 export type ScopeKey = keyof typeof EN;

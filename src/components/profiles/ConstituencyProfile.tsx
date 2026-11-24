@@ -8,6 +8,7 @@ import { useT } from "../../i18n";
 import type { Key } from "../../i18n";
 import { Bar, DemoBadge, ErrorBanner, Loading, partyColor } from "../ui";
 import BoundaryThumb from "./BoundaryThumb";
+import { ByElectionsBlock } from "../analytics/blocks";
 import { Section, Sources, Stat, num, pctText, useDisplayName } from "./common";
 
 const RES_KEY: Record<string, Key> = { GEN: "prof.res.GEN", SC: "prof.res.SC", ST: "prof.res.ST" };
@@ -114,6 +115,8 @@ export default function ConstituencyProfile({ state, acNo, actions }: { state: S
           </>
         )}
       </Section>
+
+      <ByElectionsBlock state={state} acNo={acNo} />
 
       {p.pc && p.pc.history.length > 0 && (
         <Section title={t("prof.pcHistory")} testId="profile-pc-history">

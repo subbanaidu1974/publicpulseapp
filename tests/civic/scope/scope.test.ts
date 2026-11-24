@@ -210,3 +210,55 @@ describe("who-sees-what matrix (docs/ROLES.md)", () => {
     }
   });
 });
+
+describe("unit tree for the dashboard picker (S-156)", () => {
+  const codes = (r: { json: any }) => (r.json.units as { lgd: string }[]).map((u) => u.lgd);
+
+  it("@E2E-171 a state-level role walks state -> district -> mandal -> village; every unit is accepted by the summary", async () => {
+    const j = person("journalist");
+    const roots = await call(j.token, "/scope/units");
+    expect(roots.status).toBe(200);
+    expect(codes(roots)).toEqual(["DEMO-S-AP", "DEMO-S-TG"]);
+    expect(roots.json.units[0]).toMatchObject({ level: "state", name_en: expect.any(String), has_children: true });
+    expect(roots.json.units[0]).toHaveProperty("name_te");
+    const d = await call(j.token, "/scope/units?parent=DEMO-S-AP");
+    expect(codes(d)).toEqual(["DEMO-D-GNT", "DEMO-D-KRS"]);
+    expect(d.json.parent.lgd).toBe("DEMO-S-AP");
+    expect(codes(await call(j.token, "/scope/units?parent=DEMO-D-GNT&level=mandal"))).toEqual(["DEMO-M-KLP", "DEMO-M-TNL"]);
+    expect(codes(await call(j.token, "/scope/units?parent=DEMO-M-KLP"))).toEqual(["DEMO-V-BPL", "DEMO-V-KLR"]);
+    expect(codes(await call(j.token, "/scope/units?level=district"))).toEqual(["DEMO-D-GNT", "DEMO-D-KRS", "DEMO-D-WGL"]);
+    for (const code of ["DEMO-S-AP", "DEMO-D-GNT", "DEMO-M-KLP", "DEMO-V-KLR"]) expect((await call(j.token, `/scope/issues/summary?unit=${code}`)).status, code).toBe(200);
+    expect((await call(j.token, "/scope/units?level=planet")).json.error).toBe("level_invalid");
+    expect((await call(j.token, "/scope/units?parent=DEMO-NOPE")).json.error).toBe("unknown_unit");
+    expect((await call(j.token, "/scope/units?level=village")).json.error).toBe("parent_required");
+  });
+
+  it("@E2E-171 a constituency politician sees only units inside the constituency; others are refused and audited", async () => {
+    const a = person("politician", "DEMO-C-TNL");
+    const roots = await call(a.token, "/scope/units");
+    expect(codes(roots)).toEqual(["DEMO-C-TNL"]);
+    const mandals = await call(a.token, "/scope/units?parent=DEMO-C-TNL");
+    expect(codes(mandals)).toEqual(["DEMO-M-KLP"]); // the other mandal's only village moved to Ponnur in 2026
+    const villages = await call(a.token, "/scope/units?parent=DEMO-M-KLP");
+    expect(codes(villages)).toEqual(["DEMO-V-BPL", "DEMO-V-KLR"]);
+    for (const code of [...codes(roots), ...codes(mandals), ...codes(villages)]) expect((await call(a.token, `/scope/issues/summary?unit=${code}`)).status, code).toBe(200);
+    for (const out of ["DEMO-S-AP", "DEMO-D-GNT", "DEMO-C-WGE", "DEMO-M-HNK"]) {
+      const r = await call(a.token, `/scope/units?parent=${out}`);
+      expect(r.status, out).toBe(403);
+      expect(r.json.code).toBe("outside_scope");
+    }
+    expect(auditRows("scope.denied").some((x) => x.object === "unit:DEMO-C-WGE")).toBe(true);
+    expect(codes(await call(a.token, "/scope/units?level=district"))).toEqual([]);
+  });
+
+  it("@E2E-171 citizens and signed-out callers get no tree; the route is read-only", async () => {
+    expect((await call(null, "/scope/units")).status).toBe(401);
+    const c = await call(person().token, "/scope/units");
+    expect(c.status).toBe(403);
+    expect(c.json.code).toBe("role_required");
+    const o = person("officer", "DEMO-D-WGL", "Rural Water Supply");
+    expect(codes(await call(o.token, "/scope/units"))).toEqual(["DEMO-D-WGL"]);
+    expect(codes(await call(o.token, "/scope/units?parent=DEMO-D-WGL"))).toEqual(["DEMO-M-HNK"]);
+    expect((await call(o.token, "/scope/units", "POST", {})).status).toBe(405);
+  });
+});

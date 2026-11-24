@@ -88,6 +88,38 @@ test.describe('recipient screens', () => {
     await expect(page.getByTestId('cat-emergency').locator('input')).toBeChecked();
   });
 
+  test('@E2E-170 settings list the real registered devices (no token is ever shown) and removal empties the list', async ({ page, request }) => {
+    const me = await seedPerson(request);
+    await openNotify(page, me.token, '#/notifications/settings');
+    await expect(page.getByTestId('devices-none')).toBeVisible();
+    const token = 'e2e-device-token-' + uniq();
+    expect((await request.post(`${N}/devices`, { headers: bearer(me.token), data: { token, platform: 'android' } })).status()).toBe(201);
+    expect((await request.post(`${N}/devices`, { headers: bearer(me.token), data: { token: token + '-web', platform: 'web' } })).status()).toBe(201);
+    const api = await (await request.get(`${N}/devices`, { headers: bearer(me.token) })).json();
+    expect(api.count).toBe(2);
+    expect(JSON.stringify(api)).not.toContain(token);
+    await page.reload();
+    await expect(page.getByTestId('devices-count')).toContainText('2 device');
+    await expect(page.getByTestId('device-item')).toHaveCount(2);
+    await expect(page.getByTestId('device-item').first()).toContainText(/Android phone|Web browser/);
+    expect(await page.getByTestId('devices-panel').textContent()).not.toContain(token);
+    await page.getByTestId('devices-remove').click();
+    await expect(page.getByTestId('devices-none')).toBeVisible();
+    expect((await (await request.get(`${N}/devices`, { headers: bearer(me.token) })).json()).count).toBe(0);
+  });
+
+  test('@E2E-170 the public home shows the election-period notice from the status route', async ({ page, request }) => {
+    const st = await (await request.get(`${N}/status?state=AP`)).json();
+    expect(['open', 'blackout', 'unknown']).toContain(st.window.status);
+    expect(st.kill).toHaveProperty('engaged');
+    await openNotify(page, null, '#/notifications');
+    await expect(page.getByTestId('mcc-AP')).toHaveAttribute('data-window', st.window.status);
+    await expect(page.getByTestId('mcc-notice-AP')).toContainText(st.window.notice_en.slice(0, 30));
+    const te = await page.context().newPage();
+    await openNotify(te, null, '#/notifications', 'te');
+    await expect(te.getByTestId('mcc-notice-AP')).toContainText(st.window.notice_te.slice(0, 12));
+  });
+
   test('@E2E-46 a too-short anti-phishing word is refused with a plain message', async ({ page, request }) => {
     const me = await seedPerson(request);
     await openNotify(page, me.token, '#/notifications/settings');
@@ -209,6 +241,30 @@ test.describe('sender console and delivery (virtual FIDO2 authenticator)', () =>
     } finally { await a.ctx.close(); }
   });
 
+  test('@E2E-170 compose checks the text live on the server before anything is created', async ({ browser, request }) => {
+    const { people } = await seedOrgWithSenders(request, 1);
+    const a = await newSenderPage(browser, people[0].token);
+    try {
+      await registerKey(a.page);
+      const lint = a.page.getByTestId('lint-live');
+      await a.page.getByTestId('compose-en').fill('Please share your OTP to continue.');
+      await expect(lint).toHaveAttribute('data-clean', '0');
+      await expect(lint.locator('[data-rule=otp]')).toBeVisible();
+      await a.page.getByTestId('compose-en').fill('Please open https://evil.example/pay now.');
+      await expect(lint.locator('[data-rule=link_not_allowed]')).toBeVisible();
+      await a.page.getByTestId('compose-en').fill('Health camp on Friday at the village hall.');
+      await a.page.getByTestId('compose-te').fill('శుక్రవారం గ్రామ సభా భవనంలో ఆరోగ్య శిబిరం.');
+      await expect(lint).toHaveAttribute('data-clean', '1');
+      await expect(lint).toContainText('No problems found');
+      // nothing was created and nothing reached the block log by typing
+      await expect(a.page.getByTestId('msg-row')).toHaveCount(0);
+      const mine = await (await request.get(`${N}/messages`, { headers: bearer(people[0].token) })).json();
+      expect(mine.messages).toHaveLength(0);
+      // the status route is what the console banner and window note read
+      await expect(a.page.getByTestId('compose-window-notice')).toBeVisible();
+    } finally { await a.ctx.close(); }
+  });
+
   test('@E2E-47 a cancelled or failed key prompt is explained, and an unsupported browser is told so', async ({ browser, request }) => {
     const { people } = await seedOrgWithSenders(request, 2);
     const a = await newSenderPage(browser, people[0].token);
@@ -233,7 +289,9 @@ test.describe('sender console and delivery (virtual FIDO2 authenticator)', () =>
     const adminB = await seedPerson(request, [{ role: 'admin' }]);
     const totpA = await enrolAdmin(request, adminA.token);
     const totpB = await enrolAdmin(request, adminB.token);
-    const sender = await seedPerson(request);
+    const senderLabel = 'snd-' + uniq();
+    const senderSeed = await (await request.post(`${API}/e2e/person`, { data: { label: senderLabel } })).json() as { token: string; person_id: string };
+    const sender = { token: senderSeed.token, personId: senderSeed.person_id };
     const name = 'E2E Directorate ' + uniq();
     const pa = await newSenderPage(browser, adminA.token, '#/notifications/admin');
     const pb = await newSenderPage(browser, adminB.token, '#/notifications/admin');
@@ -263,7 +321,16 @@ test.describe('sender console and delivery (virtual FIDO2 authenticator)', () =>
       // A binds the sender, B approves
       await pa.page.reload();
       await pa.page.getByTestId('sender-org').selectOption(orgId);
-      await pa.page.getByTestId('sender-person').fill(sender.personId);
+      // the admin finds the person by a label hint: an opaque id, the last digits and roles, never a number or a name
+      await pa.page.getByTestId('sender-find').fill(senderLabel);
+      await pa.page.getByTestId('sender-find-btn').click();
+      const hit = pa.page.getByTestId('adm-person');
+      await expect(hit).toHaveCount(1);
+      expect(await hit.getAttribute('data-person-id')).toBe(sender.personId);
+      await expect(hit).toContainText('number ending');
+      expect(await hit.textContent()).not.toMatch(/\+91\d{10}|\b99\d{8}\b/);
+      await hit.getByTestId('adm-person-pick').click();
+      await expect(pa.page.getByTestId('sender-picked')).toHaveAttribute('data-person-id', sender.personId);
       await pa.page.getByTestId('sender-role').selectOption('department_sender');
       await pa.page.getByTestId('adm-totp-input').fill(await totpA.next());
       await pa.page.getByTestId('sender-file').click();
@@ -285,7 +352,14 @@ test.describe('sender console and delivery (virtual FIDO2 authenticator)', () =>
       await expect(pa.page.getByTestId('kill-engage')).toBeEnabled({ timeout: 5000 });
       await pa.page.getByTestId('kill-engage').click();
       await expect(pa.page.getByTestId('kill-active')).toBeVisible();
+      // the public status route shows it (no reason) before the sender tries anything, and the console banner reads it
+      const pubStatus = await (await request.get(`${N}/status?state=AP&org_id=${orgId}`)).json();
+      expect(pubStatus.kill).toMatchObject({ engaged: true, scope: 'org' });
+      expect(JSON.stringify(pubStatus)).not.toContain('suspected account takeover');
+      await ps.page.reload();
+      await expect(ps.page.getByTestId('status-kill')).toContainText('suspended');
       // the sender is stopped and the banner explains it
+      await expect(ps.page.getByTestId('compose')).toBeVisible();
       await ps.page.getByTestId('compose-category').selectOption('civic');
       await ps.page.getByTestId('compose-en').fill('Library opens at nine on Monday.');
       await ps.page.getByTestId('compose-te').fill('సోమవారం ఉదయం తొమ్మిదికి గ్రంథాలయం తెరుస్తారు.');
@@ -303,6 +377,15 @@ test.describe('sender console and delivery (virtual FIDO2 authenticator)', () =>
       await pb.page.getByTestId('adm-totp-input').fill(await totpB.next());
       await pb.page.getByTestId('kill-release-approve').click();
       await expect(pb.page.getByTestId('adm-kill').first()).toHaveAttribute('data-released', '1');
+      expect((await (await request.get(`${N}/status?state=AP&org_id=${orgId}`)).json()).kill.engaged).toBe(false);
+      // the security keys are listed per sender (no pasted ids) and one is revoked
+      await pb.page.reload();
+      const srow = pb.page.getByTestId('adm-sender').filter({ hasText: name });
+      await srow.getByTestId('adm-keys-show').click();
+      await expect(srow.getByTestId('adm-key')).toHaveCount(1);
+      await pb.page.getByTestId('adm-totp-input').fill(await totpB.next());
+      await srow.getByTestId('cred-revoke').click();
+      await expect(srow.getByTestId('adm-key')).toHaveAttribute('data-revoked', '1');
     } finally { await pa.ctx.close(); await pb.ctx.close(); await ps.ctx.close(); }
   });
 });

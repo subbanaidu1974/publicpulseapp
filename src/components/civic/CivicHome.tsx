@@ -11,6 +11,7 @@ import HouseholdPage from "./HouseholdPage";
 import ConsolesHub from "./consoles/ConsolesHub";
 import IssueFeed from "./IssueFeed";
 import IssueReport from "./IssueReport";
+import MyReports from "./MyReports";
 import LoginFlow from "./LoginFlow";
 import SignUpFlow from "./SignUpFlow";
 import { Btn } from "./ui";
@@ -79,6 +80,7 @@ export default function CivicHome() {
           <SessionsPage />
           <HouseholdPage token={session.token} />
           <IssueReport onSent={() => setTick((n) => n + 1)} />
+          <MyReports refreshKey={tick} />
           <IssueFeed refreshKey={tick} />
           <SurveysLink />
           <NotifyLink />

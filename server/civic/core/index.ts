@@ -35,6 +35,9 @@ import {
   registeredMigrations, runInStore, storeFile, storeMigrationStatus, tablesOf, writeAtCommit, type StoreMigrationStatus, type StoreName,
 } from "./stores";
 import { importLegacyDatabase } from "./legacy";
+import { scrubAuditMeta } from "./auditscrub";
+
+export { SCRUBBED, auditScrubCount, findAuditViolations, maskPhones, resetAuditScrubCount, scrubAuditMeta } from "./auditscrub";
 
 export type Tier = "T0" | "T1" | "T2";
 export interface AuthedPerson { id: string; tier: Tier; roles?: string[] }
@@ -405,9 +408,9 @@ function rowHash(prev: string, r: { seq: number; ts: string; action: string; act
   return sha256(prev + canonicalJson({ seq: r.seq, ts: r.ts, action: r.action, actor_d: r.actor_d, object_d: r.object_d, meta_d: r.meta_d }));
 }
 
-/** Append to the hash-chained audit log. Never include phone numbers, PINs or response contents in meta. */
+/** Append to the hash-chained audit log. Phone numbers, PINs, OTPs, tokens and response contents never reach the log: scrubAuditMeta redacts them (S-160, T-31). */
 export function audit(actor: string, action: string, object: string, meta?: Record<string, unknown>): void {
-  const metaJson = canonicalJson(meta ?? {});
+  const metaJson = canonicalJson(scrubAuditMeta(meta));
   const ts = new Date().toISOString();
   writeAtCommit(() => writeAudit(actor, action, object, metaJson, ts));
 }

@@ -18,6 +18,8 @@ export interface ConsSummary {
   id: string; status: ConsStatus; department: string; title_en: string; title_te: string | null; bill_ref: string; source_url: string; scope: Scope;
   opens_at: string; closes_at: string; registered_at: string | null; approved_at: string | null; published_at: string | null; closed_at: string | null; completed_at: string | null;
   version: number; content_hash: string; closing_report: ClosingState; disclaimer_en: string; disclaimer_te: string;
+  /** Present on list items (GET /consultations) so a card needs no detail fetch; the detail carries `affected_groups` and `clauses` itself. */
+  affected_groups?: string[]; clause_count?: number;
 }
 export interface VersionRow { version: number; content_hash: string; note_en: string | null; note_te: string | null; created_at: string }
 export interface PanelDecision { version: number; content_hash: string; decision: "approve" | "reject"; notes: string | null; at: string; current: boolean }
@@ -60,6 +62,10 @@ export interface Analyst {
   coverage: Coverage; suggested_sample: { representatives: string[]; random: string[]; target: number };
   themes: { id: string; clause_n: number | null; label_en: string; label_te: string | null; source: string; author_role: string }[];
 }
+export interface ClauseDiff { clause: number; field: "original_text" | "original_ref" | "summary_en" | "summary_te" | "audio"; before: unknown; after: unknown }
+export interface CorrectionRow { id: string; from_version: number; to_version: number; content_hash: string; status: "pending" | "applied" | "rejected"; reason_en: string; reason_te: string | null; created_at: string; decided_at: string | null; approvals: number; rejections: number; diff: ClauseDiff[] }
+export interface HeldComment { feedback_id: string; clause: number; stance: string; comment: string; reasons: string[]; public_ok: boolean; created_at: string; updated_at: string }
+export type ModerationDecision = "release" | "reject" | "keep_held";
 export interface ReportPreview { snapshot: ReportSnapshot; missing: Missing[]; closing_report: ClosingState }
 
 export interface ClauseInput { original_text?: string; original_ref?: string; summary_en: string; summary_te: string; audio?: { group: string; file_id?: string | null; duration_s: number; status: "placeholder" | "recorded" }[] }
@@ -93,7 +99,7 @@ export const errorCode = (e: unknown): string => (e instanceof CivicApiError ? (
 export const errStatus = (e: unknown): number => (e instanceof CivicApiError ? e.status : -1);
 export const errBody = (e: unknown): Record<string, unknown> => (e instanceof CivicApiError ? e.body : {});
 
-export interface ListParams { status?: string; department?: string; q?: string; overdue?: string; cursor?: string; limit?: number }
+export interface ListParams { status?: string; department?: string; state?: string; q?: string; overdue?: string; cursor?: string; limit?: number }
 const id_ = encodeURIComponent;
 
 export const consApi = {
@@ -128,6 +134,25 @@ export const consApi = {
   review: (id: string, decision: "approve" | "reject", notes: string, correction_id?: string) =>
     call<{ id: string; result: string; panel: PanelSummary }>(`/${id_(id)}/panel/review`, { method: "POST", body: { decision, notes, ...(correction_id ? { correction_id } : {}) } }),
   reviewAudio: (id: string, clause: number, group: string) => call<{ ok: boolean }>(`/${id_(id)}/audio/review`, { method: "POST", body: { clause, group } }),
+
+  /** Pending (default) or all corrections of one consultation with ids and per-clause diffs; staff of the consultation only. */
+  corrections: (id: string, status?: "pending" | "applied" | "rejected") => call<{ consultation_id: string; current_version: number; corrections: CorrectionRow[] }>(`/${id_(id)}/corrections${status ? `?status=${status}` : ""}`),
+  /** Raw audio body (the server sniffs the type). The recording must already be on the clause (group + file id). */
+  uploadAudio: async (id: string, clause: number, group: string, file: Blob): Promise<{ ok: boolean; mime: string; bytes: number; sha256: string }> => {
+    const headers: Record<string, string> = { "content-type": file.type || "application/octet-stream" };
+    const tok = tokenStore.get();
+    if (tok) headers.authorization = `Bearer ${tok}`;
+    let res: Response;
+    try { res = await fetch(`${BASE}/${id_(id)}/audio/upload?clause=${clause}&group=${encodeURIComponent(group)}`, { method: "POST", headers, body: file }); }
+    catch { throw new CivicApiError("network", 0, "network"); }
+    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) { const code = typeof data.code === "string" ? data.code : "error"; const e = new CivicApiError(code, res.status, code); e.body = data; throw e; }
+    return data as { ok: boolean; mime: string; bytes: number; sha256: string };
+  },
+
+  // moderation
+  held: (id: string, status?: "rejected") => call<{ consultation_id: string; status: string; comments: HeldComment[] }>(`/${id_(id)}/comments/held${status ? `?status=${status}` : ""}`),
+  moderate: (id: string, feedbackId: string, decision: ModerationDecision) => call<{ ok: boolean; decision: string }>(`/${id_(id)}/comments/${id_(feedbackId)}/moderate`, { method: "POST", body: { decision } }),
 
   // closing
   analyst: (id: string) => call<Analyst>(`/${id_(id)}/analyst`),

@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "asOf": "2026-11-23",
+  "policy": "Citation-only record of reported party changes by sitting members. Every entry needs a date and at least two sources from different publishers. Nothing is derived from TCPD's turncoat flag or inferred from party histories; absence of an entry means none was recorded, not that none occurred. Entries describe what the sources state (a person joined a party on a date) without judgement. Same layout for every person.",
+  "records": [
+    {
+      "id": "TG-assembly-60-danam-nagender-2024-03-17",
+      "person": "Danam Nagender",
+      "state": "TG",
+      "constituency": {
+        "type": "assembly",
+        "acNo": 60,
+        "name": "KHAIRATABAD"
+      },
+      "from": "BRS",
+      "to": "INC",
+      "date": "2024-03-17",
+      "status": "confirmed",
+      "sources": [
+        {
+          "publisher": "The News Minute",
+          "url": "https://thenewsminute.com/amp/story/telangana/telangana-mp-ranjith-reddy-mla-danam-nagender-quit-brs-join-congress"
+        },
+        {
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Danam_Nagender"
+        }
+      ],
+      "verified": true,
+      "note": "Stated by both pages: left BRS and joined the Indian National Congress on 17 March 2024 while MLA for Khairatabad."
+    },
+    {
+      "id": "TG-assembly-119-tellam-venkat-rao-2024-04-07",
+      "person": "Tellam Venkata Rao",
+      "state": "TG",
+      "constituency": {
+        "type": "assembly",
+        "acNo": 119,
+        "name": "BHADRACHALAM"
+      },
+      "from": "BRS",
+      "to": "INC",
+      "date": "2024-04-07",
+      "status": "confirmed",
+      "sources": [
+        {
+          "publisher": "The News Minute",
+          "url": "https://thenewsminute.com/telangana/telangana-defections-from-brs-continue-as-bhadrachalam-mla-tellam-venkat-rao-joins-cong"
+        },
+        {
+          "publisher": "ETV Bharat",
+          "url": "https://www.etvbharat.com/en/!state/exodus-of-leaders-from-brs-continues-as-bhadrachalam-mla-venkat-rao-quits-party-joins-congress-enn24040703420"
+        }
+      ],
+      "verified": true,
+      "note": "Stated by both pages: the Bhadrachalam MLA joined the Indian National Congress on Sunday 7 April 2024."
+    }
+  ]
+}

@@ -10,7 +10,7 @@ export async function seedRole(request: APIRequestContext, role: string, opts: {
   return { token: j.token, personId: j.person_id };
 }
 
-export interface Geo { village: string; villageName: string; constituency: string; state: string }
+export interface Geo { village: string; villageName: string; constituency: string; state: string; chain: string[] }
 /** A real village, the constituency it belongs to and the state above it, from the public geo routes. */
 export async function geoFor(request: APIRequestContext): Promise<Geo> {
   const v = await findVillage(request, 'Bhimavaram', 'Bhim', 'Kolluru');
@@ -19,7 +19,27 @@ export async function geoFor(request: APIRequestContext): Promise<Geo> {
   const state = (u.ancestors as { lgd: string; level: string }[]).find((a) => a.level === 'state');
   expect(c.constituencies?.length, 'village has a constituency').toBeGreaterThan(0);
   expect(state, 'village has a state ancestor').toBeTruthy();
-  return { village: v.lgd, villageName: v.name, constituency: c.constituencies[0].lgd, state: state!.lgd };
+  const constituency = c.constituencies[0].lgd as string;
+  return { village: v.lgd, villageName: v.name, constituency, state: state!.lgd, chain: [constituency, ...(u.ancestors as { lgd: string }[]).map((a) => a.lgd)] };
+}
+
+/** Walk the dashboard's unit tree (state -> district -> mandal -> village, or from the unit a scoped role holds) down to a village and pick it. */
+export async function pickViaTree(page: Page, geo: Geo): Promise<void> {
+  const target = page.locator(`[data-testid=iss-pick][data-lgd="${geo.village}"]`);
+  for (let i = 0; i < 6; i++) {
+    await expect(page.getByTestId('unit-tree')).toBeVisible();
+    await expect(page.getByTestId('tree-loading')).toHaveCount(0);
+    await expect(page.getByTestId('tree-units')).toBeVisible();
+    if (await target.count()) { await target.click(); return; }
+    let opened: string | null = null;
+    for (const lgd of geo.chain) {
+      const row = page.locator(`[data-testid=tree-unit][data-lgd="${lgd}"]`);
+      if (await row.count()) { await row.getByTestId('tree-open').click(); opened = lgd; break; }
+    }
+    if (!opened) throw new Error('the village is not reachable through the unit tree');
+    await expect(page.getByTestId('tree-units')).toHaveAttribute('data-parent', opened);
+  }
+  throw new Error('unit tree too deep');
 }
 
 /** Enough fresh reports in one village and department for a cell to reach the minimum size (30). */

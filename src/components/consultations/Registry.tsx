@@ -4,27 +4,12 @@ import { useT } from "../../i18n";
 import { useConsT, type ConsKey } from "./consultationsText";
 import { type Keyed, Btn, ClosingBadge, Disclaimer, ErrorLine, Page, StatusBadge, card, chip, fmtDate, linkCls, scopeLabel, selCls, shortHash, titleOf } from "./shared";
 
-const GROUPS = new Map<string, string[]>();
-
 export function ConsultationCard({ cs }: Keyed & { cs: ConsSummary }) {
   const c = useConsT();
   const { lang } = useT();
-  // The list payload carries no affected groups; the detail does (a server change would save this request). It is fetched only for cards that
-  // scroll into view and remembered, so a long list never floods the server.
-  const ref = useRef<HTMLLIElement>(null);
-  const [groups, setGroups] = useState<string[]>(() => GROUPS.get(cs.id + ":" + cs.version) ?? []);
-  useEffect(() => {
-    const key = cs.id + ":" + cs.version;
-    if (GROUPS.has(key) || !ref.current) return;
-    let live = true;
-    const load = () => consApi.get(cs.id).then((d) => { GROUPS.set(key, d.affected_groups); if (live) setGroups(d.affected_groups); }).catch(() => { /* groups stay hidden */ });
-    if (typeof IntersectionObserver === "undefined") { void load(); return () => { live = false; }; }
-    const io = new IntersectionObserver((e) => { if (e.some((x) => x.isIntersecting)) { io.disconnect(); void load(); } });
-    io.observe(ref.current);
-    return () => { live = false; io.disconnect(); };
-  }, [cs.id, cs.version]);
+  const groups = cs.affected_groups ?? []; // the list payload carries them: no per-card detail request
   return (
-    <li ref={ref} className={card} data-testid="cons-card" data-cons-id={cs.id} data-status={cs.status} data-overdue={cs.closing_report.overdue ? "1" : "0"}>
+    <li className={card} data-testid="cons-card" data-cons-id={cs.id} data-status={cs.status} data-overdue={cs.closing_report.overdue ? "1" : "0"}>
       <div className="flex flex-wrap items-center gap-2">
         <StatusBadge status={cs.status} />
         <ClosingBadge cr={cs.closing_report} />
@@ -65,15 +50,15 @@ export function RegistryPage() {
   const fetchPage = (cur: string | undefined, append: boolean) => {
     const mine = ++seq.current;
     setLoading(true); setErr(null);
-    consApi.list({ status, department: dd, q: qd, overdue: overdue ? "1" : "", cursor: cur, limit: 12 })
+    consApi.list({ status, department: dd, state, q: qd, overdue: overdue ? "1" : "", cursor: cur, limit: 12 })
       .then((r) => { if (mine !== seq.current) return; setItems((p) => (append ? [...p, ...r.consultations] : r.consultations)); setCursor(r.next_cursor); setDisc({ en: r.disclaimer_en, te: r.disclaimer_te }); })
       .catch(() => { if (mine === seq.current) setErr(c("err.load")); })
       .finally(() => { if (mine === seq.current) setLoading(false); });
   };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { fetchPage(undefined, false); }, [status, dd, qd, overdue]);
+  useEffect(() => { fetchPage(undefined, false); }, [status, dd, state, qd, overdue]);
 
-  const shown = state ? items.filter((x) => x.scope.state === state) : items;
+  const shown = items; // every filter, the state included, is applied by the server
   return (
     <Page title={c("reg.title")}>
       <p className="text-sm max-w-2xl">{c("reg.intro")}</p>

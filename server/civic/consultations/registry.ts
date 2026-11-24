@@ -209,6 +209,12 @@ function summary(c: ConsultationRow, now: Date) {
   };
 }
 
+/** A registry list item: the summary plus what a card shows (affected groups, clause count) so no per-card detail fetch is needed. */
+function listItem(c: ConsultationRow, now: Date) {
+  const content = currentContent(c);
+  return { ...summary(c, now), affected_groups: content.affected_groups, clause_count: content.clauses.length };
+}
+
 /** Audio status as the public sees it: a human review row turns "recorded" into "reviewed"; nothing else ever does. */
 function clausePublic(c: ConsultationRow, cl: ClauseContent) {
   const reviewed = new Set((cdb().prepare("SELECT group_key, file_id FROM consultation_audio_reviews WHERE consultation_id = ? AND clause_n = ?").all(c.id, cl.n) as { group_key: string; file_id: string }[]).map((r) => r.group_key + "|" + r.file_id));
@@ -260,6 +266,8 @@ registryRouter.get("/", pubLimit("list", 120), wrap((req, res) => {
   const now = registryNow();
   const limit = Math.min(100, Math.max(1, Math.floor(Number(req.query.limit)) || 20));
   const status = str(req.query.status), dept = str(req.query.department).trim(), q = str(req.query.q).trim().slice(0, 100);
+  const state = str(req.query.state).trim().toUpperCase();
+  if (state && !/^[A-Z]{2,3}$/.test(state)) return fail(res, 400, "state_invalid");
   const overdueOnly = req.query.overdue === "1";
   const cur = req.query.cursor ? dec(str(req.query.cursor)) : null;
   if (req.query.cursor && !cur) return fail(res, 400, "cursor_invalid");
@@ -267,13 +275,14 @@ registryRouter.get("/", pubLimit("list", 120), wrap((req, res) => {
   const args: (string | number)[] = [];
   if (status) { where.push("status = ?"); args.push(status); }
   if (dept) { where.push("lower(department) = lower(?)"); args.push(dept); }
+  if (state) { where.push("scope_state = ?"); args.push(state); }
   if (q) { const like = "%" + q.replace(/[!%_]/g, "!$&") + "%"; where.push("(title_en LIKE ? ESCAPE '!' OR title_te LIKE ? ESCAPE '!' OR bill_ref LIKE ? ESCAPE '!')"); args.push(like, like, like); }
   if (cur) { where.push("(registered_at < ? OR (registered_at = ? AND id < ?))"); args.push(cur[0], cur[0], cur[1]); }
   const rows = cdb().prepare(`SELECT * FROM consultations WHERE ${where.join(" AND ")} ORDER BY registered_at DESC, id DESC LIMIT 500`).all(...args) as unknown as ConsultationRow[];
-  const out: ReturnType<typeof summary>[] = [];
+  const out: ReturnType<typeof listItem>[] = [];
   let next: string | null = null;
   for (let i = 0; i < rows.length; i++) {
-    const s = summary(rows[i], now);
+    const s = listItem(rows[i], now);
     if (overdueOnly && !s.closing_report.overdue) continue;
     out.push(s);
     if (out.length >= limit) { if (i < rows.length - 1) next = enc(rows[i].registered_at!, rows[i].id); break; }

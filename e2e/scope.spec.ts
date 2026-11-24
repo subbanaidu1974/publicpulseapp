@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { test, expect } from '@playwright/test';
 import { API, bearer, seedPerson } from './civic-seed';
-import { fillCell, geoFor, noHorizontalScroll, openDashboard, seedRole, seriousViolations, type Geo } from './scope-helpers';
+import { fillCell, geoFor, noHorizontalScroll, openDashboard, pickViaTree, seedRole, seriousViolations, type Geo } from './scope-helpers';
 
 // Scoped dashboards (#/dashboard) against the REAL server: roles are real grants, every refusal below is the server's own 403/401/405.
 // Fault injection (page.route) is used in exactly two marked places: a broken audit chain (a healthy server never reports one) and a
@@ -52,12 +52,12 @@ test.describe('what you can see', () => {
     await expect(page.getByTestId('issues-result')).toHaveAttribute('data-unit', geo.constituency);
     // the state is outside a constituency grant: the server's 403, explained
     expect((await request.get(`${API}/scope/issues/summary?unit=${encodeURIComponent(geo.state)}`, { headers: bearer(p.token) })).status()).toBe(403);
-    await page.getByTestId('iss-q').fill(geo.villageName.slice(0, 4));
-    await page.getByTestId('iss-search').click();
-    await expect(page.getByTestId('iss-hits')).toBeVisible();
-    // a village of the constituency is inside scope
-    await page.getByTestId('iss-pick').first().click();
-    await expect(page.getByTestId('issues-result').or(page.getByTestId('scope-err-outside_scope'))).toBeVisible();
+    // the tree starts at the unit the role holds and walks down to a village of the constituency: inside scope, so figures (or an empty state) load
+    await expect(page.getByTestId('tree-unit')).toHaveCount(1);
+    await expect(page.getByTestId('tree-unit')).toHaveAttribute('data-lgd', geo.constituency);
+    await pickViaTree(page, geo);
+    await expect(page.getByTestId('issues-result')).toHaveAttribute('data-unit', geo.village);
+    await expect(page.getByTestId('scope-err-outside_scope')).toHaveCount(0);
   });
 
   test('@E2E-49 politician asking for another area gets outside_scope in the UI (server refusal, nothing shown)', async ({ page, request }) => {
@@ -87,9 +87,7 @@ test.describe('what you can see', () => {
     const j = await seedRole(request, 'journalist');
     if (!filled) { await fillCell(request, geo.village, 31); filled = true; }
     await openDashboard(page, j.token);
-    await page.getByTestId('iss-q').fill(geo.villageName.slice(0, 4));
-    await page.getByTestId('iss-search').click();
-    await page.locator(`[data-testid=iss-pick][data-lgd="${geo.village}"]`).click();
+    await pickViaTree(page, geo);
     await expect(page.getByTestId('issues-cells')).toBeVisible({ timeout: 20_000 });
     const api = await (await request.get(`${API}/scope/issues/summary?unit=${encodeURIComponent(geo.village)}`, { headers: bearer(j.token) })).json();
     expect(api.cells.length).toBeGreaterThan(0);
@@ -172,6 +170,45 @@ test.describe('capabilities per role', () => {
     const j = await seedRole(request, 'journalist');
     const r = await request.post(`${API}/scope/me`, { headers: bearer(j.token), data: {} });
     expect(r.status()).toBe(405);
+  });
+});
+
+test.describe('unit tree (S-156)', () => {
+  test('@E2E-171 the server lists only units inside the caller scope, in both languages, with codes the summary accepts', async ({ request }) => {
+    const p = await seedRole(request, 'politician', { jurisdiction: geo.constituency });
+    const roots = await (await request.get(`${API}/scope/units`, { headers: bearer(p.token) })).json();
+    expect(roots.units.map((u: { lgd: string }) => u.lgd)).toEqual([geo.constituency]);
+    expect(roots.units[0]).toMatchObject({ level: 'constituency', name_en: expect.any(String), has_children: true });
+    expect(roots.units[0]).toHaveProperty('name_te');
+    const below = await (await request.get(`${API}/scope/units?parent=${encodeURIComponent(geo.constituency)}`, { headers: bearer(p.token) })).json();
+    expect(below.units.length).toBeGreaterThan(0);
+    for (const u of below.units as { lgd: string }[]) expect((await request.get(`${API}/scope/issues/summary?unit=${encodeURIComponent(u.lgd)}`, { headers: bearer(p.token) })).status(), u.lgd).toBe(200);
+    // the state above the grant is refused, and so is its tree
+    const out = await request.get(`${API}/scope/units?parent=${encodeURIComponent(geo.state)}`, { headers: bearer(p.token) });
+    expect(out.status()).toBe(403);
+    expect((await out.json()).code).toBe('outside_scope');
+    // a citizen gets no tree at all
+    expect((await request.get(`${API}/scope/units`, { headers: bearer((await seedPerson(request)).token) })).status()).toBe(403);
+    expect((await request.get(`${API}/scope/units`)).status()).toBe(401);
+  });
+
+  test('@E2E-171 a state-level journalist walks the real tree down to a village in the picker, in English and Telugu', async ({ page, request }) => {
+    const j = await seedRole(request, 'journalist');
+    await openDashboard(page, j.token);
+    await expect(page.getByTestId('unit-tree')).toBeVisible();
+    await expect(page.locator(`[data-testid=tree-unit][data-lgd="${geo.state}"]`)).toHaveCount(1);
+    await pickViaTree(page, geo);
+    await expect(page.getByTestId('issues-result')).toHaveAttribute('data-unit', geo.village);
+    // the breadcrumb shows where the walk went, and the root returns to the top
+    expect(await page.getByTestId('tree-crumb').count()).toBeGreaterThan(0);
+    await page.getByTestId('tree-root').click();
+    await expect(page.locator(`[data-testid=tree-unit][data-lgd="${geo.state}"]`)).toBeVisible();
+    // Telugu names come from the server (name_te) when the language is Telugu
+    const names = await (await request.get(`${API}/scope/units`, { headers: bearer(j.token) })).json();
+    const te = names.units.find((u: { lgd: string }) => u.lgd === geo.state) as { name_en: string; name_te: string | null };
+    await openDashboard(page, j.token, 'te');
+    const row = page.locator(`[data-testid=tree-unit][data-lgd="${geo.state}"]`);
+    await expect(row).toContainText(te.name_te || te.name_en);
   });
 });
 

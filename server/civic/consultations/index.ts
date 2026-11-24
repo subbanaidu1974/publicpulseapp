@@ -7,11 +7,13 @@ import "./hooks";
 import { feedbackRouter } from "./feedback";
 import { registryRouter } from "./registry";
 import { reportRouter } from "./report";
+import { staffRouter } from "./staff";
 
 export const consultationsRouter = Router();
 consultationsRouter.use(registryRouter);
 consultationsRouter.use(feedbackRouter);
 consultationsRouter.use(reportRouter);
+consultationsRouter.use(staffRouter);
 
 export { submitFeedback } from "./feedback";
 export { getConsultation, runConsultationJobs } from "./registry";

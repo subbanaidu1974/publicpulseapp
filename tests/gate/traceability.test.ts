@@ -6,7 +6,7 @@ const ROOT = path.resolve(__dirname, "..", "..");
 const md = fs.readFileSync(path.join(ROOT, "docs", "THREAT_MODEL.md"), "utf8");
 const STATUSES = ["BUILT", "PARTIAL", "DEV-ONLY", "NOT BUILT"];
 /** BUILT controls that have no test. Each is a known, documented gap; adding to this list needs a reason in THREAT_MODEL.md. */
-const KNOWN_UNTESTED_BUILT = ["T-08"];
+const KNOWN_UNTESTED_BUILT: string[] = [];
 
 interface Row { id: string; control: string; code: string[]; tests: string[]; status: string; raw: string }
 

@@ -1,4 +1,5 @@
 import { FormEvent, ReactNode, useState } from "react";
+import { PartyChangesSection } from "../analytics/blocks";
 import type { ContestantHit, ContestantRecord, OfficeHolder } from "../../api/people";
 import { peopleApi, useContestant, useMemberRoster, useOfficeHolders, useParty, usePartyList } from "../../api/people";
 import { useApi } from "../../api/useApi";
@@ -218,7 +219,7 @@ export function ContestantPage({ id }: { id: string }) {
               ) },
               { id: "source", heading: p("ppl.cand.source"), body: <p>{d.source.attribution}{d.source.provenance ? ` (${d.source.provenance})` : ""}</p> },
             ]}
-            report={<ReportControl page={`/people/candidate/${d.id}`} />}
+            report={<><PartyChangesSection name={d.name} state={d.record.state} acNo={d.record.acNo} type={d.record.type} /><ReportControl page={`/people/candidate/${d.id}`} /></>}
           />
         );
       })()}

@@ -70,6 +70,24 @@ export const ISSUE_EN = {
   "c.adm.auditCount": "entries", "c.adm.auditAnchor": "Anchored outside the server", "c.adm.auditNoAnchor": "No outside anchor configured", "c.adm.auditUnanchored": "entries not yet anchored",
   "c.adm.auditVerify": "Verify audit log", "c.adm.auditOk": "Audit log verified: chain and anchor agree.", "c.adm.auditBad": "ALARM: the audit log does not match its anchor or witness copy. Tell the operations team now.",
   "c.adm.auditEmpty": "No entries yet.",
+  // S-157 My reports and the owner view of a held or removed report
+  "c.issue.mine": "My reports", "c.issue.mineHelp": "Everything you have reported, including reports that are waiting for review.", "c.issue.mineNone": "You have not reported anything yet.",
+  "c.issue.mineOpen": "Open", "c.issue.mineLoadFail": "Could not load your reports.", "c.issue.mineRefresh": "Refresh",
+  "c.issue.heldTitle": "Waiting for review", "c.issue.heldBody": "A person will check this report before it is shown to others. It is not public yet.",
+  "c.issue.takenDownTitle": "Removed", "c.issue.takenDownBody": "This report was removed and is not shown to others. You can ask for a second look.",
+  "c.issue.escalatedNote": "It has been passed to a senior reviewer.", "c.issue.heldWhy": "Why it was held",
+  "c.issue.cls.names_a_person": "It seems to name a person.", "c.issue.cls.personal_information": "It seems to contain a phone number or another personal detail.",
+  "c.issue.cls.abusive_or_targeting": "It seems to contain abusive words or to target a group.", "c.issue.cls.needs_manual_check": "It needs a manual check.", "c.issue.cls.other": "It needs a review.",
+  "c.issue.appealPending": "Your appeal is waiting for a human reviewer.", "c.issue.appealApproved": "Your last appeal was approved. The report is shown to others.",
+  "c.issue.appealRejected": "Your last appeal was not accepted.", "c.issue.appealUpheld": "A reviewer looked again and kept the report on hold.", "c.issue.appealNone": "You have not appealed yet.",
+  "c.issue.appealFail": "The appeal could not be sent. Try again.", "c.issue.appealCount": "Appeals sent",
+  // S-158 Change PIN
+  "c.chpin.open": "Change PIN", "c.chpin.title": "Change your PIN", "c.chpin.old": "Current PIN", "c.chpin.new": "New PIN", "c.chpin.again": "New PIN again", "c.chpin.submit": "Change PIN", "c.chpin.cancel": "Cancel",
+  "c.chpin.done": "PIN changed. You were signed out of your other devices.", "c.chpin.weak": "That PIN is too easy to guess. Avoid repeated digits, runs like 1234 and birth years.",
+  "c.chpin.wrong": "The current PIN is wrong.", "c.chpin.mismatch": "The two new PINs are not the same.", "c.chpin.locked": "Too many wrong PINs. Try again in 30 minutes.",
+  "c.chpin.limited": "Too many tries. Wait a little and try again.", "c.chpin.hint": "Use 4 to 6 digits. Never share your PIN with anyone.", "c.chpin.same": "Choose a PIN different from the current one.",
+  // S-164 honest SMS state
+  "c.sms.failed": "We could not send the code to your phone. Please try again in a moment.", "c.sms.queued": "The code is on its way. It may take a little longer than usual.", "c.sms.resend": "Send the code again",
 } as const;
 
 export const ISSUE_TE: Record<keyof typeof ISSUE_EN, string> = {
@@ -143,4 +161,22 @@ export const ISSUE_TE: Record<keyof typeof ISSUE_EN, string> = {
   "c.adm.auditCount": "ఎంట్రీలు", "c.adm.auditAnchor": "సర్వర్ బయట నిలుపబడింది", "c.adm.auditNoAnchor": "బయటి యాంకర్ ఏర్పాటు చేయలేదు", "c.adm.auditUnanchored": "ఎంట్రీలు ఇంకా యాంకర్ కాలేదు",
   "c.adm.auditVerify": "ఆడిట్ లాగ్ ధృవీకరించు", "c.adm.auditOk": "ఆడిట్ లాగ్ ధృవీకరించబడింది: చైన్, యాంకర్ సరిపోతున్నాయి.", "c.adm.auditBad": "హెచ్చరిక: ఆడిట్ లాగ్ దాని యాంకర్ లేదా సాక్షి ప్రతితో సరిపోలడం లేదు. వెంటనే ఆపరేషన్స్ బృందానికి చెప్పండి.",
   "c.adm.auditEmpty": "ఇంకా ఎంట్రీలు లేవు.",
+  // S-157 నా నివేదికలు
+  "c.issue.mine": "నా నివేదికలు", "c.issue.mineHelp": "మీరు నివేదించినవన్నీ, సమీక్ష కోసం వేచి ఉన్నవి కూడా.", "c.issue.mineNone": "మీరు ఇంకా ఏమీ నివేదించలేదు.",
+  "c.issue.mineOpen": "తెరువు", "c.issue.mineLoadFail": "మీ నివేదికలను తీసుకురాలేకపోయాం.", "c.issue.mineRefresh": "తాజా చేయి",
+  "c.issue.heldTitle": "సమీక్ష కోసం వేచి ఉంది", "c.issue.heldBody": "ఇతరులకు చూపే ముందు ఒక వ్యక్తి ఈ నివేదికను పరిశీలిస్తారు. ఇది ఇంకా బహిరంగం కాదు.",
+  "c.issue.takenDownTitle": "తొలగించబడింది", "c.issue.takenDownBody": "ఈ నివేదిక తొలగించబడింది, ఇతరులకు చూపబడదు. మీరు మళ్ళీ చూడమని అడగవచ్చు.",
+  "c.issue.escalatedNote": "దీన్ని ఉన్నతస్థాయి సమీక్షకునికి పంపారు.", "c.issue.heldWhy": "ఎందుకు నిలిపివేశారు",
+  "c.issue.cls.names_a_person": "ఇందులో ఒక వ్యక్తి పేరు ఉన్నట్లు కనిపిస్తోంది.", "c.issue.cls.personal_information": "ఇందులో ఫోన్ నంబర్ లేదా మరో వ్యక్తిగత వివరం ఉన్నట్లు కనిపిస్తోంది.",
+  "c.issue.cls.abusive_or_targeting": "ఇందులో దూషణ పదాలు ఉన్నాయి లేదా ఒక వర్గాన్ని లక్ష్యంగా చేసుకున్నట్లు కనిపిస్తోంది.", "c.issue.cls.needs_manual_check": "దీనికి మానవ పరిశీలన అవసరం.", "c.issue.cls.other": "దీనికి సమీక్ష అవసరం.",
+  "c.issue.appealPending": "మీ అప్పీల్ మానవ సమీక్షకుని కోసం వేచి ఉంది.", "c.issue.appealApproved": "మీ చివరి అప్పీల్ ఆమోదించబడింది. నివేదిక ఇతరులకు కనిపిస్తుంది.",
+  "c.issue.appealRejected": "మీ చివరి అప్పీల్ ఆమోదించబడలేదు.", "c.issue.appealUpheld": "సమీక్షకుడు మళ్ళీ చూసి నివేదికను నిలిపివేతలోనే ఉంచారు.", "c.issue.appealNone": "మీరు ఇంకా అప్పీల్ చేయలేదు.",
+  "c.issue.appealFail": "అప్పీల్ పంపలేకపోయాం. మళ్ళీ ప్రయత్నించండి.", "c.issue.appealCount": "పంపిన అప్పీళ్లు",
+  // S-158 PIN మార్పు
+  "c.chpin.open": "PIN మార్చు", "c.chpin.title": "మీ PIN మార్చండి", "c.chpin.old": "ప్రస్తుత PIN", "c.chpin.new": "కొత్త PIN", "c.chpin.again": "కొత్త PIN మళ్ళీ", "c.chpin.submit": "PIN మార్చు", "c.chpin.cancel": "రద్దు",
+  "c.chpin.done": "PIN మారింది. మీ ఇతర పరికరాల్లో లాగౌట్ అయ్యారు.", "c.chpin.weak": "ఆ PIN ఊహించడం చాలా సులభం. ఒకే అంకెలు, 1234 వంటి వరుసలు, పుట్టిన సంవత్సరాలు వద్దు.",
+  "c.chpin.wrong": "ప్రస్తుత PIN తప్పు.", "c.chpin.mismatch": "రెండు కొత్త PINలు ఒకేలా లేవు.", "c.chpin.locked": "చాలా తప్పు PINలు. 30 నిమిషాల తర్వాత ప్రయత్నించండి.",
+  "c.chpin.limited": "చాలా ప్రయత్నాలు. కాసేపు ఆగి మళ్ళీ ప్రయత్నించండి.", "c.chpin.hint": "4 నుండి 6 అంకెలు వాడండి. మీ PIN ను ఎవరితోనూ పంచుకోవద్దు.", "c.chpin.same": "ప్రస్తుత PIN కంటే వేరే PIN ఎంచుకోండి.",
+  // S-164 SMS నిజ స్థితి
+  "c.sms.failed": "మీ ఫోన్‌కు కోడ్ పంపలేకపోయాం. దయచేసి కొద్దిసేపటి తర్వాత మళ్ళీ ప్రయత్నించండి.", "c.sms.queued": "కోడ్ వస్తోంది. మామూలు కంటే కొంచెం ఆలస్యం కావచ్చు.", "c.sms.resend": "కోడ్ మళ్ళీ పంపు",
 };

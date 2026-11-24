@@ -115,6 +115,9 @@ export function createIssuesRouter(auth: RequestHandler = requireAuth): Router {
   r.post("/:id/appeal", auth, wrap((req, res) => { res.status(201); return svc.appeal(req.params.id, pid(req), req.body?.reason); }));
   r.post("/:id/moderate", auth, wrap(req => svc.moderate(req.params.id, pid(req), String(req.body?.decision), svc.clock.now(), typeof req.body?.note === "string" ? req.body.note : undefined)));
   r.post("/:id/rebuttal", auth, wrap((req, res) => { res.status(201); return svc.rebuttal(req.params.id, pid(req), req.body?.text); }));
+  // Owner view (S-157): the caller's own reports including held / taken-down ones, with the moderation class and whether an appeal can be filed.
+  r.get("/mine", auth, wrap(req => pub.myReports(pid(req))));
+  r.get("/mine/:id", auth, wrap(req => pub.myReport(pid(req), req.params.id)));
   // Public detail (no reporter identity). Registered last so it never shadows the fixed paths above.
   r.get("/:id", wrap((req, res) => { res.set("Cache-Control", "public, max-age=30"); return pub.publicIssue(req.params.id); }));
   return r;

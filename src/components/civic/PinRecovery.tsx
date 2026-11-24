@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { civicIdentityApi, errKind, tokenStore } from "../../api/civic";
+import { civicIdentityApi, errKind, smsFailed, tokenStore } from "../../api/civic";
 import { useCivicT } from "./civicText";
 import { Btn, ErrorNote, Field, TextInput } from "./ui";
 
@@ -24,7 +24,8 @@ export default function PinRecovery({ onBack }: { onBack: () => void }) {
     setBusy(true); setErr(null);
     try { await fn(); } catch (x) {
       const k = errKind(x);
-      if (k === "person_required") {
+      if (smsFailed(x)) setErr(c("c.sms.failed")); // S-164: the code was not sent; pressing send again is allowed at once
+      else if (k === "person_required") {
         const m = civicIdentityApi.membersFrom(x);
         setNeedWho(true); setMembers(m);
         if (!m.length) setErr(c("c.error"));

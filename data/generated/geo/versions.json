@@ -1,0 +1,35 @@
+{
+"schema":1,
+"asOf":"2026-11-23",
+"note":"One entry per delimitation. Mandal polygons are LGD administrative units, not delimitation units; they are listed under the set in force when they were built.",
+"sets":[
+{
+"id":"delimitation-2008",
+"label":"2008 delimitation (in force for AP/TG elections 2009-2024)",
+"valid_from":"2008-02-19",
+"valid_to":null,
+"source":"Delimitation of Parliamentary and Assembly Constituencies Order, 2008 (ECI/Delimitation Commission)",
+"datesInferred":true,
+"seats":{
+"AP":{"assembly":175,"ls":25},
+"TG":{"assembly":119,"ls":17}
+},
+"files":{
+"ac":{"AP":"ac-AP.geojson","TG":"ac-TG.geojson"},
+"pc":{"AP":"pc-AP.geojson","TG":"pc-TG.geojson"},
+"district":{"AP":"district-AP.geojson","TG":"district-TG.geojson"},
+"mandal":{"AP":"mandal-AP.geojson","TG":"mandal-TG.geojson"}
+},
+"checksums":{
+"ac-AP.geojson":"b4090d5c8c3b98ddc929694cd5535b18fb4f833800714f7dde49e7f0725f65da",
+"ac-TG.geojson":"ed3a0d339a0dd9e7435706d680e06e518cca059afa2bd7228045b3d1e3e75541",
+"pc-AP.geojson":"a7fd1a97e1a2f24260d0711055f076e297d7c0956fb1ff28d4403c687f508365",
+"pc-TG.geojson":"845657856583166504fb3d53713bc266309ebf2b43752268a9f5dc7ccdd50fd3",
+"district-AP.geojson":"c1f0c570bea53395ac8436eae1dcac968624a87035069170e8c15cef4051a4bf",
+"district-TG.geojson":"6f9c62fffab866acf51d15d2d857a405c8596157e6d81d0e2201dceb2d6ecfd3",
+"mandal-AP.geojson":"348f6e038d903c7f3c1e6f643e9e6fd55cc8cf5aca867bfb4237a001fdf79b2e",
+"mandal-TG.geojson":"031c5881834ad77e46fe8b2674d0bf311d1d705a2c500f8b9a87c7a2b081f327"
+}
+}
+]
+}
