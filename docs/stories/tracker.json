@@ -1787,7 +1787,7 @@
       "priority": "P1",
       "wave": "W4",
       "source": "gap-audit: 35",
-      "notes": "Officer application, domain allow-list, letter upload, email-ownership code, two-admin approval and scoped role built with EN/TE screens, unit tests and browser journey E2E-156 (stable). A vendor-neutral HTTP mail adapter (server/civic/providers/mailgeneric.ts, CIVIC_MAIL_URL) now exists and production boots with it, but it is verified only against a local simulator, never a real vendor. Human steps: sign off domain list and letter checklist, PDF handling, native Telugu review, pick a mail vendor and confirm its field names, SPF/DKIM/DMARC on the sender domain, a real sandbox send."
+      "notes": "Officer application, domain allow-list, letter upload, email-ownership code, two-admin approval and scoped role built with EN/TE screens, unit tests and browser journey E2E-156 (stable). A vendor-neutral HTTP mail adapter (server/civic/providers/mailgeneric.ts, CIVIC_MAIL_URL) now exists and production boots with it, but it is verified only against a local simulator, never a real vendor. Human steps: sign off domain list and letter checklist, PDF handling, native Telugu review, pick a mail vendor and confirm its field names, SPF/DKIM/DMARC on the sender domain, a real sandbox send. 2026-11-24: draft decision note docs/decisions/S-141-officer-onboarding.md (domain list review, letter checklist template, PDF policy, mail sender needs, counsel and Telugu items) awaiting the owner; nothing further to build."
     },
     {
       "id": "S-142",

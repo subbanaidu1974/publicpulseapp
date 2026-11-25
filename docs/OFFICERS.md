@@ -60,3 +60,5 @@ The granted role carries the department and area. `roleOf` in `server/civic/issu
 4. Decide whether PDF letters must be accepted. The media store takes JPEG and PNG only; a PDF needs a scanner and a metadata-stripping step first.
 5. Legal review of what is stored about officials (name, work e-mail, letter) and the retention period; `docs/RETENTION.md`.
 6. E2E-156 (the browser journey) is `e2e/civic-officer-journeys.spec.ts`; the API tests are `tests/civic/officers.test.ts`.
+
+Draft decision note covering items 1 to 5 above with proposals and a checklist template: [docs/decisions/S-141-officer-onboarding.md](decisions/S-141-officer-onboarding.md) (awaiting the owner).
