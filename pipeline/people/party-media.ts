@@ -19,6 +19,15 @@ async function polite<T>(fn: () => Promise<T>): Promise<T> {
   return fn();
 }
 
+/** Commons answers a burst with plain text ("too many requests"); wait and try again instead of failing the whole run. */
+async function getJson(url: string): Promise<unknown> {
+  for (let a = 0; a < 6; a++) {
+    const r = await polite(() => fetch(url, { headers: { "User-Agent": UA } }));
+    try { return JSON.parse(await r.text()); } catch { await sleep(15000 * (a + 1)); }
+  }
+  throw new Error("Commons kept refusing: " + url);
+}
+
 interface Media { commonsFile: string; use: string; restrictions?: string }
 async function main() {
   const reg = JSON.parse(readFileSync(resolve(ROOT, "data/reference/parties.json"), "utf8")) as { parties: { code: string; flag: Media | null; symbol: Media | null }[] };
@@ -30,7 +39,7 @@ async function main() {
     if (!m) continue;
     const key = `${p.code}-${kind}`;
     const api = "https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&iiprop=extmetadata|url&format=json&titles=" + encodeURIComponent("File:" + m.commonsFile);
-    const j = await (await polite(() => fetch(api, { headers: { "User-Agent": UA } }))).json() as { query: { pages: Record<string, { imageinfo?: { descriptionurl: string; extmetadata?: Record<string, { value: string }> }[] }> } };
+    const j = await getJson(api) as { query: { pages: Record<string, { imageinfo?: { descriptionurl: string; extmetadata?: Record<string, { value: string }> }[] }> } };
     const ii = Object.values(j.query.pages)[0]?.imageinfo?.[0];
     const v = classifyLicence(ii?.extmetadata?.LicenseShortName?.value);
     if (!ii || !v.ok) { rejected.push({ key, file: m.commonsFile, reason: v.reason ?? "no metadata" }); continue; }

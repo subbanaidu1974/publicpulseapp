@@ -6,6 +6,8 @@ import { fetchLeaderPhotos } from "../../api/geo";
 import type { ElectionType } from "../../lib/states";
 import { useAT } from "./analyticsText";
 import { SourceBanner, Wait, fnum, fpct } from "./common";
+import { CreditPopover, mediaFor } from "../people/common";
+import { usePT } from "../people/peopleText";
 
 /**
  * Parties (S-195): for each party that won a seat or took at least 1% of the vote, its seats, votes and vote share in every election in the
@@ -13,6 +15,7 @@ import { SourceBanner, Wait, fnum, fpct } from "./common";
  */
 export default function PartiesPage() {
   const { a, lang } = useAT();
+  const { p: pt } = usePT();
   const { state, config } = useStateCtx();
   const leaders = useApi(() => fetchLeaderPhotos().catch(() => []), []);
   const s = useApi(() => analytics.parties(state), [state]);
@@ -37,6 +40,16 @@ export default function PartiesPage() {
                     <h3 className="font-bold text-sm">{p.code}</h3>
                     <span className="text-xs">{(lang === "te" && p.name.te) || p.name.en}</span>
                   </header>
+                  {(() => {
+                    const m = mediaFor(p.code);
+                    return m ? (
+                      <div data-testid="party-flag" className="flex items-end gap-2">
+                        <img src={m.path} alt={`${p.name.en}, ${m.use === "identification-only" ? pt("ppl.party.identonly") : ""}`.replace(/, $/, "")} height={40} className="h-10 w-auto max-w-[6rem] object-contain border border-black/30 bg-white" loading="lazy" />
+                        <CreditPopover testId={`party-flag-credit-${p.code}`} label={pt("ppl.party.credit")} author={m.author} licence={m.licence} licenceUrl={m.licenceUrl} source={m.source}
+                          caption={m.use === "identification-only" ? pt("ppl.party.identonly") : undefined} />
+                      </div>
+                    ) : null;
+                  })()}
                   <p className="text-[11px]" data-testid="party-facts">
                     {p.registered
                       ? <>{a("an2.p.founded")}: {p.foundedYear ?? na}{p.website && <> &middot; <a className="underline" href={p.website} target="_blank" rel="noopener noreferrer">{p.website.replace(/^https?:\/\//, "")}</a></>}</>

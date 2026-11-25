@@ -205,4 +205,19 @@ test.describe('electors by constituency and gender (S-197)', () => {
     await expect(page.getByTestId('winner-photo')).toBeVisible();
     await expect(page.getByTestId('winner-photo')).toContainText(/Wikimedia Commons/);
   });
+
+  test('@E2E-209 party cards on the Parties page show the party flag or logo from our own server with a credit', async ({ page }) => {
+    const foreign: string[] = [];
+    page.on('request', (r) => { if (!/^(http:\/\/(localhost|127\.0\.0\.1)|data:)/.test(r.url())) foreign.push(r.url()); });
+    await page.goto('/?state=AP#/analytics/parties');
+    const tdp = page.locator('[data-testid="party-card"][data-party="TDP"]');
+    await expect(tdp.getByTestId('party-flag').locator('img')).toHaveJSProperty('complete', true);
+    await tdp.getByTestId('party-flag-credit-TDP').locator('summary').click();
+    await expect(tdp.getByTestId('party-flag-credit-TDP')).toContainText(/CC0/);
+    const ys = page.locator('[data-testid="party-card"][data-party="YSRCP"]');
+    await ys.getByTestId('party-flag-credit-YSRCP').locator('summary').click();
+    await expect(ys.getByTestId('party-flag-credit-YSRCP')).toContainText(/identify the party/i); // logo, not a flag: identification only
+    expect(await page.getByTestId('party-flag').count()).toBeGreaterThan(3);
+    expect(foreign).toEqual([]);
+  });
 });

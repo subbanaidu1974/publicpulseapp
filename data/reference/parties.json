@@ -68,8 +68,16 @@
         }
       ],
       "flag": null,
-      "symbol": null,
-      "mediaNote": "No freely licensed flag or symbol was found on Commons on 2026-11-22; render a text chip."
+      "symbol": {
+        "commonsFile": "YSRCPLOGO.jpg",
+        "licence": "CC BY-SA 4.0",
+        "author": "see Commons",
+        "use": "identification-only",
+        "restrictions": "party logo",
+        "attributionRequired": true,
+        "verified": "2026-11-25"
+      },
+      "mediaNote": "No flag was found on Commons on 2026-11-22. On 2026-11-25 a party logo (YSRCPLOGO.jpg, CC BY-SA 4.0) was found and is shown to identify the party only."
     },
     {
       "code": "JSP",
@@ -354,7 +362,14 @@
       "website": null,
       "wikidata": null,
       "history": [],
-      "flag": null,
+      "flag": {
+        "commonsFile": "AAP English Flag.svg",
+        "licence": "CC BY-SA 4.0",
+        "author": "Ngagnebin",
+        "use": "decorative",
+        "attributionRequired": true,
+        "verified": "2026-11-25"
+      },
       "symbol": null,
       "aliasNote": "AAAP is the code used in the TCPD/ECI source files for Aam Aadmi Party (145 rows) alongside AAP (41 rows); treated as one party."
     },
@@ -378,7 +393,14 @@
           "verified": true
         }
       ],
-      "flag": null,
+      "flag": {
+        "commonsFile": "TJS.jpg",
+        "licence": "CC BY-SA 4.0",
+        "author": "K di",
+        "use": "decorative",
+        "attributionRequired": true,
+        "verified": "2026-11-25"
+      },
       "symbol": null
     },
     {
