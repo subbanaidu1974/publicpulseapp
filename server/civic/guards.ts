@@ -77,6 +77,7 @@ export function productionProblems(): string[] {
   }
   if (isDevMailProvider()) p.push("dev mail provider is installed (officer e-mail confirmation needs a real one: set CIVIC_MAIL_URL for the generic HTTP mail adapter, or install your own with setMailProvider)");
   if (process.env.CIVIC_EXPOSE_DEV_OTP === "1") p.push("CIVIC_EXPOSE_DEV_OTP=1");
+  if (process.env.CIVIC_DEMO_PERSONAS === "1") p.push("CIVIC_DEMO_PERSONAS=1 (demo personas sign in without registration)");
   if (process.env.CIVIC_EXPOSE_DEV_MAIL === "1") p.push("CIVIC_EXPOSE_DEV_MAIL=1");
   if (isDevNumberIntelligence()) p.push("number-intelligence dev fixtures are active (use setNumberIntelligence)");
   if (process.env.CIVIC_ALLOW_DEMO !== "1") {

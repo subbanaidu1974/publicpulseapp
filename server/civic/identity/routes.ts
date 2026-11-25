@@ -17,14 +17,17 @@ import { ENROL_CONTEXTS, activateEnrolment, cancelEnrolment, createEnrolment, li
 import { registerJob } from "../jobs";
 import { getNotice } from "../households/routes";
 import { markSmsExhausted, otpQueue } from "../../degraded";
+import { createEmailRouter } from "./email";
 
 export * from "./service";
 export * from "./network";
 export * from "./enrolment";
+export { normalizeEmail } from "./email";
 
 /** Mounted at /api/v1/civic/identity. */
 export const identityRouter = Router();
 identityRouter.use(express.json({ limit: "10kb" }));
+identityRouter.use(createEmailRouter()); // S-165: sign-up and sign-in by email for people with no phone
 
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
 const MAX_SIM = Number(process.env.CIVIC_MAX_ADULTS_PER_SIM || 5);

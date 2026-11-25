@@ -27,6 +27,8 @@ export interface RehashSpec {
   where?: string;
 }
 export const PHONE_REHASH: RehashSpec = { name: "persons.phone_hash", store: "identity", table: "persons", hashCol: "phone_hash", encCol: "phone_enc", hashPurpose: "phone", encPurpose: "phone" };
+/** (S-165) Email identities share the "phone" contact-identifier key; the stored value is "email:<address>" so a rehash recomputes the same hash. */
+export const EMAIL_REHASH: RehashSpec = { name: "persons.email_hash", store: "identity", table: "persons", hashCol: "email_hash", encCol: "email_enc", hashPurpose: "phone", encPurpose: "phone" };
 
 export interface RehashReport {
   name: string; dryRun: boolean; currentVersion: number; scanned: number; alreadyCurrent: number;

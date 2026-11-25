@@ -16,6 +16,8 @@ import AssistedSegment from "./AssistedSegment";
 import IssueReport from "./IssueReport";
 import MyReports from "./MyReports";
 import LoginFlow from "./LoginFlow";
+import DemoPersonas from "./DemoPersonas";
+import AddPhone from "./AddPhone";
 import SignUpFlow from "./SignUpFlow";
 import { Btn } from "./ui";
 import { SurveysLink, NotifyLink, ConsultationsLink, ScopeLink } from "./CrossLinks";
@@ -66,9 +68,12 @@ export default function CivicHome() {
       ) : !session ? (
         view === "recover" ? <PinRecovery onBack={() => setView("login")} /> :
         view === "choose" ? (
-          <div className="flex flex-wrap gap-3">
-            <Btn data-testid="civic-signup-btn" onClick={() => setView("signup")}>{c("c.signup")}</Btn>
-            <Btn secondary data-testid="civic-login-btn" onClick={() => setView("login")}>{c("c.login")}</Btn>
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-3">
+              <Btn data-testid="civic-signup-btn" onClick={() => setView("signup")}>{c("c.signup")}</Btn>
+              <Btn secondary data-testid="civic-login-btn" onClick={() => setView("login")}>{c("c.login")}</Btn>
+            </div>
+            <DemoPersonas onDone={setSession} />
           </div>
         ) : view === "signup" ? <SignUpFlow onDone={setSession} /> : <LoginFlow onDone={setSession} onForgot={() => setView("recover")} />
       ) : (
@@ -78,6 +83,7 @@ export default function CivicHome() {
             <Btn secondary data-testid="civic-logout" onClick={async () => { await civicIdentityApi.logout(); tokenStore.clear(); setSession(null); setView("choose"); }}>{c("c.logout")}</Btn>
           </div>
           <TierBadge tier={me?.tier ?? session.tier} withHint />
+          {me?.flags?.includes("email_only") && <AddPhone onAdded={refreshMe} />}
           <ResidenceFlow declared={!!me?.residence_declared} onDeclared={refreshMe} />
           {me?.role === "volunteer" && <Attestation isVolunteer />}
           <SessionsPage />

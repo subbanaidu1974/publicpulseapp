@@ -12,6 +12,7 @@ import { startIssueSweeper } from "./issues/service";
 import { assertProductionSafe } from "./guards";
 import { jobsStatus, startJobs } from "./jobs";
 import { createE2eSeedRouter, e2eSeedEnabled } from "./e2e-seed";
+import { createDemoRouter, demoEnabled } from "./demo";
 import { installProvidersFromEnv, requireKeysReady, startKeyWarmup } from "./providers/install";
 import { createSmsReceiptRouter, getSmsGateway } from "./providers/sms";
 import { isKeyProviderV2 } from "./providers/keys";
@@ -62,6 +63,7 @@ export function createCivicRouter(): Router {
   r.use("/notify", notifyRouter); // verified-sender government notifications (server/civic/notify, docs/NOTIFICATIONS.md)
   r.use("/consultations", consultationsRouter); // bill consultations (server/civic/consultations, docs/CONSULTATIONS.md)
   r.use("/surveys", surveysRouter); // Pulse Surveys: registry, credential, published figures (server/civic/surveys)
+  if (demoEnabled()) r.use("/demo", createDemoRouter()); // S-166: ready-made personas, no registration; non-production AND CIVIC_DEMO_PERSONAS=1 only (server/civic/demo.ts)
   if (e2eSeedEnabled()) r.use("/e2e", createE2eSeedRouter()); // Playwright only: NODE_ENV!=production AND CIVIC_E2E_SEED=1 (server/civic/e2e-seed.ts)
   return r;
 }

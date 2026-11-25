@@ -11,7 +11,7 @@ import { setMailProvider } from "../../server/civic/providers/mail";
 import { GenericHttpMailProvider } from "../../server/civic/providers/mailgeneric";
 import { createCivicRouter } from "../../server/civic/index";
 
-const KEYS = ["NODE_ENV", "CIVIC_ENV", "CIVIC_EXPOSE_DEV_OTP", "CIVIC_EXPOSE_DEV_MAIL", "CIVIC_ALLOW_DEMO", "CIVIC_GENERATED_DIR", "CIVIC_DEV_MASTER_KEY", "CIVIC_SWEEP", "CIVIC_JOBS"];
+const KEYS = ["NODE_ENV", "CIVIC_ENV", "CIVIC_DEMO_PERSONAS", "CIVIC_EXPOSE_DEV_OTP", "CIVIC_EXPOSE_DEV_MAIL", "CIVIC_ALLOW_DEMO", "CIVIC_GENERATED_DIR", "CIVIC_DEV_MASTER_KEY", "CIVIC_SWEEP", "CIVIC_JOBS"];
 const saved: Record<string, string | undefined> = {};
 let gen: string;
 

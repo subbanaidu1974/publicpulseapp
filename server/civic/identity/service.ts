@@ -386,6 +386,7 @@ export interface PersonRow {
   label: string | null; failed_pins: number; locked_until: string | null; flags: string; residence_enc: string | null;
   residence_unit: string | null; residence_declared_at: string | null; created_at: string; eligible_from: string; org: string | null;
   phone_purged_at: string | null; deleted_at: string | null; last_active_at: string | null;
+  email_hash: string | null; email_enc: string | null;
 }
 
 /** The WRITE hash of a number (current key version). Lookups must go through personsOnPhone / phoneHashCandidates, which also see older versions during a rotation (S-161). */
@@ -446,7 +447,9 @@ function insertPerson(opts: { phone: string; label?: string; flags?: string[]; c
 
 /** "pending_activation" = enrolled by a volunteer but the adult has not yet proven phone control and set their own PIN (S-136). */
 export const PENDING_FLAG = "pending_activation";
-const BLOCKING_FLAGS = ["recently_reissued", "voip", PENDING_FLAG];
+/** (S-165) "email_only": the account has no phone, so it cannot take part in surveys until a phone or a volunteer attestation is added. */
+export const EMAIL_ONLY_FLAG = "email_only";
+const BLOCKING_FLAGS = ["recently_reissued", "voip", PENDING_FLAG, EMAIL_ONLY_FLAG];
 export const isPendingActivation = (p: Pick<PersonRow, "flags">): boolean => (JSON.parse(p.flags) as string[]).includes(PENDING_FLAG);
 /** Eligibility for any Pulse Survey: past the 14-day age gate, no blocking number-intelligence flag, not deleted. */
 export function isSurveyEligible(personId: string, now: Date = new Date()): boolean {
@@ -645,7 +648,7 @@ export function deleteAccount(personId: string): { hooks: string[]; audit_rows_r
     d.prepare("DELETE FROM consents WHERE person_id = ?").run(personId);
     d.prepare("DELETE FROM sessions WHERE person_id = ?").run(personId);
     d.prepare(
-      `UPDATE persons SET phone_hash = NULL, phone_enc = NULL, pin_salt = NULL, pin_hash = NULL, label = NULL, residence_enc = NULL,
+      `UPDATE persons SET phone_hash = NULL, phone_enc = NULL, email_hash = NULL, email_enc = NULL, pin_salt = NULL, pin_hash = NULL, label = NULL, residence_enc = NULL,
          residence_unit = NULL, residence_declared_at = NULL, flags = '[]', tier = 'T0', role = 'resident', org = NULL, last_active_at = NULL, deleted_at = ? WHERE id = ?`)
       .run(new Date().toISOString(), personId);
     outboxId = enqueueStoreErasure(personId, subjects);

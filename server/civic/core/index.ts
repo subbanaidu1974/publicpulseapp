@@ -786,6 +786,12 @@ registerMigration("core_004_roles_department", `
 ALTER TABLE roles ADD COLUMN department TEXT NOT NULL DEFAULT '';
 CREATE INDEX idx_roles_role ON roles(role);
 `);
+// S-165: an account may be identified by an email address instead of a phone (email_hash = keyed hash, email_enc = encrypted address).
+registerMigration("core_006_email_identity", `
+ALTER TABLE persons ADD COLUMN email_hash TEXT;
+ALTER TABLE persons ADD COLUMN email_enc TEXT;
+CREATE UNIQUE INDEX idx_persons_email_hash ON persons(email_hash) WHERE email_hash IS NOT NULL;
+`);
 // Erasing a person removes the roles they hold.
 registerErasureHook("core.roles", (personId) => { getDb().prepare("DELETE FROM roles WHERE person_id = ?").run(personId); });
 
