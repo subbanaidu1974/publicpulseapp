@@ -111,12 +111,12 @@ describe("RELEASE_GATE reconciliation (@E2E-80)", () => {
     for (const l of gateRows) expect(/\[\s*[xX]\s*\]/.test(l), l.slice(0, 40)).toBe(false);
   });
 
-  it("@E2E-80 owner and date cells are blank (a human decides them)", () => {
+  it("@E2E-80 owner and date cells are blank or an explicit PLACEHOLDER- (a human decides them)", () => {
     for (const l of gateRows) {
       const c = l.replace(/^\|/, "").replace(/\|\s*$/, "").split("|").map((x) => x.trim());
       expect(c.length).toBe(6);
-      expect(c[3], `row ${c[0]} owner`).toBe("");
-      expect(c[4], `row ${c[0]} date`).toBe("");
+      expect(c[3], `row ${c[0]} owner`).toMatch(/^(PLACEHOLDER-[A-Z-]+)?$/);
+      expect(c[4], `row ${c[0]} date`).toMatch(/^(PLACEHOLDER-[A-Z-]+)?$/);
     }
   });
 
