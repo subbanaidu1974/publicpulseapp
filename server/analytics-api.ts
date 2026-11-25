@@ -20,6 +20,7 @@ import type { ElectionType, StateCode } from "../src/lib/states";
 import { candidateTrails, constituencyCompare, incumbencySummary, partyShareCompare, TRAIL_NOTE } from "../src/lib/comparison";
 import { turnoutReport } from "../src/lib/turnout";
 import { partyHistory } from "../src/lib/partyHistory";
+import { panchayatResponse } from "../src/lib/panchayat";
 import { comparabilityNotes } from "../src/lib/comparability";
 import type { Datasets } from "./api";
 import { peopleBlackout } from "./people-api";
@@ -170,6 +171,14 @@ export function createAnalyticsRouter(data: Datasets, opts: { baseDir?: string }
       ],
       source: data.manifest?.elections ?? null,
     });
+  });
+
+  /* ---- S-203 panchayat elections: empty until an approved results file exists at data/reference/panchayat/results-<ST>.json ---- */
+  router.get("/analytics/panchayat/:state", (req, res) => {
+    const state = state_(req.params.state);
+    if (!state) return bad(res, 404, "Unknown state. Valid: AP, TG", "unknown_state");
+    res.set("Cache-Control", "public, max-age=300");
+    res.json(panchayatResponse(state, readJson<unknown | null>(path.join(baseDir, `data/reference/panchayat/results-${state}.json`), null)));
   });
 
   router.get("/analytics/candidates/:state", (req, res) => {

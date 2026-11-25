@@ -255,3 +255,27 @@ test.describe('electors by constituency and gender (S-197)', () => {
     expect(foreign).toEqual([]);
   });
 });
+
+test.describe('panchayat elections (S-203)', () => {
+  test('@E2E-211 the panchayat page says no results are loaded, lists the three levels and shows no figures', async ({ page, request }) => {
+    const api = await request.get('/api/v1/analytics/panchayat/TG');
+    expect(api.status()).toBe(200);
+    const body = await api.json();
+    expect(body.loaded).toBe(false);
+    expect(body.elections).toEqual([]);
+    expect((await request.get('/api/v1/analytics/panchayat/XX')).status()).toBe(404);
+    await page.goto('/?state=TG#/analytics/panchayat');
+    await expect(page.getByTestId('panchayat-page')).toBeVisible();
+    await expect(page.getByTestId('panchayat-empty')).toContainText(/No panchayat election results are loaded/);
+    await expect(page.getByTestId('panchayat-level')).toHaveCount(3);
+    await expect(page.getByTestId('panchayat-table')).toHaveCount(0);
+    await expect(page.getByTestId('panchayat-notes')).toContainText(/No electoral-roll or voter-level data/);
+    await expect(page.getByTestId('an-nav-panchayat')).toHaveAttribute('aria-current', 'page');
+  });
+  test('@E2E-211 the panchayat page works in Telugu', async ({ page }) => {
+    await page.addInitScript(() => { try { localStorage.setItem('pp-lang', 'te'); } catch { /* ignore */ } });
+    await page.goto('/?state=AP#/analytics/panchayat');
+    await expect(page.getByTestId('panchayat-empty')).toContainText(/[ఀ-౿]/);
+    await expect(page.getByTestId('an-nav-panchayat')).toContainText('పంచాయతీ');
+  });
+});
