@@ -5,9 +5,10 @@ import TurnoutPage from "./TurnoutPage";
 import ComparePage from "./ComparePage";
 import HistoryPage from "./HistoryPage";
 import PartiesPage from "./PartiesPage";
+import ElectorsPage from "./ElectorsPage";
 
-export const isAnalyticsHash = (hash: string) => /^#\/analytics\/(turnout|compare|history|parties)\/?$/.test(hash);
-const parse = (hash: string) => (/^#\/analytics\/([a-z]+)/.exec(hash)?.[1] ?? "turnout") as "turnout" | "compare" | "history" | "parties";
+export const isAnalyticsHash = (hash: string) => /^#\/analytics\/(turnout|compare|history|parties|electors)\/?$/.test(hash);
+const parse = (hash: string) => (/^#\/analytics\/([a-z]+)/.exec(hash)?.[1] ?? "turnout") as "turnout" | "compare" | "history" | "parties" | "electors";
 
 /** Quiet link strip placed above the legacy analytics page so the new pages are reachable without typing a hash. */
 export function AnalyticsLinks() {
@@ -20,6 +21,7 @@ export function AnalyticsLinks() {
         <li><a className="underline inline-block py-1" data-testid="link-compare" href={analyticsHref("compare")}>{a("an2.link.compare")}</a></li>
         <li><a className="underline inline-block py-1" data-testid="link-history" href={analyticsHref("history")}>{a("an2.link.history")}</a></li>
         <li><a className="underline inline-block py-1" data-testid="link-parties" href={analyticsHref("parties")}>{a("an2.link.parties")}</a></li>
+        <li><a className="underline inline-block py-1" data-testid="link-electors" href={analyticsHref("electors")}>{a("an2.link.electors")}</a></li>
       </ul>
     </nav>
   );
@@ -34,7 +36,7 @@ export default function AnalyticsRoot() {
     window.addEventListener("hashchange", on);
     return () => window.removeEventListener("hashchange", on);
   }, []);
-  const tabs = [["turnout", "an2.nav.turnout"], ["compare", "an2.nav.compare"], ["history", "an2.nav.history"], ["parties", "an2.nav.parties"]] as const;
+  const tabs = [["turnout", "an2.nav.turnout"], ["compare", "an2.nav.compare"], ["history", "an2.nav.history"], ["parties", "an2.nav.parties"], ["electors", "an2.nav.electors"]] as const;
   return (
     <div className="space-y-6" data-testid="analytics-root">
       <header className="border-b border-black pb-3 space-y-2 font-sans">
@@ -52,6 +54,7 @@ export default function AnalyticsRoot() {
       {page === "compare" && <ComparePage />}
       {page === "history" && <HistoryPage />}
       {page === "parties" && <PartiesPage />}
+      {page === "electors" && <ElectorsPage />}
     </div>
   );
 }
