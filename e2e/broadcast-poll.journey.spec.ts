@@ -72,6 +72,8 @@ test.describe('broadcast poll: admin and user journey, recorded (S-185, S-186)',
       await A.getByTestId('pa-kind-1').selectOption('multi');
       await A.getByTestId('pa-text-1').fill('Which services most need work in your area?');
       await A.getByTestId('pa-options-1').fill('Roads\nWater\nPower\nHealth centre');
+      await expect(A.getByTestId('pa-max-0')).toHaveCount(0); // the limit only applies to choose-several questions
+      await A.getByTestId('pa-max-1').fill('2');
       await beat(A, 1500);
       await expect(A.getByTestId('pa-publish')).toBeDisabled(); // pushing needs the admin's explicit confirmation
       await A.getByTestId('pa-confirm').check(); await beat(A);
@@ -102,8 +104,11 @@ test.describe('broadcast poll: admin and user journey, recorded (S-185, S-186)',
       await U.getByTestId('poll-opt-0-1').check(); await beat(U);
       await expect(U.getByTestId('poll-progress')).toContainText('1 of 2');
       await expect(U.getByTestId('poll-submit')).toBeDisabled();
-      // question 2 allows several choices; "Prefer not to say" replaces them, and picking a real option again clears it
+      // question 2 allows up to two choices; "Prefer not to say" replaces them, and picking a real option again clears it
       await U.getByTestId('poll-opt-1-1').check(); await U.getByTestId('poll-opt-1-2').check(); await beat(U);
+      await expect(U.getByTestId('poll-q-1')).toContainText('up to 2');
+      await U.getByTestId('poll-opt-1-3').click({ force: true }); await beat(U); // a third pick is refused
+      await expect(U.getByTestId('poll-opt-1-3')).not.toBeChecked();
       await U.getByTestId('poll-opt-1-4').check(); await beat(U);
       await expect(U.getByTestId('poll-opt-1-1')).not.toBeChecked();
       await U.getByTestId('poll-opt-1-1').check(); await U.getByTestId('poll-opt-1-2').check(); await beat(U);

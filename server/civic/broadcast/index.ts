@@ -82,6 +82,10 @@ function parseQuestions(raw: unknown): Q[] {
       if (new Set(options.map((o) => o.label_en.toLowerCase())).size !== options.length) throw new Bad("bad_options", `question ${i + 1}: options must differ`);
     }
     options.push({ ...PREFER_NOT, prefer_not: true }); // every question can be answered without taking a stance
+    if (kind === "multi" && x.max_select !== undefined && x.max_select !== null && x.max_select !== "") {
+      const n = Number(x.max_select);
+      if (!Number.isInteger(n) || n < 1 || n > options.length - 1) throw new Bad("bad_max_select", `question ${i + 1}: maximum choices must be a whole number from 1 to ${options.length - 1}`);
+    }
     const max = kind === "multi" ? Math.min(Math.max(Number(x.max_select) || options.length - 1, 1), options.length - 1) : 1;
     return { kind, text_en, text_te, max_select: max, options };
   });

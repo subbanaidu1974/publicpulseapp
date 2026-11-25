@@ -3,8 +3,8 @@ import { broadcastApi, type PollResults } from "../../../api/broadcast";
 import { Btn, ErrorNote, Field, TextInput, inputCls } from "../ui";
 import { Gate, useGuarded } from "./shared";
 
-interface QDraft { kind: "single" | "multi" | "scale5"; text_en: string; text_te: string; options: string }
-const blank = (): QDraft => ({ kind: "single", text_en: "", text_te: "", options: "" });
+interface QDraft { kind: "single" | "multi" | "scale5"; text_en: string; text_te: string; options: string; max: string }
+const blank = (): QDraft => ({ kind: "single", text_en: "", text_te: "", options: "", max: "" });
 
 /**
  * Admin screen for broadcast polls (S-185): write a poll, push it to every signed-in person, watch the response count, read results, close it.
@@ -24,7 +24,7 @@ export default function PollsAdmin() {
     try {
       const body = {
         title_en: title, title_te: titleTe || undefined, intro_en: intro || undefined, opens_at: opens ? new Date(opens).toISOString() : undefined, closes_at: closes ? new Date(closes).toISOString() : undefined,
-        questions: qs.map((q) => ({ kind: q.kind, text_en: q.text_en, text_te: q.text_te || undefined, options: q.kind === "scale5" ? undefined : q.options.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => { const [en, te] = l.split("|").map((s) => s.trim()); return { label_en: en, label_te: te || undefined }; }) })),
+        questions: qs.map((q) => ({ kind: q.kind, max_select: q.kind === "multi" && q.max ? Number(q.max) : undefined, text_en: q.text_en, text_te: q.text_te || undefined, options: q.kind === "scale5" ? undefined : q.options.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => { const [en, te] = l.split("|").map((s) => s.trim()); return { label_en: en, label_te: te || undefined }; }) })),
       };
       const p = await broadcastApi.adminCreate(body);
       setMsg(`${p.opened_at > new Date().toISOString() ? "Poll scheduled for " + new Date(p.opened_at).toLocaleString() : "Poll opened"}. Id ${p.id.slice(0, 8)}.`);
@@ -53,6 +53,11 @@ export default function PollsAdmin() {
             </Field>
             <Field id={`pa-t-${i}`} label="Question (English)"><TextInput id={`pa-t-${i}`} data-testid={`pa-text-${i}`} value={q.text_en} maxLength={300} onChange={(e) => setQ(i, { text_en: e.target.value })} /></Field>
             <Field id={`pa-tt-${i}`} label="Question (Telugu, optional)"><TextInput id={`pa-tt-${i}`} data-testid={`pa-text-te-${i}`} value={q.text_te} onChange={(e) => setQ(i, { text_te: e.target.value })} /></Field>
+            {q.kind === "multi" && (
+              <Field id={`pa-m-${i}`} label="Maximum choices a person may pick (empty means no limit)">
+                <input id={`pa-m-${i}`} data-testid={`pa-max-${i}`} type="number" min={1} max={6} inputMode="numeric" className={inputCls} value={q.max} onChange={(e) => setQ(i, { max: e.target.value })} />
+              </Field>
+            )}
             {q.kind !== "scale5" && (
               <Field id={`pa-o-${i}`} label="Options, one per line (Telugu after |)">
                 <textarea id={`pa-o-${i}`} data-testid={`pa-options-${i}`} className={inputCls} rows={4} value={q.options} onChange={(e) => setQ(i, { options: e.target.value })} />
