@@ -1122,7 +1122,7 @@
       "priority": "P2",
       "wave": "W3",
       "source": "gap-audit: DESIGN 8",
-      "notes": "Schema, validator, legal guard, importer and route built; NO station data: CEO AP forbids crawling, CEO Telangana unreachable, no open list found (attempts logged in docs/data/ELECTORS_AND_STATIONS.md). Needs an operator-supplied list and terms check."
+      "notes": "Schema, validator, legal guard, importer and route built; NO station data: CEO AP forbids crawling, CEO Telangana unreachable, no open list found (attempts logged in docs/data/ELECTORS_AND_STATIONS.md). Needs an operator-supplied list and terms check. Groundwork 2026-11-24: draft request letter, RTI and field-survey routes in docs/decisions/S-91-polling-station-request.md and a header-only CSV template; nothing sent, no data loaded."
     },
     {
       "id": "S-92",
