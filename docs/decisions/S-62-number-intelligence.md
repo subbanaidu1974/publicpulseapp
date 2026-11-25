@@ -37,4 +37,4 @@ If no source gives a reliable recycled or activation-age signal, the sign-up che
 * Whether a vendor that is a foreign company, or that stores numbers outside India, is acceptable (counsel).
 * Whether to accept the design risk in section 3 for the pilot if no recycled signal exists.
 
-S-62 stays blocked until a vendor is chosen, a data-processing agreement exists, and the adapter has passed against a real sandbox.
+S-62 is closed as "what is built" (owner decision 2026-11-24): the adapter, failure policy and this plan. A vendor choice, a data-processing agreement and a pass against a real sandbox remain a future item.
