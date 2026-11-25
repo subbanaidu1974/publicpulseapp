@@ -2391,6 +2391,18 @@
       "wave": "W8",
       "source": "user request 2026-11-25",
       "notes": "Built: one Playwright journey with two recorded browser contexts (admin and user), saved as separate 1280x720 .webm files by npm run e2e:poll-videos. Covers write and push, blocked dialog, partial answers, prefer-not behaviour, release, no re-ask, response count, results hidden below 10 answers, close. NOT done: videos are not published anywhere or attached to CI, Telugu and mobile are not recorded, the scheduled-start flow is covered by other specs but not in the video."
+    },
+    {
+      "id": "S-188",
+      "epic": "Surveys",
+      "title": "Maximum choices field on the admin poll screen",
+      "agent": "-",
+      "status": "done",
+      "tests": ["E2E-198", "E2E-202"],
+      "priority": "P3",
+      "wave": "W8",
+      "source": "user request 2026-11-25",
+      "notes": "Built: choose-several questions get a Maximum choices field (shown only for that type; empty means no limit); the server refuses anything that is not a whole number from 1 to the number of options; the poll dialog says Choose up to N and refuses the extra pick; covered by a unit test and the recorded journey. NOT done: no minimum choices, English-only label."
     }
   ]
 }

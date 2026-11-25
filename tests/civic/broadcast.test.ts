@@ -176,4 +176,17 @@ describe("broadcast polls (S-185) @E2E-198", () => {
     expect((await open(a, { opens_at: s.toISOString(), closes_at: new Date(s.getTime() + 40 * day).toISOString() })).json.code).toBe("bad_closes_at");
     expect((await open(a, { opens_at: s.toISOString(), closes_at: new Date(s.getTime() + 2 * day).toISOString() })).status).toBe(201);
   });
+
+  it("max choices (S-188): a whole number from 1 to the option count is kept; anything else is refused; empty means no limit", async () => {
+    const a = admin(), u = mkPerson();
+    const multi = (max_select: unknown) => ({ questions: [{ kind: "multi", max_select, text_en: "Which services need work?", options: [{ label_en: "Roads" }, { label_en: "Water" }, { label_en: "Power" }] }] });
+    for (const bad of [0, 4, 1.5, "two", -1]) expect((await open(a, multi(bad))).json.code).toBe("bad_max_select");
+    const none = (await open(a, multi(""))).json; // empty: no limit
+    expect(none.questions[0].max_select).toBe(3);
+    await call("POST", `/admin/${none.id}/close`, a.token);
+    const one = await open(a, multi(1));
+    expect(one.json.questions[0].max_select).toBe(1);
+    expect((await call("POST", `/${one.json.id}/answer`, u.token, { answers: [[0, 1]] })).json.code).toBe("bad_option");
+    expect((await call("POST", `/${one.json.id}/answer`, u.token, { answers: [[1]] })).status).toBe(200);
+  });
 });
