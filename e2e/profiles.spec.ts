@@ -104,4 +104,26 @@ test.describe("profile pages", () => {
     const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(over).toBeLessThanOrEqual(1);
   });
+
+  test("@E2E-205 a winner with a free-licence photo shows it from our own server with credit and licence", async ({ page, request }) => {
+    const photos = (await (await request.get("/api/v1/photos/index.json")).json()).photos as { state: string; acNo: number; file: string }[];
+    const p = photos.find((x) => x.state === "TG")!;
+    expect(photos.length).toBeGreaterThan(20);
+    expect((await request.get(`/api/v1/photos/${p.file}`)).status()).toBe(200);
+    expect((await request.get("/api/v1/photos/..%2Findex.json")).status()).toBe(404);
+    const foreign: string[] = [];
+    page.on("request", (r) => { if (!r.url().startsWith("http://localhost") && !r.url().startsWith("http://127.0.0.1") && !r.url().startsWith("data:")) foreign.push(r.url()); });
+    await page.goto(`/?state=TG#/constituency/TG/${p.acNo}`);
+    const fig = page.getByTestId("winner-photo");
+    await expect(fig).toBeVisible();
+    await expect(fig.locator("img")).toHaveJSProperty("complete", true);
+    await expect(fig).toContainText(/Wikimedia Commons/);
+    await expect(fig).toContainText(/CC|GODL|Public domain/);
+    expect(foreign).toEqual([]);
+    // a seat with no photo shows none
+    const none = Array.from({ length: 119 }, (_, i) => i + 1).find((n) => !photos.some((x) => x.state === "TG" && x.acNo === n))!;
+    await page.goto(`/?state=TG#/constituency/TG/${none}`);
+    await expect(page.getByTestId("constituency-profile")).toBeVisible();
+    await expect(page.getByTestId("winner-photo")).toHaveCount(0);
+  });
 });
