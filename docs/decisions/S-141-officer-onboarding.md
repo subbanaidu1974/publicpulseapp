@@ -27,14 +27,14 @@ The admin ticks the box only if all of these hold. The software records the tick
 
 The second admin repeats checks 1 to 4 on the same letter independently before approving. Per-department examples of a genuine posting order must be added by the admins who know them.
 
-## 3. PDF letters (DECISION)
+## 3. PDF letters (DECIDED for the pilot: owner chose option A, photo or scan only, on 2026-11-24)
 
 | Option | For | Against |
 |---|---|---|
 | A. Photo or scan as JPEG or PNG only (today) | Already safe: size cap, safety scan, metadata stripping | Officers may only have a PDF; they can photograph or screenshot it |
 | B. Accept PDF | Convenient | Needs a PDF scanner, active-content removal and metadata stripping first (not built) |
 
-Recommendation: A for the pilot; revisit B only if officers report real trouble.
+Decision: A for the pilot; revisit B only if officers report real trouble.
 
 ## 4. Mail sender (before production)
 
@@ -48,4 +48,4 @@ What is stored about officials: name and work email (encrypted), the email domai
 
 The officer screens and the allow-list body names have machine-drafted Telugu. A native speaker must review them.
 
-S-141 stays in progress until sections 1 to 6 have written answers and a real mail send has been done.
+S-141 stays in progress until sections 1, 2 and 4 to 6 have written answers and a real mail send has been done.
