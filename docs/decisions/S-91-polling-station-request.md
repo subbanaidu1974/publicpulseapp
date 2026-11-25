@@ -41,3 +41,5 @@ Do not use scraped copies on GitHub or data brokers: earlier checks found a 2017
 * Who signs the letter for the entity.
 
 S-91 is closed as "what is built" (owner decision 2026-11-24): tooling, template and this request. Loading real station data remains a future item and needs a list with reuse terms.
+
+Send-ready letters, RTI text and reply log: `docs/decisions/polling-station-request-package/`.
