@@ -9,6 +9,7 @@
  *   GET /geo/:state/village-polygons?mandal=   village boundaries (SHRUG, CC BY-NC-SA 4.0, Census 2011 based, non-commercial use only; S-90), GeoJSON per mandal, ETag
  *   GET /geo/:state/search?q=                  English or Telugu, districts / mandals / villages / ACs
  *   GET /geo/:state/village-labels.json        villages with a Telugu name and a location point, for map labels when zoomed in (S-193)
+ *   GET /photos/index.json, /photos/:file     free-licence photos of some winners with credit and licence, served from this server (S-198)
  *   GET /geo/:state/places.json                towns of 30,000+ people with Telugu names (Wikidata CC0), for map labels (S-192)
  *   GET /geo/:state/places/:level/:code        mandal / village / district profile data (census when rows exist)
  *   GET /electors/:state                       electors by AC from the 2024 general-election rolls (not SSR 2025)
@@ -185,6 +186,18 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
     const body = readJson(path.join(geoDir, `places-${state}.json`));
     if (!body) return err(res, 404, "no_data", `No place names for ${state}`);
     res.set("Cache-Control", "public, max-age=86400").json(body);
+  });
+  // S-198: free-licence winner photos copied to data/generated/photos; only files listed in index.json can be served
+  const photoDir = path.join(baseDir, "data", "generated", "photos");
+  router.get("/photos/index.json", (_req, res) => {
+    const body = readJson(path.join(photoDir, "index.json")) ?? { schema: 1, photos: [] };
+    res.set("Cache-Control", "public, max-age=3600").json(body);
+  });
+  router.get("/photos/:file", (req, res) => {
+    const file = String(req.params.file);
+    const listed = ((readJson(path.join(photoDir, "index.json"))?.photos as Json[]) ?? []).some((p) => p.file === file);
+    if (!/^[A-Z]{2}-\d{4}-\d+\.(jpg|jpeg|png|webp)$/.test(file) || !listed) return err(res, 404, "no_photo", "No such photo");
+    res.set("Cache-Control", "public, max-age=86400").sendFile(path.join(photoDir, file));
   });
   router.get("/geo/:state/:file(ac|pc|district|mandal).geojson", (req, res) => sendGeojson(req, res));
   function sendGeojson(req: Request, res: Response) {
