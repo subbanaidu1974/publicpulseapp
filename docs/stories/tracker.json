@@ -738,14 +738,14 @@
       "epic": "Security",
       "title": "Production SMS provider adapter (DLT templates, delivery receipts, cost budget)",
       "agent": "-",
-      "status": "blocked",
+      "status": "done",
       "tests": [
         "E2E-78"
       ],
       "priority": "P0",
       "wave": "W4",
       "source": "gap-audit: 92",
-      "notes": "Generic HTTP SMS-gateway adapter (DLT fields, receipt auth, retries, cost) passes the contract suite against a simulator; NOT run against a real gateway. Needs vendor, DLT entity/templates, real-handset checks. 2026-11-24: DLT worklist (7 pilot templates), Telugu part-count cost warning, candidate questions and a handset test plan in docs/decisions/S-63-sms-gateway.md. Still blocked on the operating entity existing, a gateway choice, DLT registration and a real-handset run."
+      "notes": "NARROWED to what is built (owner decision 2026-11-25): generic HTTP SMS-gateway adapter (DLT fields, delivery-receipt authentication, retries, cost) passing the contract suite against a simulator, production refusal of unregistered templates, plus a DLT worklist, Telugu part-count cost warning, candidate questions and a handset test plan in docs/decisions/S-63-sms-gateway.md. NOT done: no gateway chosen, no operating entity, no DLT registration or template IDs, no run against a real gateway, no real-handset check on Airtel, Jio, Vi or BSNL, and no real prices. A real send stays a launch prerequisite and the release gate is unaffected."
     },
     {
       "id": "S-64",
