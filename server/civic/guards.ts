@@ -62,6 +62,10 @@ export function productionProblems(): string[] {
     if (!process.env.CIVIC_SMSGW_RECEIPT_SECRET && !process.env.CIVIC_SMSGW_RECEIPT_TOKEN) p.push("CIVIC_SMSGW_URL is set but neither CIVIC_SMSGW_RECEIPT_SECRET nor CIVIC_SMSGW_RECEIPT_TOKEN is set (delivery receipts could not be authenticated)");
     if (!/^https:\/\//i.test(process.env.CIVIC_SMSGW_URL)) p.push("CIVIC_SMSGW_URL must be https");
   }
+  if (process.env.CIVIC_MAIL_URL) {
+    if (!process.env.CIVIC_MAIL_AUTH_VALUE) p.push("CIVIC_MAIL_URL is set but CIVIC_MAIL_AUTH_VALUE is missing");
+    if (!/^https:\/\//i.test(process.env.CIVIC_MAIL_URL)) p.push("CIVIC_MAIL_URL must be https");
+  }
   if (process.env.CIVIC_NUMINTEL_URL) {
     if (!process.env.CIVIC_NUMINTEL_SECRET && !process.env.CIVIC_NUMINTEL_API_KEY) p.push("CIVIC_NUMINTEL_URL is set but CIVIC_NUMINTEL_SECRET is missing");
     if (!/^https:\/\//i.test(process.env.CIVIC_NUMINTEL_URL)) p.push("CIVIC_NUMINTEL_URL must be https (the clear number is sent)");
@@ -71,7 +75,7 @@ export function productionProblems(): string[] {
     const missing = gw.registry.unregistered();
     if (missing.length) p.push(`SMS templates without a DLT template id (they would be refused at send time): ${missing.join(", ")} (CIVIC_SMS_TEMPLATES_FILE)`);
   }
-  if (isDevMailProvider()) p.push("dev mail provider is installed (officer e-mail confirmation needs a real one: setMailProvider; no SMTP/API adapter ships in this repository)");
+  if (isDevMailProvider()) p.push("dev mail provider is installed (officer e-mail confirmation needs a real one: set CIVIC_MAIL_URL for the generic HTTP mail adapter, or install your own with setMailProvider)");
   if (process.env.CIVIC_EXPOSE_DEV_OTP === "1") p.push("CIVIC_EXPOSE_DEV_OTP=1");
   if (process.env.CIVIC_EXPOSE_DEV_MAIL === "1") p.push("CIVIC_EXPOSE_DEV_MAIL=1");
   if (isDevNumberIntelligence()) p.push("number-intelligence dev fixtures are active (use setNumberIntelligence)");
