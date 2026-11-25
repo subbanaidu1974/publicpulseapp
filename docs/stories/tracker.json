@@ -1921,7 +1921,7 @@
       "priority": "P1",
       "wave": "W5",
       "source": "gap-audit: 126",
-      "notes": "Recording scripts ready; IVR dialect selector (standard/coastal/rayalaseema/telangana) with reviewed-asset fallback and missing-recordings report built. Needs a linguist and recorded audio per dialect; no spoken dialect menu yet."
+      "notes": "Recording scripts ready; IVR dialect selector (standard/coastal/rayalaseema/telangana) with reviewed-asset fallback and missing-recordings report built. Needs a linguist and recorded audio per dialect; no spoken dialect menu yet. 2026-11-24: docs/decisions/S-151-audio-brief.md sizes the job (17 prompts x 3 dialects, at least 51 files), lists roles and a ready-to-send brief, and notes IVR audio is off the pilot critical path under the draft pilot profile. Still blocked on a linguist and recordings."
     },
     {
       "id": "S-152",
