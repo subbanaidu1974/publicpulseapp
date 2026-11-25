@@ -56,10 +56,14 @@ describe("Telugu village names for the map (S-193)", () => {
       }
     });
   }
-  it("coverage is stated honestly: Telangana has thousands, Andhra Pradesh only the few the directory names", () => {
+  it("coverage is stated honestly: Telangana from the directory, Andhra Pradesh mostly from Wikidata (S-196)", () => {
     expect(vl("TG").villages.length).toBeGreaterThan(3000);
-    expect(vl("AP").villages.length).toBeLessThan(500);
-    expect(vl("AP").note).toMatch(/of 17957 LGD villages have a Telugu name/);
+    expect(vl("AP").villages.length).toBeGreaterThan(10000);
+    expect(vl("AP").note).toMatch(/372 of 17957 LGD villages have a Telugu name in the directory and \d+ more from Wikidata/);
+    const wd = JSON.parse(fs.readFileSync(path.join(process.cwd(), "data", "generated", "geo", "village-names-te-AP.json"), "utf8"));
+    expect(wd.licence).toBe("CC0-1.0");
+    for (const [code, te] of wd.names as [string, string][]) { expect(/^\d{5,7}$/.test(code)).toBe(true); expect(TELUGU.test(te)).toBe(true); }
+    expect(new Set((wd.names as string[][]).map(n => n[0])).size).toBe(wd.names.length); // one name per census code
   });
   it("villages appear only when zoomed in, and the cap is bounded", () => {
     expect(VILLAGE_ZOOM).toBeGreaterThan(8);
