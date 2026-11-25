@@ -152,11 +152,11 @@
       "usageNotes": "Fetched at build time (pipeline/people/party-media.ts): 10 party flag/symbol rasters (160 px) stored in public/party/ with sha256 and credit in data/reference/people/party-media.json, and winner photo thumbnails (240 px, CC0/PD/CC BY/CC BY-SA only) in public/people/ listed in data/reference/people/photos.json. The browser makes no third-party image request. Per-file author, licence and source link are shown in an attribution popover."
     },
     "wikipedia-cc-by-sa": {
-      "name": "English Wikipedia text (CC BY-SA 4.0), used as the citation source for alliance records",
+      "name": "English Wikipedia text (CC BY-SA 4.0), used as the citation source for alliance records and panchayat election totals",
       "url": "https://en.wikipedia.org/wiki/Wikipedia:Text_of_the_Creative_Commons_Attribution-ShareAlike_4.0_International_License",
       "status": "attribution-sharealike",
       "constraints": ["attribution"],
-      "attribution": "Alliance facts compiled from English Wikipedia election articles (links in data/reference/alliances.json); facts, not text, are reused.",
+      "attribution": "Alliance facts compiled from English Wikipedia election articles (links in data/reference/alliances.json), and panchayat election totals from the pages named in data/reference/panchayat (page and revision recorded per election); facts, not text, are reused.",
       "needsDecision": false,
       "evidence": "Records cite their pages; no prose is copied."
     },

@@ -2635,7 +2635,7 @@
       "priority": "P2",
       "wave": "W9",
       "source": "user request 2026-11-25 (panchayat roadmap)",
-      "notes": "Built: a Panchayat tab under Analytics (English and Telugu) that says no results are loaded and lists the three levels it will hold (gram panchayat, MPTC, ZPTC); a data format and checks in src/lib/panchayat.ts that refuse any file without a source and licence or with voter-level or personal fields; an API at /analytics/panchayat/:state that answers loaded:false until data/reference/panchayat/results-<ST>.json exists. NOT done: no results of any election are loaded; no source has been cleared; no pipeline, no unit drill-down, no charts; Telugu machine-drafted and unreviewed. Roadmap: docs/PANCHAYAT_DATA.md."
+      "notes": "Built: a Panchayat tab under Analytics (English and Telugu) that says no results are loaded and lists the three levels it will hold (gram panchayat, MPTC, ZPTC); a data format and checks in src/lib/panchayat.ts that refuse any file without a source and licence or with voter-level or personal fields; an API at /analytics/panchayat/:state that answers loaded:false until data/reference/panchayat/results-<ST>.json exists. NOT done: no results of any election are loaded; no source has been cleared; no pipeline, no unit drill-down, no charts; Telugu machine-drafted and unreviewed. Roadmap: docs/PANCHAYAT_DATA.md. UPDATE 2026-11-25: party totals from a secondary source were loaded afterwards under S-219; unit-level results are still not loaded."
     },
     {
       "id": "S-204",
@@ -2659,7 +2659,7 @@
       "priority": "P1",
       "wave": "W9",
       "source": "user request 2026-11-25 (panchayat roadmap)",
-      "notes": "Latest Telangana cycle per news reports only (11, 14 and 17 Dec 2025); dates and counts to be confirmed from the source. Load unit-level rows (panchayat, mandal, district, posts, contested, unopposed, turnout, winner and the party backing them only where the source states it). Blocked on S-204. NOT in scope: voter-level data, candidate histories, any inferred party."
+      "notes": "Latest Telangana cycle per news reports only (11, 14 and 17 Dec 2025); dates and counts to be confirmed from the source. Load unit-level rows (panchayat, mandal, district, posts, contested, unopposed, turnout, winner and the party backing them only where the source states it). Blocked on S-204. NOT in scope: voter-level data, candidate histories, any inferred party. Checked 2026-11-25: Wikipedia has no page with the December 2025 results (the page the 2019 article links to does not exist), so nothing loaded."
     },
     {
       "id": "S-206",
@@ -2671,7 +2671,7 @@
       "priority": "P2",
       "wave": "W9",
       "source": "user request 2026-11-25 (panchayat roadmap)",
-      "notes": "Previous Telangana cycle (reported as three phases in January 2019; to be confirmed). Same format as S-205. Blocked on S-204."
+      "notes": "Previous Telangana cycle (reported as three phases in January 2019; to be confirmed). Same format as S-205. Blocked on S-204. PARTY TOTALS ONLY loaded under S-219 (Telangana gram panchayat 2019, from Wikipedia); unit-level rows still need S-204."
     },
     {
       "id": "S-207",
@@ -2683,7 +2683,7 @@
       "priority": "P1",
       "wave": "W9",
       "source": "user request 2026-11-25 (panchayat roadmap)",
-      "notes": "Telangana parishad elections were reported as held in 2019, and the next round as pending a court ruling on BC reservation; whether it has since been held is unchecked. Party symbols are used at this level, so party-wise results may be available. Blocked on S-204."
+      "notes": "Telangana parishad elections were reported as held in 2019, and the next round as pending a court ruling on BC reservation; whether it has since been held is unchecked. Party symbols are used at this level, so party-wise results may be available. Blocked on S-204. PARTY TOTALS ONLY loaded under S-219 for Telangana 2019 and 2014 (Wikipedia); the round after 2019 has no readable source; unit-level rows still need S-204."
     },
     {
       "id": "S-208",
@@ -2695,7 +2695,7 @@
       "priority": "P1",
       "wave": "W9",
       "source": "user request 2026-11-25 (panchayat roadmap)",
-      "notes": "Latest AP cycle found in news reports (about 13,000 sarpanch posts, some unopposed); whether a newer round has been held is unchecked. Blocked on S-204."
+      "notes": "Latest AP cycle found in news reports (about 13,000 sarpanch posts, some unopposed); whether a newer round has been held is unchecked. Blocked on S-204. PARTIAL totals loaded under S-219: AP 2021 sarpanch seats by party and phase (Wikipedia, with gaps); unit-level rows still need S-204."
     },
     {
       "id": "S-209",
@@ -2719,7 +2719,7 @@
       "priority": "P1",
       "wave": "W9",
       "source": "user request 2026-11-25 (panchayat roadmap)",
-      "notes": "AP parishad elections reported as held in April 2021 with counting later after court orders; dates to be confirmed from the source. Blocked on S-204."
+      "notes": "AP parishad elections reported as held in April 2021 with counting later after court orders; dates to be confirmed from the source. Blocked on S-204. Checked 2026-11-25: the Wikipedia page for the 2021 AP local elections has no ZPTC or MPTC results, so nothing loaded."
     },
     {
       "id": "S-211",
@@ -2731,7 +2731,7 @@
       "priority": "P3",
       "wave": "W9",
       "source": "user request 2026-11-25 (panchayat roadmap)",
-      "notes": "Earlier parishad round for both states, pre-bifurcation; mapped to current units with a comparability note. Blocked on S-204."
+      "notes": "Earlier parishad round for both states, pre-bifurcation; mapped to current units with a comparability note. Blocked on S-204. PARTY TOTALS ONLY loaded under S-219 for AP and Telangana-region ZPTC and MPTC 2014 (Wikipedia); unit-level rows still need S-204."
     },
     {
       "id": "S-212",
@@ -2816,6 +2816,22 @@
       "wave": "W9",
       "source": "user request 2026-11-25 (panchayat roadmap)",
       "notes": "Native Telugu review of every string, keyboard and screen-reader pass, phone-width check, and e2e scenarios for load, drill-down, trends and the not-loaded state. Closes the section."
+    },
+    {
+      "id": "S-219",
+      "epic": "Elections",
+      "title": "Panchayat party totals from English Wikipedia (secondary source), shown with caveats",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-211",
+        "E2E-212",
+        "E2E-213"
+      ],
+      "priority": "P2",
+      "wave": "W9",
+      "source": "user request 2026-11-25 (use other sources instead of waiting for the commissions)",
+      "notes": "Built: the Panchayat page now shows party totals per election, read on 2026-11-25 from three English Wikipedia pages (CC BY-SA 4.0; each election records the page, the revision number and the news reports the page cites). Loaded: Telangana gram panchayat, ZPTC and MPTC 2019; ZPTC and MPTC 2014 for the Telangana districts; Andhra Pradesh sarpanch seats 2021 by party and phase, with phase turnout for phases 1 and 2; Andhra Pradesh ZPTC and MPTC 2014. The page carries a banner saying this is a secondary source and not commission data, and each card lists its own caveats (for example Telangana 2019 gives 12,751 and 12,571 gram panchayats; the 2014 Telangana MPTC rows add to 6,487 against a stated 6,497; the AP 2021 page is marked by its editors as needing an update). Data format widened to carry totals, a period, phases and evidence; the checks refuse totals with no evidence or caveat. Files registered in the manifest and licence registry. NOT done: no unit-level (village or constituency) results; NOT loaded because no readable source was found: Telangana gram panchayat December 2025, Andhra Pradesh ZPTC and MPTC 2021, any 2013 gram panchayat; ward-level results; the Wikipedia figures have not been checked against the State Election Commissions or the cited news reports; share-alike on a compiled table has not been decided with counsel; Telugu machine-drafted and unreviewed."
     }
   ]
 }

@@ -256,26 +256,48 @@ test.describe('electors by constituency and gender (S-197)', () => {
   });
 });
 
-test.describe('panchayat elections (S-203)', () => {
-  test('@E2E-211 the panchayat page says no results are loaded, lists the three levels and shows no figures', async ({ page, request }) => {
+test.describe('panchayat elections (S-203, S-219)', () => {
+  test('@E2E-211 the panchayat page shows party totals with a banner saying they are secondary, per-election caveats and the page they were read from', async ({ page, request }) => {
     const api = await request.get('/api/v1/analytics/panchayat/TG');
     expect(api.status()).toBe(200);
     const body = await api.json();
-    expect(body.loaded).toBe(false);
-    expect(body.elections).toEqual([]);
+    expect(body.loaded).toBe(true);
+    expect(body.granularity).toBe('totals');
+    expect(body.source.quality).toBe('secondary');
     expect((await request.get('/api/v1/analytics/panchayat/XX')).status()).toBe(404);
     await page.goto('/?state=TG#/analytics/panchayat');
     await expect(page.getByTestId('panchayat-page')).toBeVisible();
-    await expect(page.getByTestId('panchayat-empty')).toContainText(/No panchayat election results are loaded/);
+    await expect(page.getByTestId('panchayat-banner')).toContainText(/not commission data/i);
+    await expect(page.getByTestId('panchayat-source')).toContainText(/CC BY-SA/);
     await expect(page.getByTestId('panchayat-level')).toHaveCount(3);
-    await expect(page.getByTestId('panchayat-table')).toHaveCount(0);
+    const gp = page.locator('[data-testid=panchayat-card][data-election=tg-gp-2019]');
+    await expect(gp.locator('[data-testid=panchayat-tally-row]').first()).toContainText('BRS');
+    await expect(gp.locator('[data-testid=panchayat-tally-row]').first()).toContainText('7,774');
+    await expect(gp.getByTestId('panchayat-caveats')).toContainText(/12,571/);
+    await expect(gp.getByTestId('panchayat-evidence').locator('a')).toHaveAttribute('href', /en\.wikipedia\.org\/wiki\/2019_Telangana_local_elections/);
     await expect(page.getByTestId('panchayat-notes')).toContainText(/No electoral-roll or voter-level data/);
+    // no 2025 election is shown: nothing readable has been loaded for it
+    await expect(page.locator('[data-testid=panchayat-card][data-election*="2025"]')).toHaveCount(0);
+    // level filter keeps only that level
+    await page.getByTestId('panchayat-filter-mptc').click();
+    const heads = await page.locator('[data-testid=panchayat-card] h3').allInnerTexts();
+    expect(heads.length).toBeGreaterThan(0);
+    expect(heads.every((h) => /Mandal parishad/.test(h))).toBe(true);
     await expect(page.getByTestId('an-nav-panchayat')).toHaveAttribute('aria-current', 'page');
+  });
+  test('@E2E-211 Andhra Pradesh shows the 2021 gram panchayat phases and the 2014 parishad totals', async ({ page }) => {
+    await page.goto('/?state=AP#/analytics/panchayat');
+    const gp = page.locator('[data-testid=panchayat-card][data-election=ap-gp-2021]');
+    await expect(gp).toBeVisible();
+    await expect(gp.getByTestId('panchayat-phases')).toContainText('2021-02-09');
+    await expect(gp.getByTestId('panchayat-phases')).toContainText('81.78%');
+    await expect(gp.getByTestId('panchayat-caveats')).toContainText(/needing an update/);
+    await expect(page.locator('[data-testid=panchayat-card][data-election=ap-mptc-2014]')).toBeVisible();
   });
   test('@E2E-211 the panchayat page works in Telugu', async ({ page }) => {
     await page.addInitScript(() => { try { localStorage.setItem('pp-lang', 'te'); } catch { /* ignore */ } });
     await page.goto('/?state=AP#/analytics/panchayat');
-    await expect(page.getByTestId('panchayat-empty')).toContainText(/[ఀ-౿]/);
+    await expect(page.getByTestId('panchayat-banner')).toContainText(/[ఀ-౿]/);
     await expect(page.getByTestId('an-nav-panchayat')).toContainText('పంచాయతీ');
   });
 });
