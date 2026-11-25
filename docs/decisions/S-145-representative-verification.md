@@ -1,6 +1,6 @@
 # S-145 decision note: who verifies elected representatives, and what must be agreed before launch
 
-Status: DRAFT for the owner. This note proposes; it does not decide. Not legal advice. The code already enforces "two admins grant the role for one constituency" (`docs/REPRESENTATIVES.md`); what is missing is the human process around that grant.
+Status: OWNER CHOSE OPTION A on 2026-11-24 for the pilot (section 1); sections 2 to 5 remain open. Option B may be pursued in parallel. This note otherwise proposes; it does not decide. Not legal advice. The code already enforces "two admins grant the role for one constituency" (`docs/REPRESENTATIVES.md`); what is missing is the human process around that grant.
 
 ## 1. Who verifies (DECISION for the owner)
 
