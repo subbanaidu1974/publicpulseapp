@@ -35,6 +35,9 @@ export interface GateReport {
 
 const clean = (s: string) => s.replace(/<[^>]*>/g, "").trim();
 const isBlank = (s: string) => /^[\s_\-]*$/.test(s);
+/** A cell starting PLACEHOLDER- stands for a person or date not yet chosen: it is shown, but never counts as an owner, a date or a signature. */
+const isPlaceholder = (s: string) => /^\s*PLACEHOLDER-/i.test(s);
+const isSet = (s: string) => !isBlank(s) && !isPlaceholder(s);
 
 /** Parse the table in RELEASE_GATE.md: `| # | Gate | Evidence | Owner | Date | Done |`. */
 export function parseGateTable(md: string): GateRowDef[] {
@@ -54,7 +57,7 @@ export function parseGateTable(md: string): GateRowDef[] {
 export function parseSignOff(md: string): { approver1: boolean; approver2: boolean } {
   const grab = (re: RegExp): boolean => {
     const m = re.exec(md);
-    return !!m && !isBlank(m[1]);
+    return !!m && isSet(m[1]);
   };
   return { approver1: grab(/Approver 1:\s*([^\n]*?)\s+Date:/), approver2: grab(/Approver 2 \(independent\):\s*([^\n]*?)\s+Date:/) };
 }
@@ -99,7 +102,7 @@ export function gateStatus(root: string): GateReport {
     const humanEvidenceFiles = fs.existsSync(evDir)
       ? fs.readdirSync(evDir).filter((f) => f !== ".gitkeep" && !f.startsWith(".")).sort()
       : [];
-    const ownerPresent = !isBlank(d.owner), datePresent = !isBlank(d.date);
+    const ownerPresent = isSet(d.owner), datePresent = isSet(d.date);
     const reasons: string[] = [];
     if (!hasReadme) reasons.push("no docs/gate README for this row");
     if (automatedMissing) reasons.push(`${automatedMissing} automated evidence reference(s) missing in the repository`);
@@ -139,7 +142,7 @@ export function formatReport(r: GateReport): string {
     L.push(`  automated evidence: ${x.automatedFound} found, ${x.automatedMissing} missing${x.automated.length ? "" : " (none listed)"}`);
     for (const a of x.automated) if (!a.exists || a.tagFound === false) L.push(`    MISSING ${a.ref}`);
     L.push(`  human evidence:     ${x.humanEvidencePresent ? x.humanEvidenceFiles.length + " file(s) in " + x.folder + "/evidence" : "MISSING (nothing in " + x.folder + "/evidence)"}`);
-    L.push(`  owner: ${x.ownerPresent ? x.owner : "MISSING"}   date: ${x.datePresent ? x.date : "MISSING"}   box: ${x.checked ? "checked" : "unchecked"}`);
+    L.push(`  owner: ${x.ownerPresent ? x.owner : isPlaceholder(x.owner) ? "MISSING (placeholder " + x.owner + ")" : "MISSING"}   date: ${x.datePresent ? x.date : isPlaceholder(x.date) ? "MISSING (placeholder)" : "MISSING"}   box: ${x.checked ? "checked" : "unchecked"}`);
   }
   L.push("");
   L.push(`Summary: ${r.summary.done} of ${r.summary.total} rows done, ${r.summary.blocked} blocked, ${r.summary.inconsistent} inconsistent`);
