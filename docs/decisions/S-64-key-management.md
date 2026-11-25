@@ -1,6 +1,6 @@
 # S-64 decision note: key management (KMS or HSM), what the code needs, and a test plan
 
-Status: DRAFT for the owner. Research of 2026-11-24 from public documentation pages; no account was opened and nothing was run against a real service. Not legal advice. S-64 stays blocked until a provider is chosen, an account exists under the operating entity, and the adapter has passed against the real service.
+Status: DRAFT for the owner. Research of 2026-11-24 from public documentation pages; no account was opened and nothing was run against a real service. Not legal advice. S-64 is closed as what is built; a provider, an account under the operating entity and a pass against the real service remain a launch prerequisite.
 
 ## 1. How our code uses a key service (this narrows the choice)
 
@@ -38,4 +38,4 @@ Whether a US-headquartered provider holding the KEK is acceptable for pseudonymi
 * Who holds the break-glass roles; two named people independent of each other, appointed by the entity.
 * Whether to accept "data keys exist in server memory while running" for the pilot, or require a design that does not.
 
-S-64 closes only when a real provider has passed the contract tests, short-lived credentials are in place, and the drill record is attached.
+S-64 is closed as "what is built" (owner decision 2026-11-25): the adapter, guards and this plan. A real provider passing the contract tests, short-lived credentials and an attached drill record remain a launch prerequisite.

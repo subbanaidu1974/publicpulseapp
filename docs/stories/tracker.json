@@ -752,14 +752,14 @@
       "epic": "Security",
       "title": "KMS/HSM key provider, per-purpose keys and rotation/re-hash plan",
       "agent": "-",
-      "status": "blocked",
+      "status": "done",
       "tests": [
         "E2E-79"
       ],
       "priority": "P0",
       "wave": "W4",
       "source": "gap-audit: 91",
-      "notes": "AWS KMS adapter (SigV4 on node:crypto, encryption-context binding) passes the key contract suite against a KMS simulator; NOT run against real AWS; static credentials only. Phone-key rotation online path exists from the earlier round. 2026-11-24: docs/decisions/S-64-key-management.md explains that the envelope design needs only symmetric wrap/unwrap (so several providers fit), flags that unwrapped data keys sit in server memory, notes static credentials must become short-lived roles before production, and gives a test plan. Still blocked on the operating entity, a provider choice, counsel on a US-headquartered provider and a real-service run."
+      "notes": "NARROWED to what is built (owner decision 2026-11-25): AWS KMS envelope-key adapter (SigV4 on node:crypto, encryption-context binding, per-purpose data keys, cached and zeroized) passing the key contract suite against a KMS simulator, the online phone-key rotation path from the earlier round, production guards that refuse dev stand-ins, and docs/decisions/S-64-key-management.md (design limits and a test plan). NOT done: no provider chosen, no operating entity or cloud account, no run against real AWS or any real key service, static credentials only (short-lived roles must be built before production), no rotation or break-glass drill record, and counsel has not ruled on a US-headquartered provider. Known limit: unwrapped data keys sit in server memory while the app runs. A real-service run stays a launch prerequisite; release-gate row 4 is unaffected."
     },
     {
       "id": "S-65",
