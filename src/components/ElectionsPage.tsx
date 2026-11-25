@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api, electionsProvenance, normaliseAlliances } from "../api/client";
 import { useApi } from "../api/useApi";
 import { ElectionType, ALLIANCES } from "../lib/states";
-import { defaultYear, ELECTION_YEARS, useStateCtx } from "../state/StateContext";
+import { useElectionYears, useStateCtx } from "../state/StateContext";
 import { useT } from "../i18n";
 import { Bar, DemoBadge, ErrorBanner, fmt, Loading, partyColor } from "./ui";
 import ConstituencySearch from "./ConstituencySearch";
@@ -15,18 +15,19 @@ export default function ElectionsPage() {
   const { state, config } = useStateCtx();
   const { t, lang } = useT();
   const [type, setType] = useState<ElectionType>("assembly");
-  const [year, setYear] = useState<number>(() => defaultYear(state, "assembly"));
+  const years = useElectionYears(state, type);
+  const [year, setYear] = useState<number>(() => years[0]);
   const [alliance, setAlliance] = useState(false);
   const [sortSeats, setSortSeats] = useState(false);
 
   // keep year valid when state/type change
   useEffect(() => {
-    if (!ELECTION_YEARS[state][type].includes(year)) setYear(defaultYear(state, type));
-  }, [state, type, year]);
-  useEffect(() => { setYear(defaultYear(state, type)); setAlliance(false); }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!years.includes(year)) setYear(years[0]);
+  }, [years, year]);
+  useEffect(() => { setYear(years[0]); setAlliance(false); }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const valid = true;
-  const yr = ELECTION_YEARS[state][type].includes(year) ? year : defaultYear(state, type);
+  const yr = years.includes(year) ? year : years[0];
   const summary = useApi(() => api.summary(state, yr, type), [state, yr, type]);
   const marginal = useApi(() => api.marginal(state, yr, type, 2), [state, yr, type]);
 
@@ -60,7 +61,7 @@ export default function ElectionsPage() {
           <label className="text-[10px] uppercase font-sans font-bold flex flex-col gap-1">
             {t("common.year")}
             <select data-testid="elections-year-select" className={sel} value={yr} onChange={(e) => setYear(Number(e.target.value))}>
-              {ELECTION_YEARS[state][type].map((y) => <option key={y} value={y}>{y}</option>)}
+              {years.map((y) => <option key={y} value={y}>{y}</option>)}
             </select>
           </label>
           <label className="text-[10px] uppercase font-sans font-bold flex flex-col gap-1">
