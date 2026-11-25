@@ -10,6 +10,8 @@ import Navbar from "./components/Navbar";
 import FAQPage from "./components/FAQPage";
 import ElectionsPage from "./components/ElectionsPage";
 import CivicHome from "./components/civic/CivicHome";
+import PollGate from "./components/civic/PollGate";
+import PollsAdmin from "./components/civic/consoles/PollsAdmin";
 import ConstituencySearch from "./components/ConstituencySearch";
 import HomePage from "./components/pages/HomePage";
 import AnalyticsPage from "./components/pages/AnalyticsPage";
@@ -62,6 +64,9 @@ function AppInner() {
   // Profile pages (#/constituency/<ST>/<n>, #/place/<ST>/<level>/<code>) take over the main area until a tab is chosen or Back is pressed.
   // Count-day page (#/countday, S-41): plain read-only page that takes over the main area while the hash is set.
   // Government notifications (#/notifications...): takes over the main area while the hash is set.
+  // Broadcast poll admin screen (#/polls-admin, S-185). It is its own route so the lite civic bundle does not carry it.
+  const [pollsRoute, setPollsRoute] = useState(() => { try { return window.location.hash === "#/polls-admin"; } catch { return false; } });
+  useEffect(() => { const on = () => setPollsRoute(window.location.hash === "#/polls-admin"); window.addEventListener("hashchange", on); return () => window.removeEventListener("hashchange", on); }, []);
   const [notifyRoute, setNotifyRoute] = useState(() => { try { return isNotifyHash(window.location.hash); } catch { return false; } });
   useEffect(() => {
     const on = () => setNotifyRoute(isNotifyHash(window.location.hash));
@@ -137,7 +142,7 @@ function AppInner() {
       <Navbar currentTab={currentTab} setCurrentTab={setCurrentTab} theme={theme} setTheme={setTheme} />
 
       <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        {notifyRoute ? <NotifyRoot /> : dashRoute ? <ScopeDashboard /> : cdRoute ? <CountDayPage /> : profileRoute ? (
+        {pollsRoute ? <PollsAdmin /> : notifyRoute ? <NotifyRoot /> : dashRoute ? <ScopeDashboard /> : cdRoute ? <CountDayPage /> : profileRoute ? (
           <ProfilePage route={profileRoute} onBack={() => { if (window.history.length > 1) window.history.back(); else closeProfile(); }} />
         ) : (<>
         {currentTab === "home" && <HomePage theme={theme} />}
@@ -183,7 +188,7 @@ export default function App() {
   return (
     <LangProvider>
       <StateProvider>
-        <AppInner />
+        <PollGate><AppInner /></PollGate>
       </StateProvider>
     </LangProvider>
   );

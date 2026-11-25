@@ -192,3 +192,6 @@ Layers: **API** = HTTP-level test (no browser), **UI** = Playwright browser.
 | E2E-195 | API | Role matrix over all demo personas (S-168) | e2e/civic-persona-matrix.spec.ts |
 | E2E-196 | Unit | Email notification channel: off by default, opt-in, push-failure fallback, emergency, no links, Telugu body (S-184) | tests/civic/notify/email.channel.test.ts |
 | E2E-197 | UI | Email channel switch in notification settings, hidden for phone-only accounts (S-184) | e2e/notify-email.spec.ts |
+| E2E-198 | Unit | Broadcast polls: roles, pending per person, completion required, validation, hidden results, no link to accounts, close, limits, wording refusals (S-185) | tests/civic/broadcast.test.ts |
+| E2E-199 | UI | Admin writes, pushes, closes a poll on screen; a party-choice poll is refused with the reason (S-185) | e2e/broadcast-poll.spec.ts |
+| E2E-200 | UI | Blocking poll dialog: inert app, Escape ignored, completion rules, release on submit, Telugu, axe, release on close, admin routes closed to users (S-185) | e2e/broadcast-poll.spec.ts |

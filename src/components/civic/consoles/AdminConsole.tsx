@@ -53,6 +53,7 @@ export default function AdminConsole({ personId }: { personId?: string }) {
       <MfaPanel />
       <OfficerApplications />
       <RoleRequests me={personId} />
+      <p><a data-testid="polls-admin-link" href="#/polls-admin" className="underline font-bold">Broadcast polls (push an opinion poll to all users)</a></p>
       <JobsStatus />
     </section>
   );

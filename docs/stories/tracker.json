@@ -2355,6 +2355,18 @@
       "wave": "W8",
       "source": "roadmap 2026-11-25",
       "notes": "Built: opt-in email channel (email_ok, default off) for notifications; used when push did not reach the person and for emergency; bilingual body with sender, safety word, signature reference and no links; settings switch hidden for accounts without email. Verified against the dev mail provider only. NOT done: real mail delivery (needs S-179), digests, per-category email choice, bounce handling, counsel view on holding an email contact for notices, native Telugu review of the new text."
+    },
+    {
+      "id": "S-185",
+      "epic": "Surveys",
+      "title": "Broadcast polls: admin pushes an opinion poll that blocks signed-in users until they answer",
+      "agent": "-",
+      "status": "done",
+      "tests": ["E2E-198", "E2E-199", "E2E-200"],
+      "priority": "P1",
+      "wave": "W8",
+      "source": "user request 2026-11-25",
+      "notes": "Built: admin creates and opens a poll at any time (up to 5 questions, single, multi or 5-point scale, optional Telugu wording, optional auto-close within 30 days, at most 3 open); every signed-in non-admin sees a blocking, inert-background dialog (focus trap, Escape does nothing, English or Telugu) until every question is answered, 'prefer not to say' on every question; one answer per account; admin results with per-option counts hidden below 10 answers; admin can close any time. Stored as per-option counters plus a keyed 'answered' marker, no person id and no per-response rows. It is NOT a Pulse Survey: no eligibility, weighting or representativeness, and every screen says so. Refuses party or candidate choice wording, links and requests for codes or IDs. NOT done: a single admin can push (no second approver, no counsel review of the mandatory-answer design), no targeting by place or role, no push to people who are signed out (they see it at next sign-in), no email or SMS nudge, no published figures, admin screen is English only, Telugu text is machine-drafted and unreviewed. Whether forcing an answer is acceptable under the consent notice is a counsel question."
     }
   ]
 }

@@ -18,13 +18,16 @@ export interface Issue { id: string; category: string; text?: string; textTe?: s
 export interface Session { token: string; personId?: string; tier?: string }
 export interface OtpRequestResult { ok: boolean; devOtp?: string }
 
+/** Tells the broadcast-poll gate (S-185) that the signed-in person changed, so it can look for a poll at once. */
+const announceSession = (): void => { try { window.dispatchEvent(new Event("pp-session")); } catch { /* no window */ } };
+
 export const tokenStore = {
   get(): string | null { try { return sessionStorage.getItem(TOKEN_KEY); } catch { return null; } },
-  set(t: string) { try { sessionStorage.setItem(TOKEN_KEY, t); } catch { /* storage unavailable */ } },
-  clear() { try { sessionStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ } },
+  set(t: string) { try { sessionStorage.setItem(TOKEN_KEY, t); } catch { /* storage unavailable */ } announceSession(); },
+  clear() { try { sessionStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ } announceSession(); },
 };
 
-async function call<T>(path: string, init: { method?: string; body?: unknown; auth?: boolean; fresh?: boolean; headers?: Record<string, string> } = {}): Promise<T> {
+export async function call<T>(path: string, init: { method?: string; body?: unknown; auth?: boolean; fresh?: boolean; headers?: Record<string, string> } = {}): Promise<T> {
   const headers: Record<string, string> = { ...init.headers };
   if (init.body !== undefined) headers["content-type"] = "application/json";
   const tok = tokenStore.get();

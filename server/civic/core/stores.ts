@@ -49,6 +49,8 @@ export const STORE_TABLES: Record<StoreName, string[]> = {
     "surveys", "survey_questions", "survey_options", "survey_versions", "panel_reviews", "cancellations", "survey_registry_log", "survey_quota_events",
     // published figures (server/civic/surveys/results.ts, budget.ts)
     "survey_results", "survey_query_budget",
+    // broadcast polls (server/civic/broadcast)
+    "bpoll_polls", "bpoll_done", "bpoll_counts",
     // anonymous credential + responses (server/civic/surveys/responses.ts, credential.ts)
     "survey_signing_key", "spent_token", "survey_response", "survey_response_assisted", "response_journal",
     // bill consultations (server/civic/consultations/schema.ts)
