@@ -183,3 +183,10 @@ Layers: **API** = HTTP-level test (no browser), **UI** = Playwright browser.
 | E2E-166 | API | Recorded Telugu audio per dialect with linguist review | Audio files exist and pass review |
 | E2E-167 | API | Operator, funding and legal-structure decision (design gate) | Decision recorded in DESIGN_2028 section 8.1 |
 | E2E-168 | API | Release gate owners, dates and evidence collection; red-team and pilot skew evaluation scheduled | All 18 gate rows have owner and date |
+| E2E-189 | API | Email sign-up, sign-in and PIN recovery (S-165): hashed and encrypted storage, no clear address anywhere, email_only flag, throwaway and Gmail-alias handling, limits, key rotation | tests/civic/identity.email.test.ts, tests/civic/providers/rehash.email.test.ts |
+| E2E-190 | UI | Email sign-up and sign-in screens in English and Telugu; email-only account not survey-eligible | e2e/civic-email-demo.spec.ts |
+| E2E-191 | API | Demo personas (S-166): off by default, never in production, correct roles, no phone, email or PIN | tests/civic/demo.test.ts |
+| E2E-192 | UI | Demo sign-in panel: one click as admin, role limits, reuse of the same account | e2e/civic-email-demo.spec.ts |
+| E2E-193 | API | Add a phone to an email-only account (S-167): code, flags, one phone, SIM cap | tests/civic/identity.email.test.ts |
+| E2E-194 | UI | Add-phone panel shown only to email-only accounts and works end to end | e2e/civic-addphone.spec.ts |
+| E2E-195 | API | Role matrix over all demo personas (S-168) | e2e/civic-persona-matrix.spec.ts |

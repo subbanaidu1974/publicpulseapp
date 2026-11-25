@@ -89,7 +89,7 @@ export const civicApi = {
 
 // ---- Identity UI additions (login picker, PIN recovery, residence, attestation, invites, sessions) ----
 export interface SimMember { personId: string; label: string; locked: boolean }
-export interface MePerson { id: string; tier: "T0" | "T1" | "T2"; role?: string; roles?: string[]; label?: string; residence_declared?: boolean }
+export interface MePerson { id: string; tier: "T0" | "T1" | "T2"; role?: string; roles?: string[]; label?: string; residence_declared?: boolean; flags?: string[]; survey_eligible?: boolean }
 export interface EnrolmentRow { id: string; contextKind: string; label?: string; status: string; expiresAt?: string; createdAt?: string }
 export interface GeoUnit { code: string; nameEn: string; nameTe?: string }
 export interface SessionRow { id: string; createdAt?: string; lastSeen?: string; device?: string; current?: boolean }
@@ -122,7 +122,25 @@ export function errKind(e: unknown): "person_required" | "limited" | "locked" | 
   return "other";
 }
 
+export interface DemoPersonaInfo { key: string; label: string; description: string; roles: string[] }
 export const civicIdentityApi = {
+  /** S-165: sign-up and sign-in with an email address, for people with no phone. The code goes by email; the dev code is echoed only in dev. */
+  requestEmailCode: async (email: string, purpose: "signup" | "recovery" = "signup"): Promise<{ devOtp?: string; alreadySent: boolean }> => {
+    const r = await call<{ ok: boolean; dev_otp?: string; already_sent?: boolean }>(purpose === "recovery" ? "/identity/pin/recover/email/request" : "/identity/signup/email/request", { method: "POST", body: { email }, auth: false });
+    return { devOtp: r.dev_otp, alreadySent: !!r.already_sent };
+  },
+  signUpEmail: (a: { email: string; otp: string; pin: string; consentVersion: string }) =>
+    call<Session>("/identity/signup/email/verify", { method: "POST", body: { email: a.email, otp: a.otp, pin: a.pin, consent_version: a.consentVersion }, auth: false }),
+  loginEmail: (a: { email: string; pin: string }) => call<Session>("/identity/login/email", { method: "POST", body: { email: a.email, pin: a.pin }, auth: false }),
+  recoverPinEmail: (a: { email: string; otp: string; newPin: string }) =>
+    call<{ ok: boolean }>("/identity/pin/recover/email", { method: "POST", body: { email: a.email, otp: a.otp, new_pin: a.newPin }, auth: false }),
+  /** S-167: an email-only account adds a phone. The code is requested with requestCode(phone) first. */
+  addPhone: (a: { phone: string; otp: string }) => call<{ person: MePerson }>("/identity/phone/add", { method: "POST", body: { phone: e164(a.phone), otp: a.otp } }),
+  /** S-166: demo personas exist only when the server runs with CIVIC_DEMO_PERSONAS=1 outside production; otherwise this is an empty list. */
+  demoPersonas: async (): Promise<DemoPersonaInfo[]> => {
+    try { return (await call<{ personas: DemoPersonaInfo[] }>("/demo/personas", { auth: false })).personas ?? []; } catch { return []; }
+  },
+  demoLogin: (persona: string) => call<Session & { roles: string[]; persona: string }>("/demo/login", { method: "POST", body: { persona }, auth: false }),
   /** Login for one adult on a shared SIM. person_id is sent only after the person was picked. */
   loginAs: (a: { phone: string; pin: string; personId?: string }) =>
     call<Session>("/identity/login", { method: "POST", body: { phone: e164(a.phone), pin: a.pin, ...(a.personId ? { person_id: a.personId } : {}) }, auth: false }),

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { civicApi, civicIdentityApi, smsFailed, tokenStore, type Session } from "../../api/civic";
+import { civicApi, civicIdentityApi, errCode, smsFailed, tokenStore, type Session } from "../../api/civic";
 import { QueuedNotice, ShedNotice } from "../DegradedBanner";
 import { shedOf, type ShedInfo } from "../../lib/degraded";
 import { useCivicT } from "./civicText";
@@ -15,6 +15,8 @@ export default function SignUpFlow({ onDone }: { onDone: (s: Session) => void })
   const [step, setStep] = useState<Step>("consent");
   const [consentVersion, setConsentVersion] = useState("");
   const [phone, setPhone] = useState("");
+  const [via, setVia] = useState<"phone" | "email">("phone"); // S-165: people with no phone can use an email address instead
+  const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [pin, setPin] = useState("");
   const [devOtp, setDevOtp] = useState<string | null>(null);
@@ -27,8 +29,16 @@ export default function SignUpFlow({ onDone }: { onDone: (s: Session) => void })
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true); setErr(null); setShed(null);
-    try { await fn(); } catch (e) { const sh = shedOf(e); if (sh) setShed(sh); else if (smsFailed(e)) setErr(c("c.sms.failed")); else setErr(c("c.error")); } finally { setBusy(false); }
+    try { await fn(); } catch (e) {
+      const sh = shedOf(e);
+      if (sh) setShed(sh);
+      else if (smsFailed(e)) setErr(c("c.sms.failed"));
+      else if (errCode(e) === "email_domain_blocked") setErr(c("c.email.blocked"));
+      else if (errCode(e) === "email_registered") setErr(c("c.email.registered"));
+      else setErr(c("c.error"));
+    } finally { setBusy(false); }
   };
+  const sendEmail = () => run(async () => { const r = await civicIdentityApi.requestEmailCode(email.trim()); setDevOtp(r.devOtp ?? null); setAlready(r.alreadySent); setDelivery(null); setQueued(null); setStep("otp"); });
 
   return (
     <form data-testid="signup-flow" className="space-y-4 max-w-md" onSubmit={(e) => e.preventDefault()} aria-label={c("c.signup")}>
@@ -40,17 +50,29 @@ export default function SignUpFlow({ onDone }: { onDone: (s: Session) => void })
           <GrievanceContact />
         </>
       )}
-      {step === "phone" && (
+      {step === "phone" && via === "phone" && (
         <>
           <Field id="su-phone" label={c("c.phone")}>
             <TextInput id="su-phone" data-testid="su-phone" type="tel" inputMode="numeric" autoComplete="tel-national" maxLength={10} value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} />
           </Field>
           <Btn data-testid="su-send-otp" disabled={busy || phone.length !== 10} onClick={() => run(async () => { const r = await civicIdentityApi.requestCode(phone); setDevOtp(r.devOtp ?? null); setAlready(r.alreadySent); setDelivery(r.delivery ?? null); setQueued(r.queued ? { s: r.expectedDelayS ?? 0, at: Date.now() } : null); setStep("otp"); })}>{c("c.sendOtp")}</Btn>
+          <button type="button" data-testid="su-no-phone" className="block text-sm underline min-h-[44px]" onClick={() => { setVia("email"); setErr(null); }}>{c("c.noPhone")}</button>
+        </>
+      )}
+      {step === "phone" && via === "email" && (
+        <>
+          <p data-testid="su-email-note" className="border border-black p-3 text-sm">{c("c.email.note")}</p>
+          <Field id="su-email" label={c("c.email")}>
+            <TextInput id="su-email" data-testid="su-email" type="email" inputMode="email" autoComplete="email" maxLength={254} value={email} onChange={(e) => setEmail(e.target.value)} />
+          </Field>
+          <Btn data-testid="su-send-email" disabled={busy || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())} onClick={sendEmail}>{c("c.email.send")}</Btn>
+          <button type="button" data-testid="su-use-phone" className="block text-sm underline min-h-[44px]" onClick={() => { setVia("phone"); setErr(null); }}>{c("c.usePhone")}</button>
         </>
       )}
       {step === "otp" && (
         <>
           {queued && <QueuedNotice seconds={queued.s} startedAt={queued.at} />}
+          {via === "email" && <p role="status" data-testid="su-email-sent" className="border border-black p-3 text-sm">{c("c.email.sent")}</p>}
           {delivery === "queued" && !queued && !already && <p role="status" data-testid="su-delivery-queued" className="border border-black p-3 text-sm">{c("c.sms.queued")}</p>}
           {already && <p role="status" data-testid="su-already" className="border border-black p-3 text-sm">{c("c.recover.already")}</p>}
           {devOtp && <p data-testid="dev-otp" className="text-xs font-mono border border-dashed border-black p-2">{c("c.devOtp")}: {devOtp}</p>}
@@ -58,7 +80,7 @@ export default function SignUpFlow({ onDone }: { onDone: (s: Session) => void })
             <TextInput id="su-otp" data-testid="su-otp" inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} />
           </Field>
           <Btn data-testid="su-otp-next" disabled={otp.length < 4} onClick={() => setStep("pin")}>{c("c.next")}</Btn>
-          <Btn secondary data-testid="su-resend" disabled={busy} onClick={() => run(async () => { const r = await civicIdentityApi.requestCode(phone); setDevOtp(r.devOtp ?? devOtp); setAlready(r.alreadySent); setDelivery(r.delivery ?? null); })}>{c("c.sms.resend")}</Btn>
+          <Btn secondary data-testid="su-resend" disabled={busy} onClick={() => via === "email" ? sendEmail() : run(async () => { const r = await civicIdentityApi.requestCode(phone); setDevOtp(r.devOtp ?? devOtp); setAlready(r.alreadySent); setDelivery(r.delivery ?? null); })}>{c("c.sms.resend")}</Btn>
         </>
       )}
       {step === "pin" && (
@@ -67,7 +89,7 @@ export default function SignUpFlow({ onDone }: { onDone: (s: Session) => void })
             <TextInput id="su-pin" data-testid="su-pin" type="password" inputMode="numeric" autoComplete="new-password" maxLength={6} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} />
           </Field>
           <Btn data-testid="su-submit" disabled={busy || pin.length < 4} onClick={() => run(async () => {
-            const s = await civicApi.signUp({ phone, otp, pin, consentVersion });
+            const s = via === "email" ? await civicIdentityApi.signUpEmail({ email: email.trim(), otp, pin, consentVersion }) : await civicApi.signUp({ phone, otp, pin, consentVersion });
             tokenStore.set(s.token); onDone(s);
           })}>{c("c.submit")}</Btn>
         </>

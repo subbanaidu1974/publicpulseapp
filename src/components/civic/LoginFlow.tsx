@@ -10,6 +10,8 @@ import { Btn, ErrorNote, Field, TextInput, primaryBtnCls } from "./ui";
 export default function LoginFlow({ onDone, onForgot }: { onDone: (s: Session) => void; onForgot?: () => void }) {
   const c = useCivicT();
   const [phone, setPhone] = useState("");
+  const [via, setVia] = useState<"phone" | "email">("phone"); // S-165
+  const [email, setEmail] = useState("");
   const [pin, setPin] = useState("");
   const [members, setMembers] = useState<SimMember[] | null>(null);
   const [personId, setPersonId] = useState("");
@@ -31,7 +33,7 @@ export default function LoginFlow({ onDone, onForgot }: { onDone: (s: Session) =
       if (members && !personId) { setErr(c("c.login.pickNeed")); return; }
       setBusy(true);
       try {
-        const s = await civicIdentityApi.loginAs({ phone, pin, personId: personId || undefined });
+        const s = via === "email" ? await civicIdentityApi.loginEmail({ email: email.trim(), pin }) : await civicIdentityApi.loginAs({ phone, pin, personId: personId || undefined });
         tokenStore.set(s.token); onDone(s);
       } catch (x) {
         setPin("");
@@ -41,15 +43,24 @@ export default function LoginFlow({ onDone, onForgot }: { onDone: (s: Session) =
           if (m.length) { setMembers(m); setPersonId(""); } else setErr(c("c.error"));
         } else if (k === "locked") setNotice(c("c.login.locked"));
         else if (k === "limited") setNotice(c("c.login.limited"));
-        else if (k === "wrong") setErr(c("c.login.wrong"));
+        else if (k === "wrong") setErr(c(via === "email" ? "c.login.wrongEmail" : "c.login.wrong"));
         else setErr(c("c.error"));
       } finally { setBusy(false); }
     }}>
       <h2 className="text-xl font-bold">{c("c.login")}</h2>
-      <Field id="li-phone" label={c("c.phone")}>
-        <TextInput id="li-phone" data-testid="li-phone" type="tel" inputMode="numeric" autoComplete="tel-national" maxLength={10} value={phone}
-          onChange={(e) => { setPhone(e.target.value.replace(/\D/g, "")); setMembers(null); setPersonId(""); }} />
-      </Field>
+      {via === "phone" ? (
+        <Field id="li-phone" label={c("c.phone")}>
+          <TextInput id="li-phone" data-testid="li-phone" type="tel" inputMode="numeric" autoComplete="tel-national" maxLength={10} value={phone}
+            onChange={(e) => { setPhone(e.target.value.replace(/\D/g, "")); setMembers(null); setPersonId(""); }} />
+        </Field>
+      ) : (
+        <Field id="li-email" label={c("c.email")}>
+          <TextInput id="li-email" data-testid="li-email" type="email" inputMode="email" autoComplete="email" maxLength={254} value={email} onChange={(e) => setEmail(e.target.value)} />
+        </Field>
+      )}
+      <button type="button" data-testid="li-switch" className="block text-sm underline min-h-[44px]" onClick={() => { setVia(via === "phone" ? "email" : "phone"); setMembers(null); setPersonId(""); setErr(null); setNotice(null); }}>
+        {via === "phone" ? c("c.useEmail") : c("c.usePhone")}
+      </button>
       {members && (
         <fieldset data-testid="li-picker" className="border border-black p-3 space-y-2">
           <legend ref={legendRef} tabIndex={-1} className="text-sm font-bold px-1">{c("c.login.who")}</legend>
@@ -71,7 +82,7 @@ export default function LoginFlow({ onDone, onForgot }: { onDone: (s: Session) =
           onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} className="w-full min-h-[44px] border border-black bg-white text-black px-3 py-2 text-base" />
       </Field>
       <div className="flex flex-wrap items-center gap-3">
-        <button type="submit" data-testid="li-submit" disabled={busy || phone.length !== 10 || pin.length < 4} className={primaryBtnCls}>{c("c.login")}</button>
+        <button type="submit" data-testid="li-submit" disabled={busy || (via === "phone" ? phone.length !== 10 : !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) || pin.length < 4} className={primaryBtnCls}>{c("c.login")}</button>
         {onForgot && <Btn secondary data-testid="li-forgot" onClick={onForgot}>{c("c.login.forgot")}</Btn>}
       </div>
       {notice && <p role="alert" data-testid="li-notice" className="border border-black bg-amber-50 text-black text-sm p-3">{notice}</p>}

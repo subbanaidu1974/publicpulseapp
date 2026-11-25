@@ -135,3 +135,5 @@ npx vitest run tests/load        # size budget + both smoke runs
 SERVE_BUILT=1 CIVIC_EXPOSE_DEV_OTP=1 PORT=4101 RATE_LIMIT_BURST=1000000 RATE_LIMIT_PER_SEC=1000000 node dist/server.cjs
 PORT=4101 npx playwright test e2e/lite.spec.ts --project=chromium --workers=1   # includes the 2G measurement
 ```
+
+Note (2026-11-25): the older in-app civic bundle guard (`tests/civic/channels.size.test.ts`) now allows 154 KB because the email sign-up, phone-upgrade and demo-persona screens (S-165 to S-167) added 2.6 KB gzip (149.5 to 152.1 KB). The real `/lite` page budget above is unchanged and unaffected.

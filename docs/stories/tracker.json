@@ -2104,6 +2104,257 @@
       "wave": "W6",
       "source": "follow-up from Phase 2 screens and reports",
       "notes": "OTP responses say sent/queued/failed; failed sends drop the code so a resend works at once."
+    },
+    {
+      "id": "S-165",
+      "epic": "Identity",
+      "title": "Email sign-up, sign-in and PIN recovery for people with no phone number",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-189",
+        "E2E-190"
+      ],
+      "priority": "P1",
+      "wave": "W6",
+      "source": "roadmap 2026-11-25",
+      "notes": "Built (docs/EMAIL_ACCOUNTS.md): emailed one-time code, PIN, sign-in and recovery; address stored only as keyed hash plus encrypted copy under the contact key (covered by key rotation); account flagged email_only so it can report issues but is NOT survey-eligible until a phone is added; Gmail dots and +tags folded, throwaway domains refused, per-address, per-network and global limits, no account enumeration. Verified with the dev mail provider only. NOT done: no real mail vendor or SPF/DKIM/DMARC (S-179), Telugu text unreviewed, no counsel review of holding an email as a contact identifier."
+    },
+    {
+      "id": "S-166",
+      "epic": "Testing",
+      "title": "Demo personas: sign in as admin, officer, moderator, volunteer, resident and more without registering",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-191",
+        "E2E-192"
+      ],
+      "priority": "P1",
+      "wave": "W6",
+      "source": "roadmap 2026-11-25",
+      "notes": "Built (docs/DEMO_PERSONAS.md): 14 ready-made accounts with real core roles and no phone, email or PIN, reachable only through POST /civic/demo/login. Needs CIVIC_DEMO_PERSONAS=1, a non-production environment and a localhost address; production start-up refuses the flag; every persona is flagged demo. Sign-in panel on the Civic page. Never to be used for published figures."
+    },
+    {
+      "id": "S-167",
+      "epic": "Identity",
+      "title": "Add a phone number to an email-only account (path to survey eligibility)",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-193",
+        "E2E-194"
+      ],
+      "priority": "P1",
+      "wave": "W6",
+      "source": "roadmap 2026-11-25",
+      "notes": "Built: signed-in email-only account proves a phone with a texted code, loses email_only and takes the number's checks (VoIP refused, recycled number keeps it survey-ineligible, adults-per-SIM cap, one phone per account). Screen shown only to email-only accounts. SMS delivery is simulator-only until S-172."
+    },
+    {
+      "id": "S-168",
+      "epic": "Testing",
+      "title": "Role matrix over the demo personas: who can reach which role-gated route",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-195"
+      ],
+      "priority": "P1",
+      "wave": "W6",
+      "source": "roadmap 2026-11-25",
+      "notes": "Built: every persona calls representative admin, moderator and volunteer routes; 200 only for allowed roles, 403 for all others, 401 without a session; profile roles per persona; sign-out revokes. Add a row to e2e/civic-persona-matrix.spec.ts when a role-gated route is added. Covers 8 routes, not every route."
+    },
+    {
+      "id": "S-169",
+      "epic": "Organisation",
+      "title": "Form the operating entity (name, board, registration, bank account, host agreement)",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [],
+      "priority": "P0",
+      "wave": "W7",
+      "source": "roadmap 2026-11-25",
+      "notes": "Needs people: the owner and counsel. Checklist: docs/decisions/S-152-entity-checklist.md. Unblocks S-170 to S-173, S-178 and S-180."
+    },
+    {
+      "id": "S-170",
+      "epic": "Compliance",
+      "title": "Engage counsel; written memo and counsel-approved notice text (English and Telugu)",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [],
+      "priority": "P0",
+      "wave": "W7",
+      "source": "roadmap 2026-11-25",
+      "notes": "Needs counsel. Send-ready package: docs/compliance/counsel-package/. Nothing sent. Gate rows 13 to 16."
+    },
+    {
+      "id": "S-171",
+      "epic": "Compliance",
+      "title": "Appoint a real grievance officer or DPO and replace grievance@example.invalid everywhere",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [],
+      "priority": "P0",
+      "wave": "W7",
+      "source": "roadmap 2026-11-25",
+      "notes": "Needs a named person and a monitored mailbox. Steps: docs/compliance/COUNSEL_ENGAGEMENT_BRIEF.md section 4. Tell the engineers the real contact and the placeholder is replaced and tested."
+    },
+    {
+      "id": "S-172",
+      "epic": "Providers",
+      "title": "SMS gateway and DLT registration: real run on real handsets",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [],
+      "priority": "P0",
+      "wave": "W7",
+      "source": "roadmap 2026-11-25",
+      "notes": "Needs the entity (S-169), a gateway contract and DLT registration. Plan: docs/decisions/S-63-sms-gateway.md. Also decides whether S-167 and sign-up codes work on Airtel, Jio, Vi and BSNL."
+    },
+    {
+      "id": "S-173",
+      "epic": "Providers",
+      "title": "Number-intelligence vendor trial with consented test numbers and real field mapping",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [],
+      "priority": "P1",
+      "wave": "W7",
+      "source": "roadmap 2026-11-25",
+      "notes": "Needs a vendor and a data-processing agreement. Plan: docs/decisions/S-62-number-intelligence.md."
+    },
+    {
+      "id": "S-174",
+      "epic": "Providers",
+      "title": "Real key service: contract tests, short-lived credentials and a rotation and break-glass drill",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [],
+      "priority": "P0",
+      "wave": "W7",
+      "source": "roadmap 2026-11-25",
+      "notes": "Needs the entity, a cloud account and counsel on provider location. Plan: docs/decisions/S-64-key-management.md. Short-lived-role credentials still have to be built."
+    },
+    {
+      "id": "S-175",
+      "epic": "Compliance",
+      "title": "Telugu audio: linguist-approved scripts and human recordings in three dialects",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [],
+      "priority": "P2",
+      "wave": "W8",
+      "source": "roadmap 2026-11-25",
+      "notes": "Needs a linguist, speakers and a studio. Brief: docs/decisions/S-151-audio-brief.md. Only needed when IVR is switched on."
+    },
+    {
+      "id": "S-176",
+      "epic": "Geo data",
+      "title": "Polling-station lists obtained from each CEO and loaded",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [],
+      "priority": "P2",
+      "wave": "W8",
+      "source": "roadmap 2026-11-25",
+      "notes": "Needs the entity letterhead and a reply with reuse terms. Send-ready: docs/decisions/polling-station-request-package/."
+    },
+    {
+      "id": "S-177",
+      "epic": "Compliance",
+      "title": "ADR consent request sent and the reply filed",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [],
+      "priority": "P2",
+      "wave": "W8",
+      "source": "roadmap 2026-11-25",
+      "notes": "Needs the entity and a signatory. Send-ready: docs/decisions/affidavit-consent-package/. Link-outs stay the only feature until consent is on file."
+    },
+    {
+      "id": "S-178",
+      "epic": "Identity",
+      "title": "Officer onboarding outreach, real department domains and the mail sender live",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [],
+      "priority": "P1",
+      "wave": "W8",
+      "source": "roadmap 2026-11-25",
+      "notes": "Needs the entity, counsel-approved officer notice and a mail vendor. Send-ready: docs/decisions/officer-onboarding-package/."
+    },
+    {
+      "id": "S-179",
+      "epic": "Providers",
+      "title": "Real mail vendor with SPF, DKIM and DMARC and a deliverability test (officer and email-account codes)",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [],
+      "priority": "P0",
+      "wave": "W7",
+      "source": "roadmap 2026-11-25",
+      "notes": "Needs a vendor and a sending domain under the entity. Adapter exists (server/civic/providers/mailgeneric.ts, simulator-verified). Email sign-up (S-165) cannot go live without it."
+    },
+    {
+      "id": "S-180",
+      "epic": "Release",
+      "title": "Release gate: real owners, dates, approvers and evidence for all 18 rows",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [],
+      "priority": "P0",
+      "wave": "W8",
+      "source": "roadmap 2026-11-25",
+      "notes": "Needs named people. Tooling and placeholders: docs/RELEASE_GATE.md, docs/gate/. Gate is 0 of 18."
+    },
+    {
+      "id": "S-181",
+      "epic": "Release",
+      "title": "Independent cryptography review and red-team of the pilot build",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [],
+      "priority": "P0",
+      "wave": "W8",
+      "source": "roadmap 2026-11-25",
+      "notes": "Needs independent reviewers. Pack: docs/gate/evidence/crypto-review-pack.md."
+    },
+    {
+      "id": "S-182",
+      "epic": "Release",
+      "title": "Pilot run in at most 3 mandals with the skew report",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [],
+      "priority": "P1",
+      "wave": "W9",
+      "source": "roadmap 2026-11-25",
+      "notes": "Needs S-169 to S-181 done or deferred under the pilot profile (docs/gate/pilot-profile.json, off by default)."
+    },
+    {
+      "id": "S-183",
+      "epic": "Data",
+      "title": "AP official office-holder sources, plus linguist review of Telugu portfolios and screens",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [],
+      "priority": "P2",
+      "wave": "W8",
+      "source": "roadmap 2026-11-25",
+      "notes": "Needs a reachable official AP source and a native Telugu reviewer. Telugu in S-165 to S-167 is also unreviewed."
+    },
+    {
+      "id": "S-184",
+      "epic": "Identity",
+      "title": "Email notifications and issue-status updates for email-only accounts",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P2",
+      "wave": "W8",
+      "source": "roadmap 2026-11-25",
+      "notes": "Buildable once S-179 is decided: needs a design choice (which events, how often), a notice for holding an email contact, and counsel's view. Not started."
     }
   ]
 }
