@@ -1,6 +1,6 @@
 # S-63 decision note: SMS gateway, DLT registration worklist and test plan
 
-Status: DRAFT for the owner. Research of 2026-11-24 from public web pages (TRAI pages, vendor and law-firm blogs). Prices and timings below are vendor-blog claims and conflict across sources; get written quotes. No vendor was contacted and nothing was registered. Not legal advice. S-63 stays blocked until a gateway is chosen, the DLT registration exists and the adapter is checked on real handsets.
+Status: DRAFT for the owner. Research of 2026-11-24 from public web pages (TRAI pages, vendor and law-firm blogs). Prices and timings below are vendor-blog claims and conflict across sources; get written quotes. No vendor was contacted and nothing was registered. Not legal advice. S-63 is closed as "what is built" (owner decision 2026-11-25): the adapter, template guard and this plan. A gateway choice, DLT registration and a real-handset check remain a launch prerequisite.
 
 ## 1. What India requires before any SMS can be delivered
 
