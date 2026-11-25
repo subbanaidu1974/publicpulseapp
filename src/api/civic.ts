@@ -27,14 +27,14 @@ export const tokenStore = {
   clear() { try { sessionStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ } announceSession(); },
 };
 
-export async function call<T>(path: string, init: { method?: string; body?: unknown; auth?: boolean; fresh?: boolean; headers?: Record<string, string> } = {}): Promise<T> {
+export async function call<T>(path: string, init: { method?: string; body?: unknown; auth?: boolean; fresh?: boolean; root?: boolean; headers?: Record<string, string> } = {}): Promise<T> {
   const headers: Record<string, string> = { ...init.headers };
   if (init.body !== undefined) headers["content-type"] = "application/json";
   const tok = tokenStore.get();
   if (tok && init.auth !== false) headers.authorization = `Bearer ${tok}`;
   let res: Response;
   try {
-    res = await fetch(`${BASE}${path}`, { method: init.method ?? "GET", headers, cache: init.fresh ? "no-cache" : undefined, body: init.body !== undefined ? JSON.stringify(init.body) : undefined });
+    res = await fetch(`${init.root ? "/api/v1" : BASE}${path}`, { method: init.method ?? "GET", headers, cache: init.fresh ? "no-cache" : undefined, body: init.body !== undefined ? JSON.stringify(init.body) : undefined });
   } catch {
     throw new CivicApiError("network", 0, "network");
   }
@@ -648,4 +648,20 @@ export const assistedApi = {
     return list<Raw>(d, "items").map((r) => ({ recordId: String(r.record_id), pairId: String(r.pair_id), village: place(r.village as Raw), category: String(r.category), flagged: r.flagged === true, textEn: str(r.text_en) ?? null, textTe: str(r.text_te) ?? null, dueBy: str(r.due_by) ?? null, overdue: r.overdue === true }));
   },
   submitRecheck: async (recordId: string, outcome: "confirmed" | "not_confirmed" | "unreachable", note?: string) => call<Raw>(`/assisted/rechecks/${encodeURIComponent(recordId)}`, { method: "POST", body: { outcome, note: note || undefined } }),
+};
+
+// ---- S-201 photo review (/api/v1/photos/admin, outside /civic but the same admin sign-in) ----
+export interface PhotoSubmission {
+  id: string; created_at: string; state: string; ac_no: number; year: number; candidate: string; claimed_name: string; relationship: string; holder: string;
+  contact: string | null; status: "pending" | "approved" | "rejected"; decided_at: string | null; note: string | null;
+}
+export const photoReviewApi = {
+  list: async (status: string): Promise<PhotoSubmission[]> => (await call<{ submissions: PhotoSubmission[] }>(`/photos/admin/submissions?status=${enc(status)}`, { root: true, fresh: true })).submissions ?? [],
+  decide: (id: string, status: "approved" | "rejected", note: string) => call<{ ok: boolean }>(`/photos/admin/submissions/${enc(id)}/decide`, { root: true, method: "POST", body: { status, note: note || undefined } }),
+  /** The submitted image as an object URL (the caller revokes it); null when it cannot be shown. */
+  imageObjectUrl: async (id: string): Promise<string | null> => {
+    const tok = tokenStore.get();
+    if (!tok) return null;
+    try { const res = await fetch(`/api/v1/photos/admin/submissions/${enc(id)}/file`, { headers: { authorization: `Bearer ${tok}` }, cache: "no-store" }); return res.ok ? URL.createObjectURL(await res.blob()) : null; } catch { return null; }
+  },
 };
