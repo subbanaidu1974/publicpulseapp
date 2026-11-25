@@ -1378,16 +1378,16 @@
     {
       "id": "S-111",
       "epic": "People data",
-      "title": "Affidavit link-outs (MyNeta/ECI) with neutral layout; no scraping; ADR written-consent request for any bulk use",
+      "title": "Affidavit link-outs (MyNeta/ECI) with neutral layout; no scraping (bulk use needs written consent, request drafted)",
       "agent": "-",
-      "status": "blocked",
+      "status": "done",
       "tests": [
         "E2E-126"
       ],
       "priority": "P1",
       "wave": "W3",
       "source": "gap-audit: DESIGN 4",
-      "notes": "Neutral MyNeta and ECI affidavit link-outs (name-built URLs, EN/TE, no fetching) built with ADR and an unsent consent-request draft. Stays in progress until written consent exists for any bulk use."
+      "notes": "SCOPE NARROWED by the owner on 2026-11-24 to what is built: neutral MyNeta and ECI affidavit link-outs (name-built URLs, EN/TE, identical layout for every candidate, nothing fetched or stored), ADR 02, and a ready consent-request draft with a before-sending checklist and reply handling. NOT part of this story and not done: written consent from ADR for any bulk use or for showing affidavit fields. The request is unsent because the operating entity does not exist yet. Until a reply is on file no affidavit figures appear in the product; a refusal or silence changes nothing. Reopen as a new story if consent arrives."
     },
     {
       "id": "S-112",
