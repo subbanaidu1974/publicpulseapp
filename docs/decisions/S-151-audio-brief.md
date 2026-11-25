@@ -45,4 +45,4 @@ Attach: `docs/AUDIO_RECORDING_GUIDE.md`, `data/civic/audio-scripts/prompts.json`
 * Budget; every audio price in the cost model is unknown.
 * Who signs the speaker consent for the entity (after S-152 forms it).
 
-S-151 stays blocked until a linguist has approved the scripts and recordings exist for every prompt in every dialect.
+S-151 is closed as "what is built" (owner decision 2026-11-25): scripts, dialect selector, report and this brief. A linguist's approval and recordings for every prompt in every dialect remain a prerequisite for switching IVR on.
