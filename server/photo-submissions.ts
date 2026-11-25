@@ -109,7 +109,7 @@ export function seatWinner(rows: CandidateResult[], state: string, acNo: number)
 export interface UploadPhotoEntry { state: string; year: number; acNo: number; candidate: string; file: string; author: string; licence: string; licenceUrl: null; source: string; origin: "upload"; submissionId: string }
 /** Approved submissions in the same shape as the other winner photos; the photo routes in geo-api.ts add these (newest approval wins per seat). */
 export function approvedUploads(): UploadPhotoEntry[] {
-  let rows: Record<string, unknown>[] = [];
+  let rows: Record<string, unknown>[];
   try { rows = db().prepare("SELECT * FROM photo_submissions WHERE status = 'approved' ORDER BY decided_at DESC").all() as Record<string, unknown>[]; } catch { return []; }
   const seen = new Set<string>();
   const out: UploadPhotoEntry[] = [];
@@ -137,7 +137,7 @@ export function createPhotoSubmissionsRouter(data: { elections: CandidateResult[
   const limiter = rateLimiter({ burst: Number(process.env.PHOTO_SUBMIT_BURST) || (process.env.NODE_ENV === "production" ? 3 : 30), perSecond: 1 / 600 });
 
   router.post("/photos/submissions", limiter, express.raw({ type: ["image/jpeg", "image/png"], limit: MAX_BYTES + 1024 }), async (req: Request, res: Response) => {
-    let meta: Record<string, unknown> = {};
+    let meta: Record<string, unknown>;
     try { meta = JSON.parse(Buffer.from(String(req.get("x-photo-meta") ?? ""), "base64").toString("utf8")); } catch { return err(res, 400, "The details were not readable", "bad_meta"); }
     if (str(meta.website, 100)) return void res.status(202).json({ ok: true }); // honeypot: pretend success so bots learn nothing
     const body = req.body;
