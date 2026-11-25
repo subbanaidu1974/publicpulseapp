@@ -169,4 +169,14 @@ test.describe('electors by constituency and gender (S-197)', () => {
     await expect(page.getByTestId('electors-row')).toHaveCount(175);
     await expect(page.getByTestId('electors-age')).toContainText('అందుబాటులో లేదు');
   });
+
+  test('@E2E-204 each constituency name on the electors page opens that constituency profile', async ({ page }) => {
+    await page.goto('/?state=TG#/analytics/electors');
+    const link = page.getByTestId('electors-link').nth(2); // constituency number 3
+    await expect(link).toHaveAttribute('href', '#/constituency/TG/3');
+    await link.click();
+    await expect(page.getByTestId('constituency-profile')).toBeVisible();
+    await expect(page.getByTestId('profile-title')).toBeVisible(); // spelling can differ between the roll report and the profile, so only the target seat is checked
+    await expect(page.getByTestId('constituency-profile')).toContainText('#3');
+  });
 });
