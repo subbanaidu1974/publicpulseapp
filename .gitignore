@@ -43,3 +43,5 @@ data/history.db-*
 
 # self-hosted map background (large, re-fetchable: docs/BASEMAP.md)
 data/basemap/*.pmtiles
+# S-200: photos people submitted, pending review (never committed, never served until approved)
+data/photo-submissions/

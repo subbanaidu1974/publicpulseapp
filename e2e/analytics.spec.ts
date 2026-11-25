@@ -194,4 +194,15 @@ test.describe('electors by constituency and gender (S-197)', () => {
     const without = page.locator('[data-testid="party-card"]').filter({ hasNot: page.getByTestId('party-leader') });
     expect(await without.count()).toBeGreaterThan(0);
   });
+
+  test('@E2E-204 rows of the electors page show the winner photo when one exists, and the link opens the profile with the photo and credit', async ({ page, request }) => {
+    const photos = (await (await request.get('/api/v1/photos/index.json')).json()).photos as { state: string; acNo: number }[];
+    const p = photos.find((x) => x.state === 'TG')!;
+    await page.goto('/?state=TG#/analytics/electors');
+    const n = photos.filter((x) => x.state === 'TG').length;
+    await expect(page.getByTestId('electors-photo')).toHaveCount(n);
+    await page.locator(`[data-testid="electors-link"][href="#/constituency/TG/${p.acNo}"]`).click();
+    await expect(page.getByTestId('winner-photo')).toBeVisible();
+    await expect(page.getByTestId('winner-photo')).toContainText(/Wikimedia Commons/);
+  });
 });

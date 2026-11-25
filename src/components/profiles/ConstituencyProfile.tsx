@@ -2,13 +2,14 @@ import type { ReactNode } from "react";
 import { civicUnit, profiles } from "../../api/profiles";
 import type { ConstituencyProfileData, IssueAgg } from "../../api/profiles";
 import { useApi } from "../../api/useApi";
-import { fetchWinnerPhotos } from "../../api/geo";
+import { fetchPhotosPaused, fetchWinnerPhotos } from "../../api/geo";
 import { STATES } from "../../lib/states";
 import type { StateCode } from "../../lib/states";
 import { useT } from "../../i18n";
 import type { Key } from "../../i18n";
 import { Bar, DemoBadge, ErrorBanner, Loading, partyColor } from "../ui";
 import BoundaryThumb from "./BoundaryThumb";
+import PhotoSubmitForm from "./PhotoSubmitForm";
 import { ByElectionsBlock } from "../analytics/blocks";
 import { Section, Sources, Stat, num, pctText, useDisplayName } from "./common";
 
@@ -37,6 +38,7 @@ export default function ConstituencyProfile({ state, acNo, actions }: { state: S
   const prof = useApi<ConstituencyProfileData>(() => profiles.constituency(state, acNo), [state, acNo]);
   const member = useApi(() => profiles.member(state, acNo), [state, acNo]);
   const photos = useApi(() => fetchWinnerPhotos().catch(() => []), []);
+  const paused = useApi(() => fetchPhotosPaused(state).catch(() => false), [state]);
   const na = t("cs.na");
 
   if (prof.loading) return <div data-testid="constituency-profile"><Loading /></div>;
@@ -106,9 +108,16 @@ export default function ConstituencyProfile({ state, acNo, actions }: { state: S
         <figure data-testid="winner-photo" className="flex items-end gap-3 font-sans">
           <img src={`/api/v1/photos/${photo.file}`} alt={`${photo.candidate}, ${latest!.year}`} width={96} height={120} loading="lazy" className="w-24 h-auto border border-black object-cover" />
           <figcaption className="text-[10px] text-slate-600">
-            {photo.candidate} ({latest!.year}). {t("prof.photoBy")} {photo.author ?? t("prof.photoUnknown")}, <a className="underline" href={photo.licenceUrl ?? photo.source} rel="noopener noreferrer" target="_blank">{photo.licence}</a>, <a className="underline" href={photo.source} rel="noopener noreferrer" target="_blank">{t("prof.photoSource")}</a>. {t("prof.photoNote")}
+            {photo.candidate} ({latest!.year}). {photo.origin === "upload"
+              ? <>{t("prof.photoSupplied")} {photo.author ?? t("prof.photoUnknown")}.</>
+              : <>{t("prof.photoBy")} {photo.author ?? t("prof.photoUnknown")}, <a className="underline" href={photo.licenceUrl ?? photo.source} rel="noopener noreferrer" target="_blank">{photo.licence}</a>, <a className="underline" href={photo.source} rel="noopener noreferrer" target="_blank">{t("prof.photoSource")}</a>. {t("prof.photoNote")}</>}
           </figcaption>
         </figure>
+      )}
+
+      {latest && photos.data && !paused.data && <PhotoSubmitForm state={state} acNo={acNo} />}
+      {!photo && latest && photos.data && (
+        <p data-testid="winner-photo-missing" className="text-[10px] text-slate-600 font-sans">{paused.data ? t("prof.photoPaused") : t("prof.photoMissing")}</p>
       )}
 
       <Section title={t("prof.history")} testId="profile-history">

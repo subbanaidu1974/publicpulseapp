@@ -18,6 +18,7 @@ import type { CensusDistrict } from "../pipeline/census";
 import crypto from "crypto";
 import { requireRole } from "./civic/core";
 import { createPeopleRouter } from "./people-api";
+import { createPhotoSubmissionsRouter } from "./photo-submissions";
 import { datasetForPath, loadManifestIndex } from "./manifest";
 import type { ManifestIndex } from "./manifest";
 import { comparabilityNotes } from "../src/lib/comparability";
@@ -370,6 +371,8 @@ export function createApiRouter(data: Datasets, opts: { baseDir?: string } = {})
 
   // Geography, constituency profiles and split voting (S-95, S-98..S-100)
   router.use(createGeoApiRouter(data, { baseDir }));
+  // Photo self-upload and its moderation queue (S-200)
+  router.use(createPhotoSubmissionsRouter(data));
   // Data freshness per dataset (S-76)
   router.use(createRefreshRouter({ baseDir }));
 

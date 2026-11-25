@@ -74,6 +74,9 @@ function hiddenPredicate(): Hidden {
   return (kind, key) => set.has(`${kind}|${key}`);
 }
 
+/** S-198/S-199: the photo routes in geo-api.ts use the same pause (model code of conduct) and takedown rules as the people pages. */
+export function photoGate(): { hidden: Hidden; blackout: (state?: string) => boolean } { return { hidden: hiddenPredicate(), blackout: (state) => peopleBlackout(state) }; }
+
 export function peopleBlackout(state: string | undefined, env: NodeJS.ProcessEnv = process.env): boolean {
   if (env.PEOPLE_BLACKOUT === "1") return true;
   if (env.PEOPLE_BLACKOUT === "0") return false;

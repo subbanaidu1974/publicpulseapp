@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { analytics } from "../../api/analytics";
 import { placeHash } from "../../api/profiles";
+import { fetchWinnerPhotos } from "../../api/geo";
 import type { ElectorsItem } from "../../api/analytics";
 import { useApi } from "../../api/useApi";
 import { useStateCtx } from "../../state/StateContext";
@@ -21,6 +22,8 @@ export default function ElectorsPage() {
   const { state, config } = useStateCtx();
   const [sort, setSort] = useState<Sort>("no");
   const s = useApi(() => analytics.electors(state), [state]);
+  const photos = useApi(() => fetchWinnerPhotos().catch(() => []), []);
+  const photoOf = useMemo(() => new Map((photos.data ?? []).filter((p) => p.state === state).map((p) => [p.acNo, p])), [photos.data, state]);
   const na = a("an2.na");
   const items = useMemo(() => {
     const list = [...(s.data?.items ?? [])];
@@ -68,7 +71,12 @@ export default function ElectorsPage() {
                   {items.map((x) => (
                     <tr key={x.acNo} data-testid="electors-row">
                       <td className="border-b border-black/10 py-1 pr-3 font-mono">{x.acNo}</td>
-                      <th scope="row" className="border-b border-black/10 py-1 pr-3 font-bold"><a className="underline" data-testid="electors-link" href={placeHash(state, "ac", x.acNo)}>{x.acName}</a></th>
+                      <th scope="row" className="border-b border-black/10 py-1 pr-3 font-bold">
+                        <a className="underline inline-flex items-center gap-2" data-testid="electors-link" href={placeHash(state, "ac", x.acNo)}>
+                          {photoOf.get(x.acNo) && <img data-testid="electors-photo" src={`/api/v1/photos/${photoOf.get(x.acNo)!.file}`} alt={photoOf.get(x.acNo)!.candidate} width={28} height={35} loading="lazy" className="w-7 h-auto border border-black object-cover" />}
+                          {x.acName}
+                        </a>
+                      </th>
                       <td className="border-b border-black/10 py-1 pr-3 font-mono">{fnum(x.male, na)}</td>
                       <td className="border-b border-black/10 py-1 pr-3 font-mono">{fnum(x.female, na)}</td>
                       <td className="border-b border-black/10 py-1 pr-3 font-mono">{fnum(x.thirdGender, na)}</td>

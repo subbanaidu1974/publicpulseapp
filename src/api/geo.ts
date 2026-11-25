@@ -113,12 +113,14 @@ export function fetchTeNames(state: StateCode): Promise<TeNames> {
 }
 
 /** S-198: free-licence winner photos (served from this site) with credit and licence. Only some winners have one. */
-export interface WinnerPhoto { state: StateCode; year: number; acNo: number; candidate: string; file: string; author: string | null; licence: string; licenceUrl: string | null; source: string }
+export interface WinnerPhoto { state: StateCode; year: number; acNo: number; candidate: string; file: string; author: string | null; licence: string; licenceUrl: string | null; source: string; origin?: "upload" }
+const rawWinnerPhotos = () => cached("winner-photos", () => getJson<any>("/api/v1/photos/index.json"));
 export function fetchWinnerPhotos(): Promise<WinnerPhoto[]> {
-  return cached("winner-photos", async () => {
-    const r = await getJson<any>("/api/v1/photos/index.json");
-    return Array.isArray(r?.photos) ? (r.photos as WinnerPhoto[]) : [];
-  });
+  return rawWinnerPhotos().then((r) => (Array.isArray(r?.photos) ? (r.photos as WinnerPhoto[]) : []));
+}
+/** True while photos are paused for this state (model code of conduct period); the server then sends none. */
+export function fetchPhotosPaused(state: StateCode): Promise<boolean> {
+  return rawWinnerPhotos().then((r) => Boolean(r?.blackout?.[state]));
 }
 
 /** S-199: free-licence photos of party heads (served from this site) with credit; only some parties have one. */
