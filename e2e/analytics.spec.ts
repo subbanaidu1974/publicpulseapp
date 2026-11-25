@@ -140,6 +140,40 @@ test.describe('parties page (S-195)', () => {
     await expect(page.getByTestId('an-nav-parties')).toContainText('పార్టీలు');
     await expect(page.locator('[data-testid=party-card]').first()).toContainText(/[\u0C00-\u0C7F]/);
   });
+
+  test('@E2E-210 the parties page can be searched, ordered and filtered by election type, and each card leads with its latest figures', async ({ page }) => {
+    await page.goto('/?state=TG#/analytics/parties');
+    const cards = page.getByTestId('party-card');
+    await expect(cards.first()).toBeVisible();
+    const total = await cards.count();
+    await expect(page.getByTestId('parties-summary')).toContainText(/\d+ parties listed/);
+    await expect(page.getByTestId('parties-count')).toContainText(`Showing ${total} of ${total}`);
+    // every card has a stats strip and a vote-share bar
+    await expect(cards.first().getByTestId('party-stats')).toBeVisible();
+    expect(await page.getByTestId('party-bar').count()).toBeGreaterThan(0);
+    // default order is most seats first
+    const seatTotals = await cards.evaluateAll((els) => els.map((e) => Number(e.querySelector('[data-testid=party-facts] strong')?.textContent)));
+    expect([...seatTotals].sort((x, y) => y - x)).toEqual(seatTotals);
+    // search by code
+    await page.getByTestId('parties-search').fill('BRS');
+    await expect(cards).toHaveCount(1);
+    await expect(cards.first()).toHaveAttribute('data-party', 'BRS');
+    await page.getByTestId('parties-search').fill('zzzz-no-such-party');
+    await expect(page.getByTestId('parties-empty')).toBeVisible();
+    await page.getByTestId('parties-search').fill('');
+    await expect(cards).toHaveCount(total);
+    // election type filter keeps only that type's rows
+    await page.getByTestId('parties-type-ls').click();
+    await expect(page.getByTestId('parties-type-ls')).toHaveAttribute('aria-pressed', 'true');
+    const rowTexts = await page.getByTestId('party-row').allInnerTexts();
+    expect(rowTexts.length).toBeGreaterThan(0);
+    expect(rowTexts.every((t) => /Lok Sabha/.test(t) && !/Assembly/.test(t))).toBe(true);
+    // order by name
+    await page.getByTestId('parties-type-all').click();
+    await page.getByTestId('parties-sort').selectOption('name');
+    const codes = await cards.evaluateAll((els) => els.map((e) => e.getAttribute('data-party') ?? ''));
+    expect([...codes].sort((x, y) => x.localeCompare(y))).toEqual(codes);
+  });
 });
 
 test.describe('electors by constituency and gender (S-197)', () => {

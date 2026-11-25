@@ -749,8 +749,8 @@
     {
       "id": "parties",
       "path": "data/reference/parties.json",
-      "bytes": 12310,
-      "sha256": "d0cadeca4ccba4bbf15b64df16767288a7e00aa910e74262cfa69fd1680ebac7",
+      "bytes": 13062,
+      "sha256": "c622a284ca4e40a030325b331113a2e36540bcc206c3169e8acb669e8f400cdd",
       "rows": 14,
       "asOf": "2026-11-22",
       "provenance": "hand-curated",
@@ -765,6 +765,44 @@
         "project-derived"
       ],
       "attribution": "Party registry curated by People Pulse; names and QIDs from Wikidata (CC0); flag and symbol files from Wikimedia Commons with per-file author and licence."
+    },
+    {
+      "id": "photos-index",
+      "path": "data/generated/photos/index.json",
+      "bytes": 29056,
+      "sha256": "2157b0fb4b142367dbdbda3e69e397bb73ce05ae33dbb33b4a418bd7f74675df",
+      "rows": 3,
+      "asOf": null,
+      "provenance": "unknown",
+      "demo": false,
+      "sources": [
+        "https://commons.wikimedia.org/"
+      ],
+      "licences": [
+        "wikimedia-cc-by-sa",
+        "godl-india",
+        "wikidata-cc0"
+      ],
+      "attribution": "Photos of winning candidates and party heads: Wikimedia Commons, each under the free licence and credit recorded beside it (CC0, public domain, CC BY, CC BY-SA or GODL-India). The credit must be shown with each photo."
+    },
+    {
+      "id": "photos-leaders",
+      "path": "data/generated/photos/leaders.json",
+      "bytes": 3363,
+      "sha256": "dcd42311ca2c31015999fc327e564fbfd1bde55e42a1f883170e7e6834454aad",
+      "rows": 3,
+      "asOf": null,
+      "provenance": "unknown",
+      "demo": false,
+      "sources": [
+        "https://commons.wikimedia.org/"
+      ],
+      "licences": [
+        "wikimedia-cc-by-sa",
+        "godl-india",
+        "wikidata-cc0"
+      ],
+      "attribution": "Photos of winning candidates and party heads: Wikimedia Commons, each under the free licence and credit recorded beside it (CC0, public domain, CC BY, CC BY-SA or GODL-India). The credit must be shown with each photo."
     }
   ]
 }

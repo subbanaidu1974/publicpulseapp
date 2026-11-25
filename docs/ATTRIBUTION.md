@@ -48,6 +48,8 @@ Register as of 2026-11-22. Research-level register, not legal advice. Every entr
 | history-prebifurcation | 2026-11-23 | tcpd-nc | Pre-2014 results for undivided Andhra Pradesh (assembly 2009, Lok Sabha 2009 and 2014): Election Commission of India, compiled by TCPD (Trivedi Centre for Political Data, Ashoka University) Lok Dhaba, for non-commercial use with citation. Split onto today's AP and TG seats by People Pulse using the 2008 delimitation order; not like-for-like with later elections. |
 | lsmap-segments | 2026-11-22 | lgd-public, project-derived | Lok Sabha to assembly segment mapping derived by People Pulse from LGD / ECI 2008 delimitation tables. |
 | parties | 2026-11-22 | wikidata-cc0, wikimedia-cc-by-sa, project-derived | Party registry curated by People Pulse; names and QIDs from Wikidata (CC0); flag and symbol files from Wikimedia Commons with per-file author and licence. |
+| photos-index | n/a | wikimedia-cc-by-sa, godl-india, wikidata-cc0 | Photos of winning candidates and party heads: Wikimedia Commons, each under the free licence and credit recorded beside it (CC0, public domain, CC BY, CC BY-SA or GODL-India). The credit must be shown with each photo. |
+| photos-leaders | n/a | wikimedia-cc-by-sa, godl-india, wikidata-cc0 | Photos of winning candidates and party heads: Wikimedia Commons, each under the free licence and credit recorded beside it (CC0, public domain, CC BY, CC BY-SA or GODL-India). The credit must be shown with each photo. |
 
 ## Licence register
 
@@ -233,6 +235,7 @@ Files marked identification-only identify the party and must not imply endorseme
 | Party | File | Licence | Author | Use | Verified |
 |---|---|---|---|---|---|
 | TDP flag | [Telugu Desam Party Flag 2024.png](https://commons.wikimedia.org/wiki/File:Telugu_Desam_Party_Flag_2024.png) | CC0 | Veekthedragon | decorative | 2026-11-22 |
+| YSRCP symbol | [YSRCPLOGO.jpg](https://commons.wikimedia.org/wiki/File:YSRCPLOGO.jpg) | CC BY-SA 4.0 | Veekthedragon | identification-only | 2026-11-25 |
 | JSP flag | [Janasena Party Flag.png](https://commons.wikimedia.org/wiki/File:Janasena_Party_Flag.png) | CC BY-SA 4.0 | 456legend | decorative | 2026-11-22 |
 | BRS flag | [Flag of Bharat Rashtra Samithi (India Nation Council).svg](https://commons.wikimedia.org/wiki/File:Flag_of_Bharat_Rashtra_Samithi_(India_Nation_Council).svg) | Public domain | Gppande | decorative | 2026-11-22 |
 | INC flag | [INC Flag Official.jpg](https://commons.wikimedia.org/wiki/File:INC_Flag_Official.jpg) | Public domain | Indian National Congress | identification-only | 2026-11-22 |
@@ -242,5 +245,7 @@ Files marked identification-only identify the party and must not imply endorseme
 | CPM symbol | [Cpm election symbol.svg](https://commons.wikimedia.org/wiki/File:Cpm_election_symbol.svg) | CC BY-SA 4.0 | Sanu N | identification-only | 2026-11-22 |
 | CPI flag | [CPI-banner.svg](https://commons.wikimedia.org/wiki/File:CPI-banner.svg) | Public domain | Unknown author | identification-only | 2026-11-22 |
 | BSP flag | [BSP flag.png](https://commons.wikimedia.org/wiki/File:BSP_flag.png) | CC BY-SA 4.0 | SEPB66 | decorative | 2026-11-22 |
+| AAP flag | [AAP English Flag.svg](https://commons.wikimedia.org/wiki/File:AAP_English_Flag.svg) | CC BY-SA 4.0 | Ngagnebin | decorative | 2026-11-25 |
+| TJS flag | [TJS.jpg](https://commons.wikimedia.org/wiki/File:TJS.jpg) | CC BY-SA 4.0 | K dileep chowdary | decorative | 2026-11-25 |
 
 Parties without a verified free file (for example YSRCP) are shown as a text chip.
