@@ -1,7 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css"; // bundled from node_modules (self-hosted, no CDN)
 import type { GeoCollection, GeoFeature } from "../../api/geo";
+import { useT } from "../../i18n";
+import { addBasemap } from "./basemap";
 import { NO_DATA } from "./mapModel";
 
 export interface GeoMapProps {
@@ -24,6 +26,9 @@ export default function GeoMap(p: GeoMapProps) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const layer = useRef<L.GeoJSON | null>(null);
+  const bg = useRef<L.Layer | null>(null);
+  const [hasBg, setHasBg] = useState(false);
+  const { lang } = useT();
   const layers = useRef(new Map<string, L.Path>());
   const cb = useRef(p);
   cb.current = p;
@@ -32,11 +37,26 @@ export default function GeoMap(p: GeoMapProps) {
   // create the map once
   useEffect(() => {
     if (!el.current) return;
-    const m = L.map(el.current, { attributionControl: false, scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: false });
-      m.setView([16.5, 79.5], 6); // placeholder view until polygons arrive
+    const m = L.map(el.current, { attributionControl: true, scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: false });
+    m.attributionControl.setPrefix(false);
+    m.setView([16.5, 79.5], 6); // placeholder view until polygons arrive
     map.current = m;
     return () => { m.remove(); map.current = null; layer.current = null; };
   }, []);
+
+  // self-hosted OpenStreetMap background when the server has it (S-191); plain shapes otherwise
+  useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+    let live = true;
+    bg.current?.remove(); bg.current = null; setHasBg(false);
+    void addBasemap(m, p.dark, lang === "te" ? "te" : "en").then((l) => {
+      if (!l) return;
+      if (!live || map.current !== m) { l.remove(); return; }
+      bg.current = l; setHasBg(true);
+    });
+    return () => { live = false; bg.current?.remove(); bg.current = null; };
+  }, [p.dark, lang]);
 
   // (re)build polygons when the collection changes
   useEffect(() => {
@@ -45,7 +65,7 @@ export default function GeoMap(p: GeoMapProps) {
     layer.current?.remove();
     layers.current.clear();
     const g = L.geoJSON(p.collection as any, {
-      style: (f) => baseStyle(cb.current, cb.current.keyOf(f as GeoFeature)),
+      style: (f) => baseStyle(cb.current, cb.current.keyOf(f as GeoFeature), !!bg.current),
       onEachFeature: (f, l) => {
         const key = cb.current.keyOf(f as GeoFeature);
         layers.current.set(key, l as L.Path);
@@ -64,10 +84,10 @@ export default function GeoMap(p: GeoMapProps) {
 
   // recolour / reselect without rebuilding
   useEffect(() => {
-    for (const [key, l] of layers.current) l.setStyle(baseStyle(p, key));
+    for (const [key, l] of layers.current) l.setStyle(baseStyle(p, key, hasBg));
     const sel = p.selectedKey ? layers.current.get(p.selectedKey) : undefined;
     sel?.bringToFront();
-  }, [p.colorOf, p.selectedKey, p.activeKey, p.dark, p.collection]);
+  }, [p.colorOf, p.selectedKey, p.activeKey, p.dark, p.collection, hasBg]);
 
   // table hover/focus -> open the same tooltip on the map
   useEffect(() => {
@@ -88,13 +108,13 @@ export default function GeoMap(p: GeoMapProps) {
   );
 }
 
-function baseStyle(p: GeoMapProps, key: string): L.PathOptions {
+function baseStyle(p: GeoMapProps, key: string, background: boolean): L.PathOptions {
   const selected = p.selectedKey === key;
   const active = p.activeKey === key;
   const edge = p.dark ? "#EADCC6" : "#121212";
   return {
     fillColor: p.colorOf(key) || NO_DATA,
-    fillOpacity: 0.9,
+    fillOpacity: background ? 0.72 : 0.9, // a little see-through over the background map
     color: selected ? edge : p.dark ? "#3a372f" : "#6b665a",
     weight: selected ? 3 : active ? 2.5 : 0.8,
     opacity: 1,

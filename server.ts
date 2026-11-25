@@ -3,6 +3,7 @@ import path from "path";
 import dotenv from "dotenv";
 import { createApiRouter, loadDatasets } from "./server/api";
 import { createCivicRouter } from "./server/civic";
+import { basemapRouter } from "./server/basemap";
 import { buildApiApp } from "./server/security";
 import { installConsole, log, obsRouter, requestContext } from "./server/obs";
 import { migrationStatus, pingStores } from "./server/civic/core";
@@ -35,6 +36,7 @@ async function startServer() {
     jobs: jobsStatus,
     demoProvenance,
   }));
+  app.use(basemapRouter()); // S-191: self-hosted OpenStreetMap map background (404 when the file is not installed); before the API edge limiter, a map makes many small range requests
   app.use(api);
 
   // Vite Server Middleware Routing

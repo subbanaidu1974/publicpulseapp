@@ -125,7 +125,7 @@ Layers: **API** = HTTP-level test (no browser), **UI** = Playwright browser.
 | E2E-108 | API | Per-dataset provenance manifest (source, licence, checksum, asOf) shown on API envelopes | Every API response carries source and asOf |
 | E2E-109 | UI | Licence compliance register and attribution page (TCPD, DataMeet, ODbL, CC BY-SA, Esri) | Attribution page lists every dataset; CI checks register vs manifest |
 | E2E-110 | UI | LS-to-assembly segment mapping and split-voting endpoint | /split-voting returns per-AC LS vs assembly winners |
-| E2E-111 | UI | Real choropleth map (AC and district) replacing the tile grid; table fallback; self-hosted Leaflet CSS; no map tiles (S-190: the Esri tiles were removed, the map is plain shapes) | Map colours seats by selected metric; keyboard/table alternative; no third-party CSS |
+| E2E-111 | UI | Real choropleth map (AC and district) replacing the tile grid; table fallback; self-hosted Leaflet CSS; no third-party map tiles (S-190 removed Esri; S-191 adds a self-hosted OpenStreetMap background, tested present and with the file missing) | Map colours seats by selected metric; keyboard/table alternative; no third-party CSS |
 | E2E-112 | UI | Drill-down map: state to district to constituency to mandal to village with population and issue overlays | Clicking a district opens its constituencies; breadcrumb works in Telugu |
 | E2E-113 | UI | Constituency profile: boundary map, population, electors, history, current member, civic issue aggregates | Profile shows all sections with sources; issue cells suppressed under 30 |
 | E2E-114 | UI | Mandal and village profile pages (population, SC/ST, literacy, linked constituency, issues) | Village page resolves from search; shows census code and constituency |

@@ -49,18 +49,37 @@ test.describe("maps: choropleth (S-96)", () => {
     await expect(page.getByTestId("map-panel-ac")).toBeVisible();
   });
 
-  test("@E2E-111 the map is plain boundary shapes: no third-party request of any kind, no tile layer, no consent control, no CDN assets", async ({ page }) => {
+  test("@E2E-111 the background map comes from this site only: no third-party request, no consent control, no CDN assets (S-191)", async ({ page }) => {
     const urls: string[] = [];
     page.on("request", (r) => urls.push(r.url()));
     await page.goto("/?state=TG#/map/TG");
     await expect(polygons(page).first()).toBeVisible();
-    await page.waitForTimeout(800);
+    await page.waitForTimeout(1500);
     const foreign = urls.filter((u) => /^https?:/.test(u) && new URL(u).origin !== new URL(page.url()).origin);
     expect(foreign).toEqual([]);
-    expect(urls.filter((u) => /arcgisonline|openstreetmap|unpkg|cdnjs|jsdelivr/.test(u))).toEqual([]);
-    await expect(page.locator("[data-testid=geo-map] .leaflet-tile")).toHaveCount(0);
+    expect(urls.filter((u) => /arcgisonline|tile\.openstreetmap|unpkg|cdnjs|jsdelivr/.test(u))).toEqual([]);
+    // When the tile file is installed on the server the background is drawn (canvas tiles) and credited; otherwise plain shapes.
+    const installed = (await page.request.head("/basemap/ap-tg.pmtiles")).ok();
+    if (installed) {
+      await expect(page.locator("[data-testid=geo-map] .leaflet-tile").first()).toBeAttached();
+      await expect(page.locator("[data-testid=geo-map] .leaflet-control-attribution")).toContainText("OpenStreetMap");
+    } else {
+      await expect(page.locator("[data-testid=geo-map] .leaflet-tile")).toHaveCount(0);
+    }
     await expect(page.getByTestId("map-tiles-off")).toHaveCount(0);
     await expect(page.getByTestId("consent-banner")).toHaveCount(0);
+  });
+
+  test("@E2E-111 if the background tile file is missing the map still works as plain boundary shapes (S-191)", async ({ page }) => {
+    await page.route("**/basemap/**", (route) => route.fulfill({ status: 404, contentType: "application/json", body: '{"error":"basemap_not_installed"}' }));
+    const errors: string[] = [];
+    page.on("pageerror", (e) => { if (!/WebSocket/.test(e.message)) errors.push(e.message); }); // the dev server hot-reload socket is not ours
+    await page.goto("/?state=TG#/map/TG");
+    await expect(polygons(page).first()).toBeVisible();
+    await page.waitForTimeout(800);
+    await expect(page.locator("[data-testid=geo-map] .leaflet-tile")).toHaveCount(0);
+    await expect(page.locator("[data-testid=geo-map] .leaflet-control-attribution")).not.toContainText("OpenStreetMap");
+    expect(errors).toEqual([]);
   });
 
   test("@E2E-111 usable at the current viewport: no horizontal overflow", async ({ page }) => {
