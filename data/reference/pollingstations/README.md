@@ -35,3 +35,8 @@ an EPIC-, phone- or Aadhaar-shaped value in any field rejects the row. Electoral
 
 The API then serves `GET /api/v1/geo/:state/polling-stations?ac=<acNo>`. No station data ships with the repository; the CEO / ECI
 sources were unreachable or blocked when this was built, so the list is empty until an operator supplies one.
+
+
+## Template and how to ask for a list
+
+`template.csv` is a header-only file with the accepted columns. How to request a list from the Chief Electoral Officers, by letter, RTI or a pilot field survey, is in `docs/decisions/S-91-polling-station-request.md`.
