@@ -585,3 +585,11 @@
 }
 
 
+
+/* S-192: Telugu town names over the self-hosted map background. Plain text with a halo; never blocks clicks on the shapes. */
+.pp-place-label { background: none; border: 0; pointer-events: none; }
+.pp-place-label span {
+  display: block; transform: translate(-50%, -50%); white-space: nowrap; font-size: 12px; font-weight: 600; line-height: 1.2;
+  color: #1d1b16; text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 2px #fff;
+}
+.dark .pp-place-label span { color: #f3ead8; text-shadow: 0 0 3px #000, 0 0 3px #000, 0 0 2px #000; }

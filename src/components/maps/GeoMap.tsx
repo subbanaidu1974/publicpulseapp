@@ -3,7 +3,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css"; // bundled from node_modules (self-hosted, no CDN)
 import type { GeoCollection, GeoFeature } from "../../api/geo";
 import { useT } from "../../i18n";
-import { addBasemap } from "./basemap";
+import { addBasemap, addTeluguPlaces } from "./basemap";
 import { NO_DATA } from "./mapModel";
 
 export interface GeoMapProps {
@@ -50,12 +50,17 @@ export default function GeoMap(p: GeoMapProps) {
     if (!m) return;
     let live = true;
     bg.current?.remove(); bg.current = null; setHasBg(false);
-    void addBasemap(m, p.dark, lang === "te" ? "te" : "en").then((l) => {
+    let names: L.Layer | null = null;
+    void addBasemap(m, p.dark, lang === "te" ? "te" : "en").then(async (l) => {
       if (!l) return;
       if (!live || map.current !== m) { l.remove(); return; }
       bg.current = l; setHasBg(true);
+      if (lang === "te") { // the tiles carry no Telugu names: town names come from our own Wikidata list (S-192)
+        names = await addTeluguPlaces(m);
+        if (!live) names?.remove();
+      }
     });
-    return () => { live = false; bg.current?.remove(); bg.current = null; };
+    return () => { live = false; bg.current?.remove(); bg.current = null; names?.remove(); };
   }, [p.dark, lang]);
 
   // (re)build polygons when the collection changes

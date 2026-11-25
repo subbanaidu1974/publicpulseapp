@@ -29,7 +29,23 @@ Refresh it every few months; OpenStreetMap changes continuously.
 ## What is not done
 
 - Detail stops at zoom 10 (districts and major roads). Streets and buildings are not included; zooming further magnifies zoom 10.
-- Place names are Latin script only, even with the Telugu interface (the tile data has few Telugu names).
+- The tiles carry no Telugu names at all (see below), so the Telugu names cover towns only, not villages or road names.
 - The file must be provisioned on each deployment; there is no automatic download, and no check that it is recent.
 - Counsel has not reviewed the attribution wording, the privacy sentence, or how a foreign-compiled dataset depicts India's external
   borders (this app hides the border layer, but road and place data come from the same source). Treat as unverified before go-live.
+
+## Telugu place names (S-192)
+
+The Protomaps tiles name places in about 35 languages but **not Telugu** (checked: no `name:te` on any place). So in the Telugu interface
+the tiles' own place labels are switched off and town names are drawn from our own list instead:
+
+- `data/generated/geo/places-AP.json` and `places-TG.json`: towns of at least 30,000 people that have a Telugu label on Wikidata (CC0),
+  served at `GET /api/v1/geo/:state/places.json`. Refresh with `npm run pipeline:places-te` (2 requests to query.wikidata.org).
+- Never guessed: items with no Telugu label are left out and counted in the file's `note`. Districts, mandals, constituencies and wards that
+  Wikidata also lists with a population are filtered out, and so are items whose coordinates fall outside AP and TG.
+- Labels are plain text (the site's self-hosted Telugu font), thinned by zoom so the map never fills with names. They ignore clicks.
+- In English the tiles' own English labels are used and none of this runs.
+
+Known limits: 183 towns in all, so smaller towns and villages have no label; some entries are localities or mandal-sized populations rather
+than municipal towns (for example Jubilee Hills, Tuni); the spelling is whatever Wikidata holds (for example "వరంగల్ నగరం", Warangal city) and
+has not been checked by a Telugu reader.

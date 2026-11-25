@@ -97,6 +97,35 @@ test.describe("maps: choropleth (S-96)", () => {
     await expect(page.getByTestId("map-row").first()).toContainText(/[ఀ-౿]/);
   });
 
+  test("@E2E-111 Telugu town names on the background map come from this site and are not drawn in English (S-192)", async ({ page, request }) => {
+    const installed = (await request.head("/basemap/ap-tg.pmtiles")).ok();
+    const urls: string[] = [];
+    page.on("request", (r) => urls.push(r.url()));
+    const api = await request.get("/api/v1/geo/TG/places.json");
+    expect(api.status()).toBe(200);
+    expect((await api.json()).places[0][1]).toBe("హైదరాబాద్");
+    expect((await request.get("/api/v1/geo/XX/places.json")).status()).toBe(404);
+    await page.addInitScript(() => { try { localStorage.setItem("pp-lang", "te"); } catch { /* ignore */ } });
+    await open(page);
+    const labels = page.locator("[data-testid=geo-map] .pp-place-label span");
+    if (installed) {
+      await expect(labels.first()).toBeAttached();
+      const texts = await labels.allTextContents();
+      expect(texts.length).toBeGreaterThan(2);
+      for (const t of texts) expect(t).toMatch(/[ఀ-౿]/); // every label is Telugu script
+      expect(texts).toContain("హైదరాబాద్");
+      await expect(labels.first()).toHaveCSS("pointer-events", "none"); // labels never block clicks on the shapes
+    }
+    expect(urls.filter((u) => /^https?:/.test(u) && new URL(u).origin !== new URL(page.url()).origin)).toEqual([]);
+  });
+
+  test("@E2E-111 in English no Telugu town labels are added (the tiles' own English names are used) (S-192)", async ({ page }) => {
+    await page.addInitScript(() => { try { localStorage.setItem("pp-lang", "en"); } catch { /* ignore */ } });
+    await open(page);
+    await page.waitForTimeout(1200);
+    await expect(page.locator("[data-testid=geo-map] .pp-place-label")).toHaveCount(0);
+  });
+
   test("@E2E-111 home map shows real district polygons and opens the full map", async ({ page }) => {
       await page.goto("/?state=TG");
     await expect(page.locator("[data-testid=home-map] path.leaflet-interactive").first()).toBeVisible();
