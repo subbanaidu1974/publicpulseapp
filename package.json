@@ -15,6 +15,7 @@
     "pipeline:boundaries": "tsx scripts/fetch-boundaries.ts",
     "pipeline:names-te": "tsx scripts/fetch-names-te.ts",
     "pipeline:places-te": "tsx scripts/fetch-places-te.ts",
+    "pipeline:village-labels": "tsx scripts/build-village-labels.ts",
     "pipeline:mandals": "tsx scripts/fetch-mandals.ts",
     "pipeline:villages": "tsx scripts/fetch-village-points.ts",
     "pipeline:shrug": "tsx scripts/ingest-shrug.ts",

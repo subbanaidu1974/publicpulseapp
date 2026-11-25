@@ -48,6 +48,16 @@ export function fetchPlaces(state: StateCode): Promise<PlaceName[]> {
   });
 }
 
+/** A village with a Telugu name and an approximate location, for the map labels shown when zoomed in. */
+export interface VillageLabel { te: string; lon: number; lat: number }
+/** GET /geo/:state/village-labels.json: only villages that have both a Telugu name and a location point (mostly Telangana). */
+export function fetchVillageLabels(state: StateCode): Promise<VillageLabel[]> {
+  return cached(`vlabels:${state}`, async () => {
+    const r = await getJson<any>(`/api/v1/geo/${state}/village-labels.json`);
+    return (Array.isArray(r?.villages) ? r.villages : []).map((p: any[]) => ({ te: String(p[0]), lon: Number(p[1]), lat: Number(p[2]) }));
+  });
+}
+
 /** GET /constituencies/:state/:acNo: unit counts and the mandals linked to one constituency. */
 export function fetchAcDetail(state: StateCode, acNo: number): Promise<AcDetail> {
   return cached(`ac:${state}:${acNo}`, async () => {

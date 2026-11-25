@@ -119,10 +119,30 @@ test.describe("maps: choropleth (S-96)", () => {
     expect(urls.filter((u) => /^https?:/.test(u) && new URL(u).origin !== new URL(page.url()).origin)).toEqual([]);
   });
 
+  test("@E2E-111 zoomed in, Telugu village names appear (Telangana) and none are shown in English or zoomed out (S-193)", async ({ page, request }) => {
+    const installed = (await request.head("/basemap/ap-tg.pmtiles")).ok();
+    const api = await request.get("/api/v1/geo/TG/village-labels.json");
+    expect(api.status()).toBe(200);
+    expect((await api.json()).villages.length).toBeGreaterThan(3000);
+    expect((await request.get("/api/v1/geo/XX/village-labels.json")).status()).toBe(404);
+    test.skip(!installed, "needs the background tile file");
+    await page.addInitScript(() => { try { localStorage.setItem("pp-lang", "te"); } catch { /* ignore */ } });
+    await open(page);
+    const villages = page.locator("[data-testid=geo-map] .pp-village-label span");
+    await page.waitForTimeout(1200);
+    await expect(villages).toHaveCount(0); // zoomed out: towns only
+    const zoomIn = page.locator("[data-testid=geo-map] .leaflet-control-zoom-in");
+    for (let i = 0; i < 4; i++) { await zoomIn.click(); await page.waitForTimeout(500); }
+    await expect(villages.first()).toBeAttached({ timeout: 10_000 });
+    for (const t of await villages.allTextContents()) expect(t).toMatch(/[ఀ-౿]/);
+    expect(await villages.count()).toBeLessThanOrEqual(400);
+  });
+
   test("@E2E-111 in English no Telugu town labels are added (the tiles' own English names are used) (S-192)", async ({ page }) => {
     await page.addInitScript(() => { try { localStorage.setItem("pp-lang", "en"); } catch { /* ignore */ } });
     await open(page);
     await page.waitForTimeout(1200);
+    for (let i = 0; i < 4; i++) { await page.locator("[data-testid=geo-map] .leaflet-control-zoom-in").click(); await page.waitForTimeout(400); } // even zoomed in: no village labels in English
     await expect(page.locator("[data-testid=geo-map] .pp-place-label")).toHaveCount(0);
   });
 

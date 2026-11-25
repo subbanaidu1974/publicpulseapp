@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { minPopulationAt } from "../../src/components/maps/placeZoom";
+import { MAX_VILLAGE_LABELS, minPopulationAt, VILLAGE_ZOOM } from "../../src/components/maps/placeZoom";
 
 // S-192: Telugu town names for the map background come from a committed Wikidata (CC0) extract. These checks guard its shape.
 const load = (st: string) => JSON.parse(fs.readFileSync(path.join(process.cwd(), "data", "generated", "geo", `places-${st}.json`), "utf8"));
@@ -38,5 +38,31 @@ describe("Telugu town names for the map (S-192)", () => {
     expect([...z].sort((a, b) => b - a)).toEqual(z);
     expect(z[0]).toBeGreaterThan(z[4]);
     expect(z[4]).toBe(0);
+  });
+});
+
+describe("Telugu village names for the map (S-193)", () => {
+  const vl = (st: string) => JSON.parse(fs.readFileSync(path.join(process.cwd(), "data", "generated", "geo", `village-labels-${st}.json`), "utf8"));
+  for (const st of ["AP", "TG"]) {
+    it(`${st}: every label is Telugu script with a location inside the two states, no duplicates of the same point`, () => {
+      const d = vl(st);
+      expect(d.villages.length).toBeGreaterThan(0);
+      const seen = new Set<string>();
+      for (const [te, lon, lat] of d.villages as [string, number, number][]) {
+        expect(TELUGU.test(te), te).toBe(true);
+        expect(lon).toBeGreaterThan(76); expect(lon).toBeLessThan(85);
+        expect(lat).toBeGreaterThan(12.5); expect(lat).toBeLessThan(20);
+        const k = `${te}|${lon}|${lat}`; expect(seen.has(k), k).toBe(false); seen.add(k);
+      }
+    });
+  }
+  it("coverage is stated honestly: Telangana has thousands, Andhra Pradesh only the few the directory names", () => {
+    expect(vl("TG").villages.length).toBeGreaterThan(3000);
+    expect(vl("AP").villages.length).toBeLessThan(500);
+    expect(vl("AP").note).toMatch(/of 17957 LGD villages have a Telugu name/);
+  });
+  it("villages appear only when zoomed in, and the cap is bounded", () => {
+    expect(VILLAGE_ZOOM).toBeGreaterThan(8);
+    expect(MAX_VILLAGE_LABELS).toBeLessThanOrEqual(500);
   });
 });

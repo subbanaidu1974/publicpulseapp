@@ -8,6 +8,7 @@
  *   GET /geo/:state/village-points?mandal=     village locations (approximate points, Wikidata CC0 + OSM ODbL; S-90). Not boundaries.
  *   GET /geo/:state/village-polygons?mandal=   village boundaries (SHRUG, CC BY-NC-SA 4.0, Census 2011 based, non-commercial use only; S-90), GeoJSON per mandal, ETag
  *   GET /geo/:state/search?q=                  English or Telugu, districts / mandals / villages / ACs
+ *   GET /geo/:state/village-labels.json        villages with a Telugu name and a location point, for map labels when zoomed in (S-193)
  *   GET /geo/:state/places.json                towns of 30,000+ people with Telugu names (Wikidata CC0), for map labels (S-192)
  *   GET /geo/:state/places/:level/:code        mandal / village / district profile data (census when rows exist)
  *   GET /electors/:state                       electors by AC from the 2024 general-election rolls (not SSR 2025)
@@ -169,6 +170,14 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
 
   /* ---------- boundary files ---------- */
   const fileCache = new Map<string, { body: Buffer; etag: string }>();
+  // S-193: villages with a Telugu name and a location, for the map labels shown when zoomed in
+  router.get("/geo/:state/village-labels.json", (req, res) => {
+    const state = String(req.params.state).toUpperCase();
+    if (!isStateCode(state)) return err(res, 404, "unknown_state", "Unknown state. Valid: AP, TG");
+    const body = readJson(path.join(geoDir, `village-labels-${state}.json`));
+    if (!body) return err(res, 404, "no_data", `No village labels for ${state}`);
+    res.set("Cache-Control", "public, max-age=86400").json(body);
+  });
   // S-192: towns with Telugu names (Wikidata, CC0) for the map background labels
   router.get("/geo/:state/places.json", (req, res) => {
     const state = String(req.params.state).toUpperCase();
