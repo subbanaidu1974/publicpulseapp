@@ -195,3 +195,4 @@ Layers: **API** = HTTP-level test (no browser), **UI** = Playwright browser.
 | E2E-198 | Unit | Broadcast polls: roles, pending per person, completion required, validation, hidden results, no link to accounts, close, limits, wording refusals (S-185) | tests/civic/broadcast.test.ts |
 | E2E-199 | UI | Admin writes, pushes, closes a poll on screen; a party-choice poll is refused with the reason (S-185) | e2e/broadcast-poll.spec.ts |
 | E2E-200 | UI | Blocking poll dialog: inert app, Escape ignored, completion rules, release on submit, Telugu, axe, release on close, admin routes closed to users (S-185) | e2e/broadcast-poll.spec.ts |
+| E2E-201 | UI | Scheduled start: admin schedules and cancels on screen; a poll scheduled seconds ahead appears on an open page by itself; unit rules in tests/civic/broadcast.test.ts (S-186) | e2e/broadcast-poll.spec.ts |

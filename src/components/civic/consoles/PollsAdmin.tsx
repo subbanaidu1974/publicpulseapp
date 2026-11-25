@@ -12,7 +12,7 @@ const blank = (): QDraft => ({ kind: "single", text_en: "", text_te: "", options
  */
 export default function PollsAdmin() {
   const { data, state, reload } = useGuarded(() => broadcastApi.adminList());
-  const [title, setTitle] = useState(""), [titleTe, setTitleTe] = useState(""), [intro, setIntro] = useState(""), [closes, setCloses] = useState("");
+  const [title, setTitle] = useState(""), [titleTe, setTitleTe] = useState(""), [intro, setIntro] = useState(""), [closes, setCloses] = useState(""), [opens, setOpens] = useState("");
   const [qs, setQs] = useState<QDraft[]>([blank()]);
   const [confirm, setConfirm] = useState(false);
   const [err, setErr] = useState<string | null>(null), [msg, setMsg] = useState<string | null>(null);
@@ -23,12 +23,12 @@ export default function PollsAdmin() {
     setErr(null); setMsg(null);
     try {
       const body = {
-        title_en: title, title_te: titleTe || undefined, intro_en: intro || undefined, closes_at: closes ? new Date(closes).toISOString() : undefined,
+        title_en: title, title_te: titleTe || undefined, intro_en: intro || undefined, opens_at: opens ? new Date(opens).toISOString() : undefined, closes_at: closes ? new Date(closes).toISOString() : undefined,
         questions: qs.map((q) => ({ kind: q.kind, text_en: q.text_en, text_te: q.text_te || undefined, options: q.kind === "scale5" ? undefined : q.options.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => { const [en, te] = l.split("|").map((s) => s.trim()); return { label_en: en, label_te: te || undefined }; }) })),
       };
       const p = await broadcastApi.adminCreate(body);
-      setMsg(`Poll opened. Id ${p.id.slice(0, 8)}.`);
-      setTitle(""); setTitleTe(""); setIntro(""); setCloses(""); setQs([blank()]); setConfirm(false); reload();
+      setMsg(`${p.opened_at > new Date().toISOString() ? "Poll scheduled for " + new Date(p.opened_at).toLocaleString() : "Poll opened"}. Id ${p.id.slice(0, 8)}.`);
+      setTitle(""); setTitleTe(""); setIntro(""); setCloses(""); setOpens(""); setQs([blank()]); setConfirm(false); reload();
     } catch (e) { setErr((e as { body?: { message?: string } }).body?.message ?? (e as Error).message); }
   };
 
@@ -41,6 +41,7 @@ export default function PollsAdmin() {
         <Field id="pa-title" label="Title (English)"><TextInput id="pa-title" data-testid="pa-title" value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} /></Field>
         <Field id="pa-title-te" label="Title (Telugu, optional)"><TextInput id="pa-title-te" data-testid="pa-title-te" value={titleTe} onChange={(e) => setTitleTe(e.target.value)} /></Field>
         <Field id="pa-intro" label="Short introduction (optional)"><TextInput id="pa-intro" data-testid="pa-intro" value={intro} maxLength={400} onChange={(e) => setIntro(e.target.value)} /></Field>
+        <Field id="pa-opens" label="Start at (optional, within 30 days; empty means now)"><input id="pa-opens" data-testid="pa-opens" type="datetime-local" className={inputCls} value={opens} onChange={(e) => setOpens(e.target.value)} /></Field>
         <Field id="pa-closes" label="Auto-close (optional, 30 days max)"><input id="pa-closes" data-testid="pa-closes" type="datetime-local" className={inputCls} value={closes} onChange={(e) => setCloses(e.target.value)} /></Field>
         {qs.map((q, i) => (
           <fieldset key={i} className="border border-black p-3 space-y-2" data-testid={`pa-q-${i}`}>
@@ -71,9 +72,9 @@ export default function PollsAdmin() {
         <ul className="space-y-1 text-sm" data-testid="pa-list">
           {(data?.polls ?? []).map((p) => (
             <li key={p.id} data-testid="pa-item" data-status={p.status} className="border border-black/40 p-2 flex flex-wrap items-center gap-2">
-              <span className="font-bold">{p.title_en}</span><span>{p.status}</span><span>{p.responses} answered</span>
+              <span className="font-bold">{p.title_en}</span><span>{p.status === "scheduled" ? `scheduled for ${new Date(p.opened_at).toLocaleString()}` : p.status}</span><span>{p.responses} answered</span>
               <Btn secondary data-testid="pa-results" onClick={async () => { setErr(null); try { setRes(await broadcastApi.adminResults(p.id)); } catch (e) { setErr((e as Error).message); } }}>Responses</Btn>
-              {p.status === "open" && <Btn secondary data-testid="pa-close" onClick={async () => { setErr(null); try { await broadcastApi.adminClose(p.id); reload(); } catch (e) { setErr((e as Error).message); } }}>Close poll</Btn>}
+              {(p.status === "open" || p.status === "scheduled") && <Btn secondary data-testid="pa-close" onClick={async () => { setErr(null); try { await broadcastApi.adminClose(p.id); reload(); } catch (e) { setErr((e as Error).message); } }}>{p.status === "scheduled" ? "Cancel poll" : "Close poll"}</Btn>}
             </li>
           ))}
         </ul>

@@ -11,7 +11,7 @@ An admin pushes a short opinion poll to everyone who is signed in. Until a perso
 * People who are not signed in are not blocked; they see the poll when they next sign in. Admins are never blocked.
 
 ## What an admin does
-Civic page, Admin console, link "Broadcast polls" (opens `#/polls-admin`, its own route so the lite civic bundle stays small): title, optional Telugu title and introduction, 1 to 5 questions (choose one, choose several, or a 5-point agree/disagree scale), optional automatic close time (within 30 days). A confirmation tick states how many registered users will be blocked. Up to 3 polls can be open at once. Results show per-option counts only after 10 people answered. "Close poll" releases everyone at once.
+Civic page, Admin console, link "Broadcast polls" (opens `#/polls-admin`, its own route so the lite civic bundle stays small): title, optional Telugu title and introduction, 1 to 5 questions (choose one, choose several, or a 5-point agree/disagree scale), optional start time (within 30 days; empty means now) and optional automatic close time (after the start, within 30 days of it). A scheduled poll shows as "scheduled", blocks nobody and refuses answers until its start, then goes live by itself; "Cancel poll" removes it before then (S-186). A confirmation tick states how many registered users will be blocked. Up to 3 polls can be open at once. Results show per-option counts only after 10 people answered. "Close poll" releases everyone at once.
 
 API (all under `/api/v1/civic/broadcast`): `POST /admin`, `GET /admin`, `GET /admin/:id/results`, `POST /admin/:id/close` (admin role); `GET /pending`, `POST /:id/answer` (any signed-in account).
 
@@ -26,5 +26,5 @@ It is not a Pulse Survey: no eligibility rules (email-only accounts count), no w
 ## Not built, and open questions
 * One admin can push a poll alone: no second approver. Say so if you want two-person approval like Pulse Surveys.
 * Making an answer compulsory before using the app is a product and legal choice (consent should be freely given). Counsel has not looked at it. The "prefer not to say" option is the safeguard built in.
-* No targeting by place or role, no email or SMS nudge, no scheduled start time, no published results, admin screen is English only, Telugu text is machine-drafted and unreviewed.
+* No targeting by place or role, no email or SMS nudge, no editing after creation, no repeating polls, start time uses the admin's browser time zone, no published results, admin screen is English only, Telugu text is machine-drafted and unreviewed.
 * While a poll is open every signed-in test session is blocked too. Close polls after use and do not leave one open while running the browser suite.
