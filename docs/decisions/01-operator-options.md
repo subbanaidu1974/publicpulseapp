@@ -55,3 +55,5 @@ Counsel:
 
 ## 5. What happens after the decision
 Record the decision in DESIGN_2028 section 8.1 and the story tracker (a human step), set the entity name in the notices (gap G3 in the counsel pack), appoint the officers, and rerun the cost model with real quotes (cost-model.md).
+
+Step-by-step follow-on: `docs/decisions/S-152-entity-checklist.md`.
