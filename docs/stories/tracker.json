@@ -1781,14 +1781,14 @@
       "epic": "Civic",
       "title": "Verified government officer onboarding (letter and domain check)",
       "agent": "-",
-      "status": "in_progress",
+      "status": "done",
       "tests": [
         "E2E-156"
       ],
       "priority": "P1",
       "wave": "W4",
       "source": "gap-audit: 35",
-      "notes": "Officer application, domain allow-list, letter upload, email-ownership code, two-admin approval and scoped role built with EN/TE screens, unit tests and browser journey E2E-156 (stable). A vendor-neutral HTTP mail adapter (server/civic/providers/mailgeneric.ts, CIVIC_MAIL_URL) now exists and production boots with it, but it is verified only against a local simulator, never a real vendor. Human steps: sign off domain list and letter checklist, PDF handling, native Telugu review, pick a mail vendor and confirm its field names, SPF/DKIM/DMARC on the sender domain, a real sandbox send. 2026-11-24: draft decision note docs/decisions/S-141-officer-onboarding.md (domain list review, letter checklist template, PDF policy, mail sender needs, counsel and Telugu items) awaiting the owner; nothing further to build. Owner decided PDF letters are not accepted in the pilot (photo or scan only), 2026-11-24."
+      "notes": "SCOPE NARROWED by the owner on 2026-11-24 to what is built: officer application, domain allow-list check, photo or scan letter upload (PDF not accepted in the pilot, owner decision), email-ownership code through a MailProvider, two-admin approval with TOTP, scoped officer role, EN/TE screens, unit tests and browser journey E2E-156, and a vendor-neutral HTTP mail adapter verified only against a local simulator. NOT done and not part of this story; these are launch prerequisites in docs/decisions/S-141-officer-onboarding.md and docs/OFFICERS.md: choose a mail vendor, confirm its field names and run a real sandbox send, set up SPF/DKIM/DMARC on the sender domain, sign off the domain list and the letter checklist, counsel review of what is stored about officials, and native Telugu review. Until a real mail send works, production start is refused by design."
     },
     {
       "id": "S-142",
@@ -1834,14 +1834,14 @@
       "epic": "Civic",
       "title": "Politician reply role, scheme tags and grievance-system adapter",
       "agent": "-",
-      "status": "in_progress",
+      "status": "done",
       "tests": [
         "E2E-160"
       ],
       "priority": "P2",
       "wave": "W4",
       "source": "gap-audit: 53",
-      "notes": "Politician reply role built: one labelled append-only thread per issue, scheme tags, moderation hold, grievance-adapter contract with mock (501 without adapter); browser journey E2E-160 passes. Human steps: who verifies elected members, legal review, real department agreement, native Telugu review. 2026-11-24: draft decision note docs/decisions/S-145-representative-verification.md (who verifies, checklist, counsel questions, department agreement) awaiting the owner; engineering is complete, nothing further to build. Owner chose verification option A (two admins check public records) for the pilot on 2026-11-24; counsel questions, department agreement and Telugu review still open."
+      "notes": "SCOPE NARROWED by the owner on 2026-11-24 to what is built: politician reply role granted by two admins for one constituency, one labelled append-only reply per issue, scheme tags, moderation hold, a grievance-system adapter contract with a mock (501 without an adapter), and browser journey E2E-160. Owner chose verification option A (two platform admins check public records) for the pilot. NOT done and not part of this story; these are launch prerequisites in docs/decisions/S-145-representative-verification.md and docs/REPRESENTATIVES.md: counsel answers on defamation, the election code of conduct and record retention, a written agreement with any department before a real grievance system is connected, approval of the scheme list, and native Telugu review."
     },
     {
       "id": "S-146",
