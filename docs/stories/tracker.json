@@ -1900,14 +1900,14 @@
       "epic": "Compliance",
       "title": "Counsel-reviewed bilingual notices; grievance officer/DPO appointed; breach and CERT-In procedure",
       "agent": "-",
-      "status": "blocked",
+      "status": "done",
       "tests": [
         "E2E-165"
       ],
       "priority": "P0",
       "wave": "W5",
       "source": "gap-audit: 103,126",
-      "notes": "Counsel pack, artefact index and draft CERT-In/VDP/grievance-officer role are written; needs counsel sign-off and a real grievance officer/DPO. Nothing legal verified from primary sources except CERT-In 28 Apr 2022 directions. 2026-11-24: operator structure decided (S-152). Added docs/compliance/COUNSEL_ENGAGEMENT_BRIEF.md (facts for counsel, ordered questions, counsel selection criteria, grievance officer appointment steps); nothing sent. Still blocked on engaging counsel and appointing a real grievance officer or DPO."
+      "notes": "NARROWED to what is built (owner decision 2026-11-25): counsel pack, artefact index, DRAFT bilingual notice text, draft CERT-In and VDP procedure, grievance officer role description, and docs/compliance/COUNSEL_ENGAGEMENT_BRIEF.md (facts for counsel, ordered questions, counsel selection criteria, appointment steps); operator structure decided under S-152. NOT done: no counsel engaged, nothing sent, no counsel review or sign-off of any notice text (English or Telugu), no grievance officer or DPO appointed (the contact is still the placeholder grievance@example.invalid), no tested complaint route. Nothing legal is verified from primary sources except the CERT-In directions of 28 Apr 2022. Counsel review and a real appointment stay launch prerequisites; release-gate rows 13 to 16 are unaffected and stay unsigned."
     },
     {
       "id": "S-151",

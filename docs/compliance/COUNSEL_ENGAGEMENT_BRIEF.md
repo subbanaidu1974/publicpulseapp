@@ -47,4 +47,4 @@ Week 0 fill sections 1 and the fee fields, choose counsel. Week 1 send this brie
 
 ## 6. What this brief does not do
 
-It does not choose or instruct a lawyer, appoint anyone, or reach any legal conclusion. S-150 stays blocked until counsel has answered and a real grievance officer or DPO is appointed.
+It does not choose or instruct a lawyer, appoint anyone, or reach any legal conclusion. S-150 is closed as "what is built" (owner decision 2026-11-25): the pack, drafts and this brief. Counsel's answers and a real grievance officer or DPO remain launch prerequisites.
