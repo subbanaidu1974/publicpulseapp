@@ -19,3 +19,22 @@ Please tell us the terms, any fee or licence, and the contact for corrections. U
 Regards,
 [Name, role, organisation, contact]
 [Date]
+
+---
+
+## Before sending (checklist for the person at the operating entity)
+
+Status 2026-11-24: still NOT SENT. The operator structure was decided (S-152: independent non-profit with a university or civil-society host), but the entity does not exist yet, so the signature block cannot be filled honestly.
+
+1. Wait until the entity has a name, or have the host institution send it with the entity described as "forming".
+2. Fill `[Name, role, organisation, contact]` with a real person and a monitored mailbox on the entity's own domain, and the date.
+3. Add one sentence naming the funder if the owner has chosen to disclose it (S-152 decision: disclosed).
+4. Do not attach any data. Do not describe plans as decided: the draft asks for permission "to consider".
+5. Send from the entity's mailbox, not a personal one. Keep the sent mail and every reply in `docs/decisions/` (or the entity's records), with the date.
+
+## When a reply arrives
+
+* **Consent for selected fields (item 1):** the product may show those fields, with attribution to ADR/MyNeta and a link, but only for the fields and conditions in the reply. Wording around declared cases must follow their conditions and counsel's view on defamation (gate row 15). Every candidate gets the same fields, in the same layout; no ranking, scoring or filtering by assets or cases.
+* **Consent for bulk download (item 2):** a separate build (a dated import with the licence recorded in the data register) and a new decision record. Nothing is downloaded before the reply is filed.
+* **Refusal or silence:** link-outs stay as they are. That is a complete, working feature and the default.
+* Check the ECI affidavit portal's own terms separately before using anything beyond a link (ADR 02, point 5).

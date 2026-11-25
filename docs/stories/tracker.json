@@ -1387,7 +1387,7 @@
       "priority": "P1",
       "wave": "W3",
       "source": "gap-audit: DESIGN 4",
-      "notes": "Neutral MyNeta and ECI affidavit link-outs (name-built URLs, EN/TE, no fetching) built with ADR and an unsent consent-request draft. Stays in progress until written consent exists for any bulk use."
+      "notes": "Neutral MyNeta and ECI affidavit link-outs (name-built URLs, EN/TE, no fetching) built with ADR and an unsent consent-request draft. Stays in progress until written consent exists for any bulk use. 2026-11-24: consent-request draft now has a before-sending checklist and a what-to-do-with-the-reply section; still unsent because the operating entity does not exist yet. The link-out feature is complete without consent; consent is only needed for the optional bulk use."
     },
     {
       "id": "S-112",
