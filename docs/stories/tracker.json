@@ -1052,7 +1052,7 @@
       "priority": "P1",
       "wave": "W2",
       "source": "gap-audit: 16,19",
-      "notes": "Electors by AC for 175 AP + 119 TG from ECI GE-2024 statistical report (totals match ECI), served at /api/v1/electors/:state and on the constituency page, labelled 2024 rolls, NOT SSR 2025 (CEO AP forbids crawling, CEO TG timed out). The ECI table has one combined valid-votes+NOTA column; a split needs CEO Form 20 or the ECI results site. elections.json already has NOTA per AC for AP 2024 and TG 2023. Licence undecided."
+      "notes": "Electors by AC for 175 AP + 119 TG from ECI GE-2024 statistical report (totals match ECI), served at /api/v1/electors/:state and on the constituency page, labelled 2024 rolls, NOT SSR 2025 (CEO AP forbids crawling, CEO TG timed out). The ECI table has one combined valid-votes+NOTA column; a split needs CEO Form 20 or the ECI results site. elections.json already has NOTA per AC for AP 2024 and TG 2023. Licence undecided. 2026-11-24 retry: the only open bulk source found for LS-2024 segment-wise NOTA (OpenCity parliamentary-elections-2024-results) returns HTTP 403 to automated fetch and to the in-app browser, so it was not used; elections.json holds LS 2024 at PC level only and its AC-level NOTA belongs to the assembly polls, which is a different election from the ECI table, so no split is derived. To finish: operator downloads the Form 20 / segment CSV by hand (licence check) and drops it in data/raw, then a parser is a small job."
     },
     {
       "id": "S-87",
