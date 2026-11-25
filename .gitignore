@@ -40,3 +40,6 @@ data/refresh/
 # local history store (rebuildable projection of the JSON; npm run history:build)
 data/history.db
 data/history.db-*
+
+# self-hosted map background (large, re-fetchable: docs/BASEMAP.md)
+data/basemap/*.pmtiles
