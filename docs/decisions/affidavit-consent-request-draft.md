@@ -38,3 +38,5 @@ Status 2026-11-24: still NOT SENT. The operator structure was decided (S-152: in
 * **Consent for bulk download (item 2):** a separate build (a dated import with the licence recorded in the data register) and a new decision record. Nothing is downloaded before the reply is filed.
 * **Refusal or silence:** link-outs stay as they are. That is a complete, working feature and the default.
 * Check the ECI affidavit portal's own terms separately before using anything beyond a link (ADR 02, point 5).
+
+Send-ready version and reply log: `docs/decisions/affidavit-consent-package/`.
