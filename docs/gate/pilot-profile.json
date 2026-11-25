@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "status": "DRAFT for the owner and counsel. Not approved. Changes nothing while enabled is false.",
+  "enabled": false,
+  "how_to_enable": "Set enabled to true (or run npm run gate:status -- --profile pilot). While enabled is false the full 18-row gate applies exactly as before.",
+  "what_it_is": "A smaller gate for a CLOSED PILOT only. It defers rows that do not apply while the pilot limits below hold. It is not a launch gate: the full gate must pass before any public launch. Both approvers (one independent) are still required.",
+  "limits": [
+    "At most 3 mandals, invited participants only",
+    "Sign-in and one-time codes by SMS or web only: IVR and missed-call channels off",
+    "Notifications to residents off",
+    "Assisted participation off (ASSISTED_ENABLED=0)",
+    "No pilot result shown outside the pilot team until the skew report (row 3) is published",
+    "Counsel confirms in writing (row 16) that the pilot dates and the survey publication plan fit the election calendar",
+    "Pilot funder named in writing (replaces row 18 for the pilot)"
+  ],
+  "rows": {
+    "1": { "state": "required", "why": "A threat model not reviewed against the build protects nothing; quick to do" },
+    "2": { "state": "required", "why": "Real identity data is held in the pilot. May be scoped to identity, OTP, SMS, audit log and key handling" },
+    "3": { "state": "required", "why": "Required before any pilot RESULT is shown (not before invites). Without it results must not be shown at all" },
+    "4": { "state": "required", "why": "Phone-to-person data needs real key custody even in a pilot; the dev key provider is refused in production" },
+    "5": { "state": "required", "why": "Built; attach the diagram and schema check" },
+    "6": { "state": "required", "why": "A pilot with no tamper-evidence undermines trust in its own results" },
+    "7": { "state": "required", "why": "SMS cost and abuse caps matter at any scale; pilot-scale run is enough" },
+    "8": { "state": "deferred", "why": "Needs notifications, which are off in the pilot", "condition": "Notifications to residents off" },
+    "9": { "state": "deferred", "why": "Full audit with disabled testers is slow", "condition": "Automated accessibility sweep passes and the pilot lead records a manual Telugu screen-reader check by at least 2 testers before invites" },
+    "10": { "state": "deferred", "why": "Recorded audio is only for IVR, which is off", "condition": "IVR and missed-call channels off" },
+    "11": { "state": "deferred", "why": "Covers missed-call and IVR; SMS vendor terms are covered by row 7 and the vendor contract", "condition": "IVR and missed-call channels off; SMS provider agreement exists" },
+    "12": { "state": "deferred", "why": "Measured on a simulated 2G link already", "condition": "One real low-end phone check recorded by the pilot lead" },
+    "13": { "state": "required", "why": "Personal data is collected: counsel-approved notices and a real grievance contact are needed" },
+    "14": { "state": "required", "why": "Erasure and incident reporting must work before real people sign up" },
+    "15": { "state": "required", "why": "Issue reports can name individuals; takedown and defamation handling must exist" },
+    "16": { "state": "required", "why": "Election-calendar and survey-publication rules need a counsel memo" },
+    "17": { "state": "required", "why": "Built; attach the test record. Shared SIMs would otherwise be refused" },
+    "18": { "state": "deferred", "why": "A published cost model matters for launch, not a closed pilot", "condition": "Pilot funder named in writing" }
+  }
+}

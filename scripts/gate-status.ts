@@ -19,18 +19,22 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 export interface GateRowDef { row: number; gate: string; evidence: string; owner: string; date: string; checked: boolean }
 export interface AutomatedRef { ref: string; path: string; tag: string | null; exists: boolean; tagFound: boolean | null; note: string }
-export type RowStatus = "done" | "blocked" | "inconsistent";
+export type RowStatus = "done" | "blocked" | "inconsistent" | "deferred";
+export type GateProfile = "full" | "pilot";
 export interface RowReport {
   row: number; gate: string; folder: string; readme: boolean;
   checked: boolean; owner: string; date: string; ownerPresent: boolean; datePresent: boolean;
   automated: AutomatedRef[]; automatedFound: number; automatedMissing: number;
   humanEvidenceFiles: string[]; humanEvidencePresent: boolean;
-  status: RowStatus; reasons: string[];
+  status: RowStatus; reasons: string[]; deferralCondition?: string;
 }
 export interface GateReport {
+  /** "full" (all rows, default) or "pilot" (draft closed-pilot gate, docs/gate/pilot-profile.json, off unless enabled) */
+  profile: GateProfile;
+  pilotLimits: string[];
   rows: RowReport[];
   signOff: { approver1: boolean; approver2: boolean };
-  summary: { total: number; done: number; blocked: number; inconsistent: number; blockedRows: number[]; releaseBlocked: boolean };
+  summary: { total: number; done: number; blocked: number; inconsistent: number; deferred: number; blockedRows: number[]; releaseBlocked: boolean };
 }
 
 const clean = (s: string) => s.replace(/<[^>]*>/g, "").trim();
@@ -82,7 +86,16 @@ export function parseAutomated(readme: string): { ref: string; path: string; tag
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-export function gateStatus(root: string): GateReport {
+interface PilotProfileFile { enabled?: boolean; limits?: string[]; rows?: Record<string, { state: "required" | "deferred"; why?: string; condition?: string }> }
+function loadPilotProfile(root: string): PilotProfileFile | null {
+  try { return JSON.parse(fs.readFileSync(path.join(root, "docs", "gate", "pilot-profile.json"), "utf8")) as PilotProfileFile; } catch { return null; }
+}
+
+/** profile: explicit choice (tests, --profile); otherwise "pilot" only when docs/gate/pilot-profile.json has enabled: true, else "full". */
+export function gateStatus(root: string, opts: { profile?: GateProfile } = {}): GateReport {
+  const pf = loadPilotProfile(root);
+  const profile: GateProfile = opts.profile ?? (pf?.enabled === true ? "pilot" : "full");
+  if (profile === "pilot" && !pf?.rows) throw new Error("pilot profile requested but docs/gate/pilot-profile.json is missing or has no rows");
   const gateMd = fs.readFileSync(path.join(root, "docs", "RELEASE_GATE.md"), "utf8");
   const defs = parseGateTable(gateMd);
   const rows: RowReport[] = defs.map((d) => {
@@ -111,8 +124,11 @@ export function gateStatus(root: string): GateReport {
     if (!datePresent) reasons.push("date not set");
     if (!d.checked) reasons.push("box not checked");
     const humanOk = ownerPresent && datePresent && humanEvidenceFiles.length > 0;
+    const deferral = profile === "pilot" ? pf!.rows![String(d.row)] : undefined;
+    if (profile === "pilot" && !deferral) reasons.push("row is not classified in the pilot profile (treated as required)");
     let status: RowStatus;
-    if (d.checked && humanOk && hasReadme && !automatedMissing) status = "done";
+    if (deferral?.state === "deferred" && !d.checked) status = "deferred";
+    else if (d.checked && humanOk && hasReadme && !automatedMissing) status = "done";
     else if (d.checked) { status = "inconsistent"; reasons.unshift("box is checked without owner, date and attached evidence"); }
     else status = "blocked";
     return {
@@ -120,15 +136,16 @@ export function gateStatus(root: string): GateReport {
       checked: d.checked, owner: d.owner, date: d.date, ownerPresent, datePresent,
       automated, automatedFound: automated.length - automatedMissing, automatedMissing,
       humanEvidenceFiles, humanEvidencePresent: humanEvidenceFiles.length > 0, status, reasons,
+      ...(status === "deferred" ? { deferralCondition: deferral!.condition ?? deferral!.why ?? "" } : {}),
     };
   });
   const signOff = parseSignOff(gateMd);
-  const blockedRows = rows.filter((r) => r.status !== "done").map((r) => r.row);
+  const blockedRows = rows.filter((r) => r.status !== "done" && r.status !== "deferred").map((r) => r.row);
   return {
-    rows, signOff,
+    profile, pilotLimits: profile === "pilot" ? pf!.limits ?? [] : [], rows, signOff,
     summary: {
       total: rows.length, done: rows.filter((r) => r.status === "done").length,
-      blocked: rows.filter((r) => r.status === "blocked").length, inconsistent: rows.filter((r) => r.status === "inconsistent").length,
+      blocked: rows.filter((r) => r.status === "blocked").length, inconsistent: rows.filter((r) => r.status === "inconsistent").length, deferred: rows.filter((r) => r.status === "deferred").length,
       blockedRows, releaseBlocked: blockedRows.length > 0 || !signOff.approver1 || !signOff.approver2 || rows.length === 0,
     },
   };
@@ -136,16 +153,19 @@ export function gateStatus(root: string): GateReport {
 
 export function formatReport(r: GateReport): string {
   const L: string[] = [];
-  L.push("Release gate status (automated evidence is supporting only; owners, dates and boxes are human decisions)", "");
+  L.push("Release gate status (automated evidence is supporting only; owners, dates and boxes are human decisions)");
+  L.push(r.profile === "pilot" ? "PROFILE: pilot (DRAFT closed-pilot gate; the full gate must still pass before any public launch)" : "PROFILE: full", "");
+  if (r.profile === "pilot") { L.push("Pilot limits that make the deferrals valid:", ...r.pilotLimits.map((x) => "  - " + x), ""); }
   for (const x of r.rows) {
     L.push(`Row ${x.row} [${x.status.toUpperCase()}] ${x.gate}`);
+    if (x.status === "deferred") { L.push(`  deferred while: ${x.deferralCondition}`); continue; }
     L.push(`  automated evidence: ${x.automatedFound} found, ${x.automatedMissing} missing${x.automated.length ? "" : " (none listed)"}`);
     for (const a of x.automated) if (!a.exists || a.tagFound === false) L.push(`    MISSING ${a.ref}`);
     L.push(`  human evidence:     ${x.humanEvidencePresent ? x.humanEvidenceFiles.length + " file(s) in " + x.folder + "/evidence" : "MISSING (nothing in " + x.folder + "/evidence)"}`);
     L.push(`  owner: ${x.ownerPresent ? x.owner : isPlaceholder(x.owner) ? "MISSING (placeholder " + x.owner + ")" : "MISSING"}   date: ${x.datePresent ? x.date : isPlaceholder(x.date) ? "MISSING (placeholder)" : "MISSING"}   box: ${x.checked ? "checked" : "unchecked"}`);
   }
   L.push("");
-  L.push(`Summary: ${r.summary.done} of ${r.summary.total} rows done, ${r.summary.blocked} blocked, ${r.summary.inconsistent} inconsistent`);
+  L.push(`Summary: ${r.summary.done} of ${r.summary.total} rows done, ${r.summary.blocked} blocked, ${r.summary.inconsistent} inconsistent${r.summary.deferred ? ", " + r.summary.deferred + " deferred (pilot profile)" : ""}`);
   L.push(`Blocked rows: ${r.summary.blockedRows.length ? r.summary.blockedRows.join(", ") : "none"}`);
   L.push(`Sign-off: approver 1 ${r.signOff.approver1 ? "present" : "MISSING"}, approver 2 (independent) ${r.signOff.approver2 ? "present" : "MISSING"}`);
   L.push(`Release: ${r.summary.releaseBlocked ? "BLOCKED" : "all rows and approvers present"}`);
@@ -156,7 +176,10 @@ const isMain = process.argv[1] && import.meta.url === pathToFileURL(path.resolve
 if (isMain) {
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
   const args = process.argv.slice(2);
-  const report = gateStatus(root);
+  const pi = args.indexOf("--profile");
+  const wanted = pi >= 0 ? args[pi + 1] : undefined;
+  if (wanted && wanted !== "full" && wanted !== "pilot") { console.error("--profile must be full or pilot"); process.exit(2); }
+  const report = gateStatus(root, wanted ? { profile: wanted as GateProfile } : {});
   console.log(args.includes("--json") ? JSON.stringify(report, null, 2) : formatReport(report));
   if (args.includes("--strict") && report.summary.releaseBlocked) process.exit(1);
 }
