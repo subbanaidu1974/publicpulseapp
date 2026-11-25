@@ -141,3 +141,32 @@ test.describe('parties page (S-195)', () => {
     await expect(page.locator('[data-testid=party-card]').first()).toContainText(/[\u0C00-\u0C7F]/);
   });
 });
+
+test.describe('electors by constituency and gender (S-197)', () => {
+  test('@E2E-204 electors are listed by constituency with men, women, third gender and a sex ratio; age is stated as not available, never estimated', async ({ page, request }) => {
+    const api = await (await request.get('/api/v1/electors/TG')).json();
+    expect(api.items.length).toBe(119);
+    await page.goto('/?state=TG#/analytics/electors');
+    await expect(page.getByTestId('electors-page')).toBeVisible();
+    await expect(page.getByTestId('electors-row')).toHaveCount(119);
+    const total = api.items.reduce((s: number, x: { total: number }) => s + x.total, 0);
+    await expect(page.getByTestId('e-total')).toHaveText(total.toLocaleString('en-IN'));
+    await expect(page.getByTestId('e-ratio')).toHaveText(/^\d{3,4}$/);
+    await expect(page.getByTestId('electors-note')).toContainText('2024 general election');
+    await expect(page.getByTestId('electors-age')).toContainText('Not available');
+    await expect(page.getByTestId('electors-age')).not.toContainText(/\d/); // no age figure of any kind
+    await page.getByTestId('electors-sort').selectOption('femaleHigh');
+    const first = await page.getByTestId('electors-row').first().innerText();
+    const top = [...api.items].sort((a: { female: number; male: number; thirdGender: number }, b: { female: number; male: number; thirdGender: number }) => b.female / (b.male + b.female + b.thirdGender) - a.female / (a.male + a.female + a.thirdGender))[0];
+    expect(first).toContain(top.acName);
+  });
+
+  test('@E2E-204 the electors page is reachable from the analytics links and works in Telugu', async ({ page }) => {
+    await page.addInitScript(() => { try { localStorage.setItem('pp-lang', 'te'); } catch { /* ignore */ } });
+    await page.goto('/?state=AP#/analytics/electors');
+    await expect(page.getByTestId('electors-page')).toBeVisible();
+    await expect(page.getByTestId('an-nav-electors')).toContainText('ఓటర్లు');
+    await expect(page.getByTestId('electors-row')).toHaveCount(175);
+    await expect(page.getByTestId('electors-age')).toContainText('అందుబాటులో లేదు');
+  });
+});
