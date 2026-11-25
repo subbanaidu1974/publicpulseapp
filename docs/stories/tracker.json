@@ -731,7 +731,7 @@
       "priority": "P1",
       "wave": "W4",
       "source": "gap-audit: 61",
-      "notes": "Generic HTTP number-intelligence adapter (config mapping, failure policy) passes the contract suite against an invented simulator; NOT run against any real vendor. Needs vendor choice, real field mapping, DPDP processor terms."
+      "notes": "Generic HTTP number-intelligence adapter (config mapping, failure policy) passes the contract suite against an invented simulator; NOT run against any real vendor. Needs vendor choice, real field mapping, DPDP processor terms. 2026-11-24: research and test plan in docs/decisions/S-62-number-intelligence.md (public claims only: no source found promises a recycled-number or activation-age signal for India; DoT MNRL is the nearest). Still blocked on a vendor choice, a data-processing agreement and a run against a real sandbox."
     },
     {
       "id": "S-63",
