@@ -71,3 +71,5 @@ Hyperscaler KMS keys are held under a US-headquartered provider's control plane;
 Who may sign vendor contracts (depends on the operator decision); budget and funder limits; whether a hyperscaler KMS is acceptable; whether a government or sovereign cloud is acceptable; who evaluates (a small panel including a security reviewer, counsel and a field-operations person); evidence of any quote goes into data/reference/cost-assumptions.json with source URL and date.
 
 Follow-up research and a test plan for the number-intelligence category: [S-62-number-intelligence.md](S-62-number-intelligence.md) (2026-11-24, public claims only, unverified).
+
+SMS gateway follow-up with the DLT worklist for the pilot and a test plan: [S-63-sms-gateway.md](S-63-sms-gateway.md) (2026-11-24, public claims only, unverified).

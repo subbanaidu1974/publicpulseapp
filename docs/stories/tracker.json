@@ -745,7 +745,7 @@
       "priority": "P0",
       "wave": "W4",
       "source": "gap-audit: 92",
-      "notes": "Generic HTTP SMS-gateway adapter (DLT fields, receipt auth, retries, cost) passes the contract suite against a simulator; NOT run against a real gateway. Needs vendor, DLT entity/templates, real-handset checks."
+      "notes": "Generic HTTP SMS-gateway adapter (DLT fields, receipt auth, retries, cost) passes the contract suite against a simulator; NOT run against a real gateway. Needs vendor, DLT entity/templates, real-handset checks. 2026-11-24: DLT worklist (7 pilot templates), Telugu part-count cost warning, candidate questions and a handset test plan in docs/decisions/S-63-sms-gateway.md. Still blocked on the operating entity existing, a gateway choice, DLT registration and a real-handset run."
     },
     {
       "id": "S-64",
