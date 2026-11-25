@@ -1331,7 +1331,7 @@
       "priority": "P1",
       "wave": "W3",
       "source": "gap-audit: DESIGN 5",
-      "notes": "53 office-holder records: CMs, deputy CMs, speakers, 22 AP and 13 TG ministers (portfolios as allotted on stated dates), party presidents; each has two sources and confidence (all medium or low), 28 Wikidata QIDs verified, rest null. NO record has an official government second source (official sites unreachable from the build environment); portfolios not translated to Telugu."
+      "notes": "53 office-holder records: CMs, deputy CMs, speakers, 22 AP and 13 TG ministers (portfolios as allotted on stated dates), party presidents; each has two sources and confidence (all medium or low), 28 Wikidata QIDs verified, rest null. NO record has an official government second source (official sites unreachable from the build environment); Telugu portfolio names added for all 68 terms (data/reference/people/portfolio-te.json) but MACHINE-DRAFTED and unreviewed: the Telugu page shows an unreviewed notice until a native speaker corrects them and sets reviewed to true."
     },
     {
       "id": "S-108",

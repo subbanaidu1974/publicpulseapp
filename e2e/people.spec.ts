@@ -120,3 +120,11 @@ test("people pages fit a 375px screen without sideways page scroll", async ({ pa
     expect(overflow, route).toBeLessThanOrEqual(1);
   }
 });
+
+test("@E2E-122 Telugu leaders page shows Telugu portfolio names with an unreviewed notice", async ({ page }) => {
+  await page.goto("/?lang=te#/people/leaders");
+  const pf = page.getByTestId("office-portfolio").first();
+  await expect(pf).toBeVisible();
+  await expect(pf).toContainText(/[\u0C00-\u0C7F]/);
+  await expect(pf.getByTestId("portfolio-unreviewed")).toBeVisible();
+});

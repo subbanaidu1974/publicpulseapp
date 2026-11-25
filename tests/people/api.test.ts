@@ -216,3 +216,15 @@ describe("@E2E-129 blackout", () => {
     } finally { process.env.PEOPLE_BLACKOUT = "0"; }
   });
 });
+
+describe("@E2E-122 Telugu portfolio names (S-107)", () => {
+  it("every portfolio in the office-holder file has a Telugu name, and the file says whether it was reviewed", async () => {
+    const fs = await import("node:fs");
+    const oh = JSON.parse(fs.readFileSync("data/reference/people/office-holders.json", "utf8")).records as { portfolio?: string[] }[];
+    const te = JSON.parse(fs.readFileSync("data/reference/people/portfolio-te.json", "utf8")) as { reviewed: boolean; terms: Record<string, string> };
+    expect(typeof te.reviewed).toBe("boolean");
+    const used = new Set(oh.flatMap(r => r.portfolio ?? []));
+    for (const t of used) expect(te.terms[t], `missing Telugu name for "${t}"`).toMatch(/[\u0C00-\u0C7F]/);
+    expect(Object.keys(te.terms).filter(k => !used.has(k))).toEqual([]);
+  });
+});
