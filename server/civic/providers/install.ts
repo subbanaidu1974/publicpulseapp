@@ -16,6 +16,8 @@ import { isDevKeyProvider, isDevSmsProvider, setKeyProvider, setSmsProvider, get
 import { isDevNumberIntelligence, setNumberIntelligence } from "../identity/service";
 import { RemoteKmsKeyProvider, SqlKeyRegistry, isKeyProviderV2 } from "./keys";
 import { HttpNumberIntel } from "./numberintel";
+import { isDevMailProvider, setMailProvider } from "./mail";
+import { GenericHttpMailProvider, genericMailConfigFromEnv } from "./mailgeneric";
 import { GenericHttpSmsProvider, genericSmsConfigFromEnv } from "./smsgeneric";
 import { HttpSmsProvider, loadTemplateRegistry, setSmsGateway, startSmsRetryLoop } from "./sms";
 import { providerLog } from "./util";
@@ -52,6 +54,9 @@ export function installProvidersFromEnv(env: NodeJS.ProcessEnv = process.env): I
       registry: loadTemplateRegistry(), senderId: env.CIVIC_SMS_SENDER_ID, timeoutMs: n(env.CIVIC_SMSGW_TIMEOUT_MS) ?? n(env.CIVIC_SMS_TIMEOUT_MS), maxAttempts: n(env.CIVIC_SMS_MAX_ATTEMPTS),
     });
     setSmsProvider(p); setSmsGateway(p); startSmsRetryLoop(); out.sms = true;
+  }
+  if (env.CIVIC_MAIL_URL && isDevMailProvider()) { // generic configurable HTTP mail adapter (S-141); never run against a real vendor, see mailgeneric.ts
+    setMailProvider(new GenericHttpMailProvider(genericMailConfigFromEnv(env)));
   }
   if (env.CIVIC_NUMINTEL_URL && isDevNumberIntelligence()) {
     // CIVIC_NUMINTEL_API_KEY selects the generic API-key adapter (mapping from CIVIC_NUMINTEL_MAPPING_FILE); otherwise the neutral signed shape.

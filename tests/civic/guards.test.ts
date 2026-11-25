@@ -8,6 +8,7 @@ import { setNumberIntelligence } from "../../server/civic/identity/service";
 import { setAttestationVerifier } from "../../server/civic/identity/network";
 import { assertProductionSafe, isLocalHost } from "../../server/civic/guards";
 import { setMailProvider } from "../../server/civic/providers/mail";
+import { GenericHttpMailProvider } from "../../server/civic/providers/mailgeneric";
 import { createCivicRouter } from "../../server/civic/index";
 
 const KEYS = ["NODE_ENV", "CIVIC_ENV", "CIVIC_EXPOSE_DEV_OTP", "CIVIC_EXPOSE_DEV_MAIL", "CIVIC_ALLOW_DEMO", "CIVIC_GENERATED_DIR", "CIVIC_DEV_MASTER_KEY", "CIVIC_SWEEP", "CIVIC_JOBS"];
@@ -63,6 +64,17 @@ describe("production startup guards (S-55)", () => {
     expect(() => assertProductionSafe()).toThrow(/dev mail provider/);
     productionReady(); process.env.CIVIC_EXPOSE_DEV_MAIL = "1";
     expect(() => assertProductionSafe()).toThrow(/CIVIC_EXPOSE_DEV_MAIL/);
+  });
+
+  it("boots with the generic HTTP mail adapter on a secure URL and still refuses the dev mailer", () => {
+    productionReady();
+    process.env.CIVIC_MAIL_URL = "https://mail.example.test/send"; process.env.CIVIC_MAIL_AUTH_VALUE = "k";
+    setMailProvider(new GenericHttpMailProvider({ url: process.env.CIVIC_MAIL_URL, authValue: "k" }));
+    try {
+      expect(() => assertProductionSafe()).not.toThrow();
+      setMailProvider(null);
+      expect(() => assertProductionSafe()).toThrow(/dev mail provider.*CIVIC_MAIL_URL/);
+    } finally { delete process.env.CIVIC_MAIL_URL; delete process.env.CIVIC_MAIL_AUTH_VALUE; }
   });
 
   it("@E2E-70 refuses CIVIC_EXPOSE_DEV_OTP=1", () => {
