@@ -179,4 +179,19 @@ test.describe('electors by constituency and gender (S-197)', () => {
     await expect(page.getByTestId('profile-title')).toBeVisible(); // spelling can differ between the roll report and the profile, so only the target seat is checked
     await expect(page.getByTestId('constituency-profile')).toContainText('#3');
   });
+
+  test('@E2E-206 a party card shows its head with a free-licence photo, credit and role; a party without one shows none', async ({ page, request }) => {
+    const photos = (await (await request.get('/api/v1/photos/leaders.json')).json()).photos as { party: string; file: string; name: string }[];
+    const brs = photos.find((p) => p.party === 'BRS')!;
+    expect(brs).toBeTruthy();
+    expect((await request.get(`/api/v1/photos/${brs.file}`)).status()).toBe(200);
+    expect((await request.get('/api/v1/photos/leader-XX.png')).status()).toBe(404);
+    await page.goto('/?state=TG#/analytics/parties');
+    const card = page.locator('[data-testid="party-card"][data-party="BRS"]');
+    await expect(card.getByTestId('party-leader')).toContainText(brs.name);
+    await expect(card.getByTestId('party-leader')).toContainText(/Wikimedia Commons/);
+    await expect(card.getByTestId('party-leader').locator('img')).toHaveJSProperty('complete', true);
+    const without = page.locator('[data-testid="party-card"]').filter({ hasNot: page.getByTestId('party-leader') });
+    expect(await without.count()).toBeGreaterThan(0);
+  });
 });

@@ -2,6 +2,7 @@ import { analytics } from "../../api/analytics";
 import { useApi } from "../../api/useApi";
 import { useStateCtx } from "../../state/StateContext";
 import { partyColor } from "../../lib/parties";
+import { fetchLeaderPhotos } from "../../api/geo";
 import type { ElectionType } from "../../lib/states";
 import { useAT } from "./analyticsText";
 import { SourceBanner, Wait, fnum, fpct } from "./common";
@@ -13,6 +14,7 @@ import { SourceBanner, Wait, fnum, fpct } from "./common";
 export default function PartiesPage() {
   const { a, lang } = useAT();
   const { state, config } = useStateCtx();
+  const leaders = useApi(() => fetchLeaderPhotos().catch(() => []), []);
   const s = useApi(() => analytics.parties(state), [state]);
   const na = a("an2.na");
   const typeLabel = (t: ElectionType) => (t === "assembly" ? a("an2.assembly") : a("an2.ls"));
@@ -41,6 +43,17 @@ export default function PartiesPage() {
                       : a("an2.p.minor")}
                     {" "}&middot; {a("an2.p.total")}: <strong>{p.totalSeats}</strong>
                   </p>
+                  {(() => {
+                    const l = (leaders.data ?? []).find((x) => x.party === p.code);
+                    return l ? (
+                      <figure data-testid="party-leader" className="flex items-end gap-3">
+                        <img src={`/api/v1/photos/${l.file}`} alt={`${l.name}, ${l.role}`} width={64} height={80} loading="lazy" className="w-16 h-auto border border-black object-cover" />
+                        <figcaption className="text-[10px] text-slate-600">
+                          {l.name}, {l.role}. {a("an2.p.photoBy")} {l.author ?? a("an2.p.photoUnknown")}, <a className="underline" href={l.licenceUrl ?? l.source} rel="noopener noreferrer" target="_blank">{l.licence}</a>, <a className="underline" href={l.source} rel="noopener noreferrer" target="_blank">Wikimedia Commons</a>. {a("an2.p.leaderNote")}
+                        </figcaption>
+                      </figure>
+                    ) : null;
+                  })()}
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse text-xs">
                       <caption className="sr-only">{p.code}</caption>
