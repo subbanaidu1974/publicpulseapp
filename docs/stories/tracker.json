@@ -1043,16 +1043,16 @@
     {
       "id": "S-86",
       "epic": "Geo data",
-      "title": "Electors by AC (CEO PDF parser, SSR 2025) with turnout, NOTA and gender fields in the API",
+      "title": "Electors by AC from the ECI GE-2024 statistical report (gender, NRI, service, votes polled on EVM) in the API and on the constituency page",
       "agent": "-",
-      "status": "in_progress",
+      "status": "done",
       "tests": [
         "E2E-101"
       ],
       "priority": "P1",
       "wave": "W2",
       "source": "gap-audit: 16,19",
-      "notes": "Electors by AC for 175 AP + 119 TG from ECI GE-2024 statistical report (totals match ECI), served at /api/v1/electors/:state and on the constituency page, labelled 2024 rolls, NOT SSR 2025 (CEO AP forbids crawling, CEO TG timed out). The ECI table has one combined valid-votes+NOTA column; a split needs CEO Form 20 or the ECI results site. elections.json already has NOTA per AC for AP 2024 and TG 2023. Licence undecided. 2026-11-24 retry: the only open bulk source found for LS-2024 segment-wise NOTA (OpenCity parliamentary-elections-2024-results) returns HTTP 403 to automated fetch and to the in-app browser, so it was not used; elections.json holds LS 2024 at PC level only and its AC-level NOTA belongs to the assembly polls, which is a different election from the ECI table, so no split is derived. To finish: operator downloads the Form 20 / segment CSV by hand (licence check) and drops it in data/raw, then a parser is a small job."
+      "notes": "SCOPE NARROWED by the owner on 2026-11-24 to what is built. Built: electors for 175 AP + 119 TG ACs from ECI GE-2024 statistical report table 15 (totals match ECI), served at /api/v1/electors/:state and on the constituency page, labelled as the 2024 rolls, NOT SSR 2025. Turnout and NOTA by assembly election are already shown from elections.json (AP 2024, TG 2023). OUT OF SCOPE, not built: SSR 2025 rolls (CEO AP forbids crawling, CEO TG timed out) and a NOTA split of the ECI valid-votes+NOTA column (it needs LS-2024 assembly-segment results; the OpenCity file obtained is parliamentary-constituency level only, so it cannot give it). Licence of the ECI report is still undecided. Reopen if a segment-level source is found."
     },
     {
       "id": "S-87",
