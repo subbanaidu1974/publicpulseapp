@@ -144,4 +144,36 @@ describe("broadcast polls (S-185) @E2E-198", () => {
     expect((await call("POST", `/${id}/answer`, u.token, { answers: [[0, 1, 2]] })).json.code).toBe("bad_option");
     expect((await call("POST", `/${id}/answer`, u.token, { answers: [[0, 2]] })).status).toBe(200);
   });
+
+  it("a scheduled poll stays quiet until its start time, then blocks by itself; cancelling before then frees the slot (S-186)", async () => {
+    const a = admin(), u = mkPerson();
+    const start = new Date(Date.now() + 1500).toISOString();
+    const c = await open(a, { opens_at: start });
+    expect(c.status).toBe(201);
+    const id = c.json.id as string;
+    expect((await call("GET", `/admin/${id}/results`, a.token)).json.status).toBe("scheduled");
+    expect((await call("GET", "/pending", u.token)).json.poll).toBeNull();
+    expect((await call("POST", `/${id}/answer`, u.token, { answers: [[0], [0]] })).json.code).toBe("not_started");
+    await new Promise((r) => setTimeout(r, 1700));
+    expect((await call("GET", "/pending", u.token)).json.poll.id).toBe(id);
+    expect((await call("GET", `/admin/${id}/results`, a.token)).json.status).toBe("open");
+    expect((await call("POST", `/${id}/answer`, u.token, { answers: [[0], [0]] })).status).toBe(200);
+    // a later one can be cancelled before it starts and never blocks anyone
+    const later = (await open(a, { opens_at: new Date(Date.now() + 3_600_000).toISOString() })).json.id as string;
+    expect((await call("POST", `/admin/${later}/close`, a.token)).status).toBe(200);
+    expect((await call("GET", "/pending", mkPerson().token)).json.poll.id).toBe(id);
+  });
+
+  it("start time rules: past or now means now, far future and nonsense are refused, the end must follow the start", async () => {
+    const a = admin(), u = mkPerson();
+    expect((await open(a, { opens_at: "2020-01-01T00:00:00Z" })).status).toBe(201); // already past: opens now
+    expect((await call("GET", "/pending", u.token)).json.poll).not.toBeNull();
+    const day = 86_400_000;
+    expect((await open(a, { opens_at: new Date(Date.now() + 40 * day).toISOString() })).json.code).toBe("bad_opens_at");
+    expect((await open(a, { opens_at: "soon" })).json.code).toBe("bad_opens_at");
+    const s = new Date(Date.now() + 5 * day);
+    expect((await open(a, { opens_at: s.toISOString(), closes_at: new Date(s.getTime() - 1000).toISOString() })).json.code).toBe("bad_closes_at");
+    expect((await open(a, { opens_at: s.toISOString(), closes_at: new Date(s.getTime() + 40 * day).toISOString() })).json.code).toBe("bad_closes_at");
+    expect((await open(a, { opens_at: s.toISOString(), closes_at: new Date(s.getTime() + 2 * day).toISOString() })).status).toBe(201);
+  });
 });

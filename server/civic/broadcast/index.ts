@@ -101,7 +101,7 @@ export function closeDuePolls(now: Date = new Date()): number {
 export function pendingFor(personId: string, roles: string[], now: Date = new Date()): ReturnType<typeof pollPublic> | null {
   if (roles.includes("admin")) return null;
   closeDuePolls(now);
-  const open = db().prepare("SELECT * FROM bpoll_polls WHERE status = 'open' ORDER BY opened_at, id").all() as unknown as PollRow[];
+  const open = db().prepare("SELECT * FROM bpoll_polls WHERE status = 'open' AND opened_at <= ? ORDER BY opened_at, id").all(now.toISOString()) as unknown as PollRow[];
   for (const p of open) {
     if (!db().prepare("SELECT 1 FROM bpoll_done WHERE poll_id = ? AND pseudonym = ?").get(p.id, pseud(p.id, personId))) return pollPublic(p);
   }
@@ -114,19 +114,26 @@ export function createPoll(adminId: string, body: Record<string, unknown>, now: 
   for (const t of [title_en, title_te ?? "", intro_en ?? "", intro_te ?? ""]) if (t && (hasLink(t) || asksSecret(t) || asksPartyPreference(t))) throw new Bad("question_refused", "the title or introduction contains a link, asks for a secret, or asks for a party choice");
   if ((intro_en?.length ?? 0) > 400 || (intro_te?.length ?? 0) > 600) throw new Bad("bad_intro", "introduction: at most 400 characters");
   const questions = parseQuestions(body.questions);
+  // Scheduled start (S-186): opens_at in the future means the poll goes live by itself at that moment; absent or already past means now.
+  let start = now;
+  if (body.opens_at !== undefined && body.opens_at !== null && body.opens_at !== "") {
+    const t = new Date(String(body.opens_at));
+    if (Number.isNaN(t.getTime()) || t.getTime() > now.getTime() + 30 * 86_400_000) throw new Bad("bad_opens_at", "opens_at must be a valid time within the next 30 days");
+    if (t.getTime() > now.getTime()) start = t;
+  }
   let closes_at: string | null = null;
   if (body.closes_at !== undefined && body.closes_at !== null && body.closes_at !== "") {
     const t = new Date(String(body.closes_at));
-    if (Number.isNaN(t.getTime()) || t.getTime() <= now.getTime() || t.getTime() > now.getTime() + 30 * 86_400_000) throw new Bad("bad_closes_at", "closes_at must be in the future and within 30 days");
+    if (Number.isNaN(t.getTime()) || t.getTime() <= start.getTime() || t.getTime() > start.getTime() + 30 * 86_400_000) throw new Bad("bad_closes_at", "closes_at must be after the start and within 30 days of it");
     closes_at = t.toISOString();
   }
   closeDuePolls(now);
-  if ((db().prepare("SELECT COUNT(*) AS c FROM bpoll_polls WHERE status = 'open'").get() as { c: number }).c >= MAX_OPEN) throw new Bad("too_many_open", `at most ${MAX_OPEN} polls can be open at once; close one first`);
+  if ((db().prepare("SELECT COUNT(*) AS c FROM bpoll_polls WHERE status = 'open'").get() as { c: number }).c >= MAX_OPEN) throw new Bad("too_many_open", `at most ${MAX_OPEN} polls can be open or scheduled at once; close one first`);
   const id = crypto.randomUUID();
   db().prepare("INSERT INTO bpoll_polls (id, title_en, title_te, intro_en, intro_te, questions_json, status, created_by_pseudonym, opened_at, closes_at) VALUES (?,?,?,?,?,?, 'open', ?,?,?)")
-    .run(id, title_en, title_te, intro_en, intro_te, JSON.stringify(questions), getKeys().hmac("survey-actor", adminId), now.toISOString(), closes_at);
+    .run(id, title_en, title_te, intro_en, intro_te, JSON.stringify(questions), getKeys().hmac("survey-actor", adminId), start.toISOString(), closes_at);
   for (let q = 0; q < questions.length; q++) for (let o = 0; o < questions[q].options.length; o++) db().prepare("INSERT INTO bpoll_counts (poll_id, q, opt, n) VALUES (?,?,?,0)").run(id, q, o);
-  audit(adminId, "broadcast.open", "bpoll:" + id, { questions: questions.length });
+  audit(adminId, start > now ? "broadcast.schedule" : "broadcast.open", "bpoll:" + id, { questions: questions.length });
   return pollPublic(db().prepare("SELECT * FROM bpoll_polls WHERE id = ?").get(id) as unknown as PollRow);
 }
 
@@ -135,6 +142,7 @@ export function answerPoll(personId: string, pollId: string, answers: unknown, n
   const p = db().prepare("SELECT * FROM bpoll_polls WHERE id = ?").get(pollId) as unknown as PollRow | undefined;
   if (!p) throw new Bad("not_found", "no such poll");
   if (p.status !== "open") throw new Bad("closed", "this poll is closed");
+  if (p.opened_at > now.toISOString()) throw new Bad("not_started", "this poll has not started yet");
   const qs = JSON.parse(p.questions_json) as Q[];
   if (!Array.isArray(answers) || answers.length !== qs.length) throw new Bad("incomplete", "answer every question");
   const picked = qs.map((q, i) => {
@@ -164,7 +172,7 @@ function results(id: string) {
   const counts = db().prepare("SELECT q, opt, n FROM bpoll_counts WHERE poll_id = ?").all(id) as { q: number; opt: number; n: number }[];
   const qs = JSON.parse(p.questions_json) as Q[];
   return {
-    ...pollPublic(p), status: p.status, closed_at: p.closed_at, responses, min_results: MIN_RESULTS, suppressed: !shown,
+    ...pollPublic(p), status: p.status === "open" && p.opened_at > new Date().toISOString() ? "scheduled" : p.status, closed_at: p.closed_at, responses, min_results: MIN_RESULTS, suppressed: !shown,
     results: qs.map((q, qi) => ({ text_en: q.text_en, options: q.options.map((o, oi) => ({ label_en: o.label_en, prefer_not: o.prefer_not, n: shown ? counts.find((c) => c.q === qi && c.opt === oi)?.n ?? 0 : null })) })),
   };
 }
@@ -172,7 +180,7 @@ function results(id: string) {
 export const broadcastRouter = Router();
 broadcastRouter.use(express.json({ limit: "32kb" }));
 const wrap = (fn: (req: express.Request, res: express.Response) => void) => (req: express.Request, res: express.Response): void => {
-  try { fn(req, res); } catch (e) { if (e instanceof Bad) fail(res, e.code === "not_found" ? 404 : e.code === "already_answered" || e.code === "closed" || e.code === "too_many_open" ? 409 : 400, e.code, e.message); else { console.error(e); fail(res, 500, "error", "server error"); } }
+  try { fn(req, res); } catch (e) { if (e instanceof Bad) fail(res, e.code === "not_found" ? 404 : e.code === "already_answered" || e.code === "closed" || e.code === "too_many_open" || e.code === "not_started" ? 409 : 400, e.code, e.message); else { console.error(e); fail(res, 500, "error", "server error"); } }
 };
 
 broadcastRouter.post("/admin", requireAuth, requireRole("admin"), wrap((req, res) => { res.status(201).json(createPoll(req.person!.id, req.body ?? {})); }));

@@ -14,7 +14,7 @@ async function adminToken(request: APIRequestContext): Promise<string> {
 }
 async function closeAll(request: APIRequestContext, token: string) {
   const l = await (await request.get(`${B}/admin`, { headers: bearer(token) })).json();
-  for (const p of l.polls ?? []) if (p.status === 'open') await request.post(`${B}/admin/${p.id}/close`, { headers: bearer(token) });
+  for (const p of l.polls ?? []) if (p.status === 'open' || p.status === 'scheduled') await request.post(`${B}/admin/${p.id}/close`, { headers: bearer(token) });
 }
 async function newUser(request: APIRequestContext): Promise<string> {
   const email = `poll.${Date.now()}.${Math.floor(Math.random() * 1e6)}@example.org`;
@@ -151,6 +151,43 @@ test.describe('broadcast polls (S-185)', () => {
       const r = await (await request.get(`${B}/admin/${id}/results`, { headers: bearer(admin) })).json();
       expect(r).toMatchObject({ responses: 1, suppressed: true });
       expect(JSON.stringify(r.results)).not.toMatch(/"n":[1-9]/);
+    } finally { await closeAll(request, admin); }
+  });
+
+  test('@E2E-201 an admin schedules a poll for tomorrow on screen: it is listed as scheduled, blocks nobody, and can be cancelled', async ({ page, request }) => {
+    try {
+      await openCivic(page);
+      await page.getByTestId('demo-admin').click();
+      await page.getByTestId('console-tab-admin').click();
+      await page.getByTestId('polls-admin-link').click();
+      await page.getByTestId('pa-title').fill('Tomorrow morning poll');
+      await page.getByTestId('pa-text-0').fill('Is the bus service on time?');
+      await page.getByTestId('pa-options-0').fill('Yes\nNo');
+      const d = new Date(Date.now() + 86_400_000), p2 = (n: number) => String(n).padStart(2, '0');
+      await page.getByTestId('pa-opens').fill(`${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}T09:00`);
+      await page.getByTestId('pa-confirm').check();
+      await page.getByTestId('pa-publish').click();
+      await expect(page.getByTestId('pa-msg')).toContainText('Poll scheduled for');
+      const item = page.getByTestId('pa-item').first();
+      await expect(item).toHaveAttribute('data-status', 'scheduled');
+      const user = await newUser(request);
+      expect((await (await request.get(`${B}/pending`, { headers: bearer(user) })).json()).poll).toBeNull();
+      await item.getByTestId('pa-close').click();
+      await expect(item).toHaveAttribute('data-status', 'closed');
+    } finally { await closeAll(request, await adminToken(request)); }
+  });
+
+  test('@E2E-201 a poll scheduled a few seconds ahead appears on a page that is already open, without a reload', async ({ page, request }) => {
+    const admin = await adminToken(request);
+    try {
+      const u = await newUser(request);
+      const r = await request.post(`${B}/admin`, { headers: bearer(admin), data: { ...POLL, opens_at: new Date(Date.now() + 4000).toISOString() } });
+      expect(r.status()).toBe(201);
+      await asUser(page, u);
+      await expect(page.getByTestId('poll-dialog')).toHaveCount(0);
+      await page.waitForTimeout(4500);
+      await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+      await expect(page.getByTestId('poll-dialog')).toBeVisible();
     } finally { await closeAll(request, admin); }
   });
 });

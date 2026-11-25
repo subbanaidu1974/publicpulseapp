@@ -2367,6 +2367,18 @@
       "wave": "W8",
       "source": "user request 2026-11-25",
       "notes": "Built: admin creates and opens a poll at any time (up to 5 questions, single, multi or 5-point scale, optional Telugu wording, optional auto-close within 30 days, at most 3 open); every signed-in non-admin sees a blocking, inert-background dialog (focus trap, Escape does nothing, English or Telugu) until every question is answered, 'prefer not to say' on every question; one answer per account; admin results with per-option counts hidden below 10 answers; admin can close any time. Stored as per-option counters plus a keyed 'answered' marker, no person id and no per-response rows. It is NOT a Pulse Survey: no eligibility, weighting or representativeness, and every screen says so. Refuses party or candidate choice wording, links and requests for codes or IDs. NOT done: a single admin can push (no second approver, no counsel review of the mandatory-answer design), no targeting by place or role, no push to people who are signed out (they see it at next sign-in), no email or SMS nudge, no published figures, admin screen is English only, Telugu text is machine-drafted and unreviewed. Whether forcing an answer is acceptable under the consent notice is a counsel question."
+    },
+    {
+      "id": "S-186",
+      "epic": "Surveys",
+      "title": "Scheduled start time for broadcast polls",
+      "agent": "-",
+      "status": "done",
+      "tests": ["E2E-198", "E2E-201"],
+      "priority": "P2",
+      "wave": "W8",
+      "source": "user request 2026-11-25",
+      "notes": "Built: an admin can set a start time up to 30 days ahead; the poll is listed as scheduled, blocks nobody and refuses answers until then, then goes live by itself (users see it within about 30 seconds on an open page); it can be cancelled before it starts; the end time must follow the start and be within 30 days of it; scheduled polls count toward the limit of 3. A start in the past or empty means now. NOT done: editing a poll after it is created, repeating polls, time zone choice (the picker uses the admin's browser time), a reminder to the admin before it starts."
     }
   ]
 }
