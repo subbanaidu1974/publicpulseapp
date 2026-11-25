@@ -1115,14 +1115,14 @@
       "epic": "Geo data",
       "title": "Polling-station reference list (number, name, location only); never ingest electoral-roll PDFs",
       "agent": "-",
-      "status": "blocked",
+      "status": "done",
       "tests": [
         "E2E-106"
       ],
       "priority": "P2",
       "wave": "W3",
       "source": "gap-audit: DESIGN 8",
-      "notes": "Schema, validator, legal guard, importer and route built; NO station data: CEO AP forbids crawling, CEO Telangana unreachable, no open list found (attempts logged in docs/data/ELECTORS_AND_STATIONS.md). Needs an operator-supplied list and terms check. Groundwork 2026-11-24: draft request letter, RTI and field-survey routes in docs/decisions/S-91-polling-station-request.md and a header-only CSV template; nothing sent, no data loaded."
+      "notes": "NARROWED to what is built (owner decision 2026-11-24): schema, validator, legal guard that rejects any voter-level column or value, importer, API route, header-only CSV template, and a draft request letter with RTI, partner and field-survey routes (docs/decisions/S-91-polling-station-request.md). NOT done: no polling-station data is loaded, no request has been sent, no reuse terms obtained. CEO AP forbids crawling, CEO Telangana unreachable, no open list found (docs/data/ELECTORS_AND_STATIONS.md). Loading a station list stays a future item: it needs an operator-supplied list and a terms check."
     },
     {
       "id": "S-92",
