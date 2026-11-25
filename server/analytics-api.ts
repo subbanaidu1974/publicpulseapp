@@ -19,6 +19,7 @@ import { STATES, isElectionType, isStateCode } from "../src/lib/states";
 import type { ElectionType, StateCode } from "../src/lib/states";
 import { candidateTrails, constituencyCompare, incumbencySummary, partyShareCompare, TRAIL_NOTE } from "../src/lib/comparison";
 import { turnoutReport } from "../src/lib/turnout";
+import { partyHistory } from "../src/lib/partyHistory";
 import { comparabilityNotes } from "../src/lib/comparability";
 import type { Datasets } from "./api";
 import { peopleBlackout } from "./people-api";
@@ -149,6 +150,24 @@ export function createAnalyticsRouter(data: Datasets, opts: { baseDir?: string }
       demo: data.demo, state, year, years: both, parties: partyShareCompare(a, l), constituencies: constituencyCompare(a, l, acToPc),
       incumbency: { assembly: incumbencySummary(all(), state, year, "assembly"), ls: incumbencySummary(all(), state, year, "ls") },
       comparability: isHist(state, year, "ls") || isHist(state, year, "assembly") ? "pre-bifurcation" : undefined, notes,
+      source: data.manifest?.elections ?? null,
+    });
+  });
+
+  /* ---- S-195 parties: every party's seats, votes and vote share in each election held in the dataset ---- */
+  router.get("/analytics/parties/:state", (req, res) => {
+    const state = state_(req.params.state);
+    if (!state) return bad(res, 404, "Unknown state. Valid: AP, TG", "unknown_state");
+    const rows = all().filter(r => r.state === state);
+    if (!rows.length) return bad(res, 404, `No election data for ${state}`, "no_data");
+    res.set("Cache-Control", "public, max-age=300");
+    res.json({
+      demo: data.demo, ...partyHistory(all(), state),
+      notes: [
+        "Seats are seats won; share is of all votes polled in that election, NOTA included. A party with no row for an election did not stand in it.",
+        "Alliances differ between elections, so a party's share can move because of an alliance arrangement and not only because of voters.",
+        "Elections before 2014 in the pre-bifurcation history are mapped onto today's AP and TG seats and are not like-for-like with later ones.",
+      ],
       source: data.manifest?.elections ?? null,
     });
   });

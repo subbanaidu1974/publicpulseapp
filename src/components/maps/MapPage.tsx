@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../../api/client";
 import { useApi } from "../../api/useApi";
 import { fetchCensusDistricts, fetchGeo, fetchIssueTotals, fetchTeNames, fetchAcDetail, type GeoFeature, type TeNames } from "../../api/geo";
-import { defaultYear, useStateCtx } from "../../state/StateContext";
+import { useElectionYears, useStateCtx } from "../../state/StateContext";
 import { useT, type Key } from "../../i18n";
 import { ErrorBanner, Loading } from "../ui";
 import GeoMap from "./GeoMap";
@@ -64,8 +64,8 @@ export default function MapPage({ theme }: { theme: Theme }) {
   }, [state]);
 
   const go = useCallback((r: MapRoute) => { setActive(null); setRoute(r); writeHash(r); }, []);
-  const year = defaultYear(state, "assembly");
-  const lsYear = defaultYear(state, "ls");
+  const year = useElectionYears(state, "assembly")[0];
+  const lsYear = useElectionYears(state, "ls")[0];
 
   /* ---- data ---- */
   const acGeo = useApi(() => fetchGeo(state, "ac"), [state]);

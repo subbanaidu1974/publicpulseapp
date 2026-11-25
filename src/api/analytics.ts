@@ -3,9 +3,11 @@ import { useApi } from "./useApi";
 import type { SeatTurnout, TurnoutTotals, DistrictTurnout, SexSummary } from "../lib/turnout";
 import type { PartyCompareRow, PcCompareRow, IncumbencySummary, CandidateTrail } from "../lib/comparison";
 import type { StateCode, ElectionType } from "../lib/states";
+import type { PartyHistory } from "../lib/partyHistory";
 import { reportShed, shedFrom } from "../lib/degraded";
 
 /** Typed client for the analytics endpoints (server/analytics-api.ts). */
+export type PartiesResponse = PartyHistory & { demo: boolean; notes: string[]; source: SourceEnv | null };
 export interface SourceEnv { dataset: string; provenance: string; urls: string[]; licences: string[]; attribution: string; asOf: string | null }
 
 export interface TurnoutResponse {
@@ -55,6 +57,7 @@ export const analytics = {
   turnout: (state: StateCode, year: number | undefined, type: ElectionType) => get<TurnoutResponse>(`/elections/${state}/turnout`, { year, type }),
   compare: (state: StateCode, year?: number) => get<CompareResponse>(`/analytics/compare/${state}`, { year }),
   trails: (state: StateCode, type: ElectionType, q: string) => get<TrailsResponse>(`/analytics/candidates/${state}`, { type, q }),
+  parties: (state: StateCode) => get<PartiesResponse>(`/analytics/parties/${state}`),
   history: (state: StateCode) => get<HistoryResponse>(`/history/${state}`),
   byelections: (p: { state?: StateCode; type?: ElectionType; acNo?: number }) => get<ByElectionsResponse>("/byelections", p),
   partySwitches: (p: { state?: StateCode; name?: string; acNo?: number; type?: ElectionType }) => get<PartySwitchesResponse>("/party-switches", p),

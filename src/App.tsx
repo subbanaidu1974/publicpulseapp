@@ -20,7 +20,7 @@ import SurveyPage from "./components/pages/SurveyPage";
 import MethodologyPage from "./components/pages/MethodologyPage";
 import AdminPage from "./components/pages/AdminPage";
 import { PrivacyPage, TermsPage, WhoSeesPage } from "./components/pages/LegalPages";
-import { StateProvider, useStateCtx, defaultYear } from "./state/StateContext";
+import { StateProvider, useStateCtx, useElectionYears } from "./state/StateContext";
 import { LangProvider, useT } from "./i18n";
 import ProfilePage from "./components/profiles/ProfilePage";
 import CountDayPage, { isCountDayHash } from "./components/pages/CountDayPage";
@@ -119,6 +119,7 @@ function AppInner() {
     setCurrentTabRaw(tab);
   };
   const { state: stateCode, config: stateCfg } = useStateCtx();
+  const latestAssemblyYear = useElectionYears(stateCode, "assembly")[0];
   const { t, lang } = useT();
 
   useEffect(() => {
@@ -147,7 +148,7 @@ function AppInner() {
         {currentTab === "analytics" && (anRoute ? <AnalyticsRoot /> : <><AnalyticsLinks /><AnalyticsPage /></>)}
         {currentTab === "elections" && <ElectionsPage />}
         {currentTab === "civic" && <CivicHome />}
-        {currentTab === "constituencies" && <><ConstituencySearch year={defaultYear(stateCode, "assembly")} type="assembly" /><PlaceSearch /></>}
+        {currentTab === "constituencies" && <><ConstituencySearch year={latestAssemblyYear} type="assembly" /><PlaceSearch /></>}
         {currentTab === "survey" && <SurveyPage />}
         {currentTab === "methodology" && <MethodologyPage />}
         {currentTab === "faq" && <FAQPage />}

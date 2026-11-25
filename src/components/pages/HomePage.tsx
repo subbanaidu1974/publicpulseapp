@@ -1,6 +1,6 @@
 import { api } from "../../api/client";
 import { useApi } from "../../api/useApi";
-import { defaultYear, useStateCtx } from "../../state/StateContext";
+import { useElectionYears, useStateCtx } from "../../state/StateContext";
 import { useT } from "../../i18n";
 import HomeMap from "../HomeMap";
 import { DemoBadge, ErrorBanner, Loading } from "../ui";
@@ -11,7 +11,7 @@ const go = (tab: string) => window.dispatchEvent(new CustomEvent("pp-nav", { det
 export default function HomePage({ theme }: { theme: Theme }) {
   const { state, config } = useStateCtx();
   const { t, lang } = useT();
-  const year = defaultYear(state, "assembly");
+  const year = useElectionYears(state, "assembly")[0];
   const summary = useApi(() => api.summary(state, year, "assembly"), [state, year]);
   const marginal = useApi(() => api.marginal(state, year, "assembly", 2), [state, year]);
   const top = summary.data ? Object.entries(summary.data.tally).sort((a, b) => b[1] - a[1])[0] : undefined;

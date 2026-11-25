@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api } from "../../api/client";
 import { useApi } from "../../api/useApi";
-import { ELECTION_YEARS, useStateCtx } from "../../state/StateContext";
+import { useElectionYears, useStateCtx } from "../../state/StateContext";
 import { ElectionType } from "../../lib/states";
 import { useT } from "../../i18n";
 import { Bar, DemoBadge, ErrorBanner, fmt, Loading, partyColor } from "../ui";
@@ -13,7 +13,7 @@ export default function AnalyticsPage() {
   const { state, config } = useStateCtx();
   const { t, lang } = useT();
   const type: ElectionType = "assembly";
-  const years = ELECTION_YEARS[state][type];
+  const years = useElectionYears(state, type);
   const [yearSel, setYearSel] = useState<number | null>(null);
   const year = yearSel && years.includes(yearSel) ? yearSel : years[0];
   const prev = years.find((y) => y < year);

@@ -3,7 +3,7 @@ import { api } from "../api/client";
 import { fetchGeo, type GeoFeature } from "../api/geo";
 import { useApi } from "../api/useApi";
 import { StateCode } from "../lib/states";
-import { defaultYear } from "../state/StateContext";
+import { useElectionYears } from "../state/StateContext";
 import { useT } from "../i18n";
 import GeoMap from "./maps/GeoMap";
 import { NO_DATA, districtTally, leader, partyInfo } from "./maps/mapModel";
@@ -14,7 +14,7 @@ type Theme = "beige" | "dark" | "dark-beige" | "earth-yellow";
 export default function HomeMap({ theme, state }: { theme: Theme; state: StateCode }) {
   const { t } = useT();
   const dark = theme === "dark" || theme === "dark-beige";
-  const year = defaultYear(state, "assembly");
+  const year = useElectionYears(state, "assembly")[0];
   const dist = useApi(() => fetchGeo(state, "district"), [state]);
   const ac = useApi(() => fetchGeo(state, "ac"), [state]);
   const seats = useApi(() => api.seats(state, year, "assembly"), [state, year]);
