@@ -42,7 +42,7 @@ const SCALE5 = [
 ];
 
 interface Opt { label_en: string; label_te: string | null; prefer_not: boolean }
-interface Q { kind: "single" | "multi" | "scale5"; text_en: string; text_te: string | null; max_select: number; options: Opt[] }
+interface Q { kind: "single" | "multi" | "scale5"; text_en: string; text_te: string | null; max_select: number; min_select?: number; options: Opt[] }
 interface PollRow { id: string; title_en: string; title_te: string | null; intro_en: string | null; intro_te: string | null; questions_json: string; status: string; opened_at: string; closes_at: string | null; closed_at: string | null }
 
 const str = (v: unknown): string => (typeof v === "string" ? v.normalize("NFKC").trim() : "");
@@ -87,13 +87,18 @@ function parseQuestions(raw: unknown): Q[] {
       if (!Number.isInteger(n) || n < 1 || n > options.length - 1) throw new Bad("bad_max_select", `question ${i + 1}: maximum choices must be a whole number from 1 to ${options.length - 1}`);
     }
     const max = kind === "multi" ? Math.min(Math.max(Number(x.max_select) || options.length - 1, 1), options.length - 1) : 1;
-    return { kind, text_en, text_te, max_select: max, options };
+    let min = 1;
+    if (kind === "multi" && x.min_select !== undefined && x.min_select !== null && x.min_select !== "") {
+      min = Number(x.min_select);
+      if (!Number.isInteger(min) || min < 1 || min > max) throw new Bad("bad_min_select", `question ${i + 1}: minimum choices must be a whole number from 1 to the maximum (${max})`);
+    }
+    return { kind, text_en, text_te, max_select: max, min_select: min, options };
   });
 }
 
 const pollPublic = (p: PollRow) => ({
   id: p.id, title_en: p.title_en, title_te: p.title_te, intro_en: p.intro_en, intro_te: p.intro_te, opened_at: p.opened_at, closes_at: p.closes_at,
-  questions: (JSON.parse(p.questions_json) as Q[]).map((q) => ({ kind: q.kind, text_en: q.text_en, text_te: q.text_te, max_select: q.max_select, options: q.options })), ...NOTE,
+  questions: (JSON.parse(p.questions_json) as Q[]).map((q) => ({ kind: q.kind, text_en: q.text_en, text_te: q.text_te, max_select: q.max_select, min_select: q.min_select ?? 1, options: q.options })), ...NOTE,
 });
 
 /** Closes polls whose end time passed (called on every read, so no job is needed). */
@@ -156,6 +161,7 @@ export function answerPoll(personId: string, pollId: string, answers: unknown, n
     if (idx.some((n) => !Number.isInteger(n) || n < 0 || n >= q.options.length)) throw new Bad("bad_option", `question ${i + 1}: unknown option`);
     const prefer = idx.some((n) => q.options[n].prefer_not);
     if (prefer && idx.length > 1) throw new Bad("bad_option", `question ${i + 1}: "prefer not to say" cannot be combined`);
+    if (!prefer && idx.length < (q.min_select ?? 1)) throw new Bad("bad_option", `question ${i + 1}: choose at least ${q.min_select}`);
     if (idx.length > q.max_select) throw new Bad("bad_option", `question ${i + 1}: choose at most ${q.max_select}`);
     return idx;
   });
