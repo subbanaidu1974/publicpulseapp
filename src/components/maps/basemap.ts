@@ -50,13 +50,16 @@ export async function addBasemap(map: L.Map, dark: boolean, lang: "en" | "te"): 
  * and, when zoomed in, villages (S-193, LGD names). Towns are placed first and a label that would overlap one already placed is skipped.
  * Returns null when no list can be loaded (the map then simply has no names).
  */
+/** Rough bounding box of each state, to know which village file the current view needs. */
+const STATE_BOX = { AP: L.latLngBounds([12.6, 76.7], [19.95, 84.8]), TG: L.latLngBounds([15.8, 77.2], [19.95, 81.4]) } as const;
+
 export async function addTeluguPlaces(map: L.Map): Promise<L.Layer | null> {
   try {
     const states = ["AP", "TG"] as const;
     const towns = (await Promise.all(states.map((s) => fetchPlaces(s)))).flat() as PlaceName[];
     if (!towns.length) return null;
     // villages are loaded only when the map is first zoomed in far enough; a failure there never removes the town names
-    let villages: VillageLabel[] | null = null, loading = false;
+    const loaded = new Map<string, VillageLabel[]>(), loading = new Set<string>();
     const group = L.layerGroup();
     const put = (text: string, lat: number, lng: number, cls: string) =>
       L.marker([lat, lng], { interactive: false, keyboard: false, icon: L.divIcon({ className: cls, html: "", iconSize: [0, 0] }) })
@@ -75,15 +78,19 @@ export async function addTeluguPlaces(map: L.Map): Promise<L.Layer | null> {
         put(p.te, p.lat, p.lon, "pp-place-label");
       }
       if (zoom >= VILLAGE_ZOOM) {
-        if (!villages && !loading) {
-          loading = true;
-          void Promise.all(states.map((s) => fetchVillageLabels(s))).then((v) => { villages = v.flat(); draw(); }).catch(() => { villages = []; });
+        // each state's village file (up to ~1 MB) is fetched only once the view overlaps that state, and only once
+        for (const st of states) {
+          if (loaded.has(st) || loading.has(st) || !box.intersects(STATE_BOX[st])) continue;
+          loading.add(st);
+          void fetchVillageLabels(st).then((v) => { loaded.set(st, v); draw(); }).catch(() => { loaded.set(st, []); });
         }
         let n = 0;
-        for (const v of villages ?? []) {
-          if (n >= MAX_VILLAGE_LABELS) break;
-          if (!box.contains([v.lat, v.lon]) || !free(v.lat, v.lon, 80)) continue;
-          put(v.te, v.lat, v.lon, "pp-place-label pp-village-label"); n++;
+        for (const st of states) {
+          for (const v of loaded.get(st) ?? []) {
+            if (n >= MAX_VILLAGE_LABELS) break;
+            if (!box.contains([v.lat, v.lon]) || !free(v.lat, v.lon, 80)) continue;
+            put(v.te, v.lat, v.lon, "pp-place-label pp-village-label"); n++;
+          }
         }
       }
     };

@@ -490,9 +490,9 @@
     {
       "id": "geo-village-labels-ap",
       "path": "data/generated/geo/village-labels-AP.json",
-      "bytes": 3790,
-      "sha256": "d5fbf2bb88760d804dcbbfa1e01439a0bdc95ae3930b47d14be323b281a1a3a9",
-      "rows": 59,
+      "bytes": 854555,
+      "sha256": "87c4d02b318a4681c059a7caf159d0bc77b64aacccd51f61e69856e7ec67675c",
+      "rows": 15678,
       "asOf": "2026-11-22",
       "provenance": "unknown",
       "demo": false,
@@ -507,13 +507,13 @@
         "lgd-public",
         "project-derived"
       ],
-      "attribution": "Telugu village names for the map: LGD directory; locations Wikidata (CC0) and (c) OpenStreetMap contributors, ODbL."
+      "attribution": "Telugu village names for the map: LGD directory and Wikidata (CC0); locations Wikidata (CC0) and (c) OpenStreetMap contributors, ODbL."
     },
     {
       "id": "geo-village-labels-tg",
       "path": "data/generated/geo/village-labels-TG.json",
-      "bytes": 222005,
-      "sha256": "579768b5a71dfaa14a37b7b29fbf644e5875e0dc3204ce0ce013710235cab840",
+      "bytes": 222134,
+      "sha256": "d4e69f800cac77ce547c39b978a336a3c4df63c499c7bcf1277876409a529774",
       "rows": 4193,
       "asOf": "2026-11-22",
       "provenance": "unknown",
@@ -529,7 +529,24 @@
         "lgd-public",
         "project-derived"
       ],
-      "attribution": "Telugu village names for the map: LGD directory; locations Wikidata (CC0) and (c) OpenStreetMap contributors, ODbL."
+      "attribution": "Telugu village names for the map: LGD directory and Wikidata (CC0); locations Wikidata (CC0) and (c) OpenStreetMap contributors, ODbL."
+    },
+    {
+      "id": "geo-village-names-te-ap",
+      "path": "data/generated/geo/village-names-te-AP.json",
+      "bytes": 1052866,
+      "sha256": "5e9fb5bbac7a7ed76571fa10ea521ac5285ad422a10d8f0f95c174d40daec72f",
+      "rows": 8,
+      "asOf": "2026-11-25",
+      "provenance": "unknown",
+      "demo": false,
+      "sources": [
+        "https://www.wikidata.org/"
+      ],
+      "licences": [
+        "wikidata-cc0"
+      ],
+      "attribution": "Telugu village names for Andhra Pradesh: Wikidata (CC0), matched by Census 2011 code."
     },
     {
       "id": "geo-village-points-coverage",

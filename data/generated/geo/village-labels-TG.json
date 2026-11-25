@@ -3,7 +3,7 @@
 "state":"TG",
 "asOf":"2026-11-22",
 "licence":"LGD public directory names; locations Wikidata CC0 and OpenStreetMap contributors ODbL 1.0",
-"note":"Villages that have BOTH a Telugu name in the LGD directory AND a location point (395 from the Wikidata layer, 3798 from the OpenStreetMap layer). 11365 of 11447 LGD villages have a Telugu name; 0 located points had none and were left out. Names are as LGD holds them. Locations are approximate place points, not boundaries.",
+"note":"Villages that have BOTH a Telugu name (from the LGD directory, or from Wikidata where the directory has none) AND a location point (395 from the Wikidata layer, 3798 from the OpenStreetMap layer). 11365 of 11447 LGD villages have a Telugu name in the directory; 0 located points had none and 0 shared a place point with a same-named village, and were left out. Names are as the source holds them. Locations are approximate place points, not boundaries.",
 "columns":[
 "te",
 "lon",

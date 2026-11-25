@@ -138,6 +138,24 @@ test.describe("maps: choropleth (S-96)", () => {
     expect(await villages.count()).toBeLessThanOrEqual(400);
   });
 
+  test("@E2E-111 Andhra Pradesh village names are served and shown when zoomed in over Andhra Pradesh, loading only that state's file (S-196)", async ({ page, request }) => {
+    const installed = (await request.head("/basemap/ap-tg.pmtiles")).ok();
+    expect((await (await request.get("/api/v1/geo/AP/village-labels.json")).json()).villages.length).toBeGreaterThan(10000);
+    test.skip(!installed, "needs the background tile file");
+    const files: string[] = [];
+    page.on("request", (r) => { if (/village-labels/.test(r.url())) files.push(new URL(r.url()).pathname); });
+    await page.addInitScript(() => { try { localStorage.setItem("pp-lang", "te"); } catch { /* ignore */ } });
+    await open(page, "#/map/AP", "AP");
+    await page.waitForTimeout(1200);
+    expect(files).toEqual([]); // zoomed out: nothing is fetched
+    const zoomIn = page.locator("[data-testid=geo-map] .leaflet-control-zoom-in");
+    for (let i = 0; i < 4; i++) { await zoomIn.click(); await page.waitForTimeout(500); }
+    const villages = page.locator("[data-testid=geo-map] .pp-village-label span");
+    await expect(villages.first()).toBeAttached({ timeout: 15_000 });
+    for (const t of await villages.allTextContents()) expect(t).toMatch(/[ఀ-౿]/);
+    expect(files).toContain("/api/v1/geo/AP/village-labels.json");
+  });
+
   test("@E2E-111 in English no Telugu town labels are added (the tiles' own English names are used) (S-192)", async ({ page }) => {
     await page.addInitScript(() => { try { localStorage.setItem("pp-lang", "en"); } catch { /* ignore */ } });
     await open(page);

@@ -57,8 +57,11 @@ When zoomed in (about district level and closer) the Telugu interface also label
 - `data/generated/geo/village-labels-AP.json` and `village-labels-TG.json`, served at `GET /api/v1/geo/:state/village-labels.json`.
   Built offline (no download) by `npm run pipeline:village-labels` from the village location points (Wikidata CC0, then OpenStreetMap ODbL for
   the rest) joined to the Telugu names the LGD directory holds. Names are shown exactly as LGD has them (a few carry tags such as "- టి").
-- **Coverage is very uneven.** Telangana: 4,193 villages (LGD has Telugu names for 11,365 of 11,447, but only about 4,200 have a location point).
-  Andhra Pradesh: 59 only, because LGD holds Telugu names for just 372 of 17,957 AP villages. Zoomed in over AP the map is almost without village
-  names. Filling that needs another Telugu name source (for example OpenStreetMap `name:te` or Wikidata) and would be a separate download.
+- **Coverage** (S-196 raised Andhra Pradesh from 59 to about 15,700): Telangana 4,193 villages (LGD has Telugu names for 11,365 of 11,447, but
+  only about 4,200 have a location point). Andhra Pradesh about 15,700: LGD holds Telugu names for just 372 of 17,957 AP villages, so the rest come
+  from Wikidata (CC0), matched to the LGD village by Census 2011 code (`data/generated/geo/village-names-te-AP.json`, refreshed with
+  `npm run pipeline:village-names-te`, one request to query.wikidata.org). LGD's own name always wins where it has one. Wikidata names have not
+  been checked by a Telugu reader, and a few places can carry a label that is a different spelling from the local one.
+- Each state's file (Andhra Pradesh about 0.85 MB) is fetched only when the zoomed-in view overlaps that state.
 - Labels are placed on a coarse pixel grid so they do not pile up (at most 400 at once), towns first. Locations are approximate place points,
   so a label can sit a little off the real village. English never shows village labels.
