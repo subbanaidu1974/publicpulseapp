@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "asOf": "2026-11-22",
+  "asOf": "2026-11-25",
   "note": "Raster copies (160 px wide) of Wikimedia Commons party flags/symbols whose licence was re-verified by the Commons API when fetched. 'identification-only' files are captioned 'shown to identify the party'. Rejected files fall back to a text chip.",
   "rejected": [],
   "entries": {
@@ -18,7 +18,23 @@
       "source": "https://commons.wikimedia.org/wiki/File:Telugu_Desam_Party_Flag_2024.png",
       "use": "decorative",
       "restrictions": null,
-      "verified": "2026-11-22"
+      "verified": "2026-11-25"
+    },
+    "YSRCP-symbol": {
+      "code": "YSRCP",
+      "kind": "symbol",
+      "path": "/party/YSRCP-symbol.jpg",
+      "bytes": 15519,
+      "sha256": "15fc136ebf301f42e83e680083c7c09361982f6b518c74464785434aa0fe343d",
+      "commonsFile": "YSRCPLOGO.jpg",
+      "author": "Veekthedragon",
+      "licence": "CC BY-SA",
+      "licenceName": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source": "https://commons.wikimedia.org/wiki/File:YSRCPLOGO.jpg",
+      "use": "identification-only",
+      "restrictions": "party logo",
+      "verified": "2026-11-25"
     },
     "JSP-flag": {
       "code": "JSP",
@@ -34,7 +50,7 @@
       "source": "https://commons.wikimedia.org/wiki/File:Janasena_Party_Flag.png",
       "use": "decorative",
       "restrictions": null,
-      "verified": "2026-11-22"
+      "verified": "2026-11-25"
     },
     "BRS-flag": {
       "code": "BRS",
@@ -50,7 +66,7 @@
       "source": "https://commons.wikimedia.org/wiki/File:Flag_of_Bharat_Rashtra_Samithi_(India_Nation_Council).svg",
       "use": "decorative",
       "restrictions": null,
-      "verified": "2026-11-22"
+      "verified": "2026-11-25"
     },
     "INC-flag": {
       "code": "INC",
@@ -66,7 +82,7 @@
       "source": "https://commons.wikimedia.org/wiki/File:INC_Flag_Official.jpg",
       "use": "identification-only",
       "restrictions": "insignia",
-      "verified": "2026-11-22"
+      "verified": "2026-11-25"
     },
     "INC-symbol": {
       "code": "INC",
@@ -82,7 +98,7 @@
       "source": "https://commons.wikimedia.org/wiki/File:Indian_National_Congress_hand_logo.svg",
       "use": "identification-only",
       "restrictions": "insignia",
-      "verified": "2026-11-22"
+      "verified": "2026-11-25"
     },
     "BJP-flag": {
       "code": "BJP",
@@ -98,7 +114,7 @@
       "source": "https://commons.wikimedia.org/wiki/File:BJP_Flag.svg",
       "use": "decorative",
       "restrictions": null,
-      "verified": "2026-11-22"
+      "verified": "2026-11-25"
     },
     "AIMIM-flag": {
       "code": "AIMIM",
@@ -114,7 +130,7 @@
       "source": "https://commons.wikimedia.org/wiki/File:AIMIM_FLAG.png",
       "use": "decorative",
       "restrictions": null,
-      "verified": "2026-11-22"
+      "verified": "2026-11-25"
     },
     "CPM-symbol": {
       "code": "CPM",
@@ -130,7 +146,7 @@
       "source": "https://commons.wikimedia.org/wiki/File:Cpm_election_symbol.svg",
       "use": "identification-only",
       "restrictions": "communist symbol",
-      "verified": "2026-11-22"
+      "verified": "2026-11-25"
     },
     "CPI-flag": {
       "code": "CPI",
@@ -146,7 +162,7 @@
       "source": "https://commons.wikimedia.org/wiki/File:CPI-banner.svg",
       "use": "identification-only",
       "restrictions": "communist insignia",
-      "verified": "2026-11-22"
+      "verified": "2026-11-25"
     },
     "BSP-flag": {
       "code": "BSP",
@@ -162,7 +178,39 @@
       "source": "https://commons.wikimedia.org/wiki/File:BSP_flag.png",
       "use": "decorative",
       "restrictions": null,
-      "verified": "2026-11-22"
+      "verified": "2026-11-25"
+    },
+    "AAP-flag": {
+      "code": "AAP",
+      "kind": "flag",
+      "path": "/party/AAP-flag.png",
+      "bytes": 17310,
+      "sha256": "a7355c967d4fc515d73a98f0604d4ad0dbd9d69d4507bf467e94a2ba339a768d",
+      "commonsFile": "AAP English Flag.svg",
+      "author": "Ngagnebin",
+      "licence": "CC BY-SA",
+      "licenceName": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source": "https://commons.wikimedia.org/wiki/File:AAP_English_Flag.svg",
+      "use": "decorative",
+      "restrictions": null,
+      "verified": "2026-11-25"
+    },
+    "TJS-flag": {
+      "code": "TJS",
+      "kind": "flag",
+      "path": "/party/TJS-flag.jpg",
+      "bytes": 7541,
+      "sha256": "386203d1a77670364361858c308209141ce5d81a93553defe48aebd8915a3c13",
+      "commonsFile": "TJS.jpg",
+      "author": "K dileep chowdary",
+      "licence": "CC BY-SA",
+      "licenceName": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source": "https://commons.wikimedia.org/wiki/File:TJS.jpg",
+      "use": "decorative",
+      "restrictions": null,
+      "verified": "2026-11-25"
     }
   }
 }

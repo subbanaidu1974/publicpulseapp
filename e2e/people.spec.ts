@@ -9,9 +9,9 @@ test("@E2E-119 party chip shows a licensed flag with credit, a caption for ident
   await expect(page.getByTestId("identonly-caption").first()).toContainText(/identify the party/i);
   await expect(page.getByTestId("party-media-flag")).toBeVisible();
   await page.goto("/#/people/party/YSRCP");
-  // no free file exists for YSRCP: neutral text, no image
-  await expect(page.getByTestId("party-nomedia")).toBeVisible();
-  await expect(page.getByTestId("party-media-flag")).toHaveCount(0);
+  // YSRCP has a logo (no flag) under a free licence since 2026-11-25: shown to identify the party, with credit
+  await expect(page.getByTestId("party-media-symbol").first()).toBeVisible();
+  await expect(page.getByTestId("identonly-caption").first()).toContainText(/identify the party/i);
   // home list: TDP chip has an image with a credit popover
   await page.goto("/#/people");
   const chip = page.getByTestId("party-list").getByTestId("party-chip-TDP");
