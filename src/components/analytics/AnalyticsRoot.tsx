@@ -4,9 +4,10 @@ import { analyticsHref } from "./common";
 import TurnoutPage from "./TurnoutPage";
 import ComparePage from "./ComparePage";
 import HistoryPage from "./HistoryPage";
+import PartiesPage from "./PartiesPage";
 
-export const isAnalyticsHash = (hash: string) => /^#\/analytics\/(turnout|compare|history)\/?$/.test(hash);
-const parse = (hash: string) => (/^#\/analytics\/([a-z]+)/.exec(hash)?.[1] ?? "turnout") as "turnout" | "compare" | "history";
+export const isAnalyticsHash = (hash: string) => /^#\/analytics\/(turnout|compare|history|parties)\/?$/.test(hash);
+const parse = (hash: string) => (/^#\/analytics\/([a-z]+)/.exec(hash)?.[1] ?? "turnout") as "turnout" | "compare" | "history" | "parties";
 
 /** Quiet link strip placed above the legacy analytics page so the new pages are reachable without typing a hash. */
 export function AnalyticsLinks() {
@@ -18,12 +19,13 @@ export function AnalyticsLinks() {
         <li><a className="underline inline-block py-1" data-testid="link-turnout" href={analyticsHref("turnout")}>{a("an2.link.turnout")}</a></li>
         <li><a className="underline inline-block py-1" data-testid="link-compare" href={analyticsHref("compare")}>{a("an2.link.compare")}</a></li>
         <li><a className="underline inline-block py-1" data-testid="link-history" href={analyticsHref("history")}>{a("an2.link.history")}</a></li>
+        <li><a className="underline inline-block py-1" data-testid="link-parties" href={analyticsHref("parties")}>{a("an2.link.parties")}</a></li>
       </ul>
     </nav>
   );
 }
 
-/** Hash-routed container: #/analytics/turnout, #/analytics/compare, #/analytics/history. */
+/** Hash-routed container: #/analytics/turnout, compare, history and parties. */
 export default function AnalyticsRoot() {
   const { a } = useAT();
   const [page, setPage] = useState(() => parse(window.location.hash));
@@ -32,7 +34,7 @@ export default function AnalyticsRoot() {
     window.addEventListener("hashchange", on);
     return () => window.removeEventListener("hashchange", on);
   }, []);
-  const tabs = [["turnout", "an2.nav.turnout"], ["compare", "an2.nav.compare"], ["history", "an2.nav.history"]] as const;
+  const tabs = [["turnout", "an2.nav.turnout"], ["compare", "an2.nav.compare"], ["history", "an2.nav.history"], ["parties", "an2.nav.parties"]] as const;
   return (
     <div className="space-y-6" data-testid="analytics-root">
       <header className="border-b border-black pb-3 space-y-2 font-sans">
@@ -49,6 +51,7 @@ export default function AnalyticsRoot() {
       {page === "turnout" && <TurnoutPage />}
       {page === "compare" && <ComparePage />}
       {page === "history" && <HistoryPage />}
+      {page === "parties" && <PartiesPage />}
     </div>
   );
 }

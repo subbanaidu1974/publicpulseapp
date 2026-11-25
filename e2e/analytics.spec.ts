@@ -111,3 +111,33 @@ test("@E2E-135 analytics pages fit a 375px screen without sideways page scroll",
     expect(over).toBeLessThanOrEqual(1);
   }
 });
+
+test.describe('parties page (S-195)', () => {
+  test('@E2E-203 every party with a seat or 1% of the vote is listed with its seats, votes and share per election, from the data only', async ({ page, request }) => {
+    const api = await request.get('/api/v1/analytics/parties/TG');
+    expect(api.status()).toBe(200);
+    const body = await api.json();
+    expect(body.parties.length).toBeGreaterThan(3);
+    const brs = body.parties.find((p: { code: string }) => p.code === 'BRS');
+    expect(brs.rows.map((r: { year: number; type: string }) => `${r.year}-${r.type}`)).toEqual(expect.arrayContaining(['2014-assembly', '2018-assembly', '2023-assembly']));
+    expect(body.parties.find((p: { code: string }) => p.code === 'NOTA')).toBeUndefined();
+    expect((await request.get('/api/v1/analytics/parties/XX')).status()).toBe(404);
+
+    await page.goto('/?state=TG#/analytics/parties');
+    await expect(page.getByTestId('parties-page')).toBeVisible();
+    const card = page.locator('[data-testid=party-card][data-party=INC]');
+    await expect(card).toBeVisible();
+    await expect(card.getByTestId('party-row').first()).toContainText(/\d{4}/);
+    // the 2023 assembly row for INC matches the Elections page tally (64 seats)
+    await expect(card.getByTestId('party-row').filter({ hasText: '2023' }).filter({ hasText: /Assembly/ })).toContainText('64');
+    await expect(page.getByTestId('parties-notes')).toContainText('NOTA');
+  });
+
+  test('@E2E-203 the parties page is reachable from the analytics links and shows Telugu names in Telugu', async ({ page }) => {
+    await page.addInitScript(() => { try { localStorage.setItem('pp-lang', 'te'); } catch { /* ignore */ } });
+    await page.goto('/?state=AP#/analytics/parties');
+    await expect(page.getByTestId('parties-page')).toBeVisible();
+    await expect(page.getByTestId('an-nav-parties')).toContainText('పార్టీలు');
+    await expect(page.locator('[data-testid=party-card]').first()).toContainText(/[\u0C00-\u0C7F]/);
+  });
+});
