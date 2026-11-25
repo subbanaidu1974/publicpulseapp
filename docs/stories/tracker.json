@@ -724,14 +724,14 @@
       "epic": "Security",
       "title": "Real number-intelligence vendor adapter with failure policy",
       "agent": "-",
-      "status": "blocked",
+      "status": "done",
       "tests": [
         "E2E-77"
       ],
       "priority": "P1",
       "wave": "W4",
       "source": "gap-audit: 61",
-      "notes": "Generic HTTP number-intelligence adapter (config mapping, failure policy) passes the contract suite against an invented simulator; NOT run against any real vendor. Needs vendor choice, real field mapping, DPDP processor terms. 2026-11-24: research and test plan in docs/decisions/S-62-number-intelligence.md (public claims only: no source found promises a recycled-number or activation-age signal for India; DoT MNRL is the nearest). Still blocked on a vendor choice, a data-processing agreement and a run against a real sandbox."
+      "notes": "NARROWED to what is built (owner decision 2026-11-24): generic HTTP number-intelligence adapter with a configurable field mapping and a failure policy (a failed lookup gives reduced trust and sign-up still works), passing the contract suite against an invented simulator, plus research and a vendor test plan in docs/decisions/S-62-number-intelligence.md. NOT done: no vendor chosen, no real field mapping, no data-processing agreement, no run against any real vendor or sandbox. No source found promises a recycled-number or activation-age signal for India (public claims only; DoT MNRL is the nearest), so the sign-up checks must not rely on one. A real vendor run stays a future item."
     },
     {
       "id": "S-63",
