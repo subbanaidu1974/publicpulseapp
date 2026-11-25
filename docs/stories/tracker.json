@@ -537,14 +537,15 @@
     {
       "id": "S-48",
       "epic": "Quality",
-      "title": "Threat model, independent red-team and pilot skew evaluation as release gates (checklist)",
+      "title": "Threat model, red-team scope, pilot skew tooling and release-gate checklist (tooling and evidence packs built; the gate itself is a launch blocker tracked in docs/RELEASE_GATE.md)",
       "agent": "D",
-      "status": "in_progress",
+      "status": "done",
       "tests": [
-        "E2E-58"
+        "E2E-80",
+        "E2E-168"
       ],
       "phase": "2028-P1",
-      "notes": "Internal self-assessment pack built (docs/gate/evidence: npm audit now 0 findings, secrets/PII scan, a11y sweep 112/112, red-team self-assessment with 26 new tests, crypto review pack, smoke-scale capacity). All labelled NOT independent. Still needs the independent red-team, pilot skew report, independent crypto review (the official RFC 9474 A.1 vector now passes on server and browser code, tests/civic/surveys/rfc9474.test.ts; the review itself is still outstanding), sign-off and two approvers. Known-flaky e2e specs (issue-feed pagination, scope small cells, notify admin, officer console) were root-caused and fixed; stable under workers=2 with Vite HMR disabled (now set in playwright.config.ts)."
+      "notes": "SCOPE NARROWED by the owner on 2026-11-24 to what is built: threat model, red-team scope, pilot skew tool, internal evidence pack (npm audit 0 findings, secrets/PII scan, a11y sweep 112/112, red-team self-assessment, crypto review pack with the official RFC 9474 A.1 vector passing, smoke-scale capacity), commissioning pack and briefs. DONE here does NOT mean the release gate is passed: 0 of 18 rows are signed off and release stays BLOCKED (npm run gate:status). Still needed from people and tracked in docs/RELEASE_GATE.md and docs/gate/COMMISSIONING_PACK.md: independent red-team, independent crypto review, pilot skew report, owners, dates and two approvers (one independent). Tests for the narrowed scope are E2E-80 (threat-model and gate reconciliation) and E2E-168 (gate tooling). E2E-58, the manual evidence checklist, is deliberately not automated and stays open as the launch gate in docs/RELEASE_GATE.md."
     },
     {
       "id": "S-49",
@@ -1941,14 +1942,14 @@
       "epic": "Compliance",
       "title": "Release gate owners, dates and evidence collection; red-team and pilot skew evaluation scheduled",
       "agent": "-",
-      "status": "in_progress",
+      "status": "done",
       "tests": [
         "E2E-168"
       ],
       "priority": "P0",
       "wave": "W5",
       "source": "gap-audit: 102",
-      "notes": "Tooling plus internal evidence exist (see S-48). All 18 gate rows still need human owners, dates and sign-off; gate:status shows 0 of 18 done, release stays blocked. 2026-11-24: draft plan docs/gate/OWNERS_AND_SCHEDULE.md groups the 18 rows by who can close them (outside specialists, pilot or field measurement, build team plus an outside reviewer), with dependencies and a suggested order. Owners and dates are still blank by design. Placeholder owners and dates (PLACEHOLDER-*) were entered in all 18 gate rows at the owner's request; gate:status treats them as NOT set, and the sign-off lines are left blank. Draft pilot-only gate profile (docs/gate/pilot-profile.json, enabled:false by default, 12 required rows and 6 deferred under stated pilot limits) with gate:status --profile support and fake-data tests; not approved, enabling it is the owner's decision."
+      "notes": "SCOPE NARROWED by the owner on 2026-11-24 to what is built: per-row evidence folders, gate:status tooling (placeholders never count), owner and order plan (docs/gate/OWNERS_AND_SCHEDULE.md), commissioning pack with placeholder roles, and a draft pilot-only profile (docs/gate/pilot-profile.json, off by default). DONE here does NOT mean the gate is passed: 0 of 18 rows are done and release stays BLOCKED. Real owners, dates, evidence and two approvers are launch prerequisites tracked in docs/RELEASE_GATE.md, not in this story."
     },
     {
       "id": "S-154",
