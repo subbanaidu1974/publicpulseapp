@@ -127,4 +127,29 @@ test.describe("profile pages", () => {
     await expect(page.getByTestId("winner-photo")).toHaveCount(0);
     await expect(page.getByTestId("winner-photo-missing")).toContainText(/no free-licence photo/i);
   });
+
+  test("@E2E-207 a person can send a photo for a constituency: it is held for review, refused without consent, and never shown meanwhile", async ({ page, request }) => {
+    const photos = (await (await request.get("/api/v1/photos/index.json")).json()).photos as { state: string; acNo: number }[];
+    const none = Array.from({ length: 119 }, (_, i) => i + 1).find((n) => !photos.some((x) => x.state === "TG" && x.acNo === n))!;
+    await page.goto(`/?state=TG#/constituency/TG/${none}`);
+    const box = page.getByTestId("photo-submit");
+    await expect(box).toBeVisible();
+    await box.locator("summary").click();
+    await expect(box).toContainText(/not shown until a person has checked/i);
+    await expect(box).toContainText(/never shown|kept private/i);
+    // a tiny valid JPEG
+    const jpg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00]), Buffer.from([0xff, 0xda, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3f, 0x00]), Buffer.alloc(300, 7), Buffer.from([0xff, 0xd9])]);
+    await box.locator('input[name="claimedName"]').fill("Test Person");
+    await box.locator('input[name="holder"]').fill("Photo: Test Person");
+    await box.locator('input[name="contact"]').fill("test@example.org");
+    await box.locator('input[name="photo"]').setInputFiles({ name: "p.jpg", mimeType: "image/jpeg", buffer: jpg });
+    await page.getByTestId("photo-submit-send").click();
+    await expect(page.getByTestId("photo-submit-error")).toContainText(/right to give this photo/i); // consent not ticked
+    await box.locator('input[name="consent"]').check();
+    await page.getByTestId("photo-submit-send").click();
+    await expect(page.getByTestId("photo-submit-done")).toContainText(/after a person checks/i);
+    await expect(page.getByTestId("winner-photo")).toHaveCount(0); // pending: not shown
+    const idx = (await (await request.get("/api/v1/photos/index.json")).json()).photos as { origin?: string }[];
+    expect(idx.some((p) => p.origin === "upload")).toBe(false);
+  });
 });

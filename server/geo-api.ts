@@ -28,6 +28,8 @@ import { seatResults } from "../src/lib/elections";
 import type { CandidateResult } from "../src/lib/elections";
 import { STATES, isStateCode } from "../src/lib/states";
 import type { StateCode } from "../src/lib/states";
+import { photoGate } from "./people-api";
+import { approvedUploadPath, approvedUploads } from "./photo-submissions";
 import { splitVotingReport } from "../src/lib/splitvoting";
 import { loadSegments } from "../pipeline/lsmap/segments";
 import { loadRegistry, selectSet, VersionError } from "../pipeline/geo/versions";
@@ -188,22 +190,41 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
     if (!body) return err(res, 404, "no_data", `No place names for ${state}`);
     res.set("Cache-Control", "public, max-age=86400").json(body);
   });
-  // S-198: free-licence winner photos copied to data/generated/photos; only files listed in index.json can be served
+  // S-198/S-199: free-licence photos of winners and party heads, held to the same rules as the people pages: paused during the model
+  // code of conduct period, and a photo takedown hides it at once (keys: <ST>-assembly-<acNo> and leader-<PARTY>).
   const photoDir = path.join(baseDir, "data", "generated", "photos");
+  const winnerKey = (p: Json) => `${p.state}-assembly-${p.acNo}`;
+  const visibleWinners = (): { photos: Json[]; blackout: Record<string, boolean> } => {
+    const gate = photoGate();
+    const blackout = { AP: gate.blackout("AP"), TG: gate.blackout("TG") } as Record<string, boolean>;
+    const commons = (readJson(path.join(photoDir, "index.json"))?.photos as Json[]) ?? [];
+    // S-200: a photo the candidate side supplied and an admin approved replaces the Commons photo for that seat
+    const uploads = approvedUploads() as unknown as Json[];
+    const upSeats = new Set(uploads.map(winnerKey));
+    const all = [...uploads, ...commons.filter((p) => !upSeats.has(winnerKey(p)))];
+    return { blackout, photos: all.filter((p) => !blackout[String(p.state)] && !gate.hidden("photo", winnerKey(p))) };
+  };
+  const visibleLeaders = (): { photos: Json[]; blackout: boolean } => {
+    const gate = photoGate();
+    const blackout = gate.blackout();
+    const all = (readJson(path.join(photoDir, "leaders.json"))?.photos as Json[]) ?? [];
+    return { blackout, photos: blackout ? [] : all.filter((p) => !gate.hidden("photo", `leader-${p.party}`)) };
+  };
   router.get("/photos/index.json", (_req, res) => {
-    const body = readJson(path.join(photoDir, "index.json")) ?? { schema: 1, photos: [] };
-    res.set("Cache-Control", "public, max-age=3600").json(body);
+    const v = visibleWinners();
+    res.set("Cache-Control", "no-store").json({ schema: 1, blackout: v.blackout, photos: v.photos });
   });
-  // S-199: heads of parties, same rules
   router.get("/photos/leaders.json", (_req, res) => {
-    const body = readJson(path.join(photoDir, "leaders.json")) ?? { schema: 1, photos: [] };
-    res.set("Cache-Control", "public, max-age=3600").json(body);
+    const v = visibleLeaders();
+    res.set("Cache-Control", "no-store").json({ schema: 1, blackout: v.blackout, photos: v.photos });
   });
   router.get("/photos/:file", (req, res) => {
     const file = String(req.params.file);
-    const listed = ["index.json", "leaders.json"].some((idx) => ((readJson(path.join(photoDir, idx))?.photos as Json[]) ?? []).some((p) => p.file === file));
-    if (!/^([A-Z]{2}-\d{4}-\d+|leader-[A-Z]{2,6})\.(jpg|jpeg|png|webp)$/.test(file) || !listed) return err(res, 404, "no_photo", "No such photo");
-    res.set("Cache-Control", "public, max-age=86400").sendFile(path.join(photoDir, file));
+    const listed = [...visibleWinners().photos, ...visibleLeaders().photos].some((p) => p.file === file);
+    if (!/^([A-Z]{2}-\d{4}-\d+|leader-[A-Z]{2,6}|upload-ph_[0-9a-f]{16})\.(jpg|jpeg|png|webp)$/.test(file) || !listed) return err(res, 404, "no_photo", "No such photo");
+    const target = file.startsWith("upload-") ? approvedUploadPath(file) : path.join(photoDir, file);
+    if (!target || !fs.existsSync(target)) return err(res, 404, "no_photo", "No such photo");
+    res.set("Cache-Control", "no-store").sendFile(path.resolve(target));
   });
   router.get("/geo/:state/:file(ac|pc|district|mandal).geojson", (req, res) => sendGeojson(req, res));
   function sendGeojson(req: Request, res: Response) {
