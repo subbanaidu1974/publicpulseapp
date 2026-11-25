@@ -125,7 +125,7 @@ Layers: **API** = HTTP-level test (no browser), **UI** = Playwright browser.
 | E2E-108 | API | Per-dataset provenance manifest (source, licence, checksum, asOf) shown on API envelopes | Every API response carries source and asOf |
 | E2E-109 | UI | Licence compliance register and attribution page (TCPD, DataMeet, ODbL, CC BY-SA, Esri) | Attribution page lists every dataset; CI checks register vs manifest |
 | E2E-110 | UI | LS-to-assembly segment mapping and split-voting endpoint | /split-voting returns per-AC LS vs assembly winners |
-| E2E-111 | UI | Real choropleth map (AC and district) replacing the tile grid; table fallback; self-hosted Leaflet CSS; tile policy | Map colours seats by selected metric; keyboard/table alternative; no third-party CSS |
+| E2E-111 | UI | Real choropleth map (AC and district) replacing the tile grid; table fallback; self-hosted Leaflet CSS; no map tiles (S-190: the Esri tiles were removed, the map is plain shapes) | Map colours seats by selected metric; keyboard/table alternative; no third-party CSS |
 | E2E-112 | UI | Drill-down map: state to district to constituency to mandal to village with population and issue overlays | Clicking a district opens its constituencies; breadcrumb works in Telugu |
 | E2E-113 | UI | Constituency profile: boundary map, population, electors, history, current member, civic issue aggregates | Profile shows all sections with sources; issue cells suppressed under 30 |
 | E2E-114 | UI | Mandal and village profile pages (population, SC/ST, literacy, linked constituency, issues) | Village page resolves from search; shows census code and constituency |
@@ -158,7 +158,7 @@ Layers: **API** = HTTP-level test (no browser), **UI** = Playwright browser.
 | E2E-141 | API | i18n completeness: key-parity test EN/TE, localised error codes, translate all hard-coded labels | Test fails on missing te key; API errors render in Telugu |
 | E2E-142 | API | Product naming, metadata, hreflang, Open Graph; README rewrite | Title/meta localised; no AI Studio leftovers |
 | E2E-143 | API | Banned-wording copy lint (vote/ballot/result for surveys) in CI | CI fails on banned words in public pages |
-| E2E-144 | UI | Privacy policy, terms, third-party consent notice and who-sees-what screen | Policy page and consent banner shipped in EN/TE |
+| E2E-144 | UI | Privacy policy, terms, third-party consent notice and who-sees-what screen | Policy page shipped in EN/TE; the map-tile consent banner was removed with the tiles (S-190), the test now asserts no third-party request and no banner |
 | E2E-145 | API | Self-hosted Telugu font subset; low-end Android test | Telugu renders without external font calls |
 | E2E-146 | API | Login person-picker for multi-adult SIMs | Shared SIM login selects the adult then PIN |
 | E2E-147 | UI | PIN recovery UI using OTP | Recovery resets PIN and revokes sessions |

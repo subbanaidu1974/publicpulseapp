@@ -136,8 +136,8 @@ export const PRIVACY: LegalSection[] = [
     id: "browse",
     h: { en: "Browsing without an account", te: "ఖాతా లేకుండా చూడటం" },
     p: {
-      en: "You can read every data page without signing in. The site does not use advertising or analytics trackers. Fonts are served from this site, so no font provider is contacted. The home-page map asks your permission before it loads background tiles from a third party (see the map choice at the foot of the page).",
-      te: "సైన్ ఇన్ చేయకుండానే అన్ని డేటా పేజీలను చదవవచ్చు. ఈ సైట్ ప్రకటనలు లేదా విశ్లేషణ ట్రాకర్లను వాడదు. ఫాంట్లు ఈ సైట్ నుంచే వస్తాయి, కాబట్టి ఏ ఫాంట్ సంస్థనూ సంప్రదించము. హోమ్ పేజీ మ్యాప్ మూడవ పక్షం నుంచి నేపథ్య టైల్స్‌ను తీసుకునే ముందు మీ అనుమతి అడుగుతుంది (పేజీ చివరి మ్యాప్ ఎంపికను చూడండి).",
+      en: "You can read every data page without signing in. The site does not use advertising or analytics trackers. Fonts are served from this site, so no font provider is contacted. Maps are drawn from boundary data served by this site, with no background map from any third party, so no map provider is contacted.",
+      te: "సైన్ ఇన్ చేయకుండానే అన్ని డేటా పేజీలను చదవవచ్చు. ఈ సైట్ ప్రకటనలు లేదా విశ్లేషణ ట్రాకర్లను వాడదు. ఫాంట్లు ఈ సైట్ నుంచే వస్తాయి, కాబట్టి ఏ ఫాంట్ సంస్థనూ సంప్రదించము. మ్యాప్‌లు ఈ సైట్ ఇచ్చే సరిహద్దు డేటాతో గీయబడతాయి; ఏ మూడవ పక్ష నేపథ్య మ్యాప్ వాడము, కాబట్టి ఏ మ్యాప్ సంస్థనూ సంప్రదించము.",
     },
   },
   {

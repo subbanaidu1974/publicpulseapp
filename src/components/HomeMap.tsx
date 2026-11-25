@@ -5,7 +5,6 @@ import { useApi } from "../api/useApi";
 import { StateCode } from "../lib/states";
 import { defaultYear } from "../state/StateContext";
 import { useT } from "../i18n";
-import { setTilesConsent, useTilesConsent } from "../lib/consent";
 import GeoMap from "./maps/GeoMap";
 import { NO_DATA, districtTally, leader, partyInfo } from "./maps/mapModel";
 
@@ -14,7 +13,6 @@ type Theme = "beige" | "dark" | "dark-beige" | "earth-yellow";
 /** Home map: real district outlines (dissolved from constituencies) coloured by the party leading in most seats. Click opens the full map. */
 export default function HomeMap({ theme, state }: { theme: Theme; state: StateCode }) {
   const { t } = useT();
-  const consent = useTilesConsent(); // S-129: no third-party tile request without an explicit grant
   const dark = theme === "dark" || theme === "dark-beige";
   const year = defaultYear(state, "assembly");
   const dist = useApi(() => fetchGeo(state, "district"), [state]);
@@ -46,18 +44,13 @@ export default function HomeMap({ theme, state }: { theme: Theme; state: StateCo
   return (
     <div className="h-full min-h-[320px] flex flex-col border border-black/20">
       <GeoMap
-        testId="home-map" label={t("home.mapAlt")} dark={dark} tiles={consent === "granted"} className="flex-1 min-h-[280px]"
+        testId="home-map" label={t("home.mapAlt")} dark={dark} className="flex-1 min-h-[280px]"
         collection={collection} keyOf={keyOf} colorOf={colorOf} tooltipOf={tooltipOf} onSelect={open}
       />
       <p className="text-[10px] font-sans p-2 bg-[#FAF8F5] text-[#121212]">
         {dist.error ? t("map.unavailable") : t("home.mapNote")}{" "}
         <button type="button" data-testid="home-map-open" onClick={() => open()} className="underline font-bold cursor-pointer">{t("map.openFull")}</button>
       </p>
-      {consent !== "granted" && (
-        <p data-testid="map-tiles-off" className="text-[10px] font-sans px-2 pb-2 bg-[#FAF8F5] text-[#121212]">
-          {t("map.tilesOff")} <button type="button" onClick={() => setTilesConsent("granted")} className="underline font-bold cursor-pointer">{t("map.enable")}</button>
-        </p>
-      )}
     </div>
   );
 }

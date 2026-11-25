@@ -67,11 +67,11 @@ test.describe('hard-coded content and third-party media (retired)', () => {
     expect(text).not.toMatch(/youtube\.com|youtu\.be|mixkit|unsplash|unpkg\.com|NEWS_CARDS|TESTIMONIALS|TRENDING_VIDEOS|bREPORTSb\b/);
   });
 
-  test('@E2E-140 every tab makes only same-origin, Esri tile or font requests (fonts: E2E-145 will self-host)', async ({ page }) => {
+  test('@E2E-140 every tab makes only same-origin requests (no map tiles, fonts are self-hosted)', async ({ page }) => {
     const foreign: string[] = [];
     page.on('request', (r) => {
       const u = new URL(r.url());
-      if (u.protocol.startsWith('http') && u.origin !== new URL(page.url() === 'about:blank' ? r.url() : page.url()).origin && !/(arcgisonline\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)$/.test(u.hostname)) foreign.push(r.url());
+      if (u.protocol.startsWith('http') && u.origin !== new URL(page.url() === 'about:blank' ? r.url() : page.url()).origin) foreign.push(r.url());
     });
     await openHome(page, 'AP');
     for (const label of [/analytics/i, /elections/i, /constituenc/i, /survey/i, /methodology/i, /faq/i]) await gotoTab(page, label);
