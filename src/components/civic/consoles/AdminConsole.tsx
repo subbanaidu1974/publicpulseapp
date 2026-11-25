@@ -4,6 +4,7 @@ import { useCivicT } from "../civicText";
 import { Btn, ErrorNote, Field, TextInput } from "../ui";
 import JobsStatus from "./JobsStatus";
 import OfficerApplications from "./OfficerApplications";
+import PhotoReview from "./PhotoReview";
 import RoleRequests from "./RoleRequests";
 import { Gate, actionError, useGuarded } from "./shared";
 
@@ -53,6 +54,7 @@ export default function AdminConsole({ personId }: { personId?: string }) {
       <MfaPanel />
       <OfficerApplications />
       <RoleRequests me={personId} />
+      <PhotoReview />
       <p><a data-testid="polls-admin-link" href="#/polls-admin" className="underline font-bold">Broadcast polls (push an opinion poll to all users)</a></p>
       <JobsStatus />
     </section>

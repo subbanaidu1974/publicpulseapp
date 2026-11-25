@@ -88,6 +88,11 @@ export const ISSUE_EN = {
   "c.chpin.limited": "Too many tries. Wait a little and try again.", "c.chpin.hint": "Use 4 to 6 digits. Never share your PIN with anyone.", "c.chpin.same": "Choose a PIN different from the current one.",
   // S-164 honest SMS state
   "c.sms.failed": "We could not send the code to your phone. Please try again in a moment.", "c.sms.queued": "The code is on its way. It may take a little longer than usual.", "c.sms.resend": "Send the code again",
+  "c.pr.title": "Photo review", "c.pr.warning": "People can send a photo for a constituency page. Nothing is shown until you approve it. There is no automatic identity check: compare the name they claim with the winner, and use the contact to confirm it is them, before you approve.",
+  "c.pr.status": "Show", "c.pr.s.pending": "Waiting for review", "c.pr.s.approved": "Approved", "c.pr.s.rejected": "Rejected", "c.pr.empty": "Nothing in this list.",
+  "c.pr.winner": "Latest winner of the seat", "c.pr.claims": "Sent by", "c.pr.credit": "Credit line", "c.pr.contact": "Contact (private)", "c.pr.noContact": "not readable",
+  "c.pr.note": "Note (optional, kept with the decision)", "c.pr.approve": "Approve and show", "c.pr.reject": "Reject", "c.pr.withdraw": "Stop showing",
+  "c.pr.approvedMsg": "Approved. The photo is now shown on that constituency page.", "c.pr.rejectedMsg": "Done. The photo is not shown.",
 } as const;
 
 export const ISSUE_TE: Record<keyof typeof ISSUE_EN, string> = {
@@ -179,4 +184,9 @@ export const ISSUE_TE: Record<keyof typeof ISSUE_EN, string> = {
   "c.chpin.limited": "చాలా ప్రయత్నాలు. కాసేపు ఆగి మళ్ళీ ప్రయత్నించండి.", "c.chpin.hint": "4 నుండి 6 అంకెలు వాడండి. మీ PIN ను ఎవరితోనూ పంచుకోవద్దు.", "c.chpin.same": "ప్రస్తుత PIN కంటే వేరే PIN ఎంచుకోండి.",
   // S-164 SMS నిజ స్థితి
   "c.sms.failed": "మీ ఫోన్‌కు కోడ్ పంపలేకపోయాం. దయచేసి కొద్దిసేపటి తర్వాత మళ్ళీ ప్రయత్నించండి.", "c.sms.queued": "కోడ్ వస్తోంది. మామూలు కంటే కొంచెం ఆలస్యం కావచ్చు.", "c.sms.resend": "కోడ్ మళ్ళీ పంపు",
+  "c.pr.title": "ఫోటో సమీక్ష", "c.pr.warning": "నియోజకవర్గ పేజీ కోసం ప్రజలు ఫోటో పంపవచ్చు. మీరు ఆమోదించే వరకు ఏదీ చూపబడదు. ఆటోమేటిక్ గుర్తింపు తనిఖీ లేదు: ఆమోదించే ముందు వారు చెప్పిన పేరును విజేతతో పోల్చండి, వారేనని సంప్రదింపు వివరాలతో నిర్ధారించండి.",
+  "c.pr.status": "చూపు", "c.pr.s.pending": "సమీక్ష కోసం వేచి ఉంది", "c.pr.s.approved": "ఆమోదించారు", "c.pr.s.rejected": "తిరస్కరించారు", "c.pr.empty": "ఈ జాబితాలో ఏమీ లేదు.",
+  "c.pr.winner": "ఆ స్థానంలో తాజా విజేత", "c.pr.claims": "పంపినవారు", "c.pr.credit": "క్రెడిట్", "c.pr.contact": "సంప్రదింపు (గోప్యం)", "c.pr.noContact": "చదవలేము",
+  "c.pr.note": "గమనిక (ఐచ్ఛికం, నిర్ణయంతో ఉంటుంది)", "c.pr.approve": "ఆమోదించి చూపు", "c.pr.reject": "తిరస్కరించు", "c.pr.withdraw": "చూపడం ఆపు",
+  "c.pr.approvedMsg": "ఆమోదించారు. ఫోటో ఇప్పుడు ఆ నియోజకవర్గ పేజీలో కనిపిస్తుంది.", "c.pr.rejectedMsg": "పూర్తయింది. ఫోటో చూపబడదు.",
 };
