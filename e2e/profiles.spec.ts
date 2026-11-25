@@ -125,5 +125,6 @@ test.describe("profile pages", () => {
     await page.goto(`/?state=TG#/constituency/TG/${none}`);
     await expect(page.getByTestId("constituency-profile")).toBeVisible();
     await expect(page.getByTestId("winner-photo")).toHaveCount(0);
+    await expect(page.getByTestId("winner-photo-missing")).toContainText(/no free-licence photo/i);
   });
 });

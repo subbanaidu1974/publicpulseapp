@@ -111,6 +111,10 @@ export default function ConstituencyProfile({ state, acNo, actions }: { state: S
         </figure>
       )}
 
+      {!photo && latest && photos.data && (
+        <p data-testid="winner-photo-missing" className="text-[10px] text-slate-600 font-sans">{t("prof.photoMissing")}</p>
+      )}
+
       <Section title={t("prof.history")} testId="profile-history">
         {hist.length === 0 ? <p className="text-xs font-sans">{t("prof.noHistory")}</p> : (
           <>
