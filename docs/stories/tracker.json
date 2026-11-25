@@ -1948,7 +1948,7 @@
       "priority": "P0",
       "wave": "W5",
       "source": "gap-audit: 102",
-      "notes": "Tooling plus internal evidence exist (see S-48). All 18 gate rows still need human owners, dates and sign-off; gate:status shows 0 of 18 done, release stays blocked. 2026-11-24: draft plan docs/gate/OWNERS_AND_SCHEDULE.md groups the 18 rows by who can close them (outside specialists, pilot or field measurement, build team plus an outside reviewer), with dependencies and a suggested order. Owners and dates are still blank by design. Placeholder owners and dates (PLACEHOLDER-*) were entered in all 18 gate rows at the owner's request; gate:status treats them as NOT set, and the sign-off lines are left blank."
+      "notes": "Tooling plus internal evidence exist (see S-48). All 18 gate rows still need human owners, dates and sign-off; gate:status shows 0 of 18 done, release stays blocked. 2026-11-24: draft plan docs/gate/OWNERS_AND_SCHEDULE.md groups the 18 rows by who can close them (outside specialists, pilot or field measurement, build team plus an outside reviewer), with dependencies and a suggested order. Owners and dates are still blank by design. Placeholder owners and dates (PLACEHOLDER-*) were entered in all 18 gate rows at the owner's request; gate:status treats them as NOT set, and the sign-off lines are left blank. Draft pilot-only gate profile (docs/gate/pilot-profile.json, enabled:false by default, 12 required rows and 6 deferred under stated pilot limits) with gate:status --profile support and fake-data tests; not approved, enabling it is the owner's decision."
     },
     {
       "id": "S-154",

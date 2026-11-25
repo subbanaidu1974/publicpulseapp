@@ -117,3 +117,89 @@ describe("gate-status parsing and status logic on fixtures (@E2E-168)", () => {
     expect(s.summary.releaseBlocked).toBe(true);
   });
 });
+
+describe("pilot-only gate profile, off by default (@E2E-168)", () => {
+  it("@E2E-168 the shipped pilot profile is disabled, classifies all 18 rows, and the default report is the full gate", () => {
+    const pf = JSON.parse(fs.readFileSync(path.join(ROOT, "docs", "gate", "pilot-profile.json"), "utf8")) as { enabled: boolean; rows: Record<string, { state: string; condition?: string }>; limits: string[] };
+    expect(pf.enabled).toBe(false);
+    expect(Object.keys(pf.rows).map(Number).sort((a, b) => a - b)).toEqual(Array.from({ length: 18 }, (_, i) => i + 1));
+    for (const [n, r] of Object.entries(pf.rows)) if (r.state === "deferred") expect(r.condition, `row ${n} deferral needs a condition`).toBeTruthy();
+    expect(pf.limits.length).toBeGreaterThan(3);
+    const full = gateStatus(ROOT);
+    expect(full.profile).toBe("full");
+    expect(full.summary.blockedRows).toHaveLength(18);
+    expect(full.summary.deferred).toBe(0);
+  });
+
+  it("@E2E-168 on the real repository the pilot profile defers 6 rows, still blocks the 12 required ones, and never lets placeholders count", () => {
+    const p = gateStatus(ROOT, { profile: "pilot" });
+    expect(p.profile).toBe("pilot");
+    expect(p.summary.deferred).toBe(6);
+    expect(p.summary.blockedRows).toEqual([1, 2, 3, 4, 5, 6, 7, 13, 14, 15, 16, 17]);
+    expect(p.summary.releaseBlocked).toBe(true);
+    expect(formatReport(p)).toContain("PROFILE: pilot");
+  });
+
+  describe("on fake data", () => {
+    let root: string;
+    const write = (rel: string, body: string) => { const p = path.join(root, rel); fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, body); };
+    const readme = "# Row\n\n## Evidence required\n\n1. x\n\n## Automated evidence (in this repository)\n\n- (none)\n\n## Template\n\nt\n";
+    const gate = (r1: string, r2: string, ap1 = "____", ap2 = "____") => `# Gate
+| # | Gate | Evidence to attach | Owner | Date | Done |
+|---|---|---|---|---|---|
+| 1 | Required row | e | Asha | 2027-01-05 | ${r1} |
+| 2 | Deferred row | e | | | ${r2} |
+
+- Approver 1: ${ap1}  Date: ______
+- Approver 2 (independent): ${ap2}  Date: ______
+`;
+    const profile = (enabled: boolean) => JSON.stringify({ enabled, limits: ["closed pilot"], rows: { "1": { state: "required" }, "2": { state: "deferred", condition: "IVR off" } } });
+    beforeEach(() => {
+      root = fs.mkdtempSync(path.join(os.tmpdir(), "gate-pilot-"));
+      write("docs/gate/01/README.md", readme); write("docs/gate/02/README.md", readme);
+    });
+    afterEach(() => fs.rmSync(root, { recursive: true, force: true }));
+
+    it("@E2E-168 flag off: the full gate applies and the deferred row blocks", () => {
+      write("docs/RELEASE_GATE.md", gate("[x]", "[ ]", "A. One", "B. Two")); write("docs/gate/pilot-profile.json", profile(false)); write("docs/gate/01/evidence/r.pdf", "x");
+      const s = gateStatus(root);
+      expect(s.profile).toBe("full");
+      expect(s.summary.blockedRows).toEqual([2]);
+      expect(s.summary.releaseBlocked).toBe(true);
+    });
+
+    it("@E2E-168 flag on: the deferred row stops blocking, but a required row, or a missing approver, still blocks release", () => {
+      write("docs/gate/pilot-profile.json", profile(true));
+      write("docs/RELEASE_GATE.md", gate("[ ]", "[ ]", "A. One", "B. Two"));
+      let s = gateStatus(root);
+      expect(s.profile).toBe("pilot");
+      expect(s.rows[1].status).toBe("deferred");
+      expect(s.summary.blockedRows).toEqual([1]);
+      write("docs/RELEASE_GATE.md", gate("[x]", "[ ]", "A. One", "B. Two")); write("docs/gate/01/evidence/r.pdf", "x");
+      s = gateStatus(root);
+      expect(s.summary.blockedRows).toEqual([]);
+      expect(s.summary.releaseBlocked).toBe(false);
+      write("docs/RELEASE_GATE.md", gate("[x]", "[ ]", "A. One", "PLACEHOLDER-APPROVER-2"));
+      expect(gateStatus(root).summary.releaseBlocked).toBe(true);
+      expect(gateStatus(root, { profile: "full" }).summary.releaseBlocked).toBe(true);
+    });
+
+    it("@E2E-168 flag on with every required row done and both approvers: pilot gate passes while the full gate still blocks", () => {
+      write("docs/gate/pilot-profile.json", profile(true));
+      write("docs/RELEASE_GATE.md", gate("[x]", "[ ]", "A. One", "B. Two")); write("docs/gate/01/evidence/r.pdf", "x");
+      expect(gateStatus(root).summary.releaseBlocked).toBe(false);
+      expect(gateStatus(root, { profile: "full" }).summary.releaseBlocked).toBe(true);
+    });
+
+    it("@E2E-168 a deferred row whose box is ticked is judged like any other row (cannot be waved through)", () => {
+      write("docs/gate/pilot-profile.json", profile(true));
+      write("docs/RELEASE_GATE.md", gate("[ ]", "[x]"));
+      expect(gateStatus(root).rows[1].status).toBe("inconsistent");
+    });
+
+    it("@E2E-168 asking for the pilot profile without a profile file is an error, not a silent fallback", () => {
+      write("docs/RELEASE_GATE.md", gate("[ ]", "[ ]"));
+      expect(() => gateStatus(root, { profile: "pilot" })).toThrow(/pilot profile/);
+    });
+  });
+});

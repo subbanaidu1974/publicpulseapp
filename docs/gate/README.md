@@ -30,3 +30,11 @@ Conditional row A-1 (assisted participation going live, status NOT DONE) is desc
 Plan: [owner roles, order of work and dependencies](./OWNERS_AND_SCHEDULE.md) (draft; owners and dates are still the owner's to set).
 
 Commissioning pack: [fill-in sheet and ready-to-send briefs](./COMMISSIONING_PACK.md) (draft, nothing sent).
+
+## Draft pilot-only gate profile (off by default)
+
+`docs/gate/pilot-profile.json` defines a smaller gate for a CLOSED PILOT: 12 rows stay required (1 to 7 and 13 to 17) and 6 are deferred while stated conditions hold (8, 9, 10, 11, 12, 18). Both approvers, one independent, are still required. It is a DRAFT for the owner and counsel and is not approved.
+
+* **Off by default.** `"enabled": false` means nothing changes: `npm run gate:status` shows the full 18-row gate. Set `"enabled": true` to make the pilot profile the default report, or look at it without enabling it with `npm run gate:status -- --profile pilot` (and `-- --profile full` to force the full gate).
+* **Not a launch gate.** The limits listed in the file (at most 3 mandals, invited users only, no IVR or missed-call, no resident notifications, assisted participation off, no results shown before the skew report, counsel memo on the election calendar, named funder) are what make the deferrals valid. Nothing in code enforces those limits; the approvers must confirm them.
+* **Checked by automated tests on fake data:** `tests/gate/gate-status.test.ts` builds throw-away repositories with fake owners, evidence and approvers to prove the pilot gate can pass while the full gate still blocks, that placeholders never count, that a deferred row with a ticked box is judged like any other, and that asking for the pilot profile without the file is an error.
