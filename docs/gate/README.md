@@ -28,3 +28,5 @@ One folder per row of `docs/RELEASE_GATE.md` (S-153, E2E-168): `NN/README.md` li
 Conditional row A-1 (assisted participation going live, status NOT DONE) is described in [assisted](./assisted/README.md). It is outside the 18 rows above and is not read by `gate:status`.
 
 Plan: [owner roles, order of work and dependencies](./OWNERS_AND_SCHEDULE.md) (draft; owners and dates are still the owner's to set).
+
+Commissioning pack: [fill-in sheet and ready-to-send briefs](./COMMISSIONING_PACK.md) (draft, nothing sent).
