@@ -29,7 +29,7 @@ Parameters: RSA-2048 minimum (`CIVIC_SURVEY_KEY_BITS` may raise it, never lower)
 
 ## 4. Known limits, stated by the builders
 
-1. The vectors are self-generated. The official RFC 9474 Appendix A test vectors are not in the repository and were not run. This is the first thing a reviewer should add.
+1. The throwaway vectors are self-generated. The official RFC 9474 Appendix A.1 vector (RSABSSA-SHA384-PSS-Randomized, 4096-bit) is now in tests/civic/surveys/rfc9474.vector.json and passes byte for byte on both the server code and the browser client (tests/civic/surveys/rfc9474.test.ts: encoded message, blinded message, blind signature, final signature, OpenSSL verification). The RFC lists further vectors for other variants (A.2 to A.4); this system uses only the randomized variant, so they were not run. An independent reviewer should still confirm.
 2. The EMSA-PSS encoder is hand-written twice (server reference, browser). Server verification uses OpenSSL, which independently checks the encoding; the tests verify the output of both encoders that way, so a wrong-but-consistent encoder pair is excluded by that check and by the self-generated vectors, but not by any third-party vector.
 3. BigInt `modPow` is not constant time. Mitigation: `blindSign` multiplies by a fresh random `r^e` before exponentiating by d and divides after, so the caller does not choose the exponentiated value; the result is checked with the public key before release. No timing measurement has been made.
 4. `blindSign` accepts any value in (0, n); it does not reject values sharing a factor with n (negligible for random RSA moduli, but not checked).
@@ -40,7 +40,7 @@ Parameters: RSA-2048 minimum (`CIVIC_SURVEY_KEY_BITS` may raise it, never lower)
 
 ## 5. Questions for the reviewer
 
-1. Does the implementation conform to RFC 9474 for the randomized variant (message preparation with the 32-byte prefix, EMSA-PSS parameters, blinding, finalize and verify)? Please run the Appendix A vectors.
+1. Does the implementation conform to RFC 9474 for the randomized variant (message preparation with the 32-byte prefix, EMSA-PSS parameters, blinding, finalize and verify)? The Appendix A.1 vector has been run by the build team (see section 4 item 1); please confirm and consider the other variants out of scope.
 2. Is the hand-written EMSA-PSS encoder correct for all key sizes the system allows (2048, 3072, 4096) and for emBits not a multiple of 8?
 3. Is the re-blinding in `blindSign` sound, and is the residual timing exposure of BigInt arithmetic acceptable here? Should the private operation move to OpenSSL (`crypto.privateDecrypt` with no padding, or a native binding)?
 4. Does the combination of per-class keys, the retry window and the spent-token table leak anything linking a credential request to a response beyond what the threat model section 5 admits? In particular the key-class partition size when classes are small (T2 and LOW classes).

@@ -544,7 +544,7 @@
         "E2E-58"
       ],
       "phase": "2028-P1",
-      "notes": "Internal self-assessment pack built (docs/gate/evidence: npm audit now 0 findings, secrets/PII scan, a11y sweep 112/112, red-team self-assessment with 26 new tests, crypto review pack, smoke-scale capacity). All labelled NOT independent. Still needs the independent red-team, pilot skew report, independent crypto review (RFC 9474 vectors not yet run), sign-off and two approvers. Known-flaky e2e specs (issue-feed pagination, scope small cells, notify admin, officer console) were root-caused and fixed; stable under workers=2 with Vite HMR disabled (now set in playwright.config.ts)."
+      "notes": "Internal self-assessment pack built (docs/gate/evidence: npm audit now 0 findings, secrets/PII scan, a11y sweep 112/112, red-team self-assessment with 26 new tests, crypto review pack, smoke-scale capacity). All labelled NOT independent. Still needs the independent red-team, pilot skew report, independent crypto review (the official RFC 9474 A.1 vector now passes on server and browser code, tests/civic/surveys/rfc9474.test.ts; the review itself is still outstanding), sign-off and two approvers. Known-flaky e2e specs (issue-feed pagination, scope small cells, notify admin, officer console) were root-caused and fixed; stable under workers=2 with Vite HMR disabled (now set in playwright.config.ts)."
     },
     {
       "id": "S-49",
