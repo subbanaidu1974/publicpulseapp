@@ -1332,7 +1332,7 @@
       "priority": "P1",
       "wave": "W3",
       "source": "gap-audit: DESIGN 5",
-      "notes": "53 office-holder records: CMs, deputy CMs, speakers, 22 AP and 13 TG ministers (portfolios as allotted on stated dates), party presidents; each has two sources and confidence (all medium or low), 28 Wikidata QIDs verified, rest null. NO record has an official government second source (official sites unreachable from the build environment); Telugu portfolio names added for all 68 terms (data/reference/people/portfolio-te.json) but MACHINE-DRAFTED and unreviewed: the Telugu page shows an unreviewed notice until a native speaker corrects them and sets reviewed to true."
+      "notes": "53 office-holder records: CMs, deputy CMs, speakers, 22 AP and 13 TG ministers (portfolios as allotted on stated dates), party presidents; each has two sources and confidence (all medium or low), 28 Wikidata QIDs verified, rest null. 2026-11-24: the Telangana State Portal was reachable and matched the CM, Deputy CM, Speaker and all 13 ministers (names, constituencies, portfolios), so those 16 records now cite it and are confidence high. NO Andhra Pradesh record has an official source (ap.gov.in and the AP legislature sites did not respond or returned 403), and the TG Deputy Speaker and party presidents have none; Telugu portfolio names added for all 68 terms (data/reference/people/portfolio-te.json) but MACHINE-DRAFTED and unreviewed: the Telugu page shows an unreviewed notice until a native speaker corrects them and sets reviewed to true."
     },
     {
       "id": "S-108",

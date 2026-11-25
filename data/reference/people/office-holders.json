@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "asOf": "2026-11-24",
-  "note": "Office/role facts only (role, name, party, start date). No biography, family, caste/religion, contact details or date of birth are published. Every record cites >= 2 source URLs and was read from English Wikipedia (infobox term_start fields) on 2026-11-22; official government sites were NOT read (the 2026-11-24 additions cite news reports instead: Business Standard, Deccan Herald, Deccan Chronicle, TheNewsMinute, All India Radio), so confidence is 'medium' (secondary sources) and dates are as stated by those pages. Re-verify against the official sites before launch. Records carry no end date because each was the current holder on the read date. 2026-11-24 (council of ministers): AP and TG ministers (Role 'Minister') were read from the English Wikipedia council pages and from news reports of the portfolio orders (Business Today, National Herald, Siasat, Deccan Chronicle); the official portals (ap.gov.in, telangana.gov.in, aplegislature.org, telanganalegislature.org.in) could not be fetched on that date, so no record has an official second source and all stay 'medium'. Portfolios are as allotted on portfolioAsOf and may have changed since. Konda Surekha (TG) was removed from the council on 2026-09-03 and is not listed. Mohammad Azharuddin (TG) has no constituency listed because the source did not state one. Wikidata ids were added only where the record's name matched and the item's party claim (P102) matched the record's party; items without a matching party claim were left null. Ministers are an unordered list; the UI sorts them alphabetically.",
+  "note": "Office/role facts only (role, name, party, start date). No biography, family, caste/religion, contact details or date of birth are published. Every record cites >= 2 source URLs and was read from English Wikipedia (infobox term_start fields) on 2026-11-22; official government sites were NOT read (the 2026-11-24 additions cite news reports instead: Business Standard, Deccan Herald, Deccan Chronicle, TheNewsMinute, All India Radio), so confidence is 'medium' (secondary sources) and dates are as stated by those pages. Re-verify against the official sites before launch. Records carry no end date because each was the current holder on the read date. 2026-11-24 (council of ministers): AP and TG ministers (Role 'Minister') were read from the English Wikipedia council pages and from news reports of the portfolio orders (Business Today, National Herald, Siasat, Deccan Chronicle); the official portals (ap.gov.in, telangana.gov.in, aplegislature.org, telanganalegislature.org.in) could not be fetched on that date, so no record has an official second source and all stay 'medium'. Portfolios are as allotted on portfolioAsOf and may have changed since. Konda Surekha (TG) was removed from the council on 2026-09-03 and is not listed. Mohammad Azharuddin (TG) has no constituency listed because the source did not state one. Wikidata ids were added only where the record's name matched and the item's party claim (P102) matched the record's party; items without a matching party claim were left null. Ministers are an unordered list; the UI sorts them alphabetically. 2026-11-24 (official check, Telangana): the Telangana State Portal (telangana.gov.in, robots.txt allows these pages; read 2026-11-24) lists the Chief Minister, Deputy Chief Minister, the Speaker and 13 ministers; every name, constituency and portfolio matched this file (portfolio wording differs slightly) and those 16 records now cite the portal and carry confidence high. The Deputy Speaker and the party-president records have no official source. Andhra Pradesh: ap.gov.in, cm.ap.gov.in, apassembly.gov.in and aplegislature.org could not be fetched (no response or 403) so all AP records stay medium. Konda Surekha stays removed.",
   "records": [
     {
       "id": "AP-cm",
@@ -79,11 +79,13 @@
       "sources": [
         "https://en.wikipedia.org/wiki/Revanth_Reddy",
         "https://en.wikipedia.org/wiki/Chief_Minister_of_Telangana",
-        "https://www.wikidata.org/wiki/Q7317733"
+        "https://www.wikidata.org/wiki/Q7317733",
+        "https://www.telangana.gov.in/government/chief-minister/",
+        "https://www.telangana.gov.in/government/council-of-ministers/"
       ],
       "wikidata": "Q7317733",
-      "asOf": "2026-11-22",
-      "confidence": "medium",
+      "asOf": "2026-11-24",
+      "confidence": "high",
       "constituency": "Kodangal"
     },
     {
@@ -96,11 +98,13 @@
       "sources": [
         "https://en.wikipedia.org/wiki/Mallu_Bhatti_Vikramarka",
         "https://en.wikipedia.org/wiki/List_of_deputy_chief_ministers_of_Telangana",
-        "https://www.wikidata.org/wiki/Q6744315"
+        "https://www.wikidata.org/wiki/Q6744315",
+        "https://www.telangana.gov.in/government/deputy-chief-minister/",
+        "https://www.telangana.gov.in/government/council-of-ministers/"
       ],
       "wikidata": "Q6744315",
-      "asOf": "2026-11-22",
-      "confidence": "medium",
+      "asOf": "2026-11-24",
+      "confidence": "high",
       "constituency": "Madhira"
     },
     {
@@ -112,11 +116,12 @@
       "start": "2023-12-14",
       "sources": [
         "https://en.wikipedia.org/wiki/Gaddam_Prasad_Kumar",
-        "https://en.wikipedia.org/wiki/List_of_speakers_of_the_Telangana_Legislative_Assembly"
+        "https://en.wikipedia.org/wiki/List_of_speakers_of_the_Telangana_Legislative_Assembly",
+        "https://www.telangana.gov.in/legislature/legislative-assembly-speaker/"
       ],
       "wikidata": null,
-      "asOf": "2026-11-22",
-      "confidence": "medium"
+      "asOf": "2026-11-24",
+      "confidence": "high"
     },
     {
       "id": "TDP-president",
@@ -787,11 +792,12 @@
       "start": "2023-12-07",
       "sources": [
         "https://www.nationalheraldindia.com/national/telangana-chief-minister-revanth-reddy-assigns-portfolios-to-ministers-in-cabinet",
-        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers"
+        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers",
+        "https://www.telangana.gov.in/government/council-of-ministers/"
       ],
       "wikidata": null,
       "asOf": "2026-11-24",
-      "confidence": "medium",
+      "confidence": "high",
       "constituency": "Huzurnagar",
       "portfolio": [
         "Irrigation & Command Area Development",
@@ -809,11 +815,12 @@
       "sources": [
         "https://www.nationalheraldindia.com/national/telangana-chief-minister-revanth-reddy-assigns-portfolios-to-ministers-in-cabinet",
         "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers",
-        "https://www.wikidata.org/wiki/Q7227895"
+        "https://www.wikidata.org/wiki/Q7227895",
+        "https://www.telangana.gov.in/government/council-of-ministers/"
       ],
       "wikidata": "Q7227895",
       "asOf": "2026-11-24",
-      "confidence": "medium",
+      "confidence": "high",
       "constituency": "Husnabad",
       "portfolio": [
         "Transport",
@@ -831,11 +838,12 @@
       "sources": [
         "https://www.nationalheraldindia.com/national/telangana-chief-minister-revanth-reddy-assigns-portfolios-to-ministers-in-cabinet",
         "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers",
-        "https://www.wikidata.org/wiki/Q6428202"
+        "https://www.wikidata.org/wiki/Q6428202",
+        "https://www.telangana.gov.in/government/council-of-ministers/"
       ],
       "wikidata": "Q6428202",
       "asOf": "2026-11-24",
-      "confidence": "medium",
+      "confidence": "high",
       "constituency": "Nalgonda",
       "portfolio": [
         "Roads & Buildings",
@@ -852,11 +860,12 @@
       "start": "2023-12-07",
       "sources": [
         "https://www.nationalheraldindia.com/national/telangana-chief-minister-revanth-reddy-assigns-portfolios-to-ministers-in-cabinet",
-        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers"
+        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers",
+        "https://www.telangana.gov.in/government/council-of-ministers/"
       ],
       "wikidata": null,
       "asOf": "2026-11-24",
-      "confidence": "medium",
+      "confidence": "high",
       "constituency": "Mulug",
       "portfolio": [
         "Panchayat Raj & Rural Development (incl. Rural Water Supply)",
@@ -874,11 +883,12 @@
       "sources": [
         "https://www.nationalheraldindia.com/national/telangana-chief-minister-revanth-reddy-assigns-portfolios-to-ministers-in-cabinet",
         "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers",
-        "https://www.wikidata.org/wiki/Q7586360"
+        "https://www.wikidata.org/wiki/Q7586360",
+        "https://www.telangana.gov.in/government/council-of-ministers/"
       ],
       "wikidata": "Q7586360",
       "asOf": "2026-11-24",
-      "confidence": "medium",
+      "confidence": "high",
       "constituency": "Manthani",
       "portfolio": [
         "Information Technology",
@@ -897,11 +907,12 @@
       "start": "2023-12-07",
       "sources": [
         "https://www.nationalheraldindia.com/national/telangana-chief-minister-revanth-reddy-assigns-portfolios-to-ministers-in-cabinet",
-        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers"
+        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers",
+        "https://www.telangana.gov.in/government/council-of-ministers/"
       ],
       "wikidata": null,
       "asOf": "2026-11-24",
-      "confidence": "medium",
+      "confidence": "high",
       "constituency": "Palair",
       "portfolio": [
         "Revenue",
@@ -919,11 +930,12 @@
       "start": "2023-12-07",
       "sources": [
         "https://www.nationalheraldindia.com/national/telangana-chief-minister-revanth-reddy-assigns-portfolios-to-ministers-in-cabinet",
-        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers"
+        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers",
+        "https://www.telangana.gov.in/government/council-of-ministers/"
       ],
       "wikidata": null,
       "asOf": "2026-11-24",
-      "confidence": "medium",
+      "confidence": "high",
       "constituency": "Khammam",
       "portfolio": [
         "Agriculture",
@@ -943,11 +955,12 @@
       "sources": [
         "https://www.nationalheraldindia.com/national/telangana-chief-minister-revanth-reddy-assigns-portfolios-to-ministers-in-cabinet",
         "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers",
-        "https://www.wikidata.org/wiki/Q5212779"
+        "https://www.wikidata.org/wiki/Q5212779",
+        "https://www.telangana.gov.in/government/council-of-ministers/"
       ],
       "wikidata": "Q5212779",
       "asOf": "2026-11-24",
-      "confidence": "medium",
+      "confidence": "high",
       "constituency": "Andole",
       "portfolio": [
         "Health",
@@ -966,11 +979,12 @@
       "sources": [
         "https://www.nationalheraldindia.com/national/telangana-chief-minister-revanth-reddy-assigns-portfolios-to-ministers-in-cabinet",
         "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers",
-        "https://www.wikidata.org/wiki/Q6314533"
+        "https://www.wikidata.org/wiki/Q6314533",
+        "https://www.telangana.gov.in/government/council-of-ministers/"
       ],
       "wikidata": "Q6314533",
       "asOf": "2026-11-24",
-      "confidence": "medium",
+      "confidence": "high",
       "constituency": "Kollapur",
       "portfolio": [
         "Prohibition & Excise",
@@ -988,11 +1002,12 @@
       "start": "2025-06-08",
       "sources": [
         "https://www.siasat.com/three-newly-inducted-telangana-ministers-assigned-portfolios-3231874/",
-        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers"
+        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers",
+        "https://www.telangana.gov.in/government/council-of-ministers/"
       ],
       "wikidata": null,
       "asOf": "2026-11-24",
-      "confidence": "medium",
+      "confidence": "high",
       "constituency": "Chennur",
       "portfolio": [
         "Labour, Employment, Training & Factories",
@@ -1011,11 +1026,12 @@
         "https://www.siasat.com/three-newly-inducted-telangana-ministers-assigned-portfolios-3231874/",
         "https://deccanchronicle.com/southern-states/telangana/md-azharuddin-gets-public-enterprises-and-minorities-welfare-portfolios-1914731",
         "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers",
-        "https://www.wikidata.org/wiki/Q127429181"
+        "https://www.wikidata.org/wiki/Q127429181",
+        "https://www.telangana.gov.in/government/council-of-ministers/"
       ],
       "wikidata": "Q127429181",
       "asOf": "2026-11-24",
-      "confidence": "medium",
+      "confidence": "high",
       "constituency": "Dharmapuri",
       "portfolio": [
         "SC Development",
@@ -1034,11 +1050,12 @@
       "sources": [
         "https://www.siasat.com/three-newly-inducted-telangana-ministers-assigned-portfolios-3231874/",
         "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers",
-        "https://www.wikidata.org/wiki/Q127505077"
+        "https://www.wikidata.org/wiki/Q127505077",
+        "https://www.telangana.gov.in/government/council-of-ministers/"
       ],
       "wikidata": "Q127505077",
       "asOf": "2026-11-24",
-      "confidence": "medium",
+      "confidence": "high",
       "constituency": "Makthal",
       "portfolio": [
         "Animal Husbandry, Dairy Development & Fisheries",
@@ -1055,11 +1072,12 @@
       "start": "2025-10-31",
       "sources": [
         "https://deccanchronicle.com/southern-states/telangana/md-azharuddin-gets-public-enterprises-and-minorities-welfare-portfolios-1914731",
-        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers"
+        "https://en.wikipedia.org/wiki/Telangana_Council_of_Ministers",
+        "https://www.telangana.gov.in/government/council-of-ministers/"
       ],
       "wikidata": null,
       "asOf": "2026-11-24",
-      "confidence": "medium",
+      "confidence": "high",
       "portfolio": [
         "Minorities Welfare",
         "Public Enterprises"
