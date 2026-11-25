@@ -759,7 +759,7 @@
       "priority": "P0",
       "wave": "W4",
       "source": "gap-audit: 91",
-      "notes": "AWS KMS adapter (SigV4 on node:crypto, encryption-context binding) passes the key contract suite against a KMS simulator; NOT run against real AWS; static credentials only. Phone-key rotation online path exists from the earlier round."
+      "notes": "AWS KMS adapter (SigV4 on node:crypto, encryption-context binding) passes the key contract suite against a KMS simulator; NOT run against real AWS; static credentials only. Phone-key rotation online path exists from the earlier round. 2026-11-24: docs/decisions/S-64-key-management.md explains that the envelope design needs only symmetric wrap/unwrap (so several providers fit), flags that unwrapped data keys sit in server memory, notes static credentials must become short-lived roles before production, and gives a test plan. Still blocked on the operating entity, a provider choice, counsel on a US-headquartered provider and a real-service run."
     },
     {
       "id": "S-65",

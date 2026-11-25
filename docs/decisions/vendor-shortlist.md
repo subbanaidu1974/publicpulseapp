@@ -73,3 +73,5 @@ Who may sign vendor contracts (depends on the operator decision); budget and fun
 Follow-up research and a test plan for the number-intelligence category: [S-62-number-intelligence.md](S-62-number-intelligence.md) (2026-11-24, public claims only, unverified).
 
 SMS gateway follow-up with the DLT worklist for the pilot and a test plan: [S-63-sms-gateway.md](S-63-sms-gateway.md) (2026-11-24, public claims only, unverified).
+
+Key-management follow-up (envelope design narrows the choice) and a test plan: [S-64-key-management.md](S-64-key-management.md) (2026-11-24, public documentation only, unverified).
