@@ -109,8 +109,8 @@ export default function PartiesPage() {
                 const colour = partyColor(p.code);
                 const maxShare = Math.max(1, ...rows.map((r) => r.sharePct ?? 0));
                 return (
-                  <article key={p.code} data-testid="party-card" data-party={p.code} className="border border-black bg-white" style={{ borderTop: `6px solid ${colour}` }}>
-                    <header className="flex items-start gap-3 p-3">
+                  <article key={p.code} data-testid="party-card" data-party={p.code} className="border border-black bg-white min-w-0" style={{ borderTop: `6px solid ${colour}` }}>
+                    <header className="flex flex-wrap items-start gap-3 p-3">
                       {m ? (
                         <div data-testid="party-flag" className="shrink-0 space-y-1">
                           <img src={m.path} alt={`${p.name.en}, ${m.use === "identification-only" ? pt("ppl.party.identonly") : ""}`.replace(/, $/, "")} height={48} className="h-12 w-auto max-w-[6rem] object-contain border border-black/30 bg-white" loading="lazy" />
@@ -120,7 +120,7 @@ export default function PartiesPage() {
                       ) : (
                         <span aria-hidden="true" className="shrink-0 w-12 h-12 grid place-items-center text-xs font-black text-white" style={{ background: colour }}>{p.code.slice(0, 3)}</span>
                       )}
-                      <div className="min-w-0 grow">
+                      <div className="min-w-0 grow basis-40">
                         <h3 className="font-black text-lg leading-tight">{p.code}</h3>
                         <p className="text-xs">{(lang === "te" && p.name.te) || p.name.en}</p>
                         <p className="text-[11px] mt-1" data-testid="party-facts">
@@ -131,9 +131,9 @@ export default function PartiesPage() {
                         </p>
                       </div>
                       {l && (
-                        <figure data-testid="party-leader" className="shrink-0 w-24 text-center">
-                          <img src={`/api/v1/photos/${l.file}`} alt={`${l.name}, ${l.role}`} width={64} height={80} loading="lazy" className="w-16 h-auto mx-auto border border-black object-cover" />
-                          <figcaption className="text-[10px] text-slate-600 text-left mt-1">
+                        <figure data-testid="party-leader" className="shrink-0 w-full sm:w-24 flex sm:block items-start gap-3 sm:text-center">
+                          <img src={`/api/v1/photos/${l.file}`} alt={`${l.name}, ${l.role}`} width={64} height={80} loading="lazy" className="w-16 h-auto sm:mx-auto border border-black object-cover" />
+                          <figcaption className="text-[10px] text-slate-600 text-left sm:mt-1 min-w-0">
                             <strong className="block text-black">{l.name}</strong>{l.role}
                             <details className="mt-1">
                               <summary className="cursor-pointer underline">{a("an2.p.photoCredit")}</summary>
