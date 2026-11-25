@@ -63,7 +63,7 @@ describe("main app", () => {
     const res = await fetch(`${base}/api/v1/health`, { headers: { "x-forwarded-proto": "https" } });
     const csp = res.headers.get("content-security-policy")!;
     expect(csp).toContain("default-src 'self'");
-    expect(csp).toContain("https://server.arcgisonline.com");
+    expect(csp).not.toMatch(/arcgisonline|openstreetmap|https:\/\/[^ ;]*(tile|maps)/i); // no third-party map host is allowed
     expect(csp).toContain("frame-ancestors 'none'");
     expect(csp).not.toMatch(/script-src[^;]*unsafe/);
     expect(res.headers.get("x-content-type-options")).toBe("nosniff");

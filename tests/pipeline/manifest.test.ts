@@ -103,12 +103,12 @@ describe("@E2E-109 licence compliance register", () => {
     for (const d of m.datasets) for (const k of d.licences) expect(keys.has(k), `${d.id} -> ${k}`).toBe(true);
   });
 
-  it("flags TCPD non-commercial, DataMeet NC-SA do-not-ship, Esri tiles and unstated census/LGD terms for a human decision", () => {
+  it("flags TCPD non-commercial, DataMeet NC-SA do-not-ship and unstated census/LGD terms for a human decision", () => {
     expect(reg["tcpd-nc"].constraints).toContain("non-commercial");
     expect(reg["tcpd-nc"].needsDecision).toBe(true);
     expect(reg["datameet-nc-sa"].status).toBe("do-not-ship");
     expect(reg["datameet-nc-sa"].constraints).toEqual(expect.arrayContaining(["non-commercial", "share-alike"]));
-    expect(reg["esri-basemap-terms"].needsDecision).toBe(true);
+    expect(reg["esri-basemap-terms"]).toBeUndefined(); // the Esri tiles were removed: maps are plain boundary shapes, no third-party basemap
     expect(reg["census-orgi-2011"].needsDecision).toBe(true);
     expect(reg["odbl"].constraints.join()).toMatch(/share-alike/);
     expect(reg["wikimedia-cc-by-sa"].constraints.join()).toMatch(/attribution/);

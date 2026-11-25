@@ -200,16 +200,6 @@ Register as of 2026-11-22. Research-level register, not legal advice. Every entr
 - Attribution: Alliance facts compiled from English Wikipedia election articles (links in data/reference/alliances.json); facts, not text, are reused.
 - Evidence: Records cite their pages; no prose is copied.
 
-### esri-basemap-terms
-
-- Name: Esri ArcGIS basemap tiles (World Light Gray / Dark Gray Canvas) as used in the home map
-- URL: https://www.esri.com/en-us/legal/terms/full-master-agreement
-- Status: restricted
-- Constraints: attribution to Esri and data providers; use of the public tile service is governed by Esri terms and may require an account or API key at scale
-- Attribution: Tiles (c) Esri, HERE, Garmin, OpenStreetMap contributors and the GIS user community.
-- Evidence: src/components/HomeMap.tsx loads server.arcgisonline.com Canvas tiles; Esri terms were not read.
-- **Needs a human decision:** Confirm the public keyless Esri tile endpoint may be used by a public civic site at expected traffic, or switch to a self-hosted/OSM-based tile source.
-
 ### project-derived
 
 - Name: Project-generated data (rollups, normalisation, registry curation) by this repository
@@ -230,7 +220,6 @@ Register as of 2026-11-22. Research-level register, not legal advice. Every entr
 - **shrug-cc-by-nc-sa** (restricted; non-commercial, share-alike, attribution) used by: geo-villages-shrug-AP, geo-villages-shrug-coverage, geo-villages-shrug-TG. Owner chose the non-commercial route on 2026-11-24 (free, no ads, no paid features, no sale of data; see docs/NONCOMMERCIAL.md). Counsel to confirm (a) that a non-profit civic operator qualifies as non-commercial and (b) the share-alike scope: derived boundary files (data/generated/geo/villages-shrug/) must be offered under CC BY-NC-SA 4.0; app code is unaffected while the boundaries stay a separate data layer. If any commercial use is planned, set COMMERCIAL_USE=1: the compliance test then fails until the SHRUG layer is removed or a commercial licence is obtained from Development Data Lab.
 - **odbl** (attribution-sharealike; attribution, share-alike for derived databases) used by: geo-mandal-AP, geo-mandal-coverage, geo-mandal-TG, geo-village-points-coverage, geo-village-points-osm-AP, geo-village-points-osm-TG. data/generated/geo/mandal-AP.geojson and mandal-TG.geojson are derived from OpenStreetMap relations (simplified, re-keyed to LGD). They must stay under ODbL with the OSM attribution, and anyone redistributing them must offer the derived file under ODbL (share-alike). Counsel to confirm that this file is a separable derivative database and that the rest of the repository and the app are not affected, or choose to drop the file. S-90 adds data/generated/geo/village-points-osm-AP.json and village-points-osm-TG.json (OSM place nodes joined to LGD villages, gap fill only). The API merges these points with CC0 Wikidata points in one list (each point has a source field). Counsel to confirm that this is a collective database rather than a derived one, and that attribution to OpenStreetMap contributors must be shown wherever OSM-derived points appear; the OSM file can be dropped without touching the CC0 file. See docs/decisions/S-90-village-boundaries.md.
 - **ceo-polling-station-list** (unstated; cite the CEO/ECI list, reference fields only: no voter-level data, no electoral-roll PDFs) used by: no shipped dataset. No list is shipped. Before an operator imports one, confirm the list's reuse terms with counsel; the CEO and ECI portals were unreachable or blocked when this was checked, so no terms were read.
-- **esri-basemap-terms** (restricted; attribution to Esri and data providers, use of the public tile service is governed by Esri terms and may require an account or API key at scale) used by: no shipped dataset. Confirm the public keyless Esri tile endpoint may be used by a public civic site at expected traffic, or switch to a self-hosted/OSM-based tile source.
 
 ## Party flags and symbols (Wikimedia Commons)
 

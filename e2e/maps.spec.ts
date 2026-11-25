@@ -1,8 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const declined = (page: Page) => page.addInitScript(() => { try { localStorage.setItem("pp-tiles-consent", "declined"); } catch { /* ignore */ } });
 const open = async (page: Page, hash = "#/map/TG", state = "TG") => {
-  await declined(page);
   await page.goto(`/?state=${state}${hash}`);
   await expect(page.getByTestId("map-page")).toBeVisible();
   await expect(page.locator("[data-testid=geo-map] path.leaflet-interactive").first()).toBeVisible();
@@ -51,17 +49,18 @@ test.describe("maps: choropleth (S-96)", () => {
     await expect(page.getByTestId("map-panel-ac")).toBeVisible();
   });
 
-  test("@E2E-111 no third-party request without consent; tiles load after consent; no CDN assets", async ({ page }) => {
+  test("@E2E-111 the map is plain boundary shapes: no third-party request of any kind, no tile layer, no consent control, no CDN assets", async ({ page }) => {
     const urls: string[] = [];
     page.on("request", (r) => urls.push(r.url()));
-    await page.addInitScript(() => { try { localStorage.removeItem("pp-tiles-consent"); } catch { /* ignore */ } });
-    await page.route(/arcgisonline\.com/, (r) => r.fulfill({ status: 204 }));
     await page.goto("/?state=TG#/map/TG");
     await expect(polygons(page).first()).toBeVisible();
-    expect(urls.filter((u) => /arcgisonline|unpkg|cdnjs|jsdelivr/.test(u))).toEqual([]);
-    await page.getByTestId("map-tiles-off").getByRole("button").click();
-    await expect.poll(() => urls.some((u) => /arcgisonline\.com/.test(u))).toBe(true);
-    await expect(polygons(page).first()).toBeVisible(); // polygons stay on top of tiles
+    await page.waitForTimeout(800);
+    const foreign = urls.filter((u) => /^https?:/.test(u) && new URL(u).origin !== new URL(page.url()).origin);
+    expect(foreign).toEqual([]);
+    expect(urls.filter((u) => /arcgisonline|openstreetmap|unpkg|cdnjs|jsdelivr/.test(u))).toEqual([]);
+    await expect(page.locator("[data-testid=geo-map] .leaflet-tile")).toHaveCount(0);
+    await expect(page.getByTestId("map-tiles-off")).toHaveCount(0);
+    await expect(page.getByTestId("consent-banner")).toHaveCount(0);
   });
 
   test("@E2E-111 usable at the current viewport: no horizontal overflow", async ({ page }) => {
@@ -80,8 +79,7 @@ test.describe("maps: choropleth (S-96)", () => {
   });
 
   test("@E2E-111 home map shows real district polygons and opens the full map", async ({ page }) => {
-    await declined(page);
-    await page.goto("/?state=TG");
+      await page.goto("/?state=TG");
     await expect(page.locator("[data-testid=home-map] path.leaflet-interactive").first()).toBeVisible();
     expect(await page.locator("[data-testid=home-map] path.leaflet-interactive").count()).toBe(33);
     await page.getByTestId("home-map-open").click();

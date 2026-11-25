@@ -160,16 +160,6 @@
       "needsDecision": false,
       "evidence": "Records cite their pages; no prose is copied."
     },
-    "esri-basemap-terms": {
-      "name": "Esri ArcGIS basemap tiles (World Light Gray / Dark Gray Canvas) as used in the home map",
-      "url": "https://www.esri.com/en-us/legal/terms/full-master-agreement",
-      "status": "restricted",
-      "constraints": ["attribution to Esri and data providers", "use of the public tile service is governed by Esri terms and may require an account or API key at scale"],
-      "attribution": "Tiles (c) Esri, HERE, Garmin, OpenStreetMap contributors and the GIS user community.",
-      "needsDecision": true,
-      "decision": "Confirm the public keyless Esri tile endpoint may be used by a public civic site at expected traffic, or switch to a self-hosted/OSM-based tile source.",
-      "evidence": "src/components/HomeMap.tsx loads server.arcgisonline.com Canvas tiles; Esri terms were not read."
-    },
     "project-derived": {
       "name": "Project-generated data (rollups, normalisation, registry curation) by this repository",
       "url": "",

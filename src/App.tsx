@@ -20,7 +20,6 @@ import SurveyPage from "./components/pages/SurveyPage";
 import MethodologyPage from "./components/pages/MethodologyPage";
 import AdminPage from "./components/pages/AdminPage";
 import { PrivacyPage, TermsPage, WhoSeesPage } from "./components/pages/LegalPages";
-import ConsentBanner from "./components/ConsentBanner";
 import { StateProvider, useStateCtx, defaultYear } from "./state/StateContext";
 import { LangProvider, useT } from "./i18n";
 import ProfilePage from "./components/profiles/ProfilePage";
@@ -119,7 +118,6 @@ function AppInner() {
     if (tab !== "survey" && isSurveysHash(window.location.hash)) window.history.replaceState(null, "", window.location.pathname + window.location.search);
     setCurrentTabRaw(tab);
   };
-  const [reopenConsent, setReopenConsent] = useState(false);
   const { state: stateCode, config: stateCfg } = useStateCtx();
   const { t, lang } = useT();
 
@@ -137,7 +135,6 @@ function AppInner() {
 
   return (
     <div className={`min-h-screen flex flex-col justify-between font-sans selection:bg-black selection:text-[#F9F7F2] transition-colors duration-300 ${theme} ${bg}`}>
-      <ConsentBanner forceOpen={reopenConsent} onClose={() => setReopenConsent(false)} />
       <DegradedBanner />
       <Navbar currentTab={currentTab} setCurrentTab={setCurrentTab} theme={theme} setTheme={setTheme} />
 
@@ -177,7 +174,6 @@ function AppInner() {
               {tab === "people" ? PEOPLE_TEXT[lang]["ppl.tab"] : tab === "constituencies" ? t("nav.constituencies") : tab === "elections" ? t("nav.elections") : tab === "civic" ? t("nav.civic") : tab === "privacy" ? t("nav.privacy") : tab === "terms" ? t("nav.terms") : tab === "who" ? t("nav.who") : t("nav.methodology")}
             </button>
           ))}
-          <button data-testid="footer-consent" type="button" onClick={() => { setReopenConsent(true); window.scrollTo?.(0, 0); }} className="block hover:underline text-left cursor-pointer py-1 min-h-[24px]">{t("consent.change")}</button>
         </div>
       </footer>
     </div>

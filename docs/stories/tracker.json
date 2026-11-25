@@ -2415,6 +2415,18 @@
       "wave": "W8",
       "source": "user request 2026-11-25",
       "notes": "Built: choose-several questions get a Minimum choices field (empty means 1); the server refuses a minimum that is not a whole number from 1 to the maximum and enforces it on answer (prefer not to say always counts); the dialog shows the rule and keeps Submit disabled until it is met; polls made before this change behave as before (minimum 1). Covered by a unit test and the recorded journey. NOT done: English-only admin label; the Telugu dialog wording for the range is machine-drafted and unreviewed."
+    },
+    {
+      "id": "S-190",
+      "epic": "Maps",
+      "title": "Remove the Esri map tiles; maps are plain boundary shapes",
+      "agent": "-",
+      "status": "done",
+      "tests": ["E2E-111", "E2E-144", "E2E-140", "E2E-69"],
+      "priority": "P1",
+      "wave": "W8",
+      "source": "user request 2026-11-25",
+      "notes": "Built: the Esri World Gray Canvas background is gone from the home map and the full map page; polygons are drawn on a plain background with no third-party request. Removed the map-tile consent banner, its footer link, the tile-off notes and their Telugu and English text, the Esri licence entry, and the CSP allowance for server.arcgisonline.com; privacy text now says no map provider is contacted. Tests assert no foreign request, no tile layer and no banner. NOT done: no streets or place names behind the shapes (a self-hosted OpenStreetMap-based tile source is the option if that is wanted later); the Telugu privacy sentence is machine-drafted and unreviewed; the privacy text change has not been through counsel; the counsel package copy of ARTEFACT_TEXT was updated to match."
     }
   ]
 }

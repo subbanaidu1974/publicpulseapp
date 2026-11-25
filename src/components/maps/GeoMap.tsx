@@ -13,8 +13,6 @@ export interface GeoMapProps {
   selectedKey?: string | null;
   activeKey?: string | null;
   onSelect?: (key: string) => void;
-  /** Esri tiles are loaded only when true (explicit consent); polygons always draw on a plain background. */
-  tiles: boolean;
   dark: boolean;
   label: string;
   describedBy?: string;
@@ -22,13 +20,10 @@ export interface GeoMapProps {
   className?: string;
 }
 
-const ESRI = (dark: boolean) => `https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/${dark ? "World_Dark_Gray_Base" : "World_Light_Gray_Base"}/MapServer/tile/{z}/{y}/{x}`;
-
 export default function GeoMap(p: GeoMapProps) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const layer = useRef<L.GeoJSON | null>(null);
-  const tile = useRef<L.TileLayer | null>(null);
   const layers = useRef(new Map<string, L.Path>());
   const cb = useRef(p);
   cb.current = p;
@@ -37,24 +32,11 @@ export default function GeoMap(p: GeoMapProps) {
   // create the map once
   useEffect(() => {
     if (!el.current) return;
-    const m = L.map(el.current, { attributionControl: true, scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: false });
-    m.attributionControl.setPrefix(false);
-    m.setView([16.5, 79.5], 6); // placeholder view until polygons arrive
+    const m = L.map(el.current, { attributionControl: false, scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: false });
+      m.setView([16.5, 79.5], 6); // placeholder view until polygons arrive
     map.current = m;
-    return () => { m.remove(); map.current = null; layer.current = null; tile.current = null; };
+    return () => { m.remove(); map.current = null; layer.current = null; };
   }, []);
-
-  // background tiles: only on explicit consent
-  useEffect(() => {
-    const m = map.current;
-    if (!m) return;
-    tile.current?.remove();
-    tile.current = null;
-    if (p.tiles) {
-      tile.current = L.tileLayer(ESRI(p.dark), { attribution: "Tiles © Esri", maxZoom: 12 }).addTo(m);
-      tile.current.bringToBack();
-    }
-  }, [p.tiles, p.dark]);
 
   // (re)build polygons when the collection changes
   useEffect(() => {
@@ -112,7 +94,7 @@ function baseStyle(p: GeoMapProps, key: string): L.PathOptions {
   const edge = p.dark ? "#EADCC6" : "#121212";
   return {
     fillColor: p.colorOf(key) || NO_DATA,
-    fillOpacity: p.tiles ? 0.72 : 0.9,
+    fillOpacity: 0.9,
     color: selected ? edge : p.dark ? "#3a372f" : "#6b665a",
     weight: selected ? 3 : active ? 2.5 : 0.8,
     opacity: 1,

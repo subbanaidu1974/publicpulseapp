@@ -4,7 +4,6 @@ import { useApi } from "../../api/useApi";
 import { fetchCensusDistricts, fetchGeo, fetchIssueTotals, fetchTeNames, fetchAcDetail, type GeoFeature, type TeNames } from "../../api/geo";
 import { defaultYear, useStateCtx } from "../../state/StateContext";
 import { useT, type Key } from "../../i18n";
-import { setTilesConsent, useTilesConsent } from "../../lib/consent";
 import { ErrorBanner, Loading } from "../ui";
 import GeoMap from "./GeoMap";
 import UnitsPanel from "./UnitsPanel";
@@ -32,7 +31,6 @@ function writeHash(r: MapRoute, replace = false) {
 export default function MapPage({ theme }: { theme: Theme }) {
   const { state, config, setState } = useStateCtx();
   const { t, lang } = useT();
-  const consent = useTilesConsent();
   const dark = theme === "dark" || theme === "dark-beige";
   const [route, setRoute] = useState<MapRoute>(() => readHash() ?? { state, level: "district" });
   const [metric, setMetric] = useState<MetricId>("winner");
@@ -229,7 +227,7 @@ export default function MapPage({ theme }: { theme: Theme }) {
           <div className="border border-black/30 relative">
             {loadingGeo && <div className="absolute inset-0 z-[500] flex items-center justify-center bg-[#F9F7F2]/70 text-[#121212] pointer-events-none"><Loading /></div>}
             <GeoMap
-              testId="geo-map" label={`${t("map.title")}: ${stateName}`} describedBy="map-desc" dark={dark} tiles={consent === "granted"}
+              testId="geo-map" label={`${t("map.title")}: ${stateName}`} describedBy="map-desc" dark={dark}
               collection={collection} keyOf={keyOf} colorOf={colorOf} tooltipOf={tooltipOf}
               selectedKey={selectedKey} activeKey={active} onSelect={onSelect}
             />
@@ -244,11 +242,6 @@ export default function MapPage({ theme }: { theme: Theme }) {
           <p className="text-[10px] font-sans">
             {level === "district" ? `${t("map.approx")} ` : ""}{t("map.source")}
           </p>
-          {consent !== "granted" && (
-            <p data-testid="map-tiles-off" className="text-[10px] font-sans">
-              {t("map.tilesOff")} <button type="button" onClick={() => setTilesConsent("granted")} className="underline font-bold cursor-pointer">{t("map.enable")}</button>
-            </p>
-          )}
         </div>
 
         <aside className="lg:col-span-4 space-y-3 min-w-0" aria-label={t("map.panel.title")} data-testid="map-panel">

@@ -44,7 +44,7 @@ npm run pipeline:validate     # data quality gate (also run in CI)
 npm run pipeline:all
 ```
 
-Method notes: `docs/FORECAST_METHOD.md`. Map tiles are keyless.
+Method notes: `docs/FORECAST_METHOD.md`. Maps are plain boundary shapes drawn from our own data: no map tiles, no third-party map provider.
 
 ## Testing
 

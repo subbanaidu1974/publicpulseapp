@@ -14,7 +14,7 @@ export function buildCsp(dev: boolean): string {
     // React inline style attributes and Leaflet positioning need inline styles.
     "style-src": ["'self'", "'unsafe-inline'"],
     "font-src": ["'self'", "data:"],
-    "img-src": ["'self'", "data:", "blob:", "https://server.arcgisonline.com"],
+    "img-src": ["'self'", "data:", "blob:"], // no third-party image host: maps are drawn from our own boundary data
     "media-src": ["'self'", "blob:"],
     "connect-src": dev ? ["'self'", "ws:", "wss:"] : ["'self'"],
     "worker-src": ["'self'", "blob:"],

@@ -1,16 +1,14 @@
 import { test, expect, type Page } from '@playwright/test';
 import { openHome } from './helpers';
 
-const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
-
-/** Record every request the page makes to a host that is not this origin; map tile hosts are answered with a 1px image. */
+/** Record every request the page makes to a host that is not this origin; all of them are blocked. */
 async function trackExternal(page: Page) {
   const hosts: string[] = [];
   await page.route('**/*', (route) => {
     const u = new URL(route.request().url());
     if (u.hostname !== 'localhost' && u.hostname !== '127.0.0.1') {
       hosts.push(u.hostname);
-      return u.hostname.endsWith('arcgisonline.com') ? route.fulfill({ status: 200, contentType: 'image/png', body: PNG }) : route.abort();
+      return route.abort();
     }
     return route.continue();
   });
@@ -23,34 +21,17 @@ async function footer(page: Page, tab: 'privacy' | 'terms' | 'who') {
   await link.click();
 }
 
-test.describe('privacy, terms, who-sees-what and third-party consent', () => {
-  test('@E2E-144 first visit asks before any third-party map request; decline keeps the map without tiles', async ({ page }) => {
+test.describe('privacy, terms and who-sees-what', () => {
+  test('@E2E-144 the home map makes no third-party request and there is no map-tile banner, note or footer choice', async ({ page }) => {
     const hosts = await trackExternal(page);
     await openHome(page, 'AP');
-    await expect(page.getByTestId('consent-banner')).toBeVisible();
-    await expect(page.getByTestId('consent-banner')).toContainText(/Esri/);
+    await expect(page.getByTestId('home-map')).toBeVisible();
     await page.waitForTimeout(800);
-    expect(hosts.filter((h) => h.endsWith('arcgisonline.com'))).toEqual([]); // nothing before a choice
-    await page.getByTestId('consent-decline').click();
+    expect(hosts).toEqual([]); // not even a refused request: nothing is attempted
     await expect(page.getByTestId('consent-banner')).toHaveCount(0);
-    await expect(page.getByTestId('map-tiles-off')).toBeVisible();
-    await page.waitForTimeout(800);
-    expect(hosts.filter((h) => h.endsWith('arcgisonline.com'))).toEqual([]);
-    expect(await page.evaluate(() => localStorage.getItem('pp-tiles-consent'))).toBe('declined');
-    await page.reload();
-    await expect(page.getByTestId('consent-banner')).toHaveCount(0); // choice is remembered
-  });
-
-  test('@E2E-144 allow loads tiles, and the footer link reopens the choice so it can be changed back', async ({ page }) => {
-    const hosts = await trackExternal(page);
-    await openHome(page, 'AP');
-    await page.getByTestId('consent-allow').click();
-    await expect.poll(() => hosts.filter((h) => h.endsWith('arcgisonline.com')).length).toBeGreaterThan(0);
-    await page.getByTestId('footer-consent').scrollIntoViewIfNeeded();
-    await page.getByTestId('footer-consent').click();
-    await expect(page.getByTestId('consent-banner')).toBeVisible();
-    await page.getByTestId('consent-decline').click();
-    await expect(page.getByTestId('map-tiles-off')).toBeVisible();
+    await expect(page.getByTestId('map-tiles-off')).toHaveCount(0);
+    await expect(page.getByTestId('footer-consent')).toHaveCount(0);
+    expect(await page.evaluate(() => localStorage.getItem('pp-tiles-consent'))).toBeNull();
   });
 
   test('@E2E-144 footer reaches the privacy page: DRAFT banner, plain-language sections, Aadhaar and benefit statements', async ({ page }) => {
@@ -98,7 +79,7 @@ test.describe('privacy, terms, who-sees-what and third-party consent', () => {
     page.on('requestfinished', (r) => { if (/\/fonts\//.test(r.url())) fontReq.push(r.url()); });
     await openHome(page, 'AP');
     await page.getByRole('button', { name: 'తెలుగు' }).first().click();
-    await expect(page.getByTestId('consent-banner')).toContainText('Esri');
+    await expect(page.getByTestId('consent-banner')).toHaveCount(0);
     await page.waitForTimeout(800);
     expect(hosts.filter((h) => /googleapis|gstatic/.test(h))).toEqual([]);
     expect(fontReq.some((u) => u.endsWith('/fonts/NotoSansTelugu-subset.woff2'))).toBe(true);
