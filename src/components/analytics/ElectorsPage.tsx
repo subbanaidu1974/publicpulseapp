@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { analytics } from "../../api/analytics";
+import { placeHash } from "../../api/profiles";
 import type { ElectorsItem } from "../../api/analytics";
 import { useApi } from "../../api/useApi";
 import { useStateCtx } from "../../state/StateContext";
@@ -67,7 +68,7 @@ export default function ElectorsPage() {
                   {items.map((x) => (
                     <tr key={x.acNo} data-testid="electors-row">
                       <td className="border-b border-black/10 py-1 pr-3 font-mono">{x.acNo}</td>
-                      <th scope="row" className="border-b border-black/10 py-1 pr-3 font-bold">{x.acName}</th>
+                      <th scope="row" className="border-b border-black/10 py-1 pr-3 font-bold"><a className="underline" data-testid="electors-link" href={placeHash(state, "ac", x.acNo)}>{x.acName}</a></th>
                       <td className="border-b border-black/10 py-1 pr-3 font-mono">{fnum(x.male, na)}</td>
                       <td className="border-b border-black/10 py-1 pr-3 font-mono">{fnum(x.female, na)}</td>
                       <td className="border-b border-black/10 py-1 pr-3 font-mono">{fnum(x.thirdGender, na)}</td>
