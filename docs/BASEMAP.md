@@ -49,3 +49,16 @@ the tiles' own place labels are switched off and town names are drawn from our o
 Known limits: 183 towns in all, so smaller towns and villages have no label; some entries are localities or mandal-sized populations rather
 than municipal towns (for example Jubilee Hills, Tuni); the spelling is whatever Wikidata holds (for example "వరంగల్ నగరం", Warangal city) and
 has not been checked by a Telugu reader.
+
+## Telugu village names (S-193)
+
+When zoomed in (about district level and closer) the Telugu interface also labels villages:
+
+- `data/generated/geo/village-labels-AP.json` and `village-labels-TG.json`, served at `GET /api/v1/geo/:state/village-labels.json`.
+  Built offline (no download) by `npm run pipeline:village-labels` from the village location points (Wikidata CC0, then OpenStreetMap ODbL for
+  the rest) joined to the Telugu names the LGD directory holds. Names are shown exactly as LGD has them (a few carry tags such as "- టి").
+- **Coverage is very uneven.** Telangana: 4,193 villages (LGD has Telugu names for 11,365 of 11,447, but only about 4,200 have a location point).
+  Andhra Pradesh: 59 only, because LGD holds Telugu names for just 372 of 17,957 AP villages. Zoomed in over AP the map is almost without village
+  names. Filling that needs another Telugu name source (for example OpenStreetMap `name:te` or Wikidata) and would be a separate download.
+- Labels are placed on a coarse pixel grid so they do not pile up (at most 400 at once), towns first. Locations are approximate place points,
+  so a label can sit a little off the real village. English never shows village labels.

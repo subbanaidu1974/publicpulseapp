@@ -1,6 +1,6 @@
 import L from "leaflet";
-import { fetchPlaces, type PlaceName } from "../../api/geo";
-import { minPopulationAt } from "./placeZoom";
+import { fetchPlaces, fetchVillageLabels, type PlaceName, type VillageLabel } from "../../api/geo";
+import { MAX_VILLAGE_LABELS, minPopulationAt, VILLAGE_ZOOM } from "./placeZoom";
 
 /**
  * Self-hosted map background (S-191): OpenStreetMap vector tiles for AP and TG served by THIS site (server/basemap.ts) and drawn in the
@@ -46,23 +46,45 @@ export async function addBasemap(map: L.Map, dark: boolean, lang: "en" | "te"): 
 }
 
 /**
- * Telugu town names (S-192), from our own list (Wikidata, CC0) served by this site, drawn as plain text labels over the background.
- * Returns null when the list cannot be loaded (the map then simply has no town names).
+ * Telugu place names, drawn as plain text labels over the background from our own lists served by this site: towns (S-192, Wikidata CC0)
+ * and, when zoomed in, villages (S-193, LGD names). Towns are placed first and a label that would overlap one already placed is skipped.
+ * Returns null when no list can be loaded (the map then simply has no names).
  */
 export async function addTeluguPlaces(map: L.Map): Promise<L.Layer | null> {
   try {
-    const all = (await Promise.all((["AP", "TG"] as const).map((s) => fetchPlaces(s)))).flat();
-    if (!all.length) return null;
+    const states = ["AP", "TG"] as const;
+    const towns = (await Promise.all(states.map((s) => fetchPlaces(s)))).flat() as PlaceName[];
+    if (!towns.length) return null;
+    // villages are loaded only when the map is first zoomed in far enough; a failure there never removes the town names
+    let villages: VillageLabel[] | null = null, loading = false;
     const group = L.layerGroup();
+    const put = (text: string, lat: number, lng: number, cls: string) =>
+      L.marker([lat, lng], { interactive: false, keyboard: false, icon: L.divIcon({ className: cls, html: "", iconSize: [0, 0] }) })
+        .addTo(group).getElement()?.replaceChildren(Object.assign(document.createElement("span"), { textContent: text }));
     const draw = () => {
       group.clearLayers();
-      const min = minPopulationAt(map.getZoom()), box = map.getBounds().pad(0.05);
-      for (const p of all as PlaceName[]) {
-        if (p.population < min || !box.contains([p.lat, p.lon])) continue;
-        L.marker([p.lat, p.lon], {
-          interactive: false, keyboard: false,
-          icon: L.divIcon({ className: "pp-place-label", html: "", iconSize: [0, 0] }),
-        }).addTo(group).getElement()?.replaceChildren(Object.assign(document.createElement("span"), { textContent: p.te }));
+      const zoom = map.getZoom(), box = map.getBounds().pad(0.05), min = minPopulationAt(zoom);
+      const taken = new Set<string>(); // coarse pixel grid: one label per cell, so names never pile up
+      const free = (lat: number, lng: number, wide: number): boolean => {
+        const p = map.latLngToContainerPoint([lat, lng]), cx = Math.floor(p.x / (wide + 12)), cy = Math.floor(p.y / 16);
+        const k = `${cx}:${cy}`; if (taken.has(k)) return false;
+        taken.add(k); return true;
+      };
+      for (const p of towns) {
+        if (p.population < min || !box.contains([p.lat, p.lon]) || !free(p.lat, p.lon, 70)) continue;
+        put(p.te, p.lat, p.lon, "pp-place-label");
+      }
+      if (zoom >= VILLAGE_ZOOM) {
+        if (!villages && !loading) {
+          loading = true;
+          void Promise.all(states.map((s) => fetchVillageLabels(s))).then((v) => { villages = v.flat(); draw(); }).catch(() => { villages = []; });
+        }
+        let n = 0;
+        for (const v of villages ?? []) {
+          if (n >= MAX_VILLAGE_LABELS) break;
+          if (!box.contains([v.lat, v.lon]) || !free(v.lat, v.lon, 80)) continue;
+          put(v.te, v.lat, v.lon, "pp-place-label pp-village-label"); n++;
+        }
       }
     };
     group.on("add", () => { draw(); map.on("zoomend moveend", draw); });
