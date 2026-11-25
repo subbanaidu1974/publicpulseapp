@@ -6,16 +6,18 @@ Four things move the gate: (1) name the owners and the two approvers, (2) commis
 
 ## 1. Fill-in sheet: people (do this first, takes one sitting)
 
+**Temporary placeholders, entered 2026-11-24 at the owner's request so planning can continue.** Every name below beginning PLACEHOLDER- stands for a real person not yet chosen. They are deliberately NOT copied into the table or sign-off lines of `docs/RELEASE_GATE.md`, so `npm run gate:status` still reports owners and approvers as missing. Replace each placeholder with a real name, then copy owners into that table.
+
 | Role | Name | Contact | Independent of the build team? |
 |---|---|---|---|
-| Project owner (accountable for the whole gate) | ____ | ____ | no |
-| Approver 1 (signs the release) | ____ | ____ | may be the owner |
-| Approver 2 (signs the release) | ____ | ____ | **must be yes**: someone who did not build or fund-direct the build |
-| Security contact for testers, reachable 24 hours in the test window | ____ | ____ | no |
-| Engagement lead who accepts or rejects findings | ____ | ____ | no |
-| Pilot lead | ____ | ____ | no |
-| Statistician to review the pilot method | ____ | ____ | preferably yes |
-| Counsel (rows 13 to 16) | ____ | ____ | yes |
+| Project owner (accountable for the whole gate) | PLACEHOLDER-OWNER | ____ | no |
+| Approver 1 (signs the release) | PLACEHOLDER-APPROVER-1 | ____ | may be the owner |
+| Approver 2 (signs the release) | PLACEHOLDER-APPROVER-2-INDEPENDENT | ____ | **must be yes**: someone who did not build or fund-direct the build |
+| Security contact for testers, reachable 24 hours in the test window | PLACEHOLDER-SECURITY-CONTACT | ____ | no |
+| Engagement lead who accepts or rejects findings | PLACEHOLDER-ENGAGEMENT-LEAD | ____ | no |
+| Pilot lead | PLACEHOLDER-PILOT-LEAD | ____ | no |
+| Statistician to review the pilot method | PLACEHOLDER-STATISTICIAN | ____ | preferably yes |
+| Counsel (rows 13 to 16) | PLACEHOLDER-COUNSEL | ____ | yes |
 
 Then for each of the 18 rows write an owner and a date in the table in `docs/RELEASE_GATE.md`. `docs/gate/OWNERS_AND_SCHEDULE.md` says which kind of person suits each row.
 
