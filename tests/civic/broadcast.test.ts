@@ -189,4 +189,21 @@ describe("broadcast polls (S-185) @E2E-198", () => {
     expect((await call("POST", `/${one.json.id}/answer`, u.token, { answers: [[0, 1]] })).json.code).toBe("bad_option");
     expect((await call("POST", `/${one.json.id}/answer`, u.token, { answers: [[1]] })).status).toBe(200);
   });
+
+  it("min choices (S-189): validated against the maximum; enforced on answer; prefer-not always satisfies it; empty means 1", async () => {
+    const a = admin(), u = mkPerson();
+    const multi = (min_select: unknown, max_select: unknown = 3) => ({ questions: [{ kind: "multi", min_select, max_select, text_en: "Which services need work?", options: [{ label_en: "Roads" }, { label_en: "Water" }, { label_en: "Power" }, { label_en: "Health" }] }] });
+    for (const bad of [0, 4, 1.5, "two", -1]) expect((await open(a, multi(bad))).json.code).toBe("bad_min_select");
+    expect((await open(a, multi(3, 2))).json.code).toBe("bad_min_select"); // min above max
+    const none = (await open(a, multi(""))).json;
+    expect(none.questions[0].min_select).toBe(1);
+    await call("POST", `/admin/${none.id}/close`, a.token);
+    const p = (await open(a, multi(2, 3))).json;
+    expect(p.questions[0]).toMatchObject({ min_select: 2, max_select: 3 });
+    const ans = async (pick: number[]) => call("POST", `/${p.id}/answer`, u.token, { answers: [pick] });
+    expect((await ans([1])).json.code).toBe("bad_option"); // too few
+    expect((await ans([0, 1, 2, 3])).json.code).toBe("bad_option"); // too many
+    expect((await call("GET", "/pending", u.token)).json.poll.questions[0].min_select).toBe(2);
+    expect((await ans([4])).status).toBe(200); // prefer not to say counts as an answer
+  });
 });

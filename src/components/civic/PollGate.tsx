@@ -6,13 +6,13 @@ import { useT } from "../../i18n";
 const TXT = {
   en: {
     badge: "Your opinion is requested", must: "Please answer every question to continue to the app. “Prefer not to say” is always an option.",
-    submit: "Submit and continue", sending: "Sending", pick: "Choose one", pickMany: "Choose up to", answered: "answered", of: "of",
+    submit: "Submit and continue", sending: "Sending", pick: "Choose one", pickMany: "Choose up to", pickRange: "Choose at least", andUpTo: "and up to", answered: "answered", of: "of",
     err: "Could not send your answers. Check your connection and try again.", closed: "This poll has just closed. You can continue.", done: "Thank you. Your answer was recorded.",
     anon: "Your answer is counted but not linked to your name or account.",
   },
   te: {
     badge: "మీ అభిప్రాయం కోరుతున్నాము", must: "యాప్‌ను కొనసాగించడానికి అన్ని ప్రశ్నలకు సమాధానం ఇవ్వండి. “చెప్పదలచుకోలేదు” ఎంపిక ఎల్లప్పుడూ ఉంటుంది.",
-    submit: "పంపి కొనసాగండి", sending: "పంపుతున్నాము", pick: "ఒకటి ఎంచుకోండి", pickMany: "గరిష్టంగా ఎంచుకోండి", answered: "సమాధానాలు", of: "/",
+    submit: "పంపి కొనసాగండి", sending: "పంపుతున్నాము", pick: "ఒకటి ఎంచుకోండి", pickMany: "గరిష్టంగా ఎంచుకోండి", pickRange: "కనీసం ఎంచుకోండి", andUpTo: "గరిష్టంగా", answered: "సమాధానాలు", of: "/",
     err: "మీ సమాధానాలను పంపలేకపోయాము. కనెక్షన్ చూసి మళ్ళీ ప్రయత్నించండి.", closed: "ఈ పోల్ ఇప్పుడే ముగిసింది. మీరు కొనసాగవచ్చు.", done: "ధన్యవాదాలు. మీ సమాధానం నమోదైంది.",
     anon: "మీ సమాధానం లెక్కలోకి వస్తుంది, కానీ మీ పేరు లేదా ఖాతాతో అనుసంధానం కాదు.",
   },
@@ -64,7 +64,8 @@ function PollDialog({ poll, onDone }: { poll: Poll; onDone: () => void }) {
     if (e.shiftKey && (at === first || at === head.current)) { e.preventDefault(); last.focus(); }
     else if (!e.shiftKey && at === last) { e.preventDefault(); first.focus(); }
   };
-  const count = picked.filter((p) => p.length > 0).length;
+  const enough = (qi: number): boolean => { const p = picked[qi], q = poll.questions[qi]; return p.length > 0 && (p.some((n) => q.options[n].prefer_not) || p.length >= (q.min_select ?? 1)); };
+  const count = poll.questions.filter((_, qi) => enough(qi)).length;
   const complete = count === poll.questions.length;
   const toggle = (qi: number, oi: number) => setPicked((cur) => cur.map((p, i) => {
     if (i !== qi) return p;
@@ -94,7 +95,7 @@ function PollDialog({ poll, onDone }: { poll: Poll; onDone: () => void }) {
           {poll.questions.map((q, qi) => (
             <fieldset key={qi} className="border border-black p-3 space-y-1" data-testid={`poll-q-${qi}`}>
               <legend className="font-bold text-sm px-1">{qi + 1}. {(te && q.text_te) || q.text_en}</legend>
-              <p className="text-xs">{q.kind === "multi" ? `${L.pickMany} ${q.max_select}` : L.pick}</p>
+              <p className="text-xs">{q.kind === "multi" ? ((q.min_select ?? 1) > 1 ? `${L.pickRange} ${q.min_select} ${L.andUpTo} ${q.max_select}` : `${L.pickMany} ${q.max_select}`) : L.pick}</p>
               {q.options.map((o, oi) => {
                 const on = picked[qi].includes(oi), id = `poll-${qi}-${oi}`;
                 return (

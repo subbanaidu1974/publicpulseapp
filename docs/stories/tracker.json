@@ -2403,6 +2403,18 @@
       "wave": "W8",
       "source": "user request 2026-11-25",
       "notes": "Built: choose-several questions get a Maximum choices field (shown only for that type; empty means no limit); the server refuses anything that is not a whole number from 1 to the number of options; the poll dialog says Choose up to N and refuses the extra pick; covered by a unit test and the recorded journey. NOT done: no minimum choices, English-only label."
+    },
+    {
+      "id": "S-189",
+      "epic": "Surveys",
+      "title": "Minimum choices field on the admin poll screen",
+      "agent": "-",
+      "status": "done",
+      "tests": ["E2E-198", "E2E-202"],
+      "priority": "P3",
+      "wave": "W8",
+      "source": "user request 2026-11-25",
+      "notes": "Built: choose-several questions get a Minimum choices field (empty means 1); the server refuses a minimum that is not a whole number from 1 to the maximum and enforces it on answer (prefer not to say always counts); the dialog shows the rule and keeps Submit disabled until it is met; polls made before this change behave as before (minimum 1). Covered by a unit test and the recorded journey. NOT done: English-only admin label; the Telugu dialog wording for the range is machine-drafted and unreviewed."
     }
   ]
 }
