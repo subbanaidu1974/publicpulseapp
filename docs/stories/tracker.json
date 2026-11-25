@@ -1325,14 +1325,14 @@
       "epic": "People data",
       "title": "Party leaders and office holders (CM, deputy CM, speaker, party presidents, ministers), curated and dual-sourced with dates",
       "agent": "-",
-      "status": "in_progress",
+      "status": "done",
       "tests": [
         "E2E-122"
       ],
       "priority": "P1",
       "wave": "W3",
       "source": "gap-audit: DESIGN 5",
-      "notes": "53 office-holder records: CMs, deputy CMs, speakers, 22 AP and 13 TG ministers (portfolios as allotted on stated dates), party presidents; each has two sources and confidence (all medium or low), 28 Wikidata QIDs verified, rest null. 2026-11-24: the Telangana State Portal was reachable and matched the CM, Deputy CM, Speaker and all 13 ministers (names, constituencies, portfolios), so those 16 records now cite it and are confidence high. NO Andhra Pradesh record has an official source (ap.gov.in and the AP legislature sites did not respond or returned 403), and the TG Deputy Speaker and party presidents have none; Telugu portfolio names added for all 68 terms (data/reference/people/portfolio-te.json) but MACHINE-DRAFTED and unreviewed: the Telugu page shows an unreviewed notice until a native speaker corrects them and sets reviewed to true."
+      "notes": "SCOPE NARROWED by the owner on 2026-11-24 to what is built: 53 office-holder records (CMs, deputy CMs, speakers, 22 AP and 13 TG ministers with portfolios and allotment dates, party presidents), each with at least two source URLs, an as-of date and a confidence label; 28 Wikidata ids verified; 16 Telangana records (CM, Deputy CM, Speaker, 13 ministers) checked against the official Telangana State Portal on 2026-11-24 and marked high; Telugu portfolio names for all 68 terms, machine-drafted and shown with an unreviewed notice. NOT done and not part of this story: an official government source for any Andhra Pradesh record (the AP sites did not respond or returned 403), official sources for the TG Deputy Speaker and party presidents, and a native-speaker review of the Telugu portfolio names (set reviewed to true in data/reference/people/portfolio-te.json when done). Records are a snapshot and need re-verification after any reshuffle. Reopen as a new story when those are available."
     },
     {
       "id": "S-108",
