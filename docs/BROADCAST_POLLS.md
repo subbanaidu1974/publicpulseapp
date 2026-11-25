@@ -28,3 +28,6 @@ It is not a Pulse Survey: no eligibility rules (email-only accounts count), no w
 * Making an answer compulsory before using the app is a product and legal choice (consent should be freely given). Counsel has not looked at it. The "prefer not to say" option is the safeguard built in.
 * No targeting by place or role, no email or SMS nudge, no editing after creation, no repeating polls, start time uses the admin's browser time zone, no published results, admin screen is English only, Telugu text is machine-drafted and unreviewed.
 * While a poll is open every signed-in test session is blocked too. Close polls after use and do not leave one open while running the browser suite.
+
+## Recorded test videos
+`npm run e2e:poll-videos` runs the admin and user journey (E2E-202) and saves two 1280x720 videos: `test-results/videos/broadcast-poll/admin-pushes-poll.webm` (admin writes and pushes the poll, sees the response, closes it) and `user-answers-poll.webm` (user is blocked, answers, reaches the app, is not asked again). Run poll specs with `--workers=1`: a poll open in one spec blocks signed-in sessions in others. The admin screen has no "maximum choices" field yet (multi-choice questions allow any number of picks); the server supports `max_select`.

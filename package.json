@@ -32,6 +32,7 @@
     "test:api": "vitest run tests/api tests/lib",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "e2e:poll-videos": "playwright test e2e/broadcast-poll.journey.spec.ts --project=chromium --workers=1",
     "tracker": "tsx scripts/gen-tracker.ts",
     "tracker:html": "node scripts/tracker-html.cjs",
     "ci": "npm run lint && npm run lint:eslint && npm run check:docs && npm run test:coverage && npm run build && npm run test:e2e && npm run tracker -- --check",

@@ -2379,6 +2379,18 @@
       "wave": "W8",
       "source": "user request 2026-11-25",
       "notes": "Built: an admin can set a start time up to 30 days ahead; the poll is listed as scheduled, blocks nobody and refuses answers until then, then goes live by itself (users see it within about 30 seconds on an open page); it can be cancelled before it starts; the end time must follow the start and be within 30 days of it; scheduled polls count toward the limit of 3. A start in the past or empty means now. NOT done: editing a poll after it is created, repeating polls, time zone choice (the picker uses the admin's browser time), a reminder to the admin before it starts."
+    },
+    {
+      "id": "S-187",
+      "epic": "Surveys",
+      "title": "Recorded admin and user automation journey for broadcast polls",
+      "agent": "-",
+      "status": "done",
+      "tests": ["E2E-202"],
+      "priority": "P2",
+      "wave": "W8",
+      "source": "user request 2026-11-25",
+      "notes": "Built: one Playwright journey with two recorded browser contexts (admin and user), saved as separate 1280x720 .webm files by npm run e2e:poll-videos. Covers write and push, blocked dialog, partial answers, prefer-not behaviour, release, no re-ask, response count, results hidden below 10 answers, close. NOT done: videos are not published anywhere or attached to CI, Telugu and mobile are not recorded, the scheduled-start flow is covered by other specs but not in the video."
     }
   ]
 }
