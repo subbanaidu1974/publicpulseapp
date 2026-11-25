@@ -38,6 +38,16 @@ export function fetchGeo(state: StateCode, level: GeoLevel): Promise<GeoCollecti
   });
 }
 
+/** One town with a Telugu name (Wikidata, CC0), for the map background labels. */
+export interface PlaceName { en: string; te: string; lon: number; lat: number; population: number }
+/** GET /geo/:state/places.json: towns of at least 30,000 people that have a Telugu label. */
+export function fetchPlaces(state: StateCode): Promise<PlaceName[]> {
+  return cached(`places:${state}`, async () => {
+    const r = await getJson<any>(`/api/v1/geo/${state}/places.json`);
+    return (Array.isArray(r?.places) ? r.places : []).map((p: any[]) => ({ en: String(p[0]), te: String(p[1]), lon: Number(p[2]), lat: Number(p[3]), population: Number(p[4]) }));
+  });
+}
+
 /** GET /constituencies/:state/:acNo: unit counts and the mandals linked to one constituency. */
 export function fetchAcDetail(state: StateCode, acNo: number): Promise<AcDetail> {
   return cached(`ac:${state}:${acNo}`, async () => {

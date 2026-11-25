@@ -418,6 +418,40 @@
       "attribution": "Parliamentary constituency boundaries: DataMeet (CC0)."
     },
     {
+      "id": "geo-places-ap",
+      "path": "data/generated/geo/places-AP.json",
+      "bytes": 8783,
+      "sha256": "128b9c6f29115c0c2b306369cbf8b953d506095834a03f5953225b25698c7fe2",
+      "rows": 8,
+      "asOf": "2026-11-25",
+      "provenance": "unknown",
+      "demo": false,
+      "sources": [
+        "https://www.wikidata.org/"
+      ],
+      "licences": [
+        "wikidata-cc0"
+      ],
+      "attribution": "Telugu town names for the map: Wikidata (CC0)."
+    },
+    {
+      "id": "geo-places-tg",
+      "path": "data/generated/geo/places-TG.json",
+      "bytes": 5040,
+      "sha256": "5eaafd2b123ce626c099b72aa7487e9e5c13b3de1b127496491e1a86104bf64f",
+      "rows": 8,
+      "asOf": "2026-11-25",
+      "provenance": "unknown",
+      "demo": false,
+      "sources": [
+        "https://www.wikidata.org/"
+      ],
+      "licences": [
+        "wikidata-cc0"
+      ],
+      "attribution": "Telugu town names for the map: Wikidata (CC0)."
+    },
+    {
       "id": "geo-review",
       "path": "data/generated/geo/review.json",
       "bytes": 1920,
