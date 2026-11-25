@@ -1840,7 +1840,7 @@
       "priority": "P2",
       "wave": "W4",
       "source": "gap-audit: 53",
-      "notes": "Politician reply role built: one labelled append-only thread per issue, scheme tags, moderation hold, grievance-adapter contract with mock (501 without adapter); browser journey E2E-160 passes. Human steps: who verifies elected members, legal review, real department agreement, native Telugu review."
+      "notes": "Politician reply role built: one labelled append-only thread per issue, scheme tags, moderation hold, grievance-adapter contract with mock (501 without adapter); browser journey E2E-160 passes. Human steps: who verifies elected members, legal review, real department agreement, native Telugu review. 2026-11-24: draft decision note docs/decisions/S-145-representative-verification.md (who verifies, checklist, counsel questions, department agreement) awaiting the owner; engineering is complete, nothing further to build. Owner chose verification option A (two admins check public records) for the pilot on 2026-11-24; counsel questions, department agreement and Telugu review still open."
     },
     {
       "id": "S-146",

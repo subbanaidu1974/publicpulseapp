@@ -38,7 +38,7 @@ A real adapter (for a state portal) is a separate piece of work after the owning
 
 ## Human steps before launch
 
-1. Verification of who is an elected representative (the dual-control grant). Agree the checklist (official gazette or Election Commission record of the member for that constituency) and who performs it.
+1. Verification of who is an elected representative (the dual-control grant). Agree the checklist and who performs it: a draft with options, checklist and counsel questions is in docs/decisions/S-145-representative-verification.md, awaiting the owner.
 2. The scheme registry `data/civic/schemes.json` ships with a short starter list. The programme owner decides the list; a native Telugu reviewer checks the labels.
 3. Legal review of public replies by officials (defamation duty for held text, takedown route), and of whether a representative may reply during a model code of conduct period; this repository does not decide that.
 4. Agree with a department before any real grievance system is connected; the browser journey E2E-160 is `e2e/civic-representative.spec.ts`.
