@@ -110,3 +110,5 @@ See `GRIEVANCE_OFFICER_ROLE.md` in this folder.
 2. Redlined EN text for A1-A3, A5-A8 and A10, and approval or edits for the TE text via a named Telugu legal-language reviewer.
 3. A decision on which role to appoint (grievance officer, DPO, both) and its required qualities.
 4. A signed review note per artefact (name, date, version, hash of the reviewed text) to be stored under `docs/compliance/signoffs/` by a human. Statuses change only after that.
+
+Cover brief to send with this pack, plus grievance officer appointment steps: [COUNSEL_ENGAGEMENT_BRIEF.md](COUNSEL_ENGAGEMENT_BRIEF.md) (draft, nothing sent).
