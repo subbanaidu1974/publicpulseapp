@@ -57,6 +57,8 @@ The granted role carries the department and area. `roleOf` in `server/civic/issu
 1. The programme owner reviews and signs off `data/civic/officer-domains.json` (which domains count as official, per state and body). It ships with `gov.in`, `nic.in`, `ap.gov.in`, `telangana.gov.in` as a starting list only.
 2. Admins agree a **written checklist** for the letter check (what a genuine posting order looks like for each department, who to call to confirm it). The software only records that the box was ticked.
 3. **A real mail adapter.** The code-by-e-mail proof is built against the `MailProvider` contract and works with the in-memory dev mailer only. No SMTP or vendor adapter exists; production start is refused while the dev mailer is active (`docs/PROVIDERS.md` section 5). Someone must pick a sender (domain with SPF/DKIM), build an adapter that passes the contract and install it with `setMailProvider`. A callback to the department's published number by the verifying admin remains a good second check.
-4. Decide whether PDF letters must be accepted. The media store takes JPEG and PNG only; a PDF needs a scanner and a metadata-stripping step first.
+4. PDF letters: the owner decided on 2026-11-24 that the pilot accepts photo or scan (JPEG, PNG) only; revisit if officers report trouble. (Original question: whether PDF letters must be accepted.) The media store takes JPEG and PNG only; a PDF needs a scanner and a metadata-stripping step first.
 5. Legal review of what is stored about officials (name, work e-mail, letter) and the retention period; `docs/RETENTION.md`.
 6. E2E-156 (the browser journey) is `e2e/civic-officer-journeys.spec.ts`; the API tests are `tests/civic/officers.test.ts`.
+
+Draft decision note covering items 1 to 5 above with proposals and a checklist template: [docs/decisions/S-141-officer-onboarding.md](decisions/S-141-officer-onboarding.md) (awaiting the owner).
