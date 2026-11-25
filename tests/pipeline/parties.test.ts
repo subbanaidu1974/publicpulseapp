@@ -75,7 +75,7 @@ describe("@E2E-118 party registry", () => {
       expect(m.commonsFile).toBeTruthy();
       expect(m.licence).toMatch(free);
       expect(m.author).toBeTruthy();
-      expect(m.verified).toBe("2026-11-22");
+      expect(m.verified).toMatch(/^2026-11-(22|25)$/); // 22 Nov: first set; 25 Nov: YSRCP logo, AAP and TJS flags
       expect(["decorative", "identification-only"]).toContain(m.use);
       if (/BY-SA/.test(m.licence)) expect(m.attributionRequired).toBe(true);
     }
