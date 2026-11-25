@@ -41,7 +41,7 @@ export interface SentMessage { id: string; category: string; title_en: string; t
 export interface SenderLog { org: { id: string; name: string; kind: string; status: string }; messages: SentMessage[] }
 export interface BlockEntry { id: number; time_bucket: string; sender_org: string; category: string; reason_code: string }
 export interface PublishedKey { key_id: string; version: number; alg: string; public_key: string; spki: string }
-export interface Prefs { categories: Record<string, { opted_in: boolean; locked: boolean }>; quiet_hours: { start: string; end: string; default: boolean }; language: "te" | "en"; sms_ok: boolean; push_blocked: boolean; antiphish_set: boolean }
+export interface Prefs { categories: Record<string, { opted_in: boolean; locked: boolean }>; quiet_hours: { start: string; end: string; default: boolean }; language: "te" | "en"; sms_ok: boolean; email_ok: boolean; has_email: boolean; push_blocked: boolean; antiphish_set: boolean }
 export interface InboxItem { id: string; message_id: string; category: string; sender: { org_id: string; name: string }; title: string; text: string; title_en?: string; title_te?: string; text_en?: string; text_te?: string; sent_at: string; delivered_at?: string; read: boolean; antiphish_word: string | null; signature?: string; key_id?: string; signed_payload?: string; channels?: string[] }
 export interface SenderMe { person_id: string; senders: { sender_id: string; role: string; status: string; org: { id: string; name: string; kind: string; status: string } }[]; credentials: { id: string; created_at: string; last_used_at: string | null; alg: number }[]; can_send: boolean }
 export interface Target { state: string; district?: string | null; units?: string[]; all_in_state?: boolean }
@@ -86,7 +86,7 @@ export const notifyApi = {
   inbox: (limit = 50) => get<{ items: InboxItem[]; unread: number }>(`/inbox?limit=${limit}`),
   markRead: (id: string) => post<{ ok: true }>(`/inbox/${encodeURIComponent(id)}/read`),
   prefs: () => get<Prefs>("/prefs"),
-  putPrefs: (b: Partial<{ categories: Record<string, boolean>; quiet_hours: { start: string; end: string }; language: "te" | "en"; sms_ok: boolean; push_blocked: boolean }>) => call<Prefs>("/prefs", { method: "PUT", body: b }),
+  putPrefs: (b: Partial<{ categories: Record<string, boolean>; quiet_hours: { start: string; end: string }; language: "te" | "en"; sms_ok: boolean; email_ok: boolean; push_blocked: boolean }>) => call<Prefs>("/prefs", { method: "PUT", body: b }),
   unsubscribe: () => post<Prefs>("/unsubscribe"),
   antiphish: () => get<{ word: string | null }>("/antiphish"),
   setAntiphish: (word: string) => call<{ ok: true }>("/antiphish", { method: "PUT", body: { word } }),

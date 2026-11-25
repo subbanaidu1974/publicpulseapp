@@ -61,6 +61,12 @@ CREATE TABLE notify_kill (
 );
 `);
 
+// S-184: an email channel, off until the person switches it on (explicit consent, separate from SMS).
+registerMigration("notify_002_email_channel", `
+ALTER TABLE notify_person ADD COLUMN email_ok INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE notify_inbox ADD COLUMN email_status TEXT;
+`);
+
 registerErasureHook("notify.person", (personId) => {
   const d = getDb();
   for (const t of ["notify_prefs", "notify_person", "notify_devices", "notify_inbox", "notify_credentials", "notify_challenges"]) d.prepare(`DELETE FROM ${t} WHERE person_id = ?`).run(personId);

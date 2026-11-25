@@ -190,3 +190,5 @@ Layers: **API** = HTTP-level test (no browser), **UI** = Playwright browser.
 | E2E-193 | API | Add a phone to an email-only account (S-167): code, flags, one phone, SIM cap | tests/civic/identity.email.test.ts |
 | E2E-194 | UI | Add-phone panel shown only to email-only accounts and works end to end | e2e/civic-addphone.spec.ts |
 | E2E-195 | API | Role matrix over all demo personas (S-168) | e2e/civic-persona-matrix.spec.ts |
+| E2E-196 | Unit | Email notification channel: off by default, opt-in, push-failure fallback, emergency, no links, Telugu body (S-184) | tests/civic/notify/email.channel.test.ts |
+| E2E-197 | UI | Email channel switch in notification settings, hidden for phone-only accounts (S-184) | e2e/notify-email.spec.ts |

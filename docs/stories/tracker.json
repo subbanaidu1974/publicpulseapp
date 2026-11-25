@@ -2349,12 +2349,12 @@
       "epic": "Identity",
       "title": "Email notifications and issue-status updates for email-only accounts",
       "agent": "-",
-      "status": "todo",
-      "tests": [],
+      "status": "done",
+      "tests": ["E2E-196", "E2E-197"],
       "priority": "P2",
       "wave": "W8",
       "source": "roadmap 2026-11-25",
-      "notes": "Buildable once S-179 is decided: needs a design choice (which events, how often), a notice for holding an email contact, and counsel's view. Not started."
+      "notes": "Built: opt-in email channel (email_ok, default off) for notifications; used when push did not reach the person and for emergency; bilingual body with sender, safety word, signature reference and no links; settings switch hidden for accounts without email. Verified against the dev mail provider only. NOT done: real mail delivery (needs S-179), digests, per-category email choice, bounce handling, counsel view on holding an email contact for notices, native Telugu review of the new text."
     }
   ]
 }
