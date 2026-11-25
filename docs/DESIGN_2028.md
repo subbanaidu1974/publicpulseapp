@@ -211,12 +211,12 @@ The first draft's debate was written by one author and every persona conceded in
 | L2 | Post-stratification weights defined (age × gender × district); one-dimension breakdowns only | Fable |
 
 ## 8. Open questions (need a human decision, not more design)
-1. Operator entity, board, funders, exit plan if it closes, what happens to data on shutdown.
+1. Operator entity, board, funders, exit plan if it closes, what happens to data on shutdown. **Owner decision 2026-11-24:** an independent non-profit entity (section 8 company or registered trust, counsel and a chartered accountant to choose) with a university or civil-society partner as pilot host and audit-log witness; the pilot is self-funded or funded by one named grant with the funder disclosed and no say over survey topics, wording or publication. STILL OPEN: entity name and type, founding board, the host partner and its written agreement, funding cap, exit plan, and counsel's check (docs/decisions/01-operator-options.md section 4).
 2. Who appoints the independent wording panel; how equal-access quotas are defined.
 3. Will ECI/SEC engage at all? The platform must be designed to work if they do not.
 4. Exact legal reading (counsel): online-voting perception, survey blackout, MCC, DPDP Rules, Aadhaar limits, RTI status, intermediary duties.
 5. Is assisted participation acceptable at all?
-6. Who pays SMS/IVR/data, and the per-user budget.
+6. Who pays SMS/IVR/data, and the per-user budget. **Owner decision 2026-11-24 (pilot):** self-funded or one named grant, disclosed; per-user budget still open (docs/decisions/cost-model.md has no prices).
 7. Telugu language/dialect review panel and audio recording capacity.
 
 ## 9. Delivery plan (v2)

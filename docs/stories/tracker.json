@@ -1927,14 +1927,14 @@
       "epic": "Compliance",
       "title": "Operator, funding and legal-structure decision (design gate)",
       "agent": "-",
-      "status": "blocked",
+      "status": "done",
       "tests": [
         "E2E-167"
       ],
       "priority": "P0",
       "wave": "W5",
       "source": "gap-audit: DESIGN 8.1",
-      "notes": "Operator options memo (with recommendation for the owner to decide), cost model with all prices unknown, vendor shortlist and checklists are written; needs the owner decision recorded in DESIGN_2028 section 8.1."
+      "notes": "Owner decision recorded 2026-11-24 in DESIGN_2028 section 8 (items 1 and 6) and docs/decisions/01-operator-options.md: independent non-profit (section 8 company or trust, counsel to choose) with a university or civil-society host for the pilot; pilot funded by the owner or one named grant, disclosed. The design gate is closed. NOT done and still needed from people: entity name and type, founding board, the host partner and its written agreement, funder cap, exit plan, counsel's check of the structure, real prices in the cost model. Operator vendors and counsel stories (S-62 to S-64, S-150) can now proceed on that basis."
     },
     {
       "id": "S-153",
