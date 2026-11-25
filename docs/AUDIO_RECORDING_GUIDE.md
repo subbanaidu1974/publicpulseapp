@@ -65,3 +65,5 @@ Fields: form id; dialect; prompt ids covered; speaker name and contact; speaker 
 4. Set the top-level `"status"` to `"reviewed"` only when every prompt (every dialect) is reviewed.
 5. Run `npx tsx scripts/audio-manifest-check.ts` and `npx vitest run tests/compliance`. The check fails if a non-placeholder status has no file, no hash, a wrong hash, or if a reviewed one lacks sign-off. **The script and the tests never change a status; they only report.** Changing a hash after sign-off (re-export) invalidates the sign-off: re-review.
 6. Commit the audio files and the manifest edit in one change; the release gate row for audio references the form ids.
+
+Size of the job, people needed and a ready-to-send brief: [docs/decisions/S-151-audio-brief.md](decisions/S-151-audio-brief.md).
