@@ -5,6 +5,7 @@
  */
 import crypto from "node:crypto";
 import { audit, getDb, getKeys, getSms } from "../core";
+import { getMail } from "../providers/mail";
 import type { SmsProviderV2 } from "../providers/sms";
 import { loadTemplateRegistry } from "../providers/sms";
 import { notifyPolicy } from "./content";
@@ -47,10 +48,10 @@ export const toMin = (s: string): number => { const m = HHMM.exec(s)!; return Nu
 export interface Prefs {
   categories: Record<string, { opted_in: boolean; locked: boolean }>;
   quiet_hours: { start: string; end: string; default: boolean };
-  language: "te" | "en"; sms_ok: boolean; push_blocked: boolean; antiphish_set: boolean;
+  language: "te" | "en"; sms_ok: boolean; email_ok: boolean; has_email: boolean; push_blocked: boolean; antiphish_set: boolean;
 }
-interface PersonRow { quiet_start: string | null; quiet_end: string | null; antiphish_enc: string | null; language: string; sms_ok: number; push_blocked: number }
-const personRow = (id: string): PersonRow | undefined => getDb().prepare("SELECT quiet_start, quiet_end, antiphish_enc, language, sms_ok, push_blocked FROM notify_person WHERE person_id = ?").get(id) as unknown as PersonRow | undefined;
+interface PersonRow { quiet_start: string | null; quiet_end: string | null; antiphish_enc: string | null; language: string; sms_ok: number; email_ok: number; push_blocked: number }
+const personRow = (id: string): PersonRow | undefined => getDb().prepare("SELECT quiet_start, quiet_end, antiphish_enc, language, sms_ok, email_ok, push_blocked FROM notify_person WHERE person_id = ?").get(id) as unknown as PersonRow | undefined;
 
 export function getPrefs(personId: string): Prefs {
   const p = notifyPolicy(), row = personRow(personId);
@@ -60,7 +61,7 @@ export function getPrefs(personId: string): Prefs {
   return {
     categories,
     quiet_hours: { start: row?.quiet_start ?? p.quiet_hours.default_start, end: row?.quiet_end ?? p.quiet_hours.default_end, default: !row?.quiet_start },
-    language: row?.language === "en" ? "en" : "te", sms_ok: !!row?.sms_ok, push_blocked: !!row?.push_blocked, antiphish_set: !!row?.antiphish_enc,
+    language: row?.language === "en" ? "en" : "te", sms_ok: !!row?.sms_ok, email_ok: !!row?.email_ok, has_email: hasEmail(personId), push_blocked: !!row?.push_blocked, antiphish_set: !!row?.antiphish_enc,
   };
 }
 
@@ -89,6 +90,11 @@ export function updatePrefs(personId: string, body: Record<string, unknown>): Pr
   }
   if (body.language !== undefined) { if (body.language !== "te" && body.language !== "en") throw new PrefError("bad_language", "language must be te or en"); d.prepare("UPDATE notify_person SET language = ? WHERE person_id = ?").run(body.language, personId); }
   if (body.sms_ok !== undefined) { if (typeof body.sms_ok !== "boolean") throw new PrefError("bad_sms_ok", "sms_ok must be true or false"); d.prepare("UPDATE notify_person SET sms_ok = ? WHERE person_id = ?").run(body.sms_ok ? 1 : 0, personId); }
+  if (body.email_ok !== undefined) {
+    if (typeof body.email_ok !== "boolean") throw new PrefError("bad_email_ok", "email_ok must be true or false");
+    if (body.email_ok && !hasEmail(personId)) throw new PrefError("no_email", "this account has no email address on it");
+    d.prepare("UPDATE notify_person SET email_ok = ? WHERE person_id = ?").run(body.email_ok ? 1 : 0, personId);
+  }
   if (body.push_blocked !== undefined) { if (typeof body.push_blocked !== "boolean") throw new PrefError("bad_push_blocked", "push_blocked must be true or false"); d.prepare("UPDATE notify_person SET push_blocked = ? WHERE person_id = ?").run(body.push_blocked ? 1 : 0, personId); }
   d.prepare("UPDATE notify_person SET updated_at = ? WHERE person_id = ?").run(ts, personId);
   audit(personId, "notify.prefs.update", "person:" + personId, {});
@@ -195,7 +201,38 @@ export async function deliverTo(personId: string, m: DeliverableMessage, t: Date
   return { result: "delivered", ...ch };
 }
 
-async function dispatch(inboxId: string, personId: string, m: DeliverableMessage, prefs: Prefs): Promise<{ push: string; sms?: string }> {
+function hasEmail(personId: string): boolean {
+  const r = getDb().prepare("SELECT email_enc FROM persons WHERE id = ? AND deleted_at IS NULL").get(personId) as { email_enc: string | null } | undefined;
+  return !!r?.email_enc;
+}
+
+/**
+ * Email channel (S-184). Only for a person who switched it on (`email_ok`); never otherwise, emergency included, because holding and using
+ * an email contact needs the person's own consent. The body carries the sender, the anti-phishing word and the signature reference, and no links.
+ */
+async function sendEmail(personId: string, m: DeliverableMessage, lang: "te" | "en", word: string | null): Promise<string> {
+  try {
+    const row = getDb().prepare("SELECT email_enc FROM persons WHERE id = ? AND deleted_at IS NULL").get(personId) as { email_enc: string | null } | undefined;
+    if (!row?.email_enc) return "no_email";
+    const to = getKeys().decrypt("phone", row.email_enc).replace(/^email:/, ""); // stored as "email:<canonical address>" (identity/email.ts emailKey)
+    const te = lang === "te";
+    const title = te ? m.title_te : m.title_en, text = te ? m.text_te : m.text_en;
+    const safe = (s: string): string => s.replace(/https?:\/\/\S+/gi, "[link removed]");
+    const w = word ?? (te ? "పదం లేదు" : "no word set");
+    const body = [
+      te ? `పంపినవారు: ${m.org_name}` : `From: ${m.org_name}`,
+      te ? `మీ భద్రతా పదం: ${w}` : `Your safety word: ${w}`,
+      te ? "ఈ పదం లేకపోతే ఈ మెయిల్‌ను నమ్మకండి." : "If this word is missing, do not trust this email.",
+      "", safe(title), "", safe(text), "",
+      te ? `సంతకం సూచిక: ${m.key_id}` : `Signature reference: ${m.key_id}`,
+      te ? "ఈ మెయిల్‌కు సమాధానం ఇవ్వకండి. నోటిఫికేషన్ సెట్టింగ్స్‌లో దీన్ని ఆపవచ్చు." : "Do not reply to this email. You can switch it off in notification settings.",
+    ].join("\n");
+    await getMail().send({ to, subject: `People Pulse: ${safe(title)}`.slice(0, 150), text: body, idempotencyKey: getKeys().hmac("mail-idem", `notify:${m.id}:${personId}`) });
+    return "sent";
+  } catch { return "failed"; }
+}
+
+async function dispatch(inboxId: string, personId: string, m: DeliverableMessage, prefs: Prefs): Promise<{ push: string; sms?: string; email?: string }> {
   const p = notifyPolicy();
   const lang = prefs.language, word = getAntiPhish(personId);
   const title = lang === "te" ? m.title_te : m.title_en, body = lang === "te" ? m.text_te : m.text_en;
@@ -213,8 +250,11 @@ async function dispatch(inboxId: string, personId: string, m: DeliverableMessage
   const always = p.sms_fallback.always_for.includes(m.category); // emergency goes on EVERY channel, SMS included
   let sms: string | undefined;
   if (always || (!pushOk && prefs.sms_ok)) sms = await sendSms(personId, m, lang, word);
-  getDb().prepare("UPDATE notify_inbox SET push_status = ?, sms_status = ? WHERE id = ?").run(push, sms ?? null, inboxId);
-  return { push, sms };
+  // Email: emergency always (if opted in); other categories only when push did not reach the person.
+  let email: string | undefined;
+  if (prefs.email_ok && (always || !pushOk)) email = await sendEmail(personId, m, lang, word);
+  getDb().prepare("UPDATE notify_inbox SET push_status = ?, sms_status = ?, email_status = ? WHERE id = ?").run(push, sms ?? null, email ?? null, inboxId);
+  return { push, sms, email };
 }
 
 async function sendSms(personId: string, m: DeliverableMessage, lang: "te" | "en", word: string | null): Promise<string> {
@@ -255,7 +295,7 @@ export async function processDeferred(t: Date = nowFn.now()): Promise<{ delivere
 
 export function inbox(personId: string, limit = 50): Record<string, unknown>[] {
   const prefs = getPrefs(personId), word = getAntiPhish(personId);
-  const rows = getDb().prepare(`SELECT i.id, i.message_id, i.category, i.delivered_at, i.read_at, i.push_status, i.sms_status, m.title_en, m.title_te, m.text_en, m.text_te, m.signature, m.key_id, m.sent_at, m.signed_payload, o.id AS org_id, o.name AS org_name
+  const rows = getDb().prepare(`SELECT i.id, i.message_id, i.category, i.delivered_at, i.read_at, i.push_status, i.sms_status, i.email_status, m.title_en, m.title_te, m.text_en, m.text_te, m.signature, m.key_id, m.sent_at, m.signed_payload, o.id AS org_id, o.name AS org_name
       FROM notify_inbox i JOIN notify_messages m ON m.id = i.message_id JOIN notify_orgs o ON o.id = m.org_id
       WHERE i.person_id = ? AND i.status = 'delivered' ORDER BY i.delivered_at DESC LIMIT ?`).all(personId, Math.min(Math.max(limit, 1), 200)) as unknown as Record<string, string | null>[];
   return rows.map((r) => ({
@@ -264,7 +304,7 @@ export function inbox(personId: string, limit = 50): Record<string, unknown>[] {
     title_en: r.title_en, title_te: r.title_te, text_en: r.text_en, text_te: r.text_te,
     sent_at: r.sent_at, delivered_at: r.delivered_at, read_at: r.read_at, read: !!r.read_at,
     antiphish_word: word, signature: r.signature, key_id: r.key_id, signed_payload: r.signed_payload,
-    channels: { push: r.push_status, sms: r.sms_status },
+    channels: { push: r.push_status, sms: r.sms_status, email: r.email_status },
   }));
 }
 export function markRead(personId: string, inboxId: string): boolean {

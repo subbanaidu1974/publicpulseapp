@@ -24,7 +24,7 @@ import { CircuitBreaker, ProviderError, assertSecureUrl, postJson, providerLog, 
 
 /** Every purpose the civic code uses today. A purpose outside this list (or outside `extra`) cannot be used until provisioned: fail closed. */
 export const KNOWN_PURPOSES = [
-  "phone", "otp", "rate", "pinsrc", "attest", "session", "enrolcode", "mfa-recovery", "audit", "media-at-rest", "sms-idem",
+  "phone", "otp", "rate", "pinsrc", "attest", "session", "enrolcode", "mfa-recovery", "audit", "media-at-rest", "sms-idem", "mail-idem",
   "reporter-pseudonym", "actor-pseudonym", "issue-link", "ivr-call-person", "ivr-call-phone", "people_contact", "issue-gps", "residence", "totp", "sms-payload",
   "survey-credential", "survey-actor", "notify-signing", "notify-device", "notify-antiphish",
   "countday-signing", "assist-receipt",
@@ -33,7 +33,7 @@ export const KNOWN_PURPOSES = [
 /** What rotating a purpose costs (docs/PROVIDERS.md section "Rotation"). `refuse` purposes cannot be rotated without force. */
 export const ROTATION_IMPACT: Record<string, "rehash" | "ephemeral" | "encrypt-only" | "refuse"> = {
   phone: "rehash", "reporter-pseudonym": "rehash", "actor-pseudonym": "rehash", "issue-link": "rehash",
-  otp: "ephemeral", rate: "ephemeral", pinsrc: "ephemeral", attest: "ephemeral", session: "ephemeral", sms: "ephemeral", "sms-idem": "ephemeral",
+  otp: "ephemeral", rate: "ephemeral", pinsrc: "ephemeral", attest: "ephemeral", session: "ephemeral", sms: "ephemeral", "sms-idem": "ephemeral", "mail-idem": "ephemeral",
   "survey-credential": "encrypt-only", "notify-signing": "encrypt-only", "notify-device": "encrypt-only", "notify-antiphish": "encrypt-only", "survey-actor": "refuse", audit: "refuse", "assist-receipt": "refuse", enrolcode: "rehash", "mfa-recovery": "rehash", "media-at-rest": "rehash",
 };
 

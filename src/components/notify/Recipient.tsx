@@ -159,6 +159,12 @@ function SettingsBody() {
         <h3 id="ch-h" className="font-bold text-lg">{t("chan.title")}</h3>
         <label className="flex items-start gap-3 min-h-[44px]"><input type="checkbox" data-testid="sms-ok" checked={p.sms_ok} onChange={(e) => apply(() => notifyApi.putPrefs({ sms_ok: e.target.checked }), t("saved"))} /><span>{t("chan.sms")}</span></label>
         <p className="text-sm">{t("chan.smsNote")}</p>
+        {p.has_email && (
+          <>
+            <label className="flex items-start gap-3 min-h-[44px]"><input type="checkbox" data-testid="email-ok" checked={p.email_ok} onChange={(e) => apply(() => notifyApi.putPrefs({ email_ok: e.target.checked }), t("saved"))} /><span>{t("chan.email")}</span></label>
+            <p className="text-sm">{t("chan.emailNote")}</p>
+          </>
+        )}
         <label className="flex items-start gap-3 min-h-[44px]"><input type="checkbox" data-testid="push-blocked" checked={p.push_blocked} onChange={(e) => apply(() => notifyApi.putPrefs({ push_blocked: e.target.checked }), t("saved"))} /><span>{t("chan.pushBlock")}</span></label>
         <p className="text-sm" data-testid="push-state">{t("chan.pushState")}</p>
         <div data-testid="devices-panel" data-count={devices.data?.count ?? ""}>

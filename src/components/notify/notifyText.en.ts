@@ -53,6 +53,8 @@ export const EN = {
   "caps.category": "Category", "caps.daily": "Per day", "caps.weekly": "Per week",
   "chan.title": "Channels", "chan.sms": "Send me an SMS when an app notification cannot reach me",
   "chan.smsNote": "Emergency notices always use SMS as a backup. For other categories SMS is used only if you switch this on.",
+  "chan.email": "Send me notices by email when an app notification cannot reach me",
+  "chan.emailNote": "Emergency notices are also sent by email if you switch this on. Each email shows who sent it and your safety word, and never contains a link. Switch it off any time.",
   "chan.pushBlock": "I block app notifications on this account", "chan.pushState": "App notifications: no push service is connected yet, so notices reach you in this inbox and, for emergencies, by SMS.",
   "chan.devicesRemove": "Forget my registered devices", "chan.devicesRemoved": "Registered devices removed.", "chan.lang": "Language for notices",
   "unsub.title": "Unsubscribe", "unsub.explain": "Switch off every optional category at once. Emergency notices stay on.", "unsub.start": "Unsubscribe from optional notices", "unsub.confirm": "Yes, switch them all off", "unsub.done": "All optional categories are off.",
