@@ -120,3 +120,12 @@ export function fetchWinnerPhotos(): Promise<WinnerPhoto[]> {
     return Array.isArray(r?.photos) ? (r.photos as WinnerPhoto[]) : [];
   });
 }
+
+/** S-199: free-licence photos of party heads (served from this site) with credit; only some parties have one. */
+export interface LeaderPhoto { party: string; name: string; role: string; file: string; author: string | null; licence: string; licenceUrl: string | null; source: string }
+export function fetchLeaderPhotos(): Promise<LeaderPhoto[]> {
+  return cached("leader-photos", async () => {
+    const r = await getJson<any>("/api/v1/photos/leaders.json");
+    return Array.isArray(r?.photos) ? (r.photos as LeaderPhoto[]) : [];
+  });
+}

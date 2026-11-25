@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "asOf": "2026-11-25",
+  "note": "Hand-entered head of each party that has a Wikidata item, with a Wikimedia Commons photo. Roles were entered by hand on 2026-11-25 (BJP checked against news reports; Wikidata itself was out of date for BJP, CPM and the Jana Sena Party, so it was not used for roles). Leadership changes: recheck before relying. AAP and the Telangana Jana Samithi have no Wikidata item in our registry and are not covered.",
+  "leaders": [
+    { "party": "TDP", "name": "Nara Chandrababu Naidu", "role": "President", "file": "The portrait of CM Shri Nara Chandrababu Naidu.jpg" },
+    { "party": "YSRCP", "name": "Y. S. Jagan Mohan Reddy", "role": "President", "file": "The Chief Minister of Andhra Pradesh, Shri Y.S. Jagan Mohan Reddy.jpg" },
+    { "party": "JSP", "name": "Pawan Kalyan", "role": "President", "file": "The portrait of Pawan Kalyan (2024).jpg" },
+    { "party": "BRS", "name": "K. Chandrashekar Rao", "role": "President", "file": "Kalvakuntla Chandrashekar Rao.png" },
+    { "party": "INC", "name": "Mallikarjun Kharge", "role": "President", "file": "MallikarjunKharge.png" },
+    { "party": "BJP", "name": "Nitin Nabin", "role": "National President", "file": "Nitin nabin (1) (1).jpg" },
+    { "party": "AIMIM", "name": "Asaduddin Owaisi", "role": "President", "file": "Asaduddin.jpg" },
+    { "party": "CPM", "name": "M. A. Baby", "role": "General Secretary", "file": "MABaby.jpg" },
+    { "party": "CPI", "name": "D. Raja", "role": "General Secretary", "file": "D.Raja M.P.JPG" },
+    { "party": "BSP", "name": "Mayawati", "role": "National President", "file": "Mayawati.jpg" }
+  ]
+}

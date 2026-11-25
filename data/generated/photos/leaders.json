@@ -1,0 +1,96 @@
+{
+ "schema": 1,
+ "note": "Photos from Wikimedia Commons under free licences, copied to this server. Heads of parties, roles entered by hand and rechecked on the as-of date; a wrong photo or an out-of-date role should be reported.",
+ "photos": [
+  {
+   "party": "TDP",
+   "name": "Nara Chandrababu Naidu",
+   "role": "President",
+   "file": "leader-TDP.jpg",
+   "author": "Prime Minister's Office",
+   "licence": "GODL-India",
+   "licenceUrl": "https://data.gov.in/sites/default/files/Gazette_Notification_OGDL.pdf",
+   "source": "https://commons.wikimedia.org/wiki/File:The_portrait_of_CM_Shri_Nara_Chandrababu_Naidu.jpg"
+  },
+  {
+   "party": "YSRCP",
+   "name": "Y. S. Jagan Mohan Reddy",
+   "role": "President",
+   "file": "leader-YSRCP.jpg",
+   "author": "Prime Minister's Office",
+   "licence": "GODL-India",
+   "licenceUrl": "https://data.gov.in/sites/default/files/Gazette_Notification_OGDL.pdf",
+   "source": "https://commons.wikimedia.org/wiki/File:The_Chief_Minister_of_Andhra_Pradesh,_Shri_Y.S._Jagan_Mohan_Reddy.jpg"
+  },
+  {
+   "party": "JSP",
+   "name": "Pawan Kalyan",
+   "role": "President",
+   "file": "leader-JSP.jpg",
+   "author": "Prime Minister's Office",
+   "licence": "GODL-India",
+   "licenceUrl": "https://data.gov.in/sites/default/files/Gazette_Notification_OGDL.pdf",
+   "source": "https://commons.wikimedia.org/wiki/File:The_portrait_of_Pawan_Kalyan_(2024).jpg"
+  },
+  {
+   "party": "BRS",
+   "name": "K. Chandrashekar Rao",
+   "role": "President",
+   "file": "leader-BRS.png",
+   "author": "Digital Media Telangana Government",
+   "licence": "CC BY-SA 4.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Kalvakuntla_Chandrashekar_Rao.png"
+  },
+  {
+   "party": "INC",
+   "name": "Mallikarjun Kharge",
+   "role": "President",
+   "file": "leader-INC.png",
+   "author": "Ajay Kumar Koli",
+   "licence": "CC BY 3.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:MallikarjunKharge.png"
+  },
+  {
+   "party": "AIMIM",
+   "name": "Asaduddin Owaisi",
+   "role": "President",
+   "file": "leader-AIMIM.jpg",
+   "author": "Batthini Vinay Kumar Goud",
+   "licence": "CC BY-SA 4.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Asaduddin.jpg"
+  },
+  {
+   "party": "CPM",
+   "name": "M. A. Baby",
+   "role": "General Secretary",
+   "file": "leader-CPM.jpg",
+   "author": "Fotokannan at ml.wikipedia",
+   "licence": "CC BY-SA 3.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:MABaby.jpg"
+  },
+  {
+   "party": "CPI",
+   "name": "D. Raja",
+   "role": "General Secretary",
+   "file": "leader-CPI.jpg",
+   "author": "Gavaskar.tk",
+   "licence": "CC BY-SA 4.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:D.Raja_M.P.JPG"
+  },
+  {
+   "party": "BSP",
+   "name": "Mayawati",
+   "role": "National President",
+   "file": "leader-BSP.jpg",
+   "author": "Ministry of Parliamentary Affairs",
+   "licence": "GODL-India",
+   "licenceUrl": "https://data.gov.in/sites/default/files/Gazette_Notification_OGDL.pdf",
+   "source": "https://commons.wikimedia.org/wiki/File:Mayawati.jpg"
+  }
+ ]
+}
