@@ -4,6 +4,7 @@ import type { SeatTurnout, TurnoutTotals, DistrictTurnout, SexSummary } from "..
 import type { PartyCompareRow, PcCompareRow, IncumbencySummary, CandidateTrail } from "../lib/comparison";
 import type { StateCode, ElectionType } from "../lib/states";
 import type { PartyHistory } from "../lib/partyHistory";
+import type { PanchayatResponse } from "../lib/panchayat";
 import { reportShed, shedFrom } from "../lib/degraded";
 
 /** Typed client for the analytics endpoints (server/analytics-api.ts). */
@@ -61,6 +62,7 @@ export const analytics = {
   trails: (state: StateCode, type: ElectionType, q: string) => get<TrailsResponse>(`/analytics/candidates/${state}`, { type, q }),
   electors: (state: StateCode) => get<ElectorsResponse>(`/electors/${state}`),
   parties: (state: StateCode) => get<PartiesResponse>(`/analytics/parties/${state}`),
+  panchayat: (state: StateCode) => get<PanchayatResponse>(`/analytics/panchayat/${state}`),
   history: (state: StateCode) => get<HistoryResponse>(`/history/${state}`),
   byelections: (p: { state?: StateCode; type?: ElectionType; acNo?: number }) => get<ByElectionsResponse>("/byelections", p),
   partySwitches: (p: { state?: StateCode; name?: string; acNo?: number; type?: ElectionType }) => get<PartySwitchesResponse>("/party-switches", p),
