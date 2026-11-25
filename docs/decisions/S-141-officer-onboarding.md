@@ -49,3 +49,5 @@ What is stored about officials: name and work email (encrypted), the email domai
 The officer screens and the allow-list body names have machine-drafted Telugu. A native speaker must review them.
 
 S-141 stays in progress until sections 1, 2 and 4 to 6 have written answers and a real mail send has been done.
+
+Send-ready letters and reply log: `docs/decisions/officer-onboarding-package/`.
