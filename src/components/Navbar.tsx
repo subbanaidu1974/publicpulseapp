@@ -70,7 +70,7 @@ export default function Navbar({ currentTab, setCurrentTab, theme, setTheme }: N
             <div className="border border-black p-1.5 sm:p-2 bg-black text-[#F9F7F2] flex items-center justify-center shrink-0">
               <Activity className="w-5 h-5" />
             </div>
-            <div className="flex flex-col min-w-0">
+            <div className="hidden sm:flex flex-col min-w-0">
               <span className="font-sans font-black text-[10px] sm:text-xs tracking-[0.15em] sm:tracking-[0.25em] uppercase text-black leading-none mb-1 truncate">PEOPLE PULSE</span>
               <span className="font-serif italic text-xs sm:text-sm text-[#121212] tracking-wide leading-none truncate">{lang === "te" ? config.nameTe : config.name}</span>
             </div>

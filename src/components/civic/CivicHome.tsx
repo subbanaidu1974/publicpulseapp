@@ -1,4 +1,4 @@
-import { useEffect, useState, type KeyboardEvent, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useState, type KeyboardEvent, type ReactNode } from "react";
 import { civicIdentityApi, tokenStore, type MePerson, type Session } from "../../api/civic";
 import Attestation, { VolunteerActivate } from "./Attestation";
 import InviteAccept from "./InviteAccept";
@@ -20,6 +20,7 @@ import DemoPersonas from "./DemoPersonas";
 import AddPhone from "./AddPhone";
 import SignUpFlow from "./SignUpFlow";
 import { Btn } from "./ui";
+const PollsAdmin = lazy(() => import("./consoles/PollsAdmin"));
 import { SurveysLink, NotifyLink, ConsultationsLink, ScopeLink } from "./CrossLinks";
 
 /** WCAG 2.2 AA target size: every control inside the civic tab (including Agent B components) gets at least 44px. */
@@ -59,6 +60,8 @@ export default function CivicHome() {
   };
   const [link, setLink] = useState(deepLink);
   const [me, setMe] = useState<MePerson | null>(null);
+  const [allTools, setAllTools] = useState(() => { try { return sessionStorage.getItem("pp-civic-all") === "1"; } catch { return false; } }); // admin: false = survey page only
+  const adminOnly = !!me?.roles?.includes("admin") && !allTools;
   const refreshMe = () => { civicIdentityApi.me().then(setMe).catch(() => setMe(null)); };
   useEffect(() => { if (session) refreshMe(); else setMe(null); }, [session]);
   // The Log out button lives in the top bar; when the token is cleared there, return to the sign-in choices.
@@ -80,13 +83,17 @@ export default function CivicHome() {
   }, []);
 
   return (
-    <div data-testid="civic-home" className="civic-root space-y-6 max-w-full overflow-x-hidden">
+    <div data-testid="civic-home" className="civic-root space-y-6 max-w-3xl mx-auto w-full overflow-x-hidden">
       <style>{TARGET_CSS}</style>
-      <header className="space-y-2">
-        <h1 className="text-2xl font-bold break-words">{c("c.title")}</h1>
-        <p className="text-sm">{c("c.intro")}</p>
-        <p className="text-xs">{c("c.lite")}</p>
-      </header>
+      {adminOnly && session ? (
+        <header className="space-y-1"><h1 className="text-2xl font-bold break-words">{c("c.admin.title")}</h1></header>
+      ) : (
+        <header className="space-y-2">
+          <h1 className="text-2xl font-bold break-words">{c("c.title")}</h1>
+          <p className="text-sm">{c("c.intro")}</p>
+          <p className="text-xs">{c("c.lite")}</p>
+        </header>
+      )}
       {link.invite ? (
         <InviteAccept inviteId={link.invite} session={session} onSession={setSession} onFinish={() => { closeLink(); if (!tokenStore.get()) setSession(null); }} />
       ) : link.activate && !session ? (
@@ -104,13 +111,19 @@ export default function CivicHome() {
         ) : view === "signup" ? <SignUpFlow onDone={setSession} /> : <LoginFlow onDone={setSession} onForgot={() => setView("recover")} />
       ) : (
         <>
-          <p data-testid="civic-signed-in" role="status" className="text-sm">{c("c.welcome")}</p>
+          <p data-testid="civic-signed-in" role="status" className={adminOnly ? "sr-only" : "text-sm"}>{c("c.welcome")}</p>
+          {adminOnly ? (
+            <div className="space-y-4 [&_[data-testid=pa-back]]:hidden" data-testid="admin-survey-home">
+              <Suspense fallback={<p role="status" className="text-sm">…</p>}><PollsAdmin /></Suspense>
+              <Btn secondary data-testid="admin-more" onClick={() => { setAllTools(true); try { sessionStorage.setItem("pp-civic-all", "1"); } catch { /* ignore */ } }}>{c("c.admin.more")}</Btn>
+            </div>
+          ) : (<>
           <TierBadge tier={me?.tier ?? session.tier} withHint />
-          <div role="tablist" aria-label={c("c.tabs.label")} data-testid="civic-tabs" className="flex flex-wrap gap-1 border-b border-black" onKeyDown={onTabKey}>
+          <div role="tablist" aria-label={c("c.tabs.label")} data-testid="civic-tabs" className="flex gap-1 border-b border-black overflow-x-auto whitespace-nowrap" onKeyDown={onTabKey}>
             {TABS.map((id) => (
               <button key={id} type="button" role="tab" id={`civic-tab-${id}`} aria-selected={tab === id} aria-controls={`civic-panel-${id}`} tabIndex={tab === id ? 0 : -1}
                 data-testid={`civic-tab-${id}`} onClick={() => pickTab(id)}
-                className={`min-h-[44px] px-4 py-2 text-sm font-bold border border-black border-b-0 -mb-px ${tab === id ? "bg-black text-white" : "bg-white text-black"}`}>
+                className={`min-h-[44px] px-4 py-2 text-sm font-bold shrink-0 border border-black border-b-0 -mb-px ${tab === id ? "bg-black text-white" : "bg-white text-black"}`}>
                 {c(`c.tab.${id}` as CivicKey)}
               </button>
             ))}
@@ -143,6 +156,7 @@ export default function CivicHome() {
             <ConsolesHub />
             <OfficerApply />
           </Panel>
+          </>)}
         </>
       )}
     </div>

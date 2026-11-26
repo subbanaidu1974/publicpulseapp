@@ -76,6 +76,7 @@ test.describe('assisted participation journey (@E2E-59)', () => {
 
     // the reviewer re-checks (a new pair: every record is queued) and the outcome is logged
     await openCivicAs(page, reviewer.token);
+    await page.getByTestId('admin-more').click({ timeout: 2500 }).catch(() => undefined);
     await page.getByTestId('civic-tab-roles').click();
     await page.getByTestId('console-tab-assist_reviewer').click();
     const row = page.getByTestId('asrv-item').filter({ hasText: tag });
@@ -95,6 +96,7 @@ test.describe('assisted participation journey (@E2E-59)', () => {
     const { village, coord } = await setup(request, 'Bhimavaram');
     const a = await seedVolunteer(request), b = await seedVolunteer(request);
     await openCivicAs(page, coord.token);
+    await page.getByTestId('admin-more').click({ timeout: 2500 }).catch(() => undefined);
     await page.getByTestId('civic-tab-roles').click();
     await page.getByTestId('console-tab-assist_coordinator').click();
     await page.getByTestId('asco-village').fill(village.lgd);

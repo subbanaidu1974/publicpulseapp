@@ -32,6 +32,7 @@ test.describe('photo review screen (S-201)', () => {
       await openCivic(page);
       await page.getByTestId('demo-admin').click();
       await expect(page.getByTestId('civic-signed-in')).toBeVisible();
+      await page.getByTestId('admin-more').click({ timeout: 2500 }).catch(() => undefined);
       await page.getByTestId('civic-tab-roles').click();
       await page.getByTestId('console-tab-admin').click();
       const review = page.getByTestId('photo-review');

@@ -64,9 +64,8 @@ test.describe('admin publishes a survey and every other user must answer it, rec
       await openCivic(A); await beat(A);
       await A.getByTestId('demo-admin').click();
       await expect(A.getByTestId('civic-signed-in')).toBeVisible(); await beat(A);
-      await A.getByTestId('civic-tab-roles').click(); await beat(A);
-      await A.getByTestId('console-tab-admin').click(); await beat(A);
-      await A.getByTestId('polls-admin-link').click();
+      await expect(A.getByTestId('admin-survey-home')).toBeVisible(); // the admin lands straight on the survey page, with no tabs
+      await expect(A.getByTestId('civic-tabs')).toHaveCount(0);
       await expect(A.getByTestId('polls-admin')).toBeVisible(); await beat(A);
       await A.getByTestId('pa-title').fill('Your village: one quick survey');
       await A.getByTestId('pa-intro').fill('Everyone signed in answers this once. Your answer is counted but not linked to your name.');
