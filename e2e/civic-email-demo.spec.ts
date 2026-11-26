@@ -36,7 +36,7 @@ test.describe('email sign-up for people with no phone (S-165)', () => {
     await finishEmailSignUp(page, email);
     expect((await verify).postDataJSON().consent_version).toMatch(/^v\d+/);
 
-    await page.getByTestId('civic-logout').click();
+    await page.getByTestId('sign-out').click();
     await page.getByTestId('civic-login-btn').click();
     await page.getByTestId('li-switch').click();
     await expect(page.getByTestId('li-phone')).toHaveCount(0);

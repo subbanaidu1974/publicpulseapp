@@ -8,7 +8,7 @@ test.describe('adding a phone to an email-only account (S-167)', () => {
     await expect(page.getByTestId('civic-signed-in')).toBeVisible();
     await expect(page.getByTestId('add-phone')).toBeVisible();
     // a person with a phone never sees it
-    await page.getByTestId('civic-logout').click();
+    await page.getByTestId('sign-out').click();
     await page.getByTestId('demo-resident_verified').click();
     await expect(page.getByTestId('civic-signed-in')).toBeVisible();
     await expect(page.getByTestId('add-phone')).toHaveCount(0);

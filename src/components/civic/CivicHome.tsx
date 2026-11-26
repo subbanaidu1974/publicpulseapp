@@ -42,6 +42,12 @@ export default function CivicHome() {
   const [me, setMe] = useState<MePerson | null>(null);
   const refreshMe = () => { civicIdentityApi.me().then(setMe).catch(() => setMe(null)); };
   useEffect(() => { if (session) refreshMe(); else setMe(null); }, [session]);
+  // The Log out button lives in the top bar; when the token is cleared there, return to the sign-in choices.
+  useEffect(() => {
+    const on = () => { if (!tokenStore.get()) { setSession(null); setView("choose"); } };
+    window.addEventListener("pp-session", on);
+    return () => window.removeEventListener("pp-session", on);
+  }, []);
   const closeLink = () => { try { window.history.replaceState(null, "", window.location.pathname + window.location.hash); } catch { /* ignore */ } setLink({}); };
 
   useEffect(() => {
@@ -80,7 +86,6 @@ export default function CivicHome() {
         <>
           <div className="flex items-center gap-3 flex-wrap">
             <p data-testid="civic-signed-in" role="status">{c("c.welcome")}</p>
-            <Btn secondary data-testid="civic-logout" onClick={async () => { await civicIdentityApi.logout(); tokenStore.clear(); setSession(null); setView("choose"); }}>{c("c.logout")}</Btn>
           </div>
           <TierBadge tier={me?.tier ?? session.tier} withHint />
           {me?.flags?.includes("email_only") && <AddPhone onAdded={refreshMe} />}

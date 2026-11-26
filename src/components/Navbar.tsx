@@ -8,6 +8,7 @@ import { Activity, Menu, X, Moon, Sun, Sparkles, Compass } from "lucide-react";
 import { useStateCtx } from "../state/StateContext";
 import { isStateCode, STATES } from "../lib/states";
 import { useT } from "../i18n";
+import { civicIdentityApi, tokenStore } from "../api/civic";
 
 type Theme = "beige" | "dark" | "dark-beige" | "earth-yellow";
 
@@ -33,6 +34,14 @@ export default function Navbar({ currentTab, setCurrentTab, theme, setTheme }: N
     mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);
   }, []);
+
+  const [signedIn, setSignedIn] = useState<boolean>(() => !!tokenStore.get());
+  useEffect(() => {
+    const on = () => setSignedIn(!!tokenStore.get());
+    window.addEventListener("pp-session", on);
+    return () => window.removeEventListener("pp-session", on);
+  }, []);
+  const logout = async () => { await civicIdentityApi.logout(); tokenStore.clear(); setIsOpenInput(false); };
 
   const navItems = [
     { id: "home", label: t("nav.home") },
@@ -101,15 +110,25 @@ export default function Navbar({ currentTab, setCurrentTab, theme, setTheme }: N
             </button>
             <button
               type="button"
-              data-testid="sign-in"
-              onClick={() => handleNavClick("civic")}
+              data-testid={signedIn ? "sign-out" : "sign-in"}
+              onClick={signedIn ? () => void logout() : () => handleNavClick("civic")}
               className="text-[10px] tracking-[0.2em] font-bold uppercase border border-black bg-black text-[#F9F7F2] px-4 py-1.5 hover:bg-transparent hover:text-black transition-colors"
             >
-              {t("nav.signin")}
+              {signedIn ? t("nav.signout") : t("nav.signin")}
             </button>
           </div>
 
           <div className="flex items-center lg:hidden space-x-1 shrink-0">
+            {signedIn && (
+              <button
+                type="button"
+                data-testid="sign-out-mobile"
+                onClick={() => void logout()}
+                className="p-1.5 border border-black bg-black text-[#F9F7F2] text-[10px] font-bold uppercase tracking-wider"
+              >
+                {t("nav.signout")}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setTheme(NEXT_THEME[theme])}
@@ -168,10 +187,10 @@ export default function Navbar({ currentTab, setCurrentTab, theme, setTheme }: N
           <div className="pt-3 px-3">
             <button
               type="button"
-              onClick={() => handleNavClick("civic")}
+              onClick={signedIn ? () => void logout() : () => handleNavClick("civic")}
               className="w-full text-center border border-black bg-black text-[#F9F7F2] py-2 text-[10px] font-bold tracking-widest uppercase"
             >
-              {t("nav.signin")}
+              {signedIn ? t("nav.signout") : t("nav.signin")}
             </button>
           </div>
         </div>
