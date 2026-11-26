@@ -25,10 +25,10 @@ import { SurveysLink, NotifyLink, ConsultationsLink, ScopeLink } from "./CrossLi
 /** WCAG 2.2 AA target size: every control inside the civic tab (including Agent B components) gets at least 44px. */
 const TARGET_CSS = ".civic-root button,.civic-root select,.civic-root input:not([type=checkbox]):not([type=radio]),.civic-root textarea{min-height:44px;min-width:44px}.civic-root input[type=checkbox],.civic-root input[type=radio]{width:24px;height:24px}.civic-root label{min-height:24px}";
 
-const TABS = ["issues", "household", "account", "explore", "roles"] as const;
+const TABS = ["report", "mine", "household", "account", "explore", "roles"] as const;
 type Tab = (typeof TABS)[number];
 const TAB_KEY = "pp-civic-tab";
-const readTab = (): Tab => { try { const v = sessionStorage.getItem(TAB_KEY); return TABS.find((x) => x === v) ?? "issues"; } catch { return "issues"; } };
+const readTab = (): Tab => { try { const v = sessionStorage.getItem(TAB_KEY); return TABS.find((x) => x === v) ?? "report"; } catch { return "report"; } };
 
 /** A tab panel. Inactive panels stay mounted (so their data and drafts survive a tab switch) but are hidden. */
 function Panel({ id, tab, children }: { id: Tab; tab: Tab; children: ReactNode }) {
@@ -115,12 +115,14 @@ export default function CivicHome() {
               </button>
             ))}
           </div>
-          <Panel id="issues" tab={tab}>
+          <Panel id="report" tab={tab}>
             <IssueReport onSent={() => setTick((n) => n + 1)} />
-            <MyReports refreshKey={tick} />
-            <IssueFeed refreshKey={tick} />
             <AssistedSegment refreshKey={tick} />
             {me?.role === "volunteer" && <AssistedEntry />}
+          </Panel>
+          <Panel id="mine" tab={tab}>
+            <MyReports refreshKey={tick} />
+            <IssueFeed refreshKey={tick} />
           </Panel>
           <Panel id="household" tab={tab}>
             <HouseholdPage token={session.token} />

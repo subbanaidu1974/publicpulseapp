@@ -29,6 +29,7 @@ test.describe('civic sign-up', () => {
     await page.getByTestId('village-option').first().click();
     await page.getByTestId('ir-submit').click();
     await expect(page.getByTestId('ir-sent')).toBeVisible();
+    await page.getByTestId('civic-tab-mine').click();
     await expect(page.getByTestId('issue-item').first()).toBeVisible();
   });
 });

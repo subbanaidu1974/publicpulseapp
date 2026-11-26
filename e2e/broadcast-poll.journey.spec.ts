@@ -59,6 +59,7 @@ test.describe('broadcast poll: admin and user journey, recorded (S-185, S-186)',
       await openCivic(A); await beat(A);
       await A.getByTestId('demo-admin').click();
       await expect(A.getByTestId('civic-signed-in')).toBeVisible(); await beat(A);
+      await A.getByTestId('civic-tab-roles').click();
       await A.getByTestId('console-tab-admin').click(); await beat(A);
       await A.getByTestId('polls-admin-link').click();
       await expect(A.getByTestId('polls-admin')).toBeVisible(); await beat(A);

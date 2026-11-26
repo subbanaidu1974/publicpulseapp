@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { API, bearer, findVillage, openCivicAs, report, seedPerson, uniq } from './civic-seed';
+import { startOnCivicTab } from './civic-helpers';
+test.beforeEach(async ({ page }) => { await startOnCivicTab(page, 'mine'); });
 
 // Real server: the held report comes from the real moderation rules, the owner view and the appeal are the real routes, and the moderator decision is the real one.
 const held = (tag: string) => `Mr Ramesh Kumar took a bribe ${tag} ${uniq()} ${uniq()} ${uniq()}`; // unique words: similar visible reports would be merged

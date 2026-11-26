@@ -41,6 +41,7 @@ test.describe('broadcast polls (S-185)', () => {
       await openCivic(page);
       await page.getByTestId('demo-admin').click();
       await expect(page.getByTestId('civic-signed-in')).toBeVisible();
+      await page.getByTestId('civic-tab-roles').click();
       await page.getByTestId('console-tab-admin').click();
       await page.getByTestId('polls-admin-link').click();
       const panel = page.getByTestId('polls-admin');
@@ -64,6 +65,7 @@ test.describe('broadcast polls (S-185)', () => {
     try {
       await openCivic(page);
       await page.getByTestId('demo-admin').click();
+      await page.getByTestId('civic-tab-roles').click();
       await page.getByTestId('console-tab-admin').click();
       await page.getByTestId('polls-admin-link').click();
       await page.getByTestId('pa-title').fill('Next election mood');
@@ -158,6 +160,7 @@ test.describe('broadcast polls (S-185)', () => {
     try {
       await openCivic(page);
       await page.getByTestId('demo-admin').click();
+      await page.getByTestId('civic-tab-roles').click();
       await page.getByTestId('console-tab-admin').click();
       await page.getByTestId('polls-admin-link').click();
       await page.getByTestId('pa-title').fill('Tomorrow morning poll');

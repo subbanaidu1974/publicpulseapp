@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { API, FAULT, bearer, findVillage, freshText, openCivicAs, report, seedPerson, uniq } from './civic-seed';
+import { startOnCivicTab } from './civic-helpers';
 
 // Real server throughout. The only fixtures left are labelled "fault injection": cases the real server cannot be made to produce on demand
 // (a malware-scanner outage, a photo the server refuses after the client already converted it, a vanished detail route).
@@ -171,6 +172,7 @@ test.describe('issue report with media', () => {
 });
 
 test.describe('feed, filters, detail (real server)', () => {
+  test.beforeEach(async ({ page }) => { await startOnCivicTab(page, 'mine'); });
   test('@E2E-154 cursor pagination, search, status and category filters, export parts with X-Next-Cursor, no reporter identity', async ({ page, request }) => {
     const village = await findVillage(request, 'Kolluru');
     const tag = `e2efeed${uniq()}`;

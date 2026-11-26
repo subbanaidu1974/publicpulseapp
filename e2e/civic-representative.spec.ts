@@ -35,6 +35,7 @@ const feedIds = async (request: APIRequestContext, tag: string) => ((await (awai
 
 async function openIssue(page: Page, tag: string) {
   const answered = page.waitForResponse((r) => r.url().includes(`q=${tag}`) && r.url().includes('/civic/issues?') && r.ok());
+  await page.getByTestId('civic-tab-mine').click();
   await page.getByTestId('if-q').fill(tag);
   await answered;
   await expect(page.getByTestId('issue-feed')).toContainText(tag, { timeout: 15_000 });
