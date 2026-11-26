@@ -6,6 +6,11 @@ import zlib from "zlib";
 
 /* ---------------- security headers (S-54) ---------------- */
 
+/** Hosts allowed to serve broadcast videos (S-230): MEDIA_VIDEO_HOSTS, comma separated plain host names. Unset means none, so only files from this site play. */
+export function mediaVideoHosts(): string[] {
+  return (process.env.MEDIA_VIDEO_HOSTS ?? "").split(",").map((h) => h.trim().toLowerCase()).filter((h) => /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/.test(h));
+}
+
 export function buildCsp(dev: boolean): string {
   const d: Record<string, string[]> = {
     "default-src": ["'self'"],
@@ -15,7 +20,7 @@ export function buildCsp(dev: boolean): string {
     "style-src": ["'self'", "'unsafe-inline'"],
     "font-src": ["'self'", "data:"],
     "img-src": ["'self'", "data:", "blob:"], // no third-party image host: maps are drawn from our own boundary data
-    "media-src": ["'self'", "blob:"],
+    "media-src": ["'self'", "blob:", ...mediaVideoHosts().map((h) => `https://${h}`)],
     "connect-src": dev ? ["'self'", "ws:", "wss:"] : ["'self'"],
     "worker-src": ["'self'", "blob:"],
     "object-src": ["'none'"],

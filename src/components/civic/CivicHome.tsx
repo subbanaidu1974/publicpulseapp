@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useState, type KeyboardEvent, type ReactNode } from "react";
 import { civicIdentityApi, tokenStore, type MePerson, type Session } from "../../api/civic";
 import Attestation, { VolunteerActivate } from "./Attestation";
 import InviteAccept from "./InviteAccept";
@@ -20,7 +20,6 @@ import DemoPersonas from "./DemoPersonas";
 import AddPhone from "./AddPhone";
 import SignUpFlow from "./SignUpFlow";
 import { Btn } from "./ui";
-const PollsAdmin = lazy(() => import("./consoles/PollsAdmin"));
 import { SurveysLink, NotifyLink, ConsultationsLink, ScopeLink } from "./CrossLinks";
 
 /** WCAG 2.2 AA target size: every control inside the civic tab (including Agent B components) gets at least 44px. */
@@ -44,7 +43,8 @@ function deepLink(): { invite?: string; activate?: string } {
 }
 
 /** Civic tab root. Lite by design: no map, no images; registers the PWA-lite service worker and manifest. */
-export default function CivicHome() {
+/** adminHome: what an admin lands on (the survey page, its heading and an "other tools" button). It receives a function that opens the full tabbed page. The full app passes it in; the lite entry does not, so the admin screens stay out of the small lite bundle. */
+export default function CivicHome({ adminHome }: { adminHome?: (openAllTools: () => void) => ReactNode } = {}) {
   const c = useCivicT();
   const [session, setSession] = useState<Session | null>(() => { const t = tokenStore.get(); return t ? { token: t } : null; });
   const [view, setView] = useState<View>("choose");
@@ -61,7 +61,7 @@ export default function CivicHome() {
   const [link, setLink] = useState(deepLink);
   const [me, setMe] = useState<MePerson | null>(null);
   const [allTools, setAllTools] = useState(() => { try { return sessionStorage.getItem("pp-civic-all") === "1"; } catch { return false; } }); // admin: false = survey page only
-  const adminOnly = !!me?.roles?.includes("admin") && !allTools;
+  const adminOnly = !!adminHome && !!me?.roles?.includes("admin") && !allTools;
   const refreshMe = () => { civicIdentityApi.me().then(setMe).catch(() => setMe(null)); };
   useEffect(() => { if (session) refreshMe(); else setMe(null); }, [session]);
   // The Log out button lives in the top bar; when the token is cleared there, return to the sign-in choices.
@@ -85,9 +85,7 @@ export default function CivicHome() {
   return (
     <div data-testid="civic-home" className="civic-root space-y-6 max-w-3xl mx-auto w-full overflow-x-hidden">
       <style>{TARGET_CSS}</style>
-      {adminOnly && session ? (
-        <header className="space-y-1"><h1 className="text-2xl font-bold break-words">{c("c.admin.title")}</h1></header>
-      ) : (
+      {adminOnly && session ? null : (
         <header className="space-y-2">
           <h1 className="text-2xl font-bold break-words">{c("c.title")}</h1>
           <p className="text-sm">{c("c.intro")}</p>
@@ -114,8 +112,7 @@ export default function CivicHome() {
           <p data-testid="civic-signed-in" role="status" className={adminOnly ? "sr-only" : "text-sm"}>{c("c.welcome")}</p>
           {adminOnly ? (
             <div className="space-y-4 [&_[data-testid=pa-back]]:hidden" data-testid="admin-survey-home">
-              <Suspense fallback={<p role="status" className="text-sm">…</p>}><PollsAdmin /></Suspense>
-              <Btn secondary data-testid="admin-more" onClick={() => { setAllTools(true); try { sessionStorage.setItem("pp-civic-all", "1"); } catch { /* ignore */ } }}>{c("c.admin.more")}</Btn>
+              {adminHome!(() => { setAllTools(true); try { sessionStorage.setItem("pp-civic-all", "1"); } catch { /* ignore */ } })}
             </div>
           ) : (<>
           <TierBadge tier={me?.tier ?? session.tier} withHint />

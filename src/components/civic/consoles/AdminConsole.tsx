@@ -56,6 +56,7 @@ export default function AdminConsole({ personId }: { personId?: string }) {
       <RoleRequests me={personId} />
       <PhotoReview />
       <p><a data-testid="polls-admin-link" href="#/polls-admin" className="underline font-bold">Broadcast polls (push an opinion poll to all users)</a></p>
+      <p><a data-testid="videos-admin-link" href="#/videos-admin" className="underline font-bold">Video broadcasts (send a video to all members, with a second admin to approve)</a></p>
       <JobsStatus />
     </section>
   );

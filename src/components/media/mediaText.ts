@@ -14,6 +14,7 @@ const EN = {
   "m.nofile": "No file chosen yet.",
   "m.player": "Media player", "m.speed": "Speed", "m.audioonly": "Audio only", "m.captions": "Captions file (optional, .vtt)", "m.captions.bad": "Captions must be a .vtt file.",
   "m.error": "This file could not be played in your browser. Try another file or format (mp4, webm, mp3, wav).",
+  "m.new": "New", "m.credit": "Credit", "m.error.remote": "This video could not be played. It may have been moved. Please try again later.", "m.ours.signin": "Sign in to see the videos we send to members.", "m.badge": "new videos",
   "m.nowplaying": "Now playing", "m.clear": "Remove file", "m.noauto": "It will not start by itself.",
 } as const;
 export type MediaKey = keyof typeof EN;
@@ -30,6 +31,7 @@ const TE: Record<MediaKey, string> = {
   "m.nofile": "ఇంకా ఫైల్ ఎంచుకోలేదు.",
   "m.player": "మీడియా ప్లేయర్", "m.speed": "వేగం", "m.audioonly": "ఆడియో మాత్రమే", "m.captions": "శీర్షికల ఫైల్ (ఐచ్ఛికం, .vtt)", "m.captions.bad": "శీర్షికలు .vtt ఫైల్ అయి ఉండాలి.",
   "m.error": "ఈ ఫైల్‌ను మీ బ్రౌజర్‌లో ప్లే చేయలేకపోయాం. మరో ఫైల్ లేదా ఫార్మాట్ (mp4, webm, mp3, wav) ప్రయత్నించండి.",
+  "m.new": "కొత్త", "m.credit": "క్రెడిట్", "m.error.remote": "ఈ వీడియో ప్లే కాలేదు. అది మార్చబడి ఉండవచ్చు. దయచేసి తర్వాత మళ్లీ ప్రయత్నించండి.", "m.ours.signin": "మేము సభ్యులకు పంపే వీడియోలను చూడటానికి సైన్ ఇన్ చేయండి.", "m.badge": "కొత్త వీడియోలు",
   "m.nowplaying": "ఇప్పుడు ప్లే అవుతోంది", "m.clear": "ఫైల్ తొలగించు", "m.noauto": "ఇది దానంతట అదే మొదలవదు.",
 };
 export const mediaText = (lang: Lang, k: MediaKey): string => (lang === "te" ? TE[k] : EN[k]);

@@ -1,6 +1,6 @@
 # Media tab roadmap (written 2026-11-26)
 
-Stories S-224 to S-236 in `docs/stories/tracker.json`. Built so far (2026-11-26): the tab shell (S-224) and a first version of the free player (S-227). Everything else is still planned. This page says what we will build, in what order, and what has to be decided or cleared first. Telugu text will be machine-drafted and must be reviewed.
+Stories S-224 to S-236 in `docs/stories/tracker.json`. Built so far (2026-11-26): the tab shell (S-224), a first version of the free player (S-227), and broadcast video to members with two-person approval (S-230, S-237; see docs/VIDEO_BROADCASTS.md). Everything else is still planned. This page says what we will build, in what order, and what has to be decided or cleared first. Telugu text will be machine-drafted and must be reviewed.
 
 ## What the owner asked for
 
