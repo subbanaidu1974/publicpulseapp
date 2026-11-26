@@ -49,6 +49,7 @@ export default function Navbar({ currentTab, setCurrentTab, theme, setTheme }: N
     { id: "analytics", label: t("nav.analytics") },
     { id: "elections", label: t("nav.elections") },
     { id: "civic", label: t("nav.civic") },
+    { id: "media", label: t("nav.media") },
     { id: "constituencies", label: `${t("nav.constituencies")} (${config.assemblySeats})` },
     { id: "survey", label: t("nav.survey") },
     { id: "methodology", label: t("nav.methodology") },
@@ -59,7 +60,7 @@ export default function Navbar({ currentTab, setCurrentTab, theme, setTheme }: N
     setCurrentTab(tabId);
     setIsOpenInput(false);
   };
-  const testId = (id: string) => (id === "elections" ? "nav-elections" : id === "civic" ? "nav-civic" : undefined);
+  const testId = (id: string) => (id === "elections" ? "nav-elections" : id === "civic" ? "nav-civic" : id === "media" ? "nav-media" : undefined);
   const ThemeIcon = THEME_ICON[theme];
 
   return (
