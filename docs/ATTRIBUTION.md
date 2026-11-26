@@ -47,6 +47,8 @@ Register as of 2026-11-22. Research-level register, not legal advice. Every entr
 | geo-villages-shrug-TG | 2011-03-01 | shrug-cc-by-nc-sa, lgd-public, census-orgi-2011, project-derived | Village boundaries: SHRUG, Development Data Lab, CC BY-NC-SA 4.0, 2011 Census based; for non-commercial use. Simplified and joined to LGD villages by Census 2011 village code by People Pulse. Derived file: offered under CC BY-NC-SA 4.0. |
 | history-prebifurcation | 2026-11-23 | tcpd-nc | Pre-2014 results for undivided Andhra Pradesh (assembly 2009, Lok Sabha 2009 and 2014): Election Commission of India, compiled by TCPD (Trivedi Centre for Political Data, Ashoka University) Lok Dhaba, for non-commercial use with citation. Split onto today's AP and TG seats by People Pulse using the 2008 delimitation order; not like-for-like with later elections. |
 | lsmap-segments | 2026-11-22 | lgd-public, project-derived | Lok Sabha to assembly segment mapping derived by People Pulse from LGD / ECI 2008 delimitation tables. |
+| panchayat-ap | n/a | wikipedia-cc-by-sa, project-derived | Andhra Pradesh panchayat election totals (gram panchayat 2021; ZPTC and MPTC 2014) compiled from English Wikipedia (CC BY-SA 4.0), which cites news reports; each record names the page and revision. Secondary source, not State Election Commission data. |
+| panchayat-tg | n/a | wikipedia-cc-by-sa, project-derived | Telangana panchayat election totals (gram panchayat, ZPTC and MPTC 2019; ZPTC and MPTC 2014 for the Telangana districts) compiled from English Wikipedia (CC BY-SA 4.0), which cites news reports; each record names the page and revision. Secondary source, not State Election Commission data. |
 | parties | 2026-11-22 | wikidata-cc0, wikimedia-cc-by-sa, project-derived | Party registry curated by People Pulse; names and QIDs from Wikidata (CC0); flag and symbol files from Wikimedia Commons with per-file author and licence. |
 | photos-index | n/a | wikimedia-cc-by-sa, godl-india, wikidata-cc0 | Photos of winning candidates and party heads: Wikimedia Commons, each under the free licence and credit recorded beside it (CC0, public domain, CC BY, CC BY-SA or GODL-India). The credit must be shown with each photo. |
 | photos-leaders | n/a | wikimedia-cc-by-sa, godl-india, wikidata-cc0 | Photos of winning candidates and party heads: Wikimedia Commons, each under the free licence and credit recorded beside it (CC0, public domain, CC BY, CC BY-SA or GODL-India). The credit must be shown with each photo. |
@@ -200,11 +202,11 @@ Register as of 2026-11-22. Research-level register, not legal advice. Every entr
 
 ### wikipedia-cc-by-sa
 
-- Name: English Wikipedia text (CC BY-SA 4.0), used as the citation source for alliance records
+- Name: English Wikipedia text (CC BY-SA 4.0), used as the citation source for alliance records and panchayat election totals
 - URL: https://en.wikipedia.org/wiki/Wikipedia:Text_of_the_Creative_Commons_Attribution-ShareAlike_4.0_International_License
 - Status: attribution-sharealike
 - Constraints: attribution
-- Attribution: Alliance facts compiled from English Wikipedia election articles (links in data/reference/alliances.json); facts, not text, are reused.
+- Attribution: Alliance facts compiled from English Wikipedia election articles (links in data/reference/alliances.json), and panchayat election totals from the pages named in data/reference/panchayat (page and revision recorded per election); facts, not text, are reused.
 - Evidence: Records cite their pages; no prose is copied.
 
 ### project-derived

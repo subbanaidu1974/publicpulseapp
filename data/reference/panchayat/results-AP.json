@@ -1,0 +1,154 @@
+{
+  "state": "AP",
+  "source": {
+    "publisher": "English Wikipedia (volunteer-edited; the figures are cited there to news reports, not to the State Election Commission)",
+    "url": "https://en.wikipedia.org/wiki/2021_Andhra_Pradesh_local_elections",
+    "licence": "CC BY-SA 4.0",
+    "terms": "Text under CC BY-SA 4.0: credit, link to the licence, say what changed. We reuse the figures, not the wording.",
+    "retrieved": "2026-11-25",
+    "quality": "secondary"
+  },
+  "elections": [
+    {
+      "id": "ap-gp-2021",
+      "level": "gp",
+      "year": 2021,
+      "period": "2021-02",
+      "phases": [
+        {
+          "date": "2021-02-09",
+          "gps": 3249,
+          "turnoutPct": 81.78
+        },
+        {
+          "date": "2021-02-13",
+          "gps": 3328,
+          "turnoutPct": 81.61
+        },
+        {
+          "date": "2021-02-17"
+        },
+        {
+          "date": "2021-02-21"
+        }
+      ],
+      "tallies": [
+        {
+          "party": "YSRCP",
+          "won": 10536,
+          "byPhase": [
+            2640,
+            2654,
+            2604,
+            2638
+          ]
+        },
+        {
+          "party": "TDP (with CPI)",
+          "won": 2099,
+          "byPhase": [
+            510,
+            534,
+            527,
+            528
+          ]
+        },
+        {
+          "party": "JSP",
+          "won": 137
+        },
+        {
+          "party": "BJP",
+          "won": 81
+        },
+        {
+          "party": "INC",
+          "won": 2
+        },
+        {
+          "party": "Others",
+          "won": 1
+        }
+      ],
+      "evidence": {
+        "url": "https://en.wikipedia.org/wiki/2021_Andhra_Pradesh_local_elections",
+        "revision": "1383614314",
+        "cites": "Economic Times and others, as cited by the page"
+      },
+      "caveats": [
+        "Sarpanch seats only. The page is marked by its own editors as needing an update and has gaps: no turnout for phases 3 and 4, no ward results, and no total number of posts.",
+        "JSP and BJP are shown for the whole election only, not by phase. The 'Others' figure of 1 is almost certainly incomplete.",
+        "Phase 1 had no polling in Vizianagaram district, as the page's own table records. The page says 539 sarpanch seats were won unopposed in phase 2; unopposed seats elsewhere are not given.",
+        "Gram panchayat polls are non-party; these are the parties the source says backed the winning sarpanch candidates."
+      ]
+    },
+    {
+      "id": "ap-zptc-2014",
+      "level": "zptc",
+      "year": 2014,
+      "period": "2014-04",
+      "scope": "Andhra Pradesh districts of then-undivided Andhra Pradesh",
+      "totalPosts": 653,
+      "tallies": [
+        {
+          "party": "INC",
+          "won": 2
+        },
+        {
+          "party": "TDP",
+          "won": 373
+        },
+        {
+          "party": "YSRCP",
+          "won": 275
+        },
+        {
+          "party": "Others",
+          "won": 3
+        }
+      ],
+      "evidence": {
+        "url": "https://en.wikipedia.org/wiki/2014_Andhra_Pradesh_rural_local_bodies_elections",
+        "revision": "1344762082",
+        "cites": "Down To Earth, 15 May 2014, as cited by the page"
+      },
+      "caveats": [
+        "Held before the 2014 split, in undivided Andhra Pradesh; the figures are for the districts that stayed in Andhra Pradesh."
+      ]
+    },
+    {
+      "id": "ap-mptc-2014",
+      "level": "mptc",
+      "year": 2014,
+      "period": "2014-04",
+      "scope": "Andhra Pradesh districts of then-undivided Andhra Pradesh",
+      "totalPosts": 10092,
+      "tallies": [
+        {
+          "party": "INC",
+          "won": 172
+        },
+        {
+          "party": "TDP",
+          "won": 5216
+        },
+        {
+          "party": "YSRCP",
+          "won": 4199
+        },
+        {
+          "party": "Others",
+          "won": 505
+        }
+      ],
+      "evidence": {
+        "url": "https://en.wikipedia.org/wiki/2014_Andhra_Pradesh_rural_local_bodies_elections",
+        "revision": "1344762082",
+        "cites": "Down To Earth, 15 May 2014, as cited by the page"
+      },
+      "caveats": [
+        "Held before the 2014 split, in undivided Andhra Pradesh; the figures are for the districts that stayed in Andhra Pradesh."
+      ]
+    }
+  ]
+}

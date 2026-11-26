@@ -26,7 +26,7 @@ export interface ManifestEntry {
 }
 export interface Manifest { schema: 1; datasets: ManifestEntry[] }
 
-export const REFERENCE_FILES = ["data/reference/parties.json", "data/reference/alliances.json"] as const;
+export const REFERENCE_FILES = ["data/reference/parties.json", "data/reference/alliances.json", "data/reference/panchayat/results-AP.json", "data/reference/panchayat/results-TG.json"] as const;
 export const MANIFEST_NAME = "manifest.json";
 
 interface Rule {
@@ -90,6 +90,16 @@ const REF_RULES: Record<string, Omit<Rule, "match" | "id">> = {
     licences: ["wikipedia-cc-by-sa", "project-derived"],
     attribution: "Alliance records compiled from English Wikipedia election articles (each record cites its pages).",
   },
+  "data/reference/panchayat/results-AP.json": {
+    sources: ["https://en.wikipedia.org/wiki/2021_Andhra_Pradesh_local_elections", "https://en.wikipedia.org/wiki/2014_Andhra_Pradesh_rural_local_bodies_elections"],
+    licences: ["wikipedia-cc-by-sa", "project-derived"],
+    attribution: "Andhra Pradesh panchayat election totals (gram panchayat 2021; ZPTC and MPTC 2014) compiled from English Wikipedia (CC BY-SA 4.0), which cites news reports; each record names the page and revision. Secondary source, not State Election Commission data.",
+  },
+  "data/reference/panchayat/results-TG.json": {
+    sources: ["https://en.wikipedia.org/wiki/2019_Telangana_local_elections", "https://en.wikipedia.org/wiki/2014_Andhra_Pradesh_rural_local_bodies_elections"],
+    licences: ["wikipedia-cc-by-sa", "project-derived"],
+    attribution: "Telangana panchayat election totals (gram panchayat, ZPTC and MPTC 2019; ZPTC and MPTC 2014 for the Telangana districts) compiled from English Wikipedia (CC BY-SA 4.0), which cites news reports; each record names the page and revision. Secondary source, not State Election Commission data.",
+  },
 };
 
 export function sha256Of(path: string): string {
@@ -149,7 +159,7 @@ export function buildManifest(genDir: string = GENERATED, root: string = ROOT): 
     const s = summarise(json);
     const r = REF_RULES[rel];
     datasets.push({
-      id: rel.includes("parties") ? "parties" : "alliances", path: rel, bytes: statSync(abs).size, sha256: sha256Of(abs), rows: s.rows,
+      id: rel.includes("parties") ? "parties" : rel.includes("panchayat") ? `panchayat-${rel.slice(-7, -5).toLowerCase()}` : "alliances", path: rel, bytes: statSync(abs).size, sha256: sha256Of(abs), rows: s.rows,
       asOf: s.asOf, provenance: "hand-curated", demo: false, ...r,
     });
   }

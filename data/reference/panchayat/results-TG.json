@@ -1,0 +1,176 @@
+{
+  "state": "TG",
+  "source": {
+    "publisher": "English Wikipedia (volunteer-edited; the figures are cited there to news reports, not to the State Election Commission)",
+    "url": "https://en.wikipedia.org/wiki/2019_Telangana_local_elections",
+    "licence": "CC BY-SA 4.0",
+    "terms": "Text under CC BY-SA 4.0: credit, link to the licence, say what changed. We reuse the figures, not the wording.",
+    "retrieved": "2026-11-25",
+    "quality": "secondary"
+  },
+  "elections": [
+    {
+      "id": "tg-gp-2019",
+      "level": "gp",
+      "year": 2019,
+      "period": "2019-01",
+      "totalPosts": 12751,
+      "tallies": [
+        {
+          "party": "BRS",
+          "won": 7774
+        },
+        {
+          "party": "INC",
+          "won": 2709
+        },
+        {
+          "party": "BJP",
+          "won": 163
+        }
+      ],
+      "evidence": {
+        "url": "https://en.wikipedia.org/wiki/2019_Telangana_local_elections",
+        "revision": "1387651623",
+        "cites": "Times of India, 31 Jan 2019 (gram panchayat) and 4 Jun 2019 (ZPTC, MPTC), as cited by the page"
+      },
+      "caveats": [
+        "Only the three largest parties are listed, so the party figures do not add up to the total; the rest went to others, independents and unlisted parties.",
+        "Party names are as the source gives them (TRS was renamed BRS in 2022).",
+        "The same page also says 12,571 gram panchayats in its summary box; we use 12,751 from its text. One of them is a typing slip and we cannot tell which.",
+        "Gram panchayat polls are non-party; these are the parties the source says backed the winning sarpanch candidates."
+      ]
+    },
+    {
+      "id": "tg-zptc-2019",
+      "level": "zptc",
+      "year": 2019,
+      "period": "2019-05",
+      "totalPosts": 538,
+      "tallies": [
+        {
+          "party": "BRS",
+          "won": 446
+        },
+        {
+          "party": "INC",
+          "won": 75
+        },
+        {
+          "party": "BJP",
+          "won": 8
+        }
+      ],
+      "evidence": {
+        "url": "https://en.wikipedia.org/wiki/2019_Telangana_local_elections",
+        "revision": "1387651623",
+        "cites": "Times of India, 31 Jan 2019 (gram panchayat) and 4 Jun 2019 (ZPTC, MPTC), as cited by the page"
+      },
+      "caveats": [
+        "Only the three largest parties are listed, so the party figures do not add up to the total; the rest went to others, independents and unlisted parties.",
+        "Party names are as the source gives them (TRS was renamed BRS in 2022)."
+      ]
+    },
+    {
+      "id": "tg-mptc-2019",
+      "level": "mptc",
+      "year": 2019,
+      "period": "2019-05",
+      "totalPosts": 5817,
+      "tallies": [
+        {
+          "party": "BRS",
+          "won": 3556
+        },
+        {
+          "party": "INC",
+          "won": 1377
+        },
+        {
+          "party": "BJP",
+          "won": 211
+        }
+      ],
+      "evidence": {
+        "url": "https://en.wikipedia.org/wiki/2019_Telangana_local_elections",
+        "revision": "1387651623",
+        "cites": "Times of India, 31 Jan 2019 (gram panchayat) and 4 Jun 2019 (ZPTC, MPTC), as cited by the page"
+      },
+      "caveats": [
+        "Only the three largest parties are listed, so the party figures do not add up to the total; the rest went to others, independents and unlisted parties.",
+        "Party names are as the source gives them (TRS was renamed BRS in 2022)."
+      ]
+    },
+    {
+      "id": "tg-zptc-2014",
+      "level": "zptc",
+      "year": 2014,
+      "period": "2014-04",
+      "scope": "Telangana districts of then-undivided Andhra Pradesh",
+      "totalPosts": 443,
+      "tallies": [
+        {
+          "party": "INC",
+          "won": 176
+        },
+        {
+          "party": "TDP",
+          "won": 53
+        },
+        {
+          "party": "BRS",
+          "won": 191
+        },
+        {
+          "party": "Others",
+          "won": 23
+        }
+      ],
+      "evidence": {
+        "url": "https://en.wikipedia.org/wiki/2014_Andhra_Pradesh_rural_local_bodies_elections",
+        "revision": "1344762082",
+        "cites": "Down To Earth, 15 May 2014, as cited by the page"
+      },
+      "caveats": [
+        "Held before the 2014 split, in undivided Andhra Pradesh; the figures are for the districts that became Telangana, as the source gives them.",
+        "BRS is listed under its 2014 name, TRS, in the source."
+      ]
+    },
+    {
+      "id": "tg-mptc-2014",
+      "level": "mptc",
+      "year": 2014,
+      "period": "2014-04",
+      "scope": "Telangana districts of then-undivided Andhra Pradesh",
+      "totalPosts": 6497,
+      "tallies": [
+        {
+          "party": "INC",
+          "won": 2315
+        },
+        {
+          "party": "TDP",
+          "won": 1061
+        },
+        {
+          "party": "BRS",
+          "won": 1860
+        },
+        {
+          "party": "Others",
+          "won": 1251
+        }
+      ],
+      "evidence": {
+        "url": "https://en.wikipedia.org/wiki/2014_Andhra_Pradesh_rural_local_bodies_elections",
+        "revision": "1344762082",
+        "cites": "Down To Earth, 15 May 2014, as cited by the page"
+      },
+      "caveats": [
+        "The source's party rows add up to 6,487 but its stated total is 6,497; the 10 seats are unexplained.",
+        "Held before the 2014 split, in undivided Andhra Pradesh; the figures are for the districts that became Telangana.",
+        "BRS is listed under its 2014 name, TRS, in the source."
+      ]
+    }
+  ]
+}
