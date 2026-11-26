@@ -14,6 +14,7 @@ import MediaPage from "./components/media/MediaPage";
 import PollGate from "./components/civic/PollGate";
 import PollsAdmin from "./components/civic/consoles/PollsAdmin";
 import VideosAdmin from "./components/civic/consoles/VideosAdmin";
+import MediaAdmin from "./components/civic/consoles/MediaAdmin";
 import ConstituencySearch from "./components/ConstituencySearch";
 import HomePage from "./components/pages/HomePage";
 import AnalyticsPage from "./components/pages/AnalyticsPage";
@@ -70,6 +71,8 @@ function AppInner() {
   useEffect(() => { const on = () => setPollsRoute(window.location.hash === "#/polls-admin"); window.addEventListener("hashchange", on); return () => window.removeEventListener("hashchange", on); }, []);
   const [videosRoute, setVideosRoute] = useState(() => { try { return window.location.hash === "#/videos-admin"; } catch { return false; } });
   useEffect(() => { const on = () => setVideosRoute(window.location.hash === "#/videos-admin"); window.addEventListener("hashchange", on); return () => window.removeEventListener("hashchange", on); }, []);
+  const [mediaAdminRoute, setMediaAdminRoute] = useState(() => { try { return window.location.hash === "#/media-admin"; } catch { return false; } });
+  useEffect(() => { const on = () => setMediaAdminRoute(window.location.hash === "#/media-admin"); window.addEventListener("hashchange", on); return () => window.removeEventListener("hashchange", on); }, []);
   const [notifyRoute, setNotifyRoute] = useState(() => { try { return isNotifyHash(window.location.hash); } catch { return false; } });
   useEffect(() => {
     const on = () => setNotifyRoute(isNotifyHash(window.location.hash));
@@ -144,7 +147,7 @@ function AppInner() {
       <Navbar currentTab={currentTab} setCurrentTab={setCurrentTab} theme={theme} setTheme={setTheme} />
 
       <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        {pollsRoute ? <PollsAdmin /> : videosRoute ? <VideosAdmin /> : notifyRoute ? <NotifyRoot /> : dashRoute ? <ScopeDashboard /> : cdRoute ? <CountDayPage /> : profileRoute ? (
+        {pollsRoute ? <PollsAdmin /> : videosRoute ? <VideosAdmin /> : mediaAdminRoute ? <MediaAdmin /> : notifyRoute ? <NotifyRoot /> : dashRoute ? <ScopeDashboard /> : cdRoute ? <CountDayPage /> : profileRoute ? (
           <ProfilePage route={profileRoute} onBack={() => { if (window.history.length > 1) window.history.back(); else closeProfile(); }} />
         ) : (<>
         {currentTab === "home" && <HomePage theme={theme} />}
@@ -155,6 +158,7 @@ function AppInner() {
           <h1 className="text-2xl font-bold">Publish a survey</h1>
           <PollsAdmin />
           <p><a data-testid="videos-admin-link-home" href="#/videos-admin" className="underline font-bold">Send a video to all members</a></p>
+          <p><a data-testid="media-admin-link-home" href="#/media-admin" className="underline font-bold">Media sources, reports and silence windows</a></p>
           <button type="button" data-testid="admin-more" onClick={openAll} className="min-h-[44px] min-w-[44px] px-4 py-2 text-sm font-bold border border-black bg-white text-black">Other tools (all sections)</button>
         </>)} />}
         {currentTab === "media" && <MediaPage />}

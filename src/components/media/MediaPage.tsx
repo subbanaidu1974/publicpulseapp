@@ -2,7 +2,9 @@ import { useEffect, useState, type KeyboardEvent } from "react";
 import { useT } from "../../i18n";
 import { TranslationNote } from "../TranslationNote";
 import MediaPlayer from "./MediaPlayer";
-import VideoCards from "./VideoCards";
+import VideoCards, { Card } from "./VideoCards";
+import NewsList from "./NewsList";
+import LiveList from "./LiveList";
 import { useVideos } from "./useVideos";
 import { mediaText as mt, type MediaKey } from "./mediaText";
 
@@ -50,12 +52,30 @@ export default function MediaPage() {
           </button>
         ))}
       </div>
-      <section role="tabpanel" id="media-panel-news" aria-labelledby="media-tab-news" data-testid="media-panel-news" hidden={sec !== "news"}>{empty("m.news.h", "m.news.none", "news")}</section>
-      <section role="tabpanel" id="media-panel-watch" aria-labelledby="media-tab-watch" data-testid="media-panel-watch" hidden={sec !== "watch"}><MediaPlayer /></section>
-      <section role="tabpanel" id="media-panel-live" aria-labelledby="media-tab-live" data-testid="media-panel-live" hidden={sec !== "live"}>{empty("m.live.h", "m.live.none", "live")}</section>
+      {vids.signedIn && (
+        <div className="text-sm">
+          <label className="inline-flex items-center gap-2 min-h-[44px]"><input data-testid="media-mute" type="checkbox" checked={vids.muted} onChange={(e) => vids.setMuted(e.target.checked)} />{t("m.mute")}</label>
+          <p className="text-xs">{t("m.mute.note")}</p>
+        </div>
+      )}
+      <section role="tabpanel" id="media-panel-news" aria-labelledby="media-tab-news" data-testid="media-panel-news" hidden={sec !== "news"}>{sec === "news" && <NewsList />}</section>
+      <section role="tabpanel" id="media-panel-watch" aria-labelledby="media-tab-watch" data-testid="media-panel-watch" hidden={sec !== "watch"}>
+        <div className="space-y-6">
+          {vids.signedIn && (
+            <section aria-labelledby="lib-h" data-testid="video-library" className="space-y-3">
+              <h3 id="lib-h" className="text-lg font-bold">{t("m.lib.h")}</h3>
+              {vids.items.some((v) => v.library)
+                ? <ul className="space-y-4">{vids.items.filter((v) => v.library).map((v) => <li key={v.id}><Card v={v} isNew={false} /></li>)}</ul>
+                : <p className="text-sm" data-testid="video-library-empty">{t("m.lib.none")}</p>}
+            </section>
+          )}
+          <MediaPlayer />
+        </div>
+      </section>
+      <section role="tabpanel" id="media-panel-live" aria-labelledby="media-tab-live" data-testid="media-panel-live" hidden={sec !== "live"}>{sec === "live" && <LiveList />}</section>
       <section role="tabpanel" id="media-panel-ours" aria-labelledby="media-tab-ours" data-testid="media-panel-ours" hidden={sec !== "ours"}>
         {!vids.signedIn ? <div className="space-y-2" data-testid="media-ours-signin"><h3 className="text-lg font-bold">{t("m.ours.h")}</h3><p className="text-sm">{t("m.ours.signin")}</p></div>
-          : vids.items.length ? <div className="space-y-3"><h3 className="text-lg font-bold">{t("m.ours.h")}</h3>{sec === "ours" && <VideoCards items={vids.items} />}</div>
+          : (vids.items.length || vids.corrections.length) ? <div className="space-y-3"><h3 className="text-lg font-bold">{t("m.ours.h")}</h3>{sec === "ours" && <VideoCards items={vids.items} corrections={vids.corrections} />}</div>
           : empty("m.ours.h", "m.ours.none", "ours")}
       </section>
     </div>

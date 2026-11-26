@@ -29,6 +29,14 @@ CREATE TABLE vcast_videos (
 );
 CREATE INDEX idx_vcast_status ON vcast_videos(status, live_at);
 `);
+registerMigration("vcast_002_library_windows", `
+ALTER TABLE vcast_videos ADD COLUMN library INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE vcast_videos ADD COLUMN transcript TEXT;
+CREATE TABLE vcast_windows (
+  id TEXT PRIMARY KEY, label TEXT NOT NULL, starts_at TEXT NOT NULL, ends_at TEXT NOT NULL,
+  created_by TEXT NOT NULL, created_at TEXT NOT NULL, ended_by TEXT, ended_at TEXT
+);
+`);
 
 export const MIN_VIEWS_SHOWN = 10; // play counts are hidden below this, like poll results
 const MAX_PENDING = 20, MAX_LIVE_LISTED = 30;
@@ -39,7 +47,7 @@ const str = (v: unknown): string => (typeof v === "string" ? v.normalize("NFKC")
 const fail = (res: express.Response, status: number, code: string, message: string): void => { res.status(status).json({ error: code, code, message }); };
 const db = () => getDb();
 
-interface Row { id: string; title_en: string; title_te: string | null; note_en: string | null; note_te: string | null; media_url: string; kind: string; credit: string; status: string; created_by: string; created_at: string; publish_at: string | null; decided_by: string | null; decided_at: string | null; live_at: string | null; recall_note: string | null; views: number }
+interface Row { library: number; transcript: string | null; id: string; title_en: string; title_te: string | null; note_en: string | null; note_te: string | null; media_url: string; kind: string; credit: string; status: string; created_by: string; created_at: string; publish_at: string | null; decided_by: string | null; decided_at: string | null; live_at: string | null; recall_note: string | null; views: number }
 
 /** A direct media file: https (http only for localhost outside production), no login in the address, an audio or video file name, and not too long. */
 export function checkMediaUrl(raw: string): { url: string; kind: "video" | "audio" } {
@@ -66,12 +74,14 @@ function cleanText(label: string, v: unknown, min: number, max: number, required
 
 const mine = (r: Row, me: string) => r.created_by === me;
 const status = (r: Row, now: string) => (r.status === "live" && r.live_at && r.live_at > now ? "scheduled" : r.status);
-const member = (r: Row) => ({ id: r.id, title_en: r.title_en, title_te: r.title_te, note_en: r.note_en, note_te: r.note_te, media_url: r.media_url, kind: r.kind, credit: r.credit, live_at: r.live_at });
+const member = (r: Row) => ({ library: r.library === 1, transcript: r.transcript, id: r.id, title_en: r.title_en, title_te: r.title_te, note_en: r.note_en, note_te: r.note_te, media_url: r.media_url, kind: r.kind, credit: r.credit, live_at: r.live_at });
 
 export function createVideo(adminId: string, body: Record<string, unknown>, now: Date = new Date()): Row {
   const title_en = cleanText("title", body.title_en, 5, 120, true)!, title_te = cleanText("title_te", body.title_te, 3, 160, false);
   const note_en = cleanText("note", body.note_en, 3, 400, false), note_te = cleanText("note_te", body.note_te, 3, 600, false);
   const credit = cleanText("credit", body.credit, 3, 160, true)!;
+  const transcript = cleanText("transcript", body.transcript, 20, 4000, false);
+  const library = body.library === true ? 1 : 0;
   const { url, kind } = checkMediaUrl(str(body.media_url));
   if (body.confirm_neutral !== true || body.confirm_rights !== true) throw new Bad("confirm_required", "tick both boxes: the video does not promote a party or candidate, and we have the right to show it");
   let publish_at: string | null = null;
@@ -82,8 +92,8 @@ export function createVideo(adminId: string, body: Record<string, unknown>, now:
   }
   if ((db().prepare("SELECT COUNT(*) AS c FROM vcast_videos WHERE status = 'pending'").get() as { c: number }).c >= MAX_PENDING) throw new Bad("too_many_pending", `at most ${MAX_PENDING} items can wait for approval; decide some first`);
   const id = crypto.randomUUID();
-  db().prepare("INSERT INTO vcast_videos (id,title_en,title_te,note_en,note_te,media_url,kind,credit,status,created_by,created_at,publish_at) VALUES (?,?,?,?,?,?,?,?, 'pending', ?,?,?)")
-    .run(id, title_en, title_te, note_en, note_te, url, kind, credit, adminId, now.toISOString(), publish_at);
+  db().prepare("INSERT INTO vcast_videos (id,title_en,title_te,note_en,note_te,media_url,kind,credit,status,created_by,created_at,publish_at,library,transcript) VALUES (?,?,?,?,?,?,?,?, 'pending', ?,?,?,?,?)")
+    .run(id, title_en, title_te, note_en, note_te, url, kind, credit, adminId, now.toISOString(), publish_at, library, transcript);
   audit(adminId, "videocast.propose", "vcast:" + id, { kind });
   return get(id);
 }
@@ -94,11 +104,58 @@ function get(id: string): Row {
   return r;
 }
 
+/** Silence windows (S-231): while a window is active, nothing goes live. A start time that falls inside one (or inside several that touch) is moved to the end of the last. */
+export interface SilenceWindow { id: string; label: string; starts_at: string; ends_at: string; created_by: string; ended: boolean }
+export function activeWindows(): SilenceWindow[] {
+  const rows = db().prepare("SELECT * FROM vcast_windows WHERE ended_at IS NULL ORDER BY starts_at").all() as unknown as { id: string; label: string; starts_at: string; ends_at: string; created_by: string }[];
+  return rows.map((w) => ({ ...w, ended: false }));
+}
+export function afterSilence(iso: string): string {
+  let t = iso;
+  for (let i = 0; i < 20; i++) {
+    const w = activeWindows().find((x) => x.starts_at <= t && t < x.ends_at);
+    if (!w) return t;
+    t = w.ends_at;
+  }
+  return t;
+}
+export function addWindow(adminId: string, body: Record<string, unknown>, now: Date = new Date()): SilenceWindow {
+  const label = cleanText("label", body.label, 3, 120, true)!;
+  const a = new Date(String(body.starts_at)), b = new Date(String(body.ends_at));
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) throw new Bad("bad_window", "start and end must be valid times");
+  if (b.getTime() <= a.getTime() || b.getTime() - a.getTime() > 14 * 86_400_000) throw new Bad("bad_window", "the end must be after the start and within 14 days of it");
+  if (b.getTime() < now.getTime()) throw new Bad("bad_window", "the window is already over");
+  if (a.getTime() > now.getTime() + 365 * 86_400_000) throw new Bad("bad_window", "the start must be within a year");
+  const id = crypto.randomUUID();
+  db().prepare("INSERT INTO vcast_windows (id,label,starts_at,ends_at,created_by,created_at) VALUES (?,?,?,?,?,?)").run(id, label, a.toISOString(), b.toISOString(), adminId, now.toISOString());
+  // Anything already live, or approved for a time inside the window, is held until it ends. Nothing is recalled: it simply stops being listed.
+  db().prepare("UPDATE vcast_videos SET live_at = ? WHERE status = 'live' AND live_at >= ? AND live_at < ?").run(b.toISOString(), a.toISOString(), b.toISOString());
+  audit(adminId, "videocast.window.add", "vcast-window:" + id, { starts_at: a.toISOString(), ends_at: b.toISOString() });
+  return { id, label, starts_at: a.toISOString(), ends_at: b.toISOString(), created_by: adminId, ended: false };
+}
+/** Ending a window early needs a different admin than the one who made it, so one person cannot lift a hold alone. */
+export function endWindow(adminId: string, id: string, now: Date = new Date()): void {
+  const w = db().prepare("SELECT * FROM vcast_windows WHERE id = ? AND ended_at IS NULL").get(id) as unknown as { created_by: string; ends_at: string } | undefined;
+  if (!w) throw new Bad("not_found", "no such active window");
+  if (w.ends_at > now.toISOString() && w.created_by === adminId) throw new Bad("same_person", "a different admin must end a window that is still running");
+  db().prepare("UPDATE vcast_windows SET ended_by = ?, ended_at = ? WHERE id = ?").run(adminId, now.toISOString(), id);
+  // Videos held until this window's end are released now, unless another running window still covers this moment.
+  db().prepare("UPDATE vcast_videos SET live_at = ? WHERE status = 'live' AND live_at = ? AND live_at > ?").run(afterSilence(now.toISOString()), w.ends_at, now.toISOString());
+  audit(adminId, "videocast.window.end", "vcast-window:" + id);
+}
+
+/** Items withdrawn in the last 7 days that members had been able to see, so a person who saw one learns it was withdrawn and why. */
+export function correctionsFor(now: Date = new Date()) {
+  const since = new Date(now.getTime() - 7 * 86_400_000).toISOString();
+  const rows = db().prepare("SELECT id, title_en, title_te, recall_note, decided_at FROM vcast_videos WHERE status = 'recalled' AND live_at IS NOT NULL AND live_at <= decided_at AND decided_at >= ? ORDER BY decided_at DESC LIMIT 10").all(since) as unknown as { id: string; title_en: string; title_te: string | null; recall_note: string | null; decided_at: string }[];
+  return rows.map((r) => ({ id: r.id, title_en: r.title_en, title_te: r.title_te, note: r.recall_note, withdrawn_at: r.decided_at }));
+}
+
 export function approveVideo(adminId: string, id: string, now: Date = new Date()): Row {
   const r = get(id);
   if (r.status !== "pending") throw new Bad("not_pending", "only an item waiting for approval can be approved");
   if (r.created_by === adminId) throw new Bad("same_person", "a different admin must approve it");
-  const live = r.publish_at && r.publish_at > now.toISOString() ? r.publish_at : now.toISOString();
+  const live = afterSilence(r.publish_at && r.publish_at > now.toISOString() ? r.publish_at : now.toISOString());
   db().prepare("UPDATE vcast_videos SET status = 'live', decided_by = ?, decided_at = ?, live_at = ? WHERE id = ? AND status = 'pending'").run(adminId, now.toISOString(), live, id);
   audit(adminId, "videocast.approve", "vcast:" + id, { live_at: live });
   return get(id);
@@ -150,5 +207,8 @@ videocastRouter.get("/admin", ...adminOnly, wrap((req, res) => {
 videocastRouter.post("/admin/:id/approve", ...adminOnly, wrap((req, res) => { const r = approveVideo(req.person!.id, String(req.params.id)); res.json({ ok: true, status: r.status, live_at: r.live_at }); }));
 videocastRouter.post("/admin/:id/reject", ...adminOnly, wrap((req, res) => { rejectVideo(req.person!.id, String(req.params.id)); res.json({ ok: true }); }));
 videocastRouter.post("/admin/:id/recall", ...adminOnly, wrap((req, res) => { recallVideo(req.person!.id, String(req.params.id), req.body?.note); res.json({ ok: true }); }));
-videocastRouter.get("/", requireAuth, wrap((_req, res) => { res.set("Cache-Control", "no-store"); res.json({ items: liveFor() }); }));
+videocastRouter.get("/admin/windows", ...adminOnly, wrap((_req, res) => { res.json({ windows: activeWindows() }); }));
+videocastRouter.post("/admin/windows", ...adminOnly, wrap((req, res) => { res.status(201).json(addWindow(req.person!.id, req.body ?? {})); }));
+videocastRouter.post("/admin/windows/:id/end", ...adminOnly, wrap((req, res) => { endWindow(req.person!.id, String(req.params.id)); res.json({ ok: true }); }));
+videocastRouter.get("/", requireAuth, wrap((_req, res) => { res.set("Cache-Control", "no-store"); res.json({ items: liveFor(), corrections: correctionsFor() }); }));
 videocastRouter.post("/:id/view", requireAuth, wrap((req, res) => { countView(String(req.params.id)); res.json({ ok: true }); }));
