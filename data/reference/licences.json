@@ -160,7 +160,17 @@
       "needsDecision": false,
       "evidence": "Records cite their pages; no prose is copied."
     },
-    "project-derived": {
+    "news-reports-facts": {
+    "name": "Figures read from news reports (numbers only; no article text or images)",
+    "url": "https://telanganatoday.com/",
+    "status": "unstated",
+    "constraints": ["figures only, each linked to the reports it was read from", "no article wording reused", "not commission data; replaced when an official source is cleared"],
+    "attribution": "Panchayat election figures for the newest rounds were read from news reports (links beside each election) and checked against each other; wording is not reused.",
+    "needsDecision": true,
+    "decision": "Counsel to confirm that recording election figures with links to the reports is acceptable. Until then the page labels them as news-report figures.",
+    "evidence": "Read 2026-11-25 from Telangana Today, The South First, The News Minute, ETV Bharat and News On AIR."
+  },
+  "project-derived": {
       "name": "Project-generated data (rollups, normalisation, registry curation) by this repository",
       "url": "",
       "status": "project",

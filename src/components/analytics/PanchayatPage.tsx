@@ -44,7 +44,11 @@ export default function PanchayatPage() {
               <div data-testid="panchayat-banner" role="note" className="border border-black bg-amber-50 p-3 text-sm space-y-1">
                 <p className="font-bold">{a("an2.pn.banner")}</p>
                 <p className="text-xs">{a("an2.pn.bannerWhy")}</p>
-                {s.data.source && <p data-testid="panchayat-source" className="text-[11px]">{a("an2.pn.source")}: <a className="underline" href={s.data.source.url} target="_blank" rel="noopener noreferrer">{s.data.source.publisher.split(" (")[0]}</a>, {s.data.source.licence}, {s.data.source.retrieved}</p>}
+                <p data-testid="panchayat-source" className="text-[11px]">
+                  {a("an2.pn.source")}: {[s.data.source, ...s.data.otherSources].filter((x): x is NonNullable<typeof x> => !!x).map((x, i) => (
+                    <span key={x.publisher}>{i > 0 ? "; " : ""}<a className="underline" href={x.url} target="_blank" rel="noopener noreferrer">{x.publisher.split(" (")[0].split(",")[0]}</a>, {x.licence.split(":")[0]}</span>
+                  ))}, {s.data.source?.retrieved}
+                </p>
               </div>
             )}
 
@@ -72,7 +76,7 @@ export default function PanchayatPage() {
 
             <div className="grid gap-4 lg:grid-cols-2">
               {shown.map((e) => {
-                const top = Math.max(1, ...e.tallies.map((t) => t.won));
+                const top = Math.max(1, ...e.tallies.map((t) => t.wonMax ?? t.won));
                 return (
                   <article key={e.id} data-testid="panchayat-card" data-election={e.id} className="border border-black bg-white p-3 space-y-2 min-w-0">
                     <header>
@@ -80,6 +84,7 @@ export default function PanchayatPage() {
                       <p className="text-[11px]">
                         {e.period}{e.scope ? <> &middot; {e.scope}</> : null}
                         {e.posts != null && <> &middot; {a("an2.pn.posts")}: <strong>{fnum(e.posts, a("an2.na"))}</strong></>}
+                        {e.unopposed != null && <> &middot; {a("an2.pn.unopp")}: <strong>{fnum(e.unopposed, a("an2.na"))}</strong></>}
                       </p>
                     </header>
                     {e.tallies.length > 0 && (
@@ -91,8 +96,8 @@ export default function PanchayatPage() {
                             <tr key={t.party} data-testid="panchayat-tally-row">
                               <th scope="row" className="border-b border-black/10 py-1 pr-3 font-bold">{t.party}</th>
                               <td className="border-b border-black/10 py-1 pr-3 font-mono w-full">
-                                <span>{fnum(t.won, a("an2.na"))}</span>
-                                <span aria-hidden="true" className="block h-1.5 mt-0.5" style={{ width: `${Math.max(1, (t.won / top) * 100)}%`, background: colourFor(t.party) }} />
+                                <span>{fnum(t.won, a("an2.na"))}{t.wonMax != null && t.wonMax !== t.won ? ` ${a("an2.pn.to")} ${fnum(t.wonMax, a("an2.na"))}` : ""}</span>
+                                <span aria-hidden="true" className="block h-1.5 mt-0.5" style={{ width: `${Math.max(1, ((t.wonMax ?? t.won) / top) * 100)}%`, background: colourFor(t.party) }} />
                               </td>
                             </tr>
                           ))}
@@ -111,9 +116,19 @@ export default function PanchayatPage() {
                       </details>
                     )}
                     {e.evidence && (
-                      <p className="text-[11px]" data-testid="panchayat-evidence">
-                        {a("an2.pn.evidence")}: <a className="underline" href={e.evidence.url} target="_blank" rel="noopener noreferrer">{e.evidence.url.replace(/^https?:\/\/en\.wikipedia\.org\/wiki\//, "").replace(/_/g, " ")}</a> ({a("an2.pn.revision")} {e.evidence.revision}). {e.evidence.cites}.
-                      </p>
+                      <div className="text-[11px] space-y-1" data-testid="panchayat-evidence">
+                        {e.evidence.kind === "wikipedia" ? (
+                          <p>{a("an2.pn.evidence")}: <a className="underline" href={e.evidence.url} target="_blank" rel="noopener noreferrer">{e.evidence.url.replace(/^https?:\/\/en\.wikipedia\.org\/wiki\//, "").replace(/_/g, " ")}</a> ({a("an2.pn.revision")} {e.evidence.revision}). {e.evidence.cites}.</p>
+                        ) : (
+                          <>
+                            <p data-testid="panchayat-news">{a("an2.pn.newsRead")}: {e.evidence.cites}.</p>
+                            <ul className="list-disc pl-5">
+                              <li><a className="underline" href={e.evidence.url} target="_blank" rel="noopener noreferrer">{e.evidence.url.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]}</a></li>
+                              {(e.evidence.also ?? []).map((x) => <li key={x.url}><a className="underline" href={x.url} target="_blank" rel="noopener noreferrer">{x.publisher}</a>, {x.date}</li>)}
+                            </ul>
+                          </>
+                        )}
+                      </div>
                     )}
                   </article>
                 );

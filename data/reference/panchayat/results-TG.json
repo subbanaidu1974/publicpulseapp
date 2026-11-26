@@ -10,6 +10,78 @@
   },
   "elections": [
     {
+      "id": "tg-gp-2025",
+      "level": "gp",
+      "year": 2025,
+      "period": "2025-12",
+      "phases": [
+        {
+          "date": "2025-12-11",
+          "gps": 4236,
+          "turnoutPct": 84.28
+        },
+        {
+          "date": "2025-12-14"
+        },
+        {
+          "date": "2025-12-17",
+          "gps": 4159
+        }
+      ],
+      "totalPosts": 12727,
+      "tallies": [
+        {
+          "party": "INC",
+          "won": 6794,
+          "wonMax": 7010
+        },
+        {
+          "party": "BRS",
+          "won": 3502,
+          "wonMax": 3503
+        },
+        {
+          "party": "BJP",
+          "won": 688,
+          "wonMax": 697
+        },
+        {
+          "party": "Others and independents",
+          "won": 1505,
+          "wonMax": 1651
+        }
+      ],
+      "evidence": {
+        "kind": "news",
+        "url": "https://www.thenewsminute.com/telangana/telangana-congress-wins-majority-gram-panchayats-in-third-phase",
+        "cites": "The News Minute (IANS), 18 Dec 2025, counting to 10 pm with 51 results awaited; ETV Bharat, 18 Dec 2025; The South First, 19 Dec 2025; News On AIR, 12 Dec 2025 (phase 1)",
+        "also": [
+          {
+            "publisher": "ETV Bharat",
+            "url": "https://www.etvbharat.com/en/state/congress-sweeps-telangana-panchayat-polls-2025-wins-majority-of-sarpanch-seats-enn25121800850",
+            "date": "2025-12-18"
+          },
+          {
+            "publisher": "The South First",
+            "url": "https://thesouthfirst.com/telangana/bjps-diminishing-spark-in-telangana-2025-gram-panchayat-elections-signal-waning-momentum/",
+            "date": "2025-12-19"
+          },
+          {
+            "publisher": "News On AIR",
+            "url": "https://www.newsonair.gov.in/telangana-recorded-84-28-percent-turnout-in-first-phase-of-gram-panchayat-elections/",
+            "date": "2025-12-12"
+          }
+        ]
+      },
+      "caveats": [
+        "No final count was found. The two full-count reports are snapshots from 18 December, taken at different times, and they disagree; each party shows the lowest and highest figure reported. Check against the State Election Commission before relying on them.",
+        "Sarpanch seats only. Party figures are the parties the reports say backed the winners; gram panchayat polls are non-party.",
+        "The reports give 12,727 gram panchayats (ETV Bharat gives 12,733). Unopposed seats were 395 in phase 1 and 394 in phase 3; phase 2 and the total were not found.",
+        "Phase turnout is shown only for phase 1 (84.28%, News On AIR). For phase 3 the reports disagree (about 81% against 85.77%), so none is shown.",
+        "Phase 1 notified 4,236 gram panchayats and phase 3 notified 4,159 (a few were not polled)."
+      ]
+    },
+    {
       "id": "tg-gp-2019",
       "level": "gp",
       "year": 2019,
@@ -30,6 +102,7 @@
         }
       ],
       "evidence": {
+        "kind": "wikipedia",
         "url": "https://en.wikipedia.org/wiki/2019_Telangana_local_elections",
         "revision": "1387651623",
         "cites": "Times of India, 31 Jan 2019 (gram panchayat) and 4 Jun 2019 (ZPTC, MPTC), as cited by the page"
@@ -62,6 +135,7 @@
         }
       ],
       "evidence": {
+        "kind": "wikipedia",
         "url": "https://en.wikipedia.org/wiki/2019_Telangana_local_elections",
         "revision": "1387651623",
         "cites": "Times of India, 31 Jan 2019 (gram panchayat) and 4 Jun 2019 (ZPTC, MPTC), as cited by the page"
@@ -92,6 +166,7 @@
         }
       ],
       "evidence": {
+        "kind": "wikipedia",
         "url": "https://en.wikipedia.org/wiki/2019_Telangana_local_elections",
         "revision": "1387651623",
         "cites": "Times of India, 31 Jan 2019 (gram panchayat) and 4 Jun 2019 (ZPTC, MPTC), as cited by the page"
@@ -127,6 +202,7 @@
         }
       ],
       "evidence": {
+        "kind": "wikipedia",
         "url": "https://en.wikipedia.org/wiki/2014_Andhra_Pradesh_rural_local_bodies_elections",
         "revision": "1344762082",
         "cites": "Down To Earth, 15 May 2014, as cited by the page"
@@ -162,6 +238,7 @@
         }
       ],
       "evidence": {
+        "kind": "wikipedia",
         "url": "https://en.wikipedia.org/wiki/2014_Andhra_Pradesh_rural_local_bodies_elections",
         "revision": "1344762082",
         "cites": "Down To Earth, 15 May 2014, as cited by the page"
@@ -171,6 +248,16 @@
         "Held before the 2014 split, in undivided Andhra Pradesh; the figures are for the districts that became Telangana.",
         "BRS is listed under its 2014 name, TRS, in the source."
       ]
+    }
+  ],
+  "otherSources": [
+    {
+      "publisher": "News reports (Telangana Today, The South First, The News Minute, ETV Bharat, News On AIR), read 2026-11-25 for numbers only",
+      "url": "https://telanganatoday.com/",
+      "licence": "Facts only: no text or images reused; each election links the reports it was read from",
+      "terms": "News wording is copyrighted; the figures are facts. We record numbers and links, never article text. Reuse of the facts has not been confirmed with counsel.",
+      "retrieved": "2026-11-25",
+      "quality": "secondary"
     }
   ]
 }

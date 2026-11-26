@@ -749,40 +749,44 @@
     {
       "id": "panchayat-ap",
       "path": "data/reference/panchayat/results-AP.json",
-      "bytes": 4289,
-      "sha256": "2d59ed54184c420710ecf54046330b9ec94c7701c36b124397a20ece64202b04",
-      "rows": 3,
+      "bytes": 9150,
+      "sha256": "3e8a907c1f5535808a0bd2ca13fd8eb52f8271e99f3aedcc47e3f06de8ed0728",
+      "rows": 4,
       "asOf": null,
       "provenance": "hand-curated",
       "demo": false,
       "sources": [
         "https://en.wikipedia.org/wiki/2021_Andhra_Pradesh_local_elections",
-        "https://en.wikipedia.org/wiki/2014_Andhra_Pradesh_rural_local_bodies_elections"
+        "https://en.wikipedia.org/wiki/2014_Andhra_Pradesh_rural_local_bodies_elections",
+        "https://telanganatoday.com/tdp-led-coalition-sweeps-andhra-pradesh-local-body-polls-with-massive-majority"
       ],
       "licences": [
         "wikipedia-cc-by-sa",
+        "news-reports-facts",
         "project-derived"
       ],
-      "attribution": "Andhra Pradesh panchayat election totals (gram panchayat 2021; ZPTC and MPTC 2014) compiled from English Wikipedia (CC BY-SA 4.0), which cites news reports; each record names the page and revision. Secondary source, not State Election Commission data."
+      "attribution": "Andhra Pradesh panchayat election totals (gram panchayat 2021; ZPTC and MPTC 2014) compiled from English Wikipedia (CC BY-SA 4.0), and ZPTC and MPTC 2026 from news reports checked against each other (numbers only, links beside each election). Secondary sources, not State Election Commission data."
     },
     {
       "id": "panchayat-tg",
       "path": "data/reference/panchayat/results-TG.json",
-      "bytes": 5512,
-      "sha256": "87d2cc5c70751251c5fca6d5cc7eb2ab1a127ce6eefee576033d645ed46c3c54",
-      "rows": 3,
+      "bytes": 9023,
+      "sha256": "6b5037590f4a18c4dff0ebb71ffc40f92b54e2964a6c45118e61e21305bac781",
+      "rows": 4,
       "asOf": null,
       "provenance": "hand-curated",
       "demo": false,
       "sources": [
         "https://en.wikipedia.org/wiki/2019_Telangana_local_elections",
-        "https://en.wikipedia.org/wiki/2014_Andhra_Pradesh_rural_local_bodies_elections"
+        "https://en.wikipedia.org/wiki/2014_Andhra_Pradesh_rural_local_bodies_elections",
+        "https://www.thenewsminute.com/telangana/telangana-congress-wins-majority-gram-panchayats-in-third-phase"
       ],
       "licences": [
         "wikipedia-cc-by-sa",
+        "news-reports-facts",
         "project-derived"
       ],
-      "attribution": "Telangana panchayat election totals (gram panchayat, ZPTC and MPTC 2019; ZPTC and MPTC 2014 for the Telangana districts) compiled from English Wikipedia (CC BY-SA 4.0), which cites news reports; each record names the page and revision. Secondary source, not State Election Commission data."
+      "attribution": "Telangana panchayat election totals (gram panchayat, ZPTC and MPTC 2019; ZPTC and MPTC 2014 for the Telangana districts) compiled from English Wikipedia (CC BY-SA 4.0), and gram panchayat 2025 from news reports (numbers only, a range where reports disagree, links beside the election). Secondary sources, not State Election Commission data."
     },
     {
       "id": "parties",

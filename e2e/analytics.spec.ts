@@ -276,8 +276,14 @@ test.describe('panchayat elections (S-203, S-219)', () => {
     await expect(gp.getByTestId('panchayat-caveats')).toContainText(/12,571/);
     await expect(gp.getByTestId('panchayat-evidence').locator('a')).toHaveAttribute('href', /en\.wikipedia\.org\/wiki\/2019_Telangana_local_elections/);
     await expect(page.getByTestId('panchayat-notes')).toContainText(/No electoral-roll or voter-level data/);
-    // no 2025 election is shown: nothing readable has been loaded for it
-    await expect(page.locator('[data-testid=panchayat-card][data-election*="2025"]')).toHaveCount(0);
+    // the December 2025 gram panchayat round is shown from news reports, as a range where they disagree, with no final count claimed
+    const g25 = page.locator('[data-testid=panchayat-card][data-election=tg-gp-2025]');
+    await expect(g25.locator('[data-testid=panchayat-tally-row]').first()).toContainText('6,794 to 7,010');
+    await expect(g25.getByTestId('panchayat-caveats')).toContainText(/No final count/);
+    await expect(g25.getByTestId('panchayat-news')).toContainText(/news reports/);
+    expect(await g25.getByTestId('panchayat-evidence').locator('a').count()).toBeGreaterThanOrEqual(3);
+    // no Telangana parishad round after 2019 is shown
+    await expect(page.locator('[data-testid=panchayat-card][data-election*="zptc-202"]:not([data-election="tg-zptc-2019"])')).toHaveCount(0);
     // level filter keeps only that level
     await page.getByTestId('panchayat-filter-mptc').click();
     const heads = await page.locator('[data-testid=panchayat-card] h3').allInnerTexts();
@@ -293,6 +299,14 @@ test.describe('panchayat elections (S-203, S-219)', () => {
     await expect(gp.getByTestId('panchayat-phases')).toContainText('81.78%');
     await expect(gp.getByTestId('panchayat-caveats')).toContainText(/needing an update/);
     await expect(page.locator('[data-testid=panchayat-card][data-election=ap-mptc-2014]')).toBeVisible();
+    const z26 = page.locator('[data-testid=panchayat-card][data-election=ap-zptc-2026]');
+    await expect(z26).toContainText('406');
+    await expect(z26).toContainText(/Unopposed seats/);
+    await expect(z26.getByTestId('panchayat-caveats')).toContainText(/582/);
+    const m26 = page.locator('[data-testid=panchayat-card][data-election=ap-mptc-2026]');
+    await expect(m26.getByTestId('panchayat-caveats')).toContainText(/9,818 against 9,821/);
+    await expect(m26.locator('[data-testid=panchayat-tally-row]').filter({ hasText: 'INC' })).toHaveCount(0);
+    await expect(page.locator('[data-testid=panchayat-card][data-election*="2021"]')).toHaveCount(1); // gram panchayat only; no 2021 parishad
   });
   test('@E2E-211 the panchayat page works in Telugu', async ({ page }) => {
     await page.addInitScript(() => { try { localStorage.setItem('pp-lang', 'te'); } catch { /* ignore */ } });
