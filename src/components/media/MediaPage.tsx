@@ -2,7 +2,6 @@ import { useEffect, useState, type KeyboardEvent } from "react";
 import { useT } from "../../i18n";
 import { TranslationNote } from "../TranslationNote";
 import MediaPlayer from "./MediaPlayer";
-import YoutubePlayer from "./YoutubePlayer";
 import WatchPlayer from "./WatchPlayer";
 import VideoCards, { Card } from "./VideoCards";
 import NewsList from "./NewsList";
@@ -73,7 +72,6 @@ export default function MediaPage() {
             </section>
           )}
           <MediaPlayer />
-          {sec === "watch" && <YoutubePlayer />}
         </div>
       </section>
       <section role="tabpanel" id="media-panel-live" aria-labelledby="media-tab-live" data-testid="media-panel-live" hidden={sec !== "live"}>{sec === "live" && <LiveList />}</section>

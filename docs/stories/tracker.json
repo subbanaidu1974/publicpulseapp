@@ -3128,7 +3128,7 @@
       "priority": "P1",
       "wave": "W9",
       "source": "user request 2026-11-26 (paste-a-link option)",
-      "notes": "BUILT 2026-11-26: admin form with a YouTube link, a typed headline, the channel name and the permission record; stored as its own source with no feed; same permission record and different-admin switch-on; switch off or report takedown work as for any source; shown 7 days; click-to-load no-cookie player as in S-238. NOT done: no title or thumbnail fetched from YouTube (admin types the headline); no video is switched on; counsel to confirm permission covers embedding; Telugu admin text not needed (operator screen)."
+      "notes": "BUILT 2026-11-26: admin form with a YouTube link, a typed headline, the channel name and the permission record; stored as its own source with no feed; same permission record and different-admin switch-on; switch off or report takedown work as for any source; shown 7 days; click-to-load no-cookie player as in S-238. NOT done: no title or thumbnail fetched from YouTube (admin types the headline); no video is switched on; counsel to confirm permission covers embedding; Telugu admin text not needed (operator screen). REMOVED 2026-11-26 (owner request): the paste-a-link box is gone from the Watch and Live tabs (YoutubePlayer component deleted). Admin-added YouTube links, channel news videos and live YouTube streams still play after Play. E2E-232 now checks the box is absent."
     },
     {
       "id": "S-240",
@@ -3143,7 +3143,7 @@
       "priority": "P1",
       "wave": "W9",
       "source": "user request 2026-11-26 (build a media player to play youtube video links)",
-      "notes": "BUILT 2026-11-26: paste box in Watch; watch, short, embed, live and youtu.be links; youtube-nocookie embed only (CSP); link stays in the browser, not sent to our server, not stored, not counted. NOT done: playlists and search; our own controls over YouTube's player (speed, captions are YouTube's); privacy page wording that YouTube sees the address on play (the on-page note says it); Telugu text is machine-drafted. Members' own pasted videos are not moderated by us because nobody else sees them."
+      "notes": "BUILT 2026-11-26: paste box in Watch; watch, short, embed, live and youtu.be links; youtube-nocookie embed only (CSP); link stays in the browser, not sent to our server, not stored, not counted. NOT done: playlists and search; our own controls over YouTube's player (speed, captions are YouTube's); privacy page wording that YouTube sees the address on play (the on-page note says it); Telugu text is machine-drafted. Members' own pasted videos are not moderated by us because nobody else sees them. REMOVED 2026-11-26 (owner request): the paste-a-link box is gone from the Watch and Live tabs (YoutubePlayer component deleted). Admin-added YouTube links, channel news videos and live YouTube streams still play after Play. E2E-232 now checks the box is absent."
     },
     {
       "id": "S-241",
@@ -3158,7 +3158,7 @@
       "priority": "P1",
       "wave": "W9",
       "source": "user request 2026-11-26 (media video player under the live tab)",
-      "notes": "BUILT 2026-11-26: the link player of S-240 also sits on the Live tab; an admin can give a channel's YouTube live link as its stream; plays in youtube-nocookie after Play; same permission record and second-admin switch-on. NOT done: no channel switched on; we cannot health-check a YouTube stream (YouTube shows its own message if it is offline); HLS still needs the hls.js decision."
+      "notes": "BUILT 2026-11-26: the link player of S-240 also sits on the Live tab; an admin can give a channel's YouTube live link as its stream; plays in youtube-nocookie after Play; same permission record and second-admin switch-on. NOT done: no channel switched on; we cannot health-check a YouTube stream (YouTube shows its own message if it is offline); HLS still needs the hls.js decision. REMOVED 2026-11-26 (owner request): the paste-a-link box is gone from the Watch and Live tabs (YoutubePlayer component deleted). Admin-added YouTube links, channel news videos and live YouTube streams still play after Play. E2E-232 now checks the box is absent."
     },
     {
       "id": "S-242",
@@ -3203,6 +3203,418 @@
       "wave": "W9",
       "source": "user request 2026-11-26 (add Telugu news channel feeds)",
       "notes": "BUILT 2026-11-26: four official RSS feeds (each returned valid RSS on 2026-11-26) loaded off with no permission, with Telugu names; same record-permission and different-admin switch-on rule. NOT done: written permission from each outlet (owner), so News stays empty; Eenadu and Andhra Jyothy have no working feed address; TV5, ABN, Prime9 and others not checked; Telugu feed items show the outlet's own headline language."
+    },
+    {
+      "id": "S-245",
+      "epic": "Media",
+      "title": "Demo news preview: one clearly labelled sample source so the News tab can be looked at before any real outlet is cleared",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-240"
+      ],
+      "priority": "P2",
+      "wave": "W9",
+      "source": "user request 2026-11-26 (add the demo source)",
+      "notes": "BUILT 2026-11-26: CIVIC_DEMO_NEWS=1 (development only) adds one sample source with five sample headlines, all labelled as samples, links to example.com. NOT done: nothing real is shown; production never shows it; the real feeds still need written permission. ADDED 2026-11-26: three sample clips (public/demo, about 1.8 MB) listed in the Watch tab under the same setting, so the video list and player can be seen and played; the first own video is preselected in the stage without autoplay. NOT done: the clips are plain title cards, not real content."
+    },
+    {
+      "id": "S-246",
+      "epic": "Backend",
+      "title": "Backend decision record: MySQL provider and region, managed or self-run, budget ceiling, Redis yes or no, video upload in the first release",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [],
+      "priority": "P0",
+      "wave": "B0",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size S. Write the record from docs/backend/README.md decisions 1 to 8 and get the owner's answers. NOT in scope: provisioning anything. Blocked on the owner. See docs/backend/."
+    },
+    {
+      "id": "S-247",
+      "epic": "Backend",
+      "title": "OpenAPI contract for every route (generated from the route inventory) plus a contract test that fails when a route and the contract disagree",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P0",
+      "wave": "B0",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. Start from docs/backend/openapi.yaml and ROUTE_INVENTORY.md. Includes the authorisation label per route (feeds S-263). NOT in scope: changing any route. See docs/backend/."
+    },
+    {
+      "id": "S-248",
+      "epic": "Backend",
+      "title": "Async data-access layer (get, all, run, tx) with a SQLite adapter and a MySQL adapter, lint rule against direct node:sqlite use, same tests on both",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P0",
+      "wave": "B0",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size L. Design in DATA_MODEL_MYSQL.md sections 2 and 3. Converts call sites store by store, behind the existing tests. NOT in scope: moving any real data. See docs/backend/."
+    },
+    {
+      "id": "S-249",
+      "epic": "Backend",
+      "title": "MySQL migration runner (ordered, checksummed, locked, expand then contract), MySQL service in CI, schema drift check",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P0",
+      "wave": "B0",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. Port registerMigration to the layer; GET_LOCK so one job migrates. NOT in scope: production database. See docs/backend/."
+    },
+    {
+      "id": "S-250",
+      "epic": "Backend",
+      "title": "Port the identity store to MySQL (persons, sessions, consents, households, officers, notify, provider keys, content tables)",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P0",
+      "wave": "B1",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size L. Generate DDL from existing migrations; keep encrypted and hashed columns as they are; the placement test must still pass. NOT in scope: cutover (S-256). See docs/backend/."
+    },
+    {
+      "id": "S-251",
+      "epic": "Backend",
+      "title": "Port the issues store to MySQL (issues, media references, assisted, moderation, geography)",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P0",
+      "wave": "B1",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. Keeps pseudonyms only; no person ids. NOT in scope: moving media files (S-259). See docs/backend/."
+    },
+    {
+      "id": "S-252",
+      "epic": "Backend",
+      "title": "Port the survey store to MySQL (surveys, responses, spent tokens, broadcast polls, consultations)",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P0",
+      "wave": "B1",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. Counters and one-vote rules must hold under concurrent writers (tested). NOT in scope: changing minimum cell sizes. See docs/backend/."
+    },
+    {
+      "id": "S-253",
+      "epic": "Backend",
+      "title": "Port the audit store to MySQL with a locked chain-head row; INSERT and SELECT only for the application user; measure append throughput",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P0",
+      "wave": "B1",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. Pilot of the porting method (smallest store). Decide the redaction path against the current erasure design. NOT in scope: changing what is logged. See docs/backend/."
+    },
+    {
+      "id": "S-254",
+      "epic": "Backend",
+      "title": "Port content and operations tables (broadcast, videocast, mediahub, notify, count day, history, jobs) and decide the optional content schema",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P1",
+      "wave": "B1",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. First port keeps today's store placement. NOT in scope: new features. See docs/backend/."
+    },
+    {
+      "id": "S-255",
+      "epic": "Backend",
+      "title": "Public datasets: decide files with CDN versus MySQL by measurement, load query-heavy history, keep GeoJSON as versioned files",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P1",
+      "wave": "B1",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. Measure before moving anything. NOT in scope: changing data sources or licences. See docs/backend/."
+    },
+    {
+      "id": "S-256",
+      "epic": "Backend",
+      "title": "Cutover from SQLite to MySQL: copy tool, row counts and per-table checksums, two rehearsals, read-only window, rollback",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P0",
+      "wave": "B1",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size L. Needs S-250 to S-255 and S-271. Only story that touches real data. NOT in scope: schema changes beyond the port. See docs/backend/."
+    },
+    {
+      "id": "S-257",
+      "epic": "Backend",
+      "title": "Object storage decision and provisioning: provider, region, buckets (private and public), CDN, keys, lifecycle and versioning",
+      "agent": "-",
+      "status": "blocked",
+      "tests": [],
+      "priority": "P0",
+      "wave": "B2",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. Options in docs/backend/MEDIA_STORAGE.md; relates to S-233. Needs the owner's choice and a cost ceiling; verify current prices first. See docs/backend/."
+    },
+    {
+      "id": "S-258",
+      "epic": "Backend",
+      "title": "Media service: presigned two-step upload, size and type caps, virus scan, EXIF removal, thumbnails, app-level encryption for citizen files, metadata tables",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P0",
+      "wave": "B2",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size L. Tables in DATA_MODEL_MYSQL.md section 5; endpoints in openapi.yaml. Nothing readable until scanned. NOT in scope: video transcoding (S-260). See docs/backend/."
+    },
+    {
+      "id": "S-259",
+      "epic": "Backend",
+      "title": "Move existing local files (encrypted photos, photo submissions, consultation audio) to object storage with verification and a rollback window",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P1",
+      "wave": "B2",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. Dry run, then real run; counts and checksums; local copy kept for the window. Needs S-258 and S-251. See docs/backend/."
+    },
+    {
+      "id": "S-260",
+      "epic": "Backend",
+      "title": "Video pipeline: optional upload, managed or ffmpeg transcode to HLS 360p and 720p, poster, captions, existing two-person approval before showing",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P2",
+      "wave": "B2",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size L. Optional for the first release. Cost caps first (S-233, S-261). NOT in scope: a new player (the Watch tab stays). See docs/backend/. PLAYER NOTE 2026-11-26: keep the YouTube click-to-load no-cookie embed for news links; keep native video for own and demo clips until HLS exists; when HLS ships add hls.js wrapped in Vidstack (or Plyr for the smallest bundle), self-hosted so no new CSP hosts beyond our CDN. Hosted players (Vimeo, Cloudflare Stream, Mux) only if the owner chooses a paid video host in S-233. Check current versions and licences before adopting."
+    },
+    {
+      "id": "S-261",
+      "epic": "Backend",
+      "title": "CDN, signed URLs, cache rules, CSP hosts for media, per-purpose caps, budget alerts and a monthly cost report",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P1",
+      "wave": "B2",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. NOT in scope: a CDN contract beyond the owner's choice. See docs/backend/."
+    },
+    {
+      "id": "S-262",
+      "epic": "Backend",
+      "title": "Media lifecycle: retention dates, takedown purge, erasure through the outbox, orphan sweeper, bucket versioning, audit of purges",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P0",
+      "wave": "B2",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. Deleting a report, person or item removes its objects. NOT in scope: changing retention periods (counsel's). See docs/backend/."
+    },
+    {
+      "id": "S-263",
+      "epic": "Backend",
+      "title": "Authorisation table: every mounted route declares public, member, role, admin, admin with second factor or webhook; a test fails for a route without one",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P0",
+      "wave": "B3",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. Uses the labels from S-247. NOT in scope: changing who is allowed. See docs/backend/."
+    },
+    {
+      "id": "S-264",
+      "epic": "Backend",
+      "title": "Rate limits and session counters on a shared store so several servers share them",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P1",
+      "wave": "B3",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. Redis or MySQL per the S-246 answer. Keep existing limits. NOT in scope: new limits. See docs/backend/."
+    },
+    {
+      "id": "S-265",
+      "epic": "Backend",
+      "title": "API standards: one error shape, cursor paging on lists that grow, Idempotency-Key on retryable writes, applied to new and touched routes",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P1",
+      "wave": "B3",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size L. Rules in API_DESIGN.md section 3. Existing response fields are kept. NOT in scope: breaking changes (those need v2). See docs/backend/."
+    },
+    {
+      "id": "S-266",
+      "epic": "Backend",
+      "title": "Jobs, scheduler and outbox safe for several servers (feed reading, retention purge, notification sending, transcode)",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P0",
+      "wave": "B3",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. Locks or a queue so a job runs once. NOT in scope: a new job framework beyond need. See docs/backend/."
+    },
+    {
+      "id": "S-267",
+      "epic": "Backend",
+      "title": "Observability: readiness checks for each database and object storage, metrics, request ids, slow query log, alerts",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P1",
+      "wave": "B3",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. Adds /readyz. NOT in scope: a paid monitoring contract. See docs/backend/."
+    },
+    {
+      "id": "S-268",
+      "epic": "Backend",
+      "title": "Read performance: ETag and cache headers on public GETs, read replica for public reads, hot-path indexes from the slow query log",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P1",
+      "wave": "B3",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. Measured, not guessed. NOT in scope: a rewrite of queries without evidence. See docs/backend/."
+    },
+    {
+      "id": "S-269",
+      "epic": "Backend",
+      "title": "Media admin API v2: uploads, transcode state, takedown and replace, with the existing approval and audit rules",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P1",
+      "wave": "B3",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. Endpoints in openapi.yaml. Needs S-258. See docs/backend/."
+    },
+    {
+      "id": "S-270",
+      "epic": "Backend",
+      "title": "Public media API v2: cursor paging, ETag, renditions and posters for the Watch and News tabs",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P1",
+      "wave": "B3",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. v1 stays. Needs S-265. NOT in scope: front-end redesign. See docs/backend/."
+    },
+    {
+      "id": "S-271",
+      "epic": "Backend",
+      "title": "Full vitest and Playwright suites on MySQL in CI, plus load tests against agreed numbers",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P0",
+      "wave": "B4",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size L. Agree the numbers with the owner first. Needs S-248 and S-249. See docs/backend/."
+    },
+    {
+      "id": "S-272",
+      "epic": "Backend",
+      "title": "Security: one least-privilege database user per schema, TLS, secrets manager, key rotation, threat model, optional separate instances for audit and identity",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P0",
+      "wave": "B4",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. DATA_MODEL_MYSQL.md section 1 and 8. NOT in scope: a penetration test (separate, counsel and owner). See docs/backend/."
+    },
+    {
+      "id": "S-273",
+      "epic": "Backend",
+      "title": "Backup, point-in-time restore and disaster recovery with a timed drill against agreed recovery targets",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P0",
+      "wave": "B4",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. Proposal: data loss under 5 minutes, recovery under 1 hour; owner to confirm. NOT in scope: a second region unless residency allows. See docs/backend/."
+    },
+    {
+      "id": "S-274",
+      "epic": "Backend",
+      "title": "Capacity and tuning: pool sizes, index review, id format (CHAR(36) versus BINARY(16)), partitioning of high-volume tables, only if measured",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P2",
+      "wave": "B4",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. Evidence first. NOT in scope: changes without a measurement. See docs/backend/."
+    },
+    {
+      "id": "S-275",
+      "epic": "Backend",
+      "title": "Deployment: containers, several replicas, rolling deploy, migration job, rollback rehearsal, environment configuration",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P0",
+      "wave": "B4",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size L. Replaces the single-replica note in docs/DEPLOYMENT.md. NOT in scope: choosing a hosting contract. See docs/backend/."
+    },
+    {
+      "id": "S-276",
+      "epic": "Backend",
+      "title": "Runbooks and API documentation: restore, failover, key rotation, incident steps, published API reference",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P1",
+      "wave": "B4",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. NOT in scope: customer support process. See docs/backend/."
+    },
+    {
+      "id": "S-277",
+      "epic": "Backend",
+      "title": "Backend readiness review: every exit criterion in BACKEND_ROADMAP.md checked and signed; ties to the go-live review S-180",
+      "agent": "-",
+      "status": "todo",
+      "tests": [],
+      "priority": "P0",
+      "wave": "B4",
+      "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
+      "notes": "DESIGN ONLY 2026-11-26, not started. Size S. Last story. Lists what is not done. NOT in scope: launch decision (owner's). See docs/backend/."
+    },
+    {
+      "id": "S-278",
+      "epic": "Media",
+      "title": "Google News topic feeds for Andhra Pradesh and Telangana (English and Telugu), loaded switched off",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-241"
+      ],
+      "priority": "P2",
+      "wave": "W9",
+      "source": "user request 2026-11-26 (add live news feed from google for AP and Telangana)",
+      "notes": "BUILT 2026-11-26: four Google News RSS topic feeds loaded off with no permission record (cand-gnews-ap-en, -tg-en, -ap-te, -tg-te); each answered with valid RSS on 2026-11-26. Enabling needs the recorded permission and a different admin, like every source. NOT done: not switched on; Google's terms for the feed and the publishers' rights are for the owner to read; headlines link through Google's redirect; no state filtering beyond the source state. ALSO 2026-11-26: the Live tab is now a player stage with a channel list (tap Play to load, nothing loads before), E2E-234 and E2E-225 updated; the Live tab stays empty until a channel with permission is switched on."
     }
   ]
 }

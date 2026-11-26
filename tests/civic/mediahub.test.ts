@@ -1,9 +1,9 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import express from "express";
 import type { Server } from "http";
 import type { AddressInfo } from "net";
 import { getDb, grantRole, migrate, resetDbForTests } from "../../server/civic/core";
-import { mediaRouter, parseFeed, addSource, enableSource, disableSource, refreshSource, refreshDue, newsFor, checkStream, liveChannels, countClick, numbers, reportItem, resolveReport, checkUrl, recordPermission, MIN_COUNT_SHOWN, type Fetcher } from "../../server/civic/mediahub";
+import { mediaRouter, parseFeed, addSource, enableSource, disableSource, refreshSource, refreshDue, newsFor, checkStream, liveChannels, countClick, numbers, reportItem, resolveReport, checkUrl, recordPermission, ensureDemoNews, demoVideos, MIN_COUNT_SHOWN, type Fetcher } from "../../server/civic/mediahub";
 import { createVideo, approveVideo, addWindow, endWindow, liveFor, correctionsFor, recallVideo, afterSilence } from "../../server/civic/videocast";
 import { videocastRouter } from "../../server/civic/videocast";
 import { mkPerson } from "./notify/helpers";
@@ -375,6 +375,49 @@ describe("candidate Telugu channel feeds, loaded switched off (S-244) @E2E-239",
     for (const [id, feed] of [["cand-ntv", "https://ntvtelugu.com/feed"], ["cand-tv9", "https://tv9telugu.com/feed"], ["cand-10tv", "https://10tv.in/feed"], ["cand-sakshi", "https://www.sakshi.com/rss.xml"]] as const) {
       const c = getSource(id);
       expect(c.feed_url).toBe(feed);
+      expect(c.enabled).toBe(0);
+      expect(c.permission_note).toBeNull();
+      expect(c.name_te).toBeTruthy();
+      expect(() => enableSource(admin().id, id, NOW)).toThrow(/record the permission/);
+    }
+    expect(newsFor(undefined, NOW).items).toHaveLength(0);
+  });
+});
+
+describe("demo news preview (S-245) @E2E-240", () => {
+  afterEach(() => { delete process.env.CIVIC_DEMO_NEWS; });
+  it("does nothing unless CIVIC_DEMO_NEWS=1, and never in production", () => {
+    ensureDemoNews(NOW);
+    expect(newsFor(undefined, NOW).items).toHaveLength(0);
+    process.env.CIVIC_DEMO_NEWS = "1";
+    const prev = process.env.NODE_ENV; process.env.NODE_ENV = "production";
+    try { ensureDemoNews(NOW); expect(newsFor(undefined, NOW).items).toHaveLength(0); } finally { process.env.NODE_ENV = prev; }
+  });
+  it("offers three sample clips from our own server only when the demo is on", () => {
+    expect(demoVideos()).toEqual([]);
+    process.env.CIVIC_DEMO_NEWS = "1";
+    const v = demoVideos();
+    expect(v).toHaveLength(3);
+    expect(v.every((x) => x.media_url.startsWith("/demo/") && /demo, not news/.test(x.title))).toBe(true);
+  });
+  it("adds one labelled sample source with five sample headlines, no real outlet, refreshed each call without duplicates", () => {
+    process.env.CIVIC_DEMO_NEWS = "1";
+    ensureDemoNews(NOW); ensureDemoNews(new Date(NOW.getTime() + 3600_000));
+    const n = newsFor(undefined, new Date(NOW.getTime() + 3600_000));
+    expect(n.items).toHaveLength(5);
+    expect(n.items.every((i) => i.title.startsWith("Sample headline") && i.link.startsWith("https://example.com/") && /DEMO/.test(i.outlet_en))).toBe(true);
+    expect(n.sources[0].stale).toBe(false);
+  });
+});
+
+describe("candidate Google News topic feeds, loaded switched off (S-278) @E2E-241", () => {
+  it("four Google News feeds (AP and Telangana, English and Telugu) exist off with no permission and show nothing; enabling is refused until permission is recorded", async () => {
+    const { getSource } = await import("../../server/civic/mediahub");
+    for (const [id, state, lang] of [["cand-gnews-ap-en", "AP", "en-IN"], ["cand-gnews-tg-en", "TG", "en-IN"], ["cand-gnews-ap-te", "AP", "te"], ["cand-gnews-tg-te", "TG", "te"]] as const) {
+      const c = getSource(id);
+      expect(c.feed_url?.startsWith("https://news.google.com/rss/search?q=")).toBe(true);
+      expect(c.feed_url).toContain(`&hl=${lang}&gl=IN&ceid=IN:`);
+      expect(c.state).toBe(state);
       expect(c.enabled).toBe(0);
       expect(c.permission_note).toBeNull();
       expect(c.name_te).toBeTruthy();

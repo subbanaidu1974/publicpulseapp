@@ -69,6 +69,16 @@ INSERT INTO mhub_sources (id,kind,name_en,name_te,site_url,feed_url,allow,state,
  ('cand-sakshi','news','Sakshi','సాక్షి','https://www.sakshi.com/','https://www.sakshi.com/rss.xml','headline','BOTH','system','2026-11-26T00:00:00.000Z');
 `);
 
+// Google News topic feeds for Andhra Pradesh and Telangana (S-246 area, see tracker S-278): the same rule as above. Each address answered with a valid RSS feed on 2026-11-26.
+// A Google News feed is an index of many publishers: the headline links go to those publishers, and Google's own terms for the feed are for the owner to read before it is switched on.
+registerMigration("mhub_004_google_news_candidates", `
+INSERT INTO mhub_sources (id,kind,name_en,name_te,site_url,feed_url,allow,state,created_by,created_at) VALUES
+ ('cand-gnews-ap-en','news','Google News: Andhra Pradesh (English)','గూగుల్ న్యూస్: ఆంధ్రప్రదేశ్ (ఇంగ్లీష్)','https://news.google.com/','https://news.google.com/rss/search?q=Andhra+Pradesh&hl=en-IN&gl=IN&ceid=IN:en','headline','AP','system','2026-11-26T00:00:00.000Z'),
+ ('cand-gnews-tg-en','news','Google News: Telangana (English)','గూగుల్ న్యూస్: తెలంగాణ (ఇంగ్లీష్)','https://news.google.com/','https://news.google.com/rss/search?q=Telangana&hl=en-IN&gl=IN&ceid=IN:en','headline','TG','system','2026-11-26T00:00:00.000Z'),
+ ('cand-gnews-ap-te','news','Google News: Andhra Pradesh (Telugu)','గూగుల్ న్యూస్: ఆంధ్రప్రదేశ్ (తెలుగు)','https://news.google.com/','https://news.google.com/rss/search?q=%E0%B0%86%E0%B0%82%E0%B0%A7%E0%B1%8D%E0%B0%B0%E0%B0%AA%E0%B1%8D%E0%B0%B0%E0%B0%A6%E0%B1%87%E0%B0%B6%E0%B1%8D&hl=te&gl=IN&ceid=IN:te','headline','AP','system','2026-11-26T00:00:00.000Z'),
+ ('cand-gnews-tg-te','news','Google News: Telangana (Telugu)','గూగుల్ న్యూస్: తెలంగాణ (తెలుగు)','https://news.google.com/','https://news.google.com/rss/search?q=%E0%B0%A4%E0%B1%86%E0%B0%B2%E0%B0%82%E0%B0%97%E0%B0%BE%E0%B0%A3&hl=te&gl=IN&ceid=IN:te','headline','TG','system','2026-11-26T00:00:00.000Z');
+`);
+
 export const MIN_COUNT_SHOWN = 10;
 export const NEWS_KEEP_DAYS = 7, STALE_HOURS = 6, REFRESH_MINUTES = 15;
 const MAX_ITEMS_PER_FETCH = 50, MAX_FEED_BYTES = 1_000_000, FETCH_TIMEOUT_MS = 8000;
@@ -333,6 +343,42 @@ export function numbers() {
   };
 }
 
+/* ---------------- demo news (S-245) ---------------- */
+
+/** Preview only: CIVIC_DEMO_NEWS=1, never in production. One clearly labelled sample source with sample headlines we wrote, so the News tab can be looked at before any real outlet is cleared. */
+export const demoNewsEnabled = (): boolean => !isProductionEnv() && process.env.CIVIC_DEMO_NEWS === "1";
+const DEMO_ID = "demo-news";
+const DEMO_ITEMS = [
+  "Sample headline: a village water scheme opens (not real news)",
+  "Sample headline: road repair work begins near a market town (not real news)",
+  "Sample headline: a school reopens after repairs (not real news)",
+  "Sample headline: a health camp is held in a mandal (not real news)",
+  "Sample headline: a bus service is extended to a new route (not real news)",
+];
+export function ensureDemoNews(now: Date = new Date()): void {
+  if (!demoNewsEnabled()) return;
+  const d = db();
+  if (!d.prepare("SELECT 1 FROM mhub_sources WHERE id = ?").get(DEMO_ID)) {
+    d.prepare("INSERT INTO mhub_sources (id,kind,name_en,name_te,site_url,feed_url,allow,state,created_by,created_at,permission_note,permission_date,contact,enabled,enabled_by,enabled_at,last_ok_at) VALUES (?,?,?,?,?,NULL,'headline','BOTH','system',?,?,?,?,1,'system',?,?)")
+      .run(DEMO_ID, "news", "DEMO outlet (sample headlines, not real news)", "డెమో (నమూనా శీర్షికలు, నిజమైన వార్తలు కావు)", "https://example.com/", now.toISOString(), "Sample content written by us for a preview; no real outlet is involved", now.toISOString().slice(0, 10), "demo@example.invalid", now.toISOString(), now.toISOString());
+  }
+  // Fresh times on every call so the samples never age out of the 7-day window.
+  d.prepare("UPDATE mhub_sources SET last_ok_at = ? WHERE id = ?").run(now.toISOString(), DEMO_ID);
+  DEMO_ITEMS.forEach((t, i) => {
+    const at = new Date(now.getTime() - (20 + i * 45) * 60_000).toISOString();
+    const link = `https://example.com/demo-story-${i + 1}`;
+    d.prepare("INSERT INTO mhub_news (id,source_id,title,link,snippet,published_at,fetched_at) VALUES (?,?,?,?,NULL,?,?) ON CONFLICT (source_id, link) DO UPDATE SET published_at = excluded.published_at, title = excluded.title")
+      .run(crypto.randomUUID(), DEMO_ID, t, link, at, now.toISOString());
+  });
+}
+
+/** Three short sample clips (made for the preview, files in public/demo) so the Watch tab can be played before any real video is cleared. */
+export const demoVideos = () => demoNewsEnabled() ? [
+  { id: "demo-1", title: "Sample clip 1: how to read a result sheet (demo, not news)", media_url: "/demo/sample-1.webm", credit: "People Pulse demo clip" },
+  { id: "demo-2", title: "Sample clip 2: where to report a local issue (demo, not news)", media_url: "/demo/sample-2.webm", credit: "People Pulse demo clip" },
+  { id: "demo-3", title: "Sample clip 3: how a survey result is published (demo, not news)", media_url: "/demo/sample-3.webm", credit: "People Pulse demo clip" },
+] : [];
+
 /* ---------------- routes ---------------- */
 
 export const mediaRouter = Router();
@@ -347,9 +393,11 @@ const adminOnly = [requireAuth, requireRole("admin")];
 
 mediaRouter.get("/news", wrap((req, res) => {
   res.set("Cache-Control", "no-store");
+  ensureDemoNews();
   void refreshDue().catch(() => undefined); // never makes the reader wait
   res.json(newsFor(typeof req.query.state === "string" ? req.query.state : undefined));
 }));
+mediaRouter.get("/demo-videos", wrap((_req, res) => { res.set("Cache-Control", "no-store"); res.json({ videos: demoVideos() }); }));
 mediaRouter.get("/live", wrap((_req, res) => { res.set("Cache-Control", "no-store"); res.json({ channels: liveChannels() }); }));
 mediaRouter.post("/click", wrap((req, res) => { countClick(str(req.body?.kind), str(req.body?.id)); res.json({ ok: true }); }));
 mediaRouter.post("/report", requireAuth, wrap((req, res) => { reportItem(req.person!.id, req.body ?? {}); res.status(201).json({ ok: true }); }));

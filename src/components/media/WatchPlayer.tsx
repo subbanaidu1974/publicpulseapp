@@ -32,16 +32,19 @@ export default function WatchPlayer({ own }: { own: VideoItem[] }) {
   const [key, setKey] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [err, setErr] = useState(false);
+  const [demo, setDemo] = useState<WatchEntry[]>([]);
   const counted = useRef<string | null>(null);
   useEffect(() => { let live = true; mediaApi.news(state).then((d) => { if (live) setNews(d.items); }).catch(() => undefined); return () => { live = false; }; }, [state]);
+  useEffect(() => { let live = true; mediaApi.demoVideos().then((d) => { if (live) setDemo(d.videos.map((v): WatchEntry => ({ key: "demo:" + v.id, kind: "own", title: v.title, by: v.credit, src: v.media_url, media: "video", note: null, when: null }))); }).catch(() => undefined); return () => { live = false; }; }, []);
   const when = (iso: string) => new Date(iso).toLocaleString(lang === "te" ? "te-IN" : "en-IN", { dateStyle: "medium", timeStyle: "short" });
   const list = useMemo(() => buildPlaylist(
-    own.map((v): WatchEntry => ({ key: "own:" + v.id, kind: "own", title: (lang === "te" && v.title_te) || v.title_en, by: v.credit, src: v.media_url, media: v.kind, note: (lang === "te" && v.note_te) || v.note_en, when: v.live_at ? when(v.live_at) : null })),
+    [...own.map((v): WatchEntry => ({ key: "own:" + v.id, kind: "own", title: (lang === "te" && v.title_te) || v.title_en, by: v.credit, src: v.media_url, media: v.kind, note: (lang === "te" && v.note_te) || v.note_en, when: v.live_at ? when(v.live_at) : null })), ...demo],
     news.filter((n) => n.youtube).map((n): WatchEntry => ({ key: "yt:" + n.youtube, kind: "youtube", title: n.title, by: (lang === "te" && n.outlet_te) || n.outlet_en, src: n.youtube!, note: n.snippet, when: when(n.published_at) })),
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ), [own, news, lang]);
+  ), [own, news, demo, lang]);
   const shown = list.filter((e) => filter === "all" || e.kind === filter);
-  const cur = list.find((e) => e.key === key) ?? null;
+  // Our own first video is shown ready in the stage (it is from our own server and does not start by itself). A YouTube video waits until a row is chosen.
+  const cur = list.find((e) => e.key === key) ?? (key === null && list[0]?.kind === "own" ? list[0] : null);
   const choose = (e: WatchEntry | null) => { setErr(false); setKey(e ? e.key : null); };
   const chip = (f: Filter, label: string) => (
     <button key={f} type="button" data-testid={`wp-chip-${f}`} aria-pressed={filter === f} onClick={() => setFilter(f)}
@@ -57,7 +60,7 @@ export default function WatchPlayer({ own }: { own: VideoItem[] }) {
             {cur?.kind === "youtube" && <iframe key={cur.key} data-testid="wp-yt-frame" title={cur.title} src={`https://www.youtube-nocookie.com/embed/${cur.src}?rel=0&playsinline=1`} referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-presentation" allow="fullscreen" allowFullScreen className="w-full aspect-video rounded-xl border-0 bg-black" />}
             {cur?.kind === "own" && (
               <video key={cur.key} data-testid="wp-video" aria-label={cur.title} src={cur.src} controls preload="metadata" playsInline className={cur.media === "audio" ? "w-full h-14 rounded-xl bg-black" : "w-full aspect-video rounded-xl bg-black"}
-                onPlay={() => { if (counted.current !== cur.key) { counted.current = cur.key; videocastApi.view(cur.key.slice(4)).catch(() => undefined); } }} onError={() => setErr(true)} />
+                onPlay={() => { if (counted.current !== cur.key) { counted.current = cur.key; if (cur.key.startsWith("own:")) videocastApi.view(cur.key.slice(4)).catch(() => undefined); } }} onError={() => setErr(true)} />
             )}
             {err && <p role="alert" className="text-sm font-bold" data-testid="wp-error">{t("m.error.remote")}</p>}
             {cur && (
@@ -67,8 +70,8 @@ export default function WatchPlayer({ own }: { own: VideoItem[] }) {
                   <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-black text-white font-bold">{cur.by.trim().charAt(0).toUpperCase()}</span>
                   <div className="min-w-0 flex-1"><p className="font-bold leading-tight break-words" data-testid="wp-by">{cur.by}</p><p className="text-xs">{cur.kind === "own" ? t("m.wp.own") : t("m.wp.yt")}</p></div>
                   <div className="flex gap-2">
-                    <button type="button" data-testid="wp-prev" onClick={() => choose(stepEntry(list, key, -1))} className="rounded-full bg-black/10 px-4 py-2 text-sm font-semibold min-h-[44px]">{t("m.wp.prev")}</button>
-                    <button type="button" data-testid="wp-next" onClick={() => choose(stepEntry(list, key, 1))} className="rounded-full bg-black/10 px-4 py-2 text-sm font-semibold min-h-[44px]">{t("m.wp.next")}</button>
+                    <button type="button" data-testid="wp-prev" onClick={() => choose(stepEntry(list, cur?.key ?? null, -1))} className="rounded-full bg-black/10 px-4 py-2 text-sm font-semibold min-h-[44px]">{t("m.wp.prev")}</button>
+                    <button type="button" data-testid="wp-next" onClick={() => choose(stepEntry(list, cur?.key ?? null, 1))} className="rounded-full bg-black/10 px-4 py-2 text-sm font-semibold min-h-[44px]">{t("m.wp.next")}</button>
                   </div>
                 </div>
                 <div className="rounded-xl bg-black/5 p-3 text-sm space-y-1" data-testid="wp-desc">
@@ -77,7 +80,7 @@ export default function WatchPlayer({ own }: { own: VideoItem[] }) {
                 </div>
               </div>
             )}
-            {!cur && (<div className="flex gap-2"><button type="button" data-testid="wp-prev" onClick={() => choose(stepEntry(list, key, -1))} className="rounded-full bg-black/10 px-4 py-2 text-sm font-semibold min-h-[44px]">{t("m.wp.prev")}</button><button type="button" data-testid="wp-next" onClick={() => choose(stepEntry(list, key, 1))} className="rounded-full bg-black/10 px-4 py-2 text-sm font-semibold min-h-[44px]">{t("m.wp.next")}</button></div>)}
+            {!cur && (<div className="flex gap-2"><button type="button" data-testid="wp-prev" onClick={() => choose(stepEntry(list, cur?.key ?? null, -1))} className="rounded-full bg-black/10 px-4 py-2 text-sm font-semibold min-h-[44px]">{t("m.wp.prev")}</button><button type="button" data-testid="wp-next" onClick={() => choose(stepEntry(list, cur?.key ?? null, 1))} className="rounded-full bg-black/10 px-4 py-2 text-sm font-semibold min-h-[44px]">{t("m.wp.next")}</button></div>)}
           </div>
           <div className="min-w-0 space-y-3">
             <div role="group" aria-label={t("m.wp.filters")} className="flex flex-wrap gap-2">{chip("all", t("m.wp.all"))}{chip("own", t("m.wp.own"))}{chip("youtube", t("m.wp.yt"))}</div>
@@ -85,8 +88,8 @@ export default function WatchPlayer({ own }: { own: VideoItem[] }) {
             <ul aria-labelledby="wp-list-h" data-testid="wp-list" className="space-y-3 lg:max-h-[75vh] lg:overflow-y-auto">
               {shown.map((e) => (
                 <li key={e.key}>
-                  <button type="button" data-testid="wp-item" data-kind={e.kind} aria-current={e.key === key ? "true" : undefined} onClick={() => choose(e)}
-                    className={`flex w-full gap-3 rounded-xl p-1.5 text-left min-h-[44px] ${e.key === key ? "bg-black/10" : "hover:bg-black/5"}`}>
+                  <button type="button" data-testid="wp-item" data-kind={e.kind} aria-current={e.key === cur?.key ? "true" : undefined} onClick={() => choose(e)}
+                    className={`flex w-full gap-3 rounded-xl p-1.5 text-left min-h-[44px] ${e.key === cur?.key ? "bg-black/10" : "hover:bg-black/5"}`}>
                     <Tile e={e} />
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-bold leading-snug break-words line-clamp-3">{e.title}</span>

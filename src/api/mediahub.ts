@@ -18,6 +18,7 @@ export const mediaApi = {
   click: (kind: "news" | "live", id: string) => call<{ ok: true }>("/media/click", { method: "POST", body: { kind, id }, auth: false }),
   report: (body: { kind: "video" | "news" | "live"; id: string; reason: string; note?: string }) => call<{ ok: true }>("/media/report", { method: "POST", body }),
   adminSources: () => call<{ sources: AdminSource[]; hosts: string[] }>("/media/admin/sources", { fresh: true }),
+  demoVideos: () => call<{ videos: { id: string; title: string; media_url: string; credit: string }[] }>("/media/demo-videos", { fresh: true }),
   adminAddVideoLink: (body: Record<string, unknown>) => call<{ id: string }>("/media/admin/videos", { method: "POST", body }),
   adminAddSource: (body: Record<string, unknown>) => call<{ id: string }>("/media/admin/sources", { method: "POST", body }),
   adminPermission: (id: string, body: { permission_note: string; permission_date: string; contact: string }) => call<{ ok: true }>(`/media/admin/sources/${encodeURIComponent(id)}/permission`, { method: "POST", body }),
