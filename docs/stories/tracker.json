@@ -3189,6 +3189,20 @@
       "wave": "W9",
       "source": "user request 2026-11-26 (a player like YouTube with a list of videos under the Watch tab)",
       "notes": "BUILT 2026-11-26: stage plus list, own videos first then YouTube news videos, next and previous, no autoplay, no recommendations, no history. NOT done: the list is empty until sources are switched on and permissions recorded; no search, playlists or comments; no autoplay of the next video (deliberate); Telugu text machine-drafted."
+    },
+    {
+      "id": "S-244",
+      "epic": "Media",
+      "title": "Candidate Telugu news channel feeds loaded switched off: NTV Telugu, TV9 Telugu, 10TV and Sakshi",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-239"
+      ],
+      "priority": "P1",
+      "wave": "W9",
+      "source": "user request 2026-11-26 (add Telugu news channel feeds)",
+      "notes": "BUILT 2026-11-26: four official RSS feeds (each returned valid RSS on 2026-11-26) loaded off with no permission, with Telugu names; same record-permission and different-admin switch-on rule. NOT done: written permission from each outlet (owner), so News stays empty; Eenadu and Andhra Jyothy have no working feed address; TV5, ABN, Prime9 and others not checked; Telugu feed items show the outlet's own headline language."
     }
   ]
 }

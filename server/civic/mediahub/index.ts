@@ -60,6 +60,15 @@ INSERT INTO mhub_sources (id,kind,name_en,name_te,site_url,feed_url,allow,state,
  ('cand-hindu-tg','news','The Hindu: Telangana','ది హిందూ: తెలంగాణ','https://www.thehindu.com/news/national/telangana/','https://www.thehindu.com/news/national/telangana/feeder/default.rss','headline','TG','system','2026-11-26T00:00:00.000Z');
 `);
 
+// Telugu channel and newspaper feeds (S-244): the same rule as above. Each address answered with a valid RSS feed on 2026-11-26; none has a permission record.
+registerMigration("mhub_003_telugu_candidates", `
+INSERT INTO mhub_sources (id,kind,name_en,name_te,site_url,feed_url,allow,state,created_by,created_at) VALUES
+ ('cand-ntv','news','NTV Telugu','ఎన్టీవీ తెలుగు','https://ntvtelugu.com/','https://ntvtelugu.com/feed','headline','BOTH','system','2026-11-26T00:00:00.000Z'),
+ ('cand-tv9','news','TV9 Telugu','టీవీ9 తెలుగు','https://tv9telugu.com/','https://tv9telugu.com/feed','headline','BOTH','system','2026-11-26T00:00:00.000Z'),
+ ('cand-10tv','news','10TV','10టీవీ','https://10tv.in/','https://10tv.in/feed','headline','BOTH','system','2026-11-26T00:00:00.000Z'),
+ ('cand-sakshi','news','Sakshi','సాక్షి','https://www.sakshi.com/','https://www.sakshi.com/rss.xml','headline','BOTH','system','2026-11-26T00:00:00.000Z');
+`);
+
 export const MIN_COUNT_SHOWN = 10;
 export const NEWS_KEEP_DAYS = 7, STALE_HOURS = 6, REFRESH_MINUTES = 15;
 const MAX_ITEMS_PER_FETCH = 50, MAX_FEED_BYTES = 1_000_000, FETCH_TIMEOUT_MS = 8000;

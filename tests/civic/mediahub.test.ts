@@ -368,3 +368,18 @@ describe("candidate AP and Telangana news sources, loaded switched off (S-242) @
     expect((await call("POST", "/m/admin/sources/cand-hindu-tg/permission", a.token, PERM)).status).toBe(400);
   });
 });
+
+describe("candidate Telugu channel feeds, loaded switched off (S-244) @E2E-239", () => {
+  it("NTV Telugu, TV9 Telugu, 10TV and Sakshi exist off with no permission and show nothing; enabling is refused until permission is recorded", async () => {
+    const { getSource } = await import("../../server/civic/mediahub");
+    for (const [id, feed] of [["cand-ntv", "https://ntvtelugu.com/feed"], ["cand-tv9", "https://tv9telugu.com/feed"], ["cand-10tv", "https://10tv.in/feed"], ["cand-sakshi", "https://www.sakshi.com/rss.xml"]] as const) {
+      const c = getSource(id);
+      expect(c.feed_url).toBe(feed);
+      expect(c.enabled).toBe(0);
+      expect(c.permission_note).toBeNull();
+      expect(c.name_te).toBeTruthy();
+      expect(() => enableSource(admin().id, id, NOW)).toThrow(/record the permission/);
+    }
+    expect(newsFor(undefined, NOW).items).toHaveLength(0);
+  });
+});
