@@ -12,6 +12,21 @@ Reads the outlet's official RSS or Atom feed only (no page scraping, no article 
 ## Live channels (S-228)
 A channel always shows a link to its own site. If it gave an official stream address on an approved host (`MEDIA_VIDEO_HOSTS`), a Play button appears (never starts by itself) and the stream is health-checked; if it is down, members see "stream unavailable" and the link. We never record or re-stream. **No channel is switched on in this build.** HLS (.m3u8) needs a player library; it is not added until the owner approves that download.
 
+## Candidate AP and Telangana feeds (S-242)
+Two sources are loaded **switched off, with no permission record**: The Hindu, Andhra Pradesh (`https://www.thehindu.com/news/national/andhra-pradesh/feeder/default.rss`) and The Hindu, Telangana (`.../telangana/feeder/default.rss`). Both addresses answered with a valid RSS feed on 2026-11-26. Having a public feed is not permission to republish: the owner must obtain written permission (and check The Hindu's terms), then an admin records it on the source (admin screen, "Record permission") and a *different* admin switches it on. The admin who records the permission cannot also switch the source on. Telugu-language outlets and the two governments' own press feeds are not loaded; their feed addresses and permissions have not been checked.
+
+## Watch player with a video list (S-243)
+The top of the Watch tab is a stage with a list beside it (below it on a phone). The list holds our own approved videos (signed-in members) and the YouTube videos from news sources an admin switched on, in a fixed order with each video listed once. Choosing a row shows it in the stage: our own video plays from its file with the browser's controls and never starts by itself; a YouTube video loads only YouTube's no-cookie embed. Next and Previous step through the list. There are no recommendations, no autoplay of the next video and no watch history. The file and link players below stay as they were.
+
+## YouTube channels (S-238)
+A news source can be a YouTube channel: the admin enters the channel id (About tab, Share channel, Copy channel ID; it starts with UC). We build YouTube's official public feed address ourselves and read only title, link and date. Each video appears as a news item with a link to YouTube and a "Play here" button. Nothing from YouTube is requested until a member taps Play; then only YouTube's no-cookie embed player loads (the CSP allows only `www.youtube-nocookie.com` for frames). YouTube can see the member's address at that point, and the note says so. We never download, copy or re-host a video. The source needs the same permission record and a different admin to switch on. **No channel is switched on in this build**, and channel ids must come from the owner. Counsel should confirm that embedding a channel's videos is covered by its permission and by YouTube's terms.
+
+### Paste a single YouTube video (S-239)
+In the media admin screen, "Add one YouTube video by link" takes the link, a headline typed by the admin (nothing is copied from YouTube), the channel name, and the permission record. It becomes its own switched-off source with no feed; a different admin switches it on; it shows for 7 days and plays only after a member taps Play, in the same no-cookie player. Reports and takedown work as for any source.
+
+## Play a YouTube link (S-240)
+In the Watch section a member can paste any YouTube video link and play it in YouTube's own no-cookie player. It is the member's own choice, so it needs no admin approval and shows nothing to anyone else. The link is read in the browser only: it is not sent to our server, not stored (no cookie, no local storage) and not counted. Only `www.youtube-nocookie.com` may be framed (CSP). YouTube sees the member's address once the player loads; the page says so. Links that are not YouTube video links are refused.
+
 ## Library and transcripts (S-229)
 A broadcast video can be flagged "also keep in the Watch library" and carry a transcript (20 to 4000 characters, no links). Only our own or licensed items; same approval rule as any broadcast.
 

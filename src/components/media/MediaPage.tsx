@@ -2,6 +2,8 @@ import { useEffect, useState, type KeyboardEvent } from "react";
 import { useT } from "../../i18n";
 import { TranslationNote } from "../TranslationNote";
 import MediaPlayer from "./MediaPlayer";
+import YoutubePlayer from "./YoutubePlayer";
+import WatchPlayer from "./WatchPlayer";
 import VideoCards, { Card } from "./VideoCards";
 import NewsList from "./NewsList";
 import LiveList from "./LiveList";
@@ -37,7 +39,7 @@ export default function MediaPage() {
     </div>
   );
   return (
-    <div data-testid="media-home" lang={lang} className="max-w-3xl mx-auto w-full space-y-6 overflow-x-hidden">
+    <div data-testid="media-home" lang={lang} className={`${sec === "watch" ? "max-w-6xl" : "max-w-3xl"} mx-auto w-full space-y-6 overflow-x-hidden`}>
       <header className="space-y-2">
         <h2 className="text-2xl font-serif italic">{t("m.title")}</h2>
         <p className="text-sm">{t("m.intro")}</p>
@@ -61,6 +63,7 @@ export default function MediaPage() {
       <section role="tabpanel" id="media-panel-news" aria-labelledby="media-tab-news" data-testid="media-panel-news" hidden={sec !== "news"}>{sec === "news" && <NewsList />}</section>
       <section role="tabpanel" id="media-panel-watch" aria-labelledby="media-tab-watch" data-testid="media-panel-watch" hidden={sec !== "watch"}>
         <div className="space-y-6">
+          {sec === "watch" && <WatchPlayer own={vids.items} />}
           {vids.signedIn && (
             <section aria-labelledby="lib-h" data-testid="video-library" className="space-y-3">
               <h3 id="lib-h" className="text-lg font-bold">{t("m.lib.h")}</h3>
@@ -70,6 +73,7 @@ export default function MediaPage() {
             </section>
           )}
           <MediaPlayer />
+          {sec === "watch" && <YoutubePlayer />}
         </div>
       </section>
       <section role="tabpanel" id="media-panel-live" aria-labelledby="media-tab-live" data-testid="media-panel-live" hidden={sec !== "live"}>{sec === "live" && <LiveList />}</section>

@@ -22,6 +22,7 @@ export function buildCsp(dev: boolean): string {
     "img-src": ["'self'", "data:", "blob:"], // no third-party image host: maps are drawn from our own boundary data
     "media-src": ["'self'", "blob:", ...mediaVideoHosts().map((h) => `https://${h}`)],
     "connect-src": dev ? ["'self'", "ws:", "wss:"] : ["'self'"],
+    "frame-src": ["https://www.youtube-nocookie.com"], // only YouTube's own embed player, and only after a member taps Play
     "worker-src": ["'self'", "blob:"],
     "object-src": ["'none'"],
     "base-uri": ["'self'"],

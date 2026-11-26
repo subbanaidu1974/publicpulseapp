@@ -332,3 +332,189 @@ test.describe('Media rules (S-225 to S-236)', () => {
     } finally { await outlet.close(); }
   });
 });
+
+test.describe('YouTube channel news (S-238)', () => {
+  test('@E2E-228 a YouTube channel source shows its videos as news; nothing from YouTube loads until the member taps Play, then only the no-cookie embed', async ({ page, request }) => {
+    const a = await seedPerson(request, [{ role: 'admin' }]), b = await seedPerson(request, [{ role: 'admin' }]), m = await seedPerson(request);
+    const vid = 'dQw4w9WgXcQ';
+    const feed = await startOutlet([]); // a local stand-in for the channel feed: one entry that links to a YouTube watch page
+    const stand = http.createServer((req, res) => {
+      res.setHeader('content-type', 'application/atom+xml');
+      res.end(`<?xml version="1.0"?><feed><entry><title>Bulletin ${vid}</title><link rel="alternate" href="https://www.youtube.com/watch?v=${vid}"/><published>${new Date(Date.now() - 600_000).toISOString()}</published></entry></feed>`);
+    });
+    await new Promise<void>((r) => stand.listen(0, '127.0.0.1', () => r()));
+    const base = `http://127.0.0.1:${(stand.address() as AddressInfo).port}`;
+    let sid = '';
+    try {
+      const nm = `Channel TV ${Date.now() % 100000}`;
+      const s = await (await request.post(`${API}/media/admin/sources`, { headers: bearer(a.token), data: { kind: 'news', name_en: nm, site_url: 'https://www.youtube.com/@channel', feed_url: base + '/feed', allow: 'headline', state: 'BOTH', permission_note: 'Channel owner confirmed in writing, 24 Nov 2026', permission_date: '2026-11-24', contact: 'tv@channel.example' } })).json();
+      sid = s.id;
+      await request.post(`${API}/media/admin/sources/${sid}/enable`, { headers: bearer(b.token) });
+      await request.post(`${API}/media/admin/sources/${sid}/refresh`, { headers: bearer(b.token) });
+      let framed = 0;
+      await page.route('https://www.youtube-nocookie.com/**', (r) => { framed++; return r.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>player</title><p>stand-in player</p>' }); });
+      await openCivicAs(page, m.token);
+      await page.getByTestId('nav-media').click();
+      await page.getByTestId('media-tab-news').click();
+      const item = page.getByTestId('news-item').filter({ hasText: `Bulletin ${vid}` });
+      await expect(item).toBeVisible();
+      await expect(item.getByTestId('news-yt-frame')).toHaveCount(0);
+      expect(framed).toBe(0); // nothing requested from YouTube yet
+      await item.getByTestId('news-yt-play').click();
+      const frame = item.getByTestId('news-yt-frame');
+      await expect(frame).toHaveAttribute('src', new RegExp(`^https://www\.youtube-nocookie\.com/embed/${vid}`));
+      await expect.poll(() => framed).toBeGreaterThan(0);
+      await item.getByTestId('news-yt-play').click();
+      await expect(item.getByTestId('news-yt-frame')).toHaveCount(0);
+    } finally {
+      if (sid) await request.post(`${API}/media/admin/sources/${sid}/disable`, { headers: bearer(a.token) });
+      await new Promise<void>((r) => stand.close(() => r()));
+      await feed.close();
+    }
+  });
+});
+
+test.describe('Paste a YouTube link (S-239)', () => {
+  test('@E2E-230 an admin pastes a YouTube link and cannot switch it on; a second admin does; a member plays it only after tapping Play', async ({ browser, request }) => {
+    const a = await seedPerson(request, [{ role: 'admin' }]), b = await seedPerson(request, [{ role: 'admin' }]), m = await seedPerson(request);
+    const ctx = await browser.newContext(), pa = await ctx.newPage(), ctxB = await browser.newContext(), pb = await ctxB.newPage(), ctxM = await browser.newContext(), pm = await ctxM.newPage();
+    const tag = `${Date.now() % 100000}`, headline = `Flood relief update ${tag}`;
+    let framed = 0;
+    await pm.route('https://www.youtube-nocookie.com/**', (r) => { framed++; return r.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>player</title>' }); });
+    try {
+      await openCivicAs(pa, a.token); await pa.goto('/#/media-admin');
+      await pa.getByTestId('ma-vlink').fill('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+      await pa.getByTestId('ma-vtitle').fill(headline);
+      await pa.getByTestId('ma-vchan').fill(`Channel TV ${tag}`);
+      await pa.getByTestId('ma-vperm').fill('Channel owner confirmed in writing, 24 Nov 2026');
+      await pa.getByTestId('ma-vpdate').fill('2026-11-24');
+      await pa.getByTestId('ma-vcontact').fill('tv@channel.example');
+      await pa.getByTestId('ma-vadd').click();
+      await expect(pa.getByTestId('ma-msg')).toContainText('switched off');
+      const row = pa.getByTestId('ma-source').filter({ hasText: `Channel TV ${tag}` });
+      await expect(row.getByTestId('ma-enable')).toBeDisabled();
+      await openCivicAs(pm, m.token); await pm.getByTestId('nav-media').click(); await pm.getByTestId('media-tab-news').click();
+      await expect(pm.getByText(headline)).toHaveCount(0); // off: not shown
+      await openCivicAs(pb, b.token); await pb.goto('/#/media-admin');
+      await pb.getByTestId('ma-source').filter({ hasText: `Channel TV ${tag}` }).getByTestId('ma-enable').click();
+      await expect(pb.getByTestId('ma-msg')).toContainText('Switched on');
+      await pm.reload(); await pm.getByTestId('nav-media').click(); await pm.getByTestId('media-tab-news').click();
+      const item = pm.getByTestId('news-item').filter({ hasText: headline });
+      await expect(item).toBeVisible();
+      await expect(item.getByTestId('news-outlet')).toHaveText(`Channel TV ${tag}`);
+      expect(framed).toBe(0);
+      await item.getByTestId('news-yt-play').click();
+      await expect(item.getByTestId('news-yt-frame')).toHaveAttribute('src', /youtube-nocookie\.com\/embed\/dQw4w9WgXcQ/);
+      await expect.poll(() => framed).toBeGreaterThan(0);
+      await pb.reload();
+      await pb.getByTestId('ma-source').filter({ hasText: `Channel TV ${tag}` }).getByTestId('ma-disable').click();
+    } finally { await ctx.close(); await ctxB.close(); await ctxM.close(); }
+  });
+});
+
+test.describe('Live tab player (S-241)', () => {
+  test('@E2E-234 the Live tab has a link player, and a channel whose stream is a YouTube live link plays in the no-cookie embed after Play', async ({ page, request }) => {
+    const a = await seedPerson(request, [{ role: 'admin' }]), b = await seedPerson(request, [{ role: 'admin' }]);
+    let framed = 0;
+    await page.route('https://www.youtube-nocookie.com/**', (r) => { framed++; return r.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>player</title>' }); });
+    const nm = `Live TV ${Date.now() % 100000}`;
+    const s = await (await request.post(`${API}/media/admin/sources`, { headers: bearer(a.token), data: { kind: 'live', name_en: nm, site_url: 'https://livetv.example.net/', stream_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', permission_note: 'Channel confirmed in writing, 24 Nov 2026', permission_date: '2026-11-24', contact: 'tv@livetv.example' } })).json();
+    await request.post(`${API}/media/admin/sources/${s.id}/enable`, { headers: bearer(b.token) });
+    try {
+      await page.goto('/');
+      await page.getByTestId('nav-media').click();
+      await page.getByTestId('media-tab-live').click();
+      await expect(page.getByTestId('yt-player')).toBeVisible(); // a link player is always on the Live tab
+      const ch = page.getByTestId('live-channel').filter({ hasText: nm });
+      await expect(ch).toBeVisible();
+      expect(framed).toBe(0);
+      await ch.getByTestId('live-play').click();
+      await expect(ch.getByTestId('live-yt-frame')).toHaveAttribute('src', /youtube-nocookie\.com\/embed\/dQw4w9WgXcQ/);
+      await expect.poll(() => framed).toBeGreaterThan(0);
+    } finally { await request.post(`${API}/media/admin/sources/${s.id}/disable`, { headers: bearer(a.token) }); }
+  });
+});
+
+test.describe('Candidate AP and Telangana news sources (S-242)', () => {
+  test('@E2E-236 the two candidate feeds are listed switched off; an admin records the permission and cannot switch it on; a different admin can', async ({ browser, request }) => {
+    const a = await seedPerson(request, [{ role: 'admin' }]), b = await seedPerson(request, [{ role: 'admin' }]);
+    const ca = await browser.newContext(), pa = await ca.newPage(), cb = await browser.newContext(), pb = await cb.newPage();
+    try {
+      await openCivicAs(pa, a.token); await pa.goto('/#/media-admin');
+      const row = pa.getByTestId('ma-source').filter({ hasText: 'The Hindu: Telangana' });
+      await expect(row).toHaveAttribute('data-enabled', '0');
+      // the shared test database keeps the permission once recorded, so a rerun starts from the recorded state
+      if (await row.getByTestId('ma-perm-form').count()) {
+        await row.getByTestId('ma-pnote').fill('Written reuse permission from the editor, mail of 25 Nov 2026');
+        await row.getByTestId('ma-pdate2').fill('2026-11-25');
+        await row.getByTestId('ma-pcontact').fill('desk@thehindu.example');
+        await row.getByTestId('ma-psave').click();
+        await expect(pa.getByTestId('ma-msg')).toContainText('Permission recorded');
+        await expect(row.getByTestId('ma-enable')).toBeDisabled(); // the admin who recorded it cannot switch it on
+      }
+      await openCivicAs(pb, b.token); await pb.goto('/#/media-admin');
+      const rowB = pb.getByTestId('ma-source').filter({ hasText: 'The Hindu: Telangana' });
+      await expect(rowB.getByTestId('ma-enable')).toBeEnabled();
+      // left switched off on purpose: it is a candidate until the owner has the real permission
+    } finally { await ca.close(); await cb.close(); }
+  });
+});
+
+test.describe('Watch player with a video list (S-243)', () => {
+  test('@E2E-238 the Watch tab shows a stage and a list of our videos and YouTube news videos; nothing loads until one is chosen; next and previous step through the list; phone width and axe are clean', async ({ page, request }) => {
+    const a = await seedPerson(request, [{ role: 'admin' }]), b = await seedPerson(request, [{ role: 'admin' }]), m = await seedPerson(request);
+    const tag = `${Date.now() % 100000}`;
+    const vt = `Watch list video ${tag}`;
+    const c = await (await request.post(`${API}/videocast/admin`, { headers: bearer(a.token), data: { title_en: vt, media_url: 'https://media.example.org/watch-list.wav', credit: 'Own work 2026', confirm_neutral: true, confirm_rights: true } })).json();
+    await request.post(`${API}/videocast/admin/${c.id}/approve`, { headers: bearer(b.token) });
+    const stand = http.createServer((_q, res) => {
+      res.setHeader('content-type', 'application/atom+xml');
+      const e = (id: string, t: string) => `<entry><title>${t}</title><link rel="alternate" href="https://www.youtube.com/watch?v=${id}"/><published>${new Date(Date.now() - 600_000).toISOString()}</published></entry>`;
+      res.end(`<?xml version="1.0"?><feed>${e('aaaaaaaaaaa', 'News video one ' + tag)}${e('bbbbbbbbbbb', 'News video two ' + tag)}</feed>`);
+    });
+    await new Promise<void>((r) => stand.listen(0, '127.0.0.1', () => r()));
+    const base = `http://127.0.0.1:${(stand.address() as AddressInfo).port}`;
+    let sid = '';
+    let framed = 0;
+    await page.route('https://www.youtube-nocookie.com/**', (r) => { framed++; return r.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>player</title>' }); });
+    await page.route('https://media.example.org/watch-list.wav', (r) => r.fulfill({ status: 200, contentType: 'audio/wav', body: wav() }));
+    try {
+      const s = await (await request.post(`${API}/media/admin/sources`, { headers: bearer(a.token), data: { kind: 'news', name_en: `List TV ${tag}`, site_url: 'https://www.youtube.com/@listtv', feed_url: base + '/feed', allow: 'headline', state: 'BOTH', permission_note: 'Channel owner confirmed in writing, 24 Nov 2026', permission_date: '2026-11-24', contact: 'tv@list.example' } })).json();
+      sid = s.id;
+      await request.post(`${API}/media/admin/sources/${sid}/enable`, { headers: bearer(b.token) });
+      await request.post(`${API}/media/admin/sources/${sid}/refresh`, { headers: bearer(b.token) });
+      await page.addInitScript(() => { try { localStorage.setItem('pp-video-mute', '1'); } catch { /* ignore */ } });
+      await openCivicAs(page, m.token);
+      await page.getByTestId('nav-media').click();
+      await page.getByTestId('media-tab-watch').click();
+      await expect(page.getByTestId('wp-placeholder')).toBeVisible();
+      const items = page.getByTestId('wp-item');
+      await expect(items.filter({ hasText: vt })).toHaveAttribute('data-kind', 'own');
+      await expect(items.filter({ hasText: `News video one ${tag}` })).toHaveAttribute('data-kind', 'youtube');
+      expect(framed).toBe(0); // nothing from YouTube until a row is chosen
+      await items.filter({ hasText: `News video two ${tag}` }).click();
+      await expect(page.getByTestId('wp-yt-frame')).toHaveAttribute('src', /embed\/bbbbbbbbbbb/);
+      await expect(page.getByTestId('wp-title')).toHaveText(`News video two ${tag}`);
+      await expect(items.filter({ hasText: `News video two ${tag}` })).toHaveAttribute('aria-current', 'true');
+      await page.getByTestId('wp-next').click(); // the next row: the other news video
+      await expect(page.getByTestId('wp-yt-frame')).toHaveAttribute('src', /embed\/aaaaaaaaaaa/);
+      await page.getByTestId('wp-next').click(); // wraps to the first row, our own video
+      await expect(page.getByTestId('wp-video')).toBeVisible();
+      await expect(page.getByTestId('wp-yt-frame')).toHaveCount(0);
+      expect(await page.getByTestId('wp-video').evaluate((v: HTMLMediaElement) => v.paused)).toBe(true); // never starts by itself
+      await page.getByTestId('wp-prev').click(); // back past the start wraps to the last row
+      await expect(page.getByTestId('wp-yt-frame')).toHaveAttribute('src', /embed\/aaaaaaaaaaa/);
+      await page.setViewportSize({ width: 1280, height: 800 });
+      await page.screenshot({ path: 'test-results/watch-desktop.png' });
+      const r = await new AxeBuilder({ page }).include('[data-testid=watch-player]').withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+      expect(r.violations.map((v) => `${v.id}: ${v.nodes.length}`)).toEqual([]);
+      await page.setViewportSize({ width: 375, height: 800 });
+      await page.screenshot({ path: 'test-results/watch-phone.png' });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+    } finally {
+      if (sid) await request.post(`${API}/media/admin/sources/${sid}/disable`, { headers: bearer(a.token) });
+      await request.post(`${API}/videocast/admin/${c.id}/recall`, { headers: bearer(a.token), data: { note: 'test finished' } });
+      await new Promise<void>((r) => stand.close(() => r()));
+    }
+  });
+});

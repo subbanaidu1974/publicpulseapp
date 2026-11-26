@@ -1,7 +1,7 @@
 import { call } from "./civic";
 
 /** Media hub (S-225 to S-236): news, live channels, reports and admin screens. Kept out of civic.ts so the lite civic bundle does not carry it. */
-export interface NewsItem { id: string; title: string; link: string; snippet: string | null; published_at: string; outlet_en: string; outlet_te: string | null; source_id: string }
+export interface NewsItem { id: string; title: string; link: string; snippet: string | null; published_at: string; outlet_en: string; outlet_te: string | null; source_id: string; youtube: string | null }
 export interface NewsPayload { items: NewsItem[]; digest: NewsItem[]; sources: { id: string; name_en: string; name_te: string | null; stale: boolean }[] }
 export interface LiveChannel { id: string; name_en: string; name_te: string | null; site_url: string; stream_url: string | null; health_ok: boolean | null; health_at: string | null }
 export interface AdminSource {
@@ -18,7 +18,9 @@ export const mediaApi = {
   click: (kind: "news" | "live", id: string) => call<{ ok: true }>("/media/click", { method: "POST", body: { kind, id }, auth: false }),
   report: (body: { kind: "video" | "news" | "live"; id: string; reason: string; note?: string }) => call<{ ok: true }>("/media/report", { method: "POST", body }),
   adminSources: () => call<{ sources: AdminSource[]; hosts: string[] }>("/media/admin/sources", { fresh: true }),
+  adminAddVideoLink: (body: Record<string, unknown>) => call<{ id: string }>("/media/admin/videos", { method: "POST", body }),
   adminAddSource: (body: Record<string, unknown>) => call<{ id: string }>("/media/admin/sources", { method: "POST", body }),
+  adminPermission: (id: string, body: { permission_note: string; permission_date: string; contact: string }) => call<{ ok: true }>(`/media/admin/sources/${encodeURIComponent(id)}/permission`, { method: "POST", body }),
   adminEnable: (id: string) => call<{ ok: true }>(`/media/admin/sources/${encodeURIComponent(id)}/enable`, { method: "POST" }),
   adminDisable: (id: string) => call<{ ok: true }>(`/media/admin/sources/${encodeURIComponent(id)}/disable`, { method: "POST" }),
   adminRefresh: (id: string) => call<{ added: number }>(`/media/admin/sources/${encodeURIComponent(id)}/refresh`, { method: "POST" }),

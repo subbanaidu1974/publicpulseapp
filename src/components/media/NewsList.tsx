@@ -9,6 +9,7 @@ function Item({ n }: { n: NewsItem }) {
   const { lang } = useT();
   const t = (k: MediaKey) => mt(lang, k);
   const outlet = (lang === "te" && n.outlet_te) || n.outlet_en;
+  const [play, setPlay] = useState(false);
   return (
     <li data-testid="news-item" className="border border-black/40 p-3 space-y-1">
       <p className="font-bold break-words" data-testid="news-title">{n.title}</p>
@@ -19,6 +20,14 @@ function Item({ n }: { n: NewsItem }) {
         <a data-testid="news-link" href={n.link} target="_blank" rel="noopener noreferrer" className="underline text-sm font-bold inline-flex min-h-[44px] items-center"
           onClick={() => { mediaApi.click("news", n.id).catch(() => undefined); }}>{t("m.open.pub")}</a>
       </p>
+      {n.youtube && (
+        <div className="space-y-2" data-testid="news-yt">
+          {/* Click to load: nothing from YouTube is requested until the member taps. YouTube's no-cookie embed, no autoplay, no related videos from other channels. */}
+          <button type="button" data-testid="news-yt-play" aria-expanded={play} onClick={() => { if (!play) mediaApi.click("news", n.id).catch(() => undefined); setPlay(!play); }} className="block border border-black px-3 py-1 text-sm font-bold min-h-[44px]">{play ? t("m.yt.hide") : t("m.yt.play")}</button>
+          {play && <iframe data-testid="news-yt-frame" title={n.title} src={`https://www.youtube-nocookie.com/embed/${n.youtube}?rel=0&playsinline=1`} loading="lazy" referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-presentation" allow="fullscreen" allowFullScreen className="w-full aspect-video border-0 bg-black" />}
+          {!play && <p className="text-xs">{t("m.yt.note")}</p>}
+        </div>
+      )}
       <ReportButton kind="news" id={n.id} />
     </li>
   );

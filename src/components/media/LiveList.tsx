@@ -1,6 +1,8 @@
 import { Fragment, useEffect, useState } from "react";
 import { mediaApi, type LiveChannel } from "../../api/mediahub";
 import { useT } from "../../i18n";
+import YoutubePlayer from "./YoutubePlayer";
+import { youtubeIdOf } from "./playerLogic";
 import ReportButton from "./ReportButton";
 import { mediaText as mt, type MediaKey } from "./mediaText";
 
@@ -11,6 +13,7 @@ function Channel({ c }: { c: LiveChannel }) {
   const [err, setErr] = useState(false);
   const name = (lang === "te" && c.name_te) || c.name_en;
   const down = c.health_ok === false || err;
+  const yt = c.stream_url ? youtubeIdOf(c.stream_url) : null;
   return (
     <li data-testid="live-channel" className="border border-black p-3 space-y-2">
       <h4 className="font-bold break-words" data-testid="live-name">{name}</h4>
@@ -19,7 +22,8 @@ function Channel({ c }: { c: LiveChannel }) {
       {c.stream_url && !down && (
         <div className="space-y-2">
           <button type="button" data-testid="live-play" aria-expanded={show} onClick={() => setShow(!show)} className="block border border-black px-3 py-1 text-sm font-bold min-h-[44px]">{show ? t("m.live.hide") : t("m.live.play")}</button>
-          {show && <video data-testid="live-video" aria-label={name} src={c.stream_url} controls preload="none" playsInline className="w-full max-h-[60vh] bg-black" onError={() => setErr(true)} />}
+          {show && yt && <iframe data-testid="live-yt-frame" title={name} src={`https://www.youtube-nocookie.com/embed/${yt}?rel=0&playsinline=1`} referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-presentation" allow="fullscreen" allowFullScreen className="w-full aspect-video border-0 bg-black" />}
+          {show && !yt && <video data-testid="live-video" aria-label={name} src={c.stream_url} controls preload="none" playsInline className="w-full max-h-[60vh] bg-black" onError={() => setErr(true)} />}
         </div>
       )}
       {down && <p role="status" data-testid="live-down" className="text-sm font-bold">{t("m.live.down")}</p>}
@@ -39,6 +43,7 @@ export default function LiveList() {
     <div className="space-y-2" data-testid="media-live-empty">
       <h3 className="text-lg font-bold">{t("m.live.h")}</h3>
       <p className="text-sm">{t("m.live.none")}</p>
+      <YoutubePlayer />
     </div>
   );
   return (
@@ -46,6 +51,7 @@ export default function LiveList() {
       <h3 className="text-lg font-bold">{t("m.live.h")}</h3>
       <p className="text-xs">{t("m.live.note")}</p>
       <ul className="space-y-3">{list.map((c) => <Fragment key={c.id}><Channel c={c} /></Fragment>)}</ul>
+      <YoutubePlayer />
     </div>
   );
 }
