@@ -3099,6 +3099,96 @@
       "wave": "W9",
       "source": "user request 2026-11-26 (build the broadcast video feature)",
       "notes": "Part of S-231, split out so it could be built and tested without counsel. The proposer cannot approve their own item (the API refuses it and the button is off); a second admin approves or refuses; any admin can recall; title, notes and credit are refused if they carry a link, ask for a code or ID number, or ask for a party or candidate choice; both ticks (no party promotion, we have the right to show it) are required; the host must be on MEDIA_VIDEO_HOSTS; every step is audited; at most 20 items wait. NOT done: silence-period hold and counsel-reviewed checklist (remaining S-231), approval by more than one person, a visible correction note to members after a recall."
+    },
+    {
+      "id": "S-238",
+      "epic": "Media",
+      "title": "YouTube news channels: videos from permitted news channels appear in the Media tab and play in YouTube's own embed player, loaded only when a member taps Play",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-227",
+        "E2E-228"
+      ],
+      "priority": "P1",
+      "wave": "W9",
+      "source": "user request 2026-11-26 (pull YouTube videos from news channels)",
+      "notes": "BUILT 2026-11-26: a news source can be a YouTube channel id; official channel feed only; title, link and date kept; click-to-load youtube-nocookie embed (CSP frame-src limited to it); no download or re-hosting; same permission record and second-admin switch-on as any source. NOT done: no channel is switched on and no channel ids chosen (owner); counsel to confirm embedding is covered by each channel's permission and YouTube's terms; YouTube sees the viewer's address on Play (stated in the note, to be added to the privacy page); channels that disable embedding show YouTube's own message; Telugu text machine-drafted."
+    },
+    {
+      "id": "S-239",
+      "epic": "Media",
+      "title": "Paste-a-link: an admin adds a single YouTube news video by link, a second admin switches it on, and it plays in the Media tab in YouTube's own player",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-229",
+        "E2E-230"
+      ],
+      "priority": "P1",
+      "wave": "W9",
+      "source": "user request 2026-11-26 (paste-a-link option)",
+      "notes": "BUILT 2026-11-26: admin form with a YouTube link, a typed headline, the channel name and the permission record; stored as its own source with no feed; same permission record and different-admin switch-on; switch off or report takedown work as for any source; shown 7 days; click-to-load no-cookie player as in S-238. NOT done: no title or thumbnail fetched from YouTube (admin types the headline); no video is switched on; counsel to confirm permission covers embedding; Telugu admin text not needed (operator screen)."
+    },
+    {
+      "id": "S-240",
+      "epic": "Media",
+      "title": "YouTube link player: a member pastes a YouTube video link in the Watch section and plays it in YouTube's own player",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-231",
+        "E2E-232"
+      ],
+      "priority": "P1",
+      "wave": "W9",
+      "source": "user request 2026-11-26 (build a media player to play youtube video links)",
+      "notes": "BUILT 2026-11-26: paste box in Watch; watch, short, embed, live and youtu.be links; youtube-nocookie embed only (CSP); link stays in the browser, not sent to our server, not stored, not counted. NOT done: playlists and search; our own controls over YouTube's player (speed, captions are YouTube's); privacy page wording that YouTube sees the address on play (the on-page note says it); Telugu text is machine-drafted. Members' own pasted videos are not moderated by us because nobody else sees them."
+    },
+    {
+      "id": "S-241",
+      "epic": "Media",
+      "title": "Live tab player: a YouTube link player on the Live tab, and live channels whose official stream is a YouTube live link play in the Media tab",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-233",
+        "E2E-234"
+      ],
+      "priority": "P1",
+      "wave": "W9",
+      "source": "user request 2026-11-26 (media video player under the live tab)",
+      "notes": "BUILT 2026-11-26: the link player of S-240 also sits on the Live tab; an admin can give a channel's YouTube live link as its stream; plays in youtube-nocookie after Play; same permission record and second-admin switch-on. NOT done: no channel switched on; we cannot health-check a YouTube stream (YouTube shows its own message if it is offline); HLS still needs the hls.js decision."
+    },
+    {
+      "id": "S-242",
+      "epic": "Media",
+      "title": "Candidate AP and Telangana news feeds loaded switched off, with a record-permission step and a second-admin rule",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-235",
+        "E2E-236"
+      ],
+      "priority": "P1",
+      "wave": "W9",
+      "source": "user request 2026-11-26 (add news feeds from andhrapredesh and telangana news)",
+      "notes": "BUILT 2026-11-26: The Hindu Andhra Pradesh and Telangana official RSS feeds (both answered with valid RSS on 2026-11-26) loaded switched off with no permission; admin screen records the permission; the recorder cannot switch it on. NOT done: permission from The Hindu (owner) so News stays empty; Telugu outlets (Eenadu, Sakshi, Andhra Jyothy, Telangana Today and similar) and government press feeds not loaded because their feed addresses and terms were not checked; district filter."
+    },
+    {
+      "id": "S-243",
+      "epic": "Media",
+      "title": "Watch tab player with a list of videos: a stage and a playlist of our own videos and YouTube news videos",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-237",
+        "E2E-238"
+      ],
+      "priority": "P1",
+      "wave": "W9",
+      "source": "user request 2026-11-26 (a player like YouTube with a list of videos under the Watch tab)",
+      "notes": "BUILT 2026-11-26: stage plus list, own videos first then YouTube news videos, next and previous, no autoplay, no recommendations, no history. NOT done: the list is empty until sources are switched on and permissions recorded; no search, playlists or comments; no autoplay of the next video (deliberate); Telugu text machine-drafted."
     }
   ]
 }

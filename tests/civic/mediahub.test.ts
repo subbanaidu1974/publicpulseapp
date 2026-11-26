@@ -3,7 +3,7 @@ import express from "express";
 import type { Server } from "http";
 import type { AddressInfo } from "net";
 import { getDb, grantRole, migrate, resetDbForTests } from "../../server/civic/core";
-import { mediaRouter, parseFeed, addSource, enableSource, disableSource, refreshSource, refreshDue, newsFor, checkStream, liveChannels, countClick, numbers, reportItem, resolveReport, checkUrl, MIN_COUNT_SHOWN, type Fetcher } from "../../server/civic/mediahub";
+import { mediaRouter, parseFeed, addSource, enableSource, disableSource, refreshSource, refreshDue, newsFor, checkStream, liveChannels, countClick, numbers, reportItem, resolveReport, checkUrl, recordPermission, MIN_COUNT_SHOWN, type Fetcher } from "../../server/civic/mediahub";
 import { createVideo, approveVideo, addWindow, endWindow, liveFor, correctionsFor, recallVideo, afterSilence } from "../../server/civic/videocast";
 import { videocastRouter } from "../../server/civic/videocast";
 import { mkPerson } from "./notify/helpers";
@@ -252,5 +252,119 @@ describe("video library, silence windows and corrections (S-229, S-231) @E2E-224
     expect(correctionsFor(new Date(NOW.getTime() + 9 * 86_400_000))).toEqual([]); // gone after a week
     const never = createVideo(a.id, V, NOW); // a pending item that members never saw is not a correction
     expect(never.status).toBe("pending");
+  });
+});
+
+describe("YouTube channel news: official feed, embed id only (S-238) @E2E-227", () => {
+  const CH = "UC" + "a".repeat(22);
+  const ATOM = `<?xml version="1.0"?><feed xmlns:yt="http://www.youtube.com/xml/schemas/2015"><entry><yt:videoId>dQw4w9WgXcQ</yt:videoId><title>Evening bulletin</title><link rel="alternate" href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"/><published>2026-11-26T08:00:00+00:00</published><media:group><media:description>Long description that we never keep</media:description></media:group></entry></feed>`;
+  it("youtubeId accepts watch, short and youtu.be links only, with an 11 character id", async () => {
+    const { youtubeId } = await import("../../server/civic/mediahub");
+    expect(youtubeId("https://www.youtube.com/watch?v=dQw4w9WgXcQ")).toBe("dQw4w9WgXcQ");
+    expect(youtubeId("https://youtu.be/dQw4w9WgXcQ")).toBe("dQw4w9WgXcQ");
+    expect(youtubeId("https://www.youtube.com/shorts/dQw4w9WgXcQ")).toBe("dQw4w9WgXcQ");
+    expect(youtubeId("https://evil.example.net/watch?v=dQw4w9WgXcQ")).toBeNull();
+    expect(youtubeId("https://www.youtube.com/watch?v=short")).toBeNull();
+    expect(youtubeId("https://www.youtube.com/watch?v=dQw4w9WgXcQ%22%3E")).toBeNull();
+  });
+  it("a channel id builds the official feed address itself; a bad id or a live source is refused; it still needs permission and a second admin", () => {
+    const a = admin(), b = admin();
+    expect(() => addSource(a.id, { ...NEWS, feed_url: undefined, site_url: undefined, youtube_channel_id: "UCshort" }, NOW)).toThrow(/channel id/);
+    expect(() => addSource(a.id, { ...NEWS, kind: "live", youtube_channel_id: CH }, NOW)).toThrow(/channel id/);
+    const s = addSource(a.id, { ...NEWS, feed_url: "https://evil.example.net/x", site_url: undefined, youtube_channel_id: CH }, NOW);
+    expect(s.feed_url).toBe(`https://www.youtube.com/feeds/videos.xml?channel_id=${CH}`);
+    expect(s.enabled).toBe(0);
+    expect(() => enableSource(a.id, s.id, NOW)).toThrow(/different admin/);
+    enableSource(b.id, s.id, NOW);
+  });
+  it("reading the channel feed keeps title, link and date; members get the embed id and no description", async () => {
+    const a = admin(), b = admin();
+    const s = addSource(a.id, { ...NEWS, feed_url: undefined, site_url: undefined, youtube_channel_id: CH, allow: "headline" }, NOW);
+    enableSource(b.id, s.id, NOW);
+    expect((await refreshSource(s.id, feedOf(ATOM), NOW)).added).toBe(1);
+    const n = newsFor(undefined, NOW).items[0];
+    expect(n.title).toBe("Evening bulletin");
+    expect(n.youtube).toBe("dQw4w9WgXcQ");
+    expect(n.snippet).toBeNull();
+  });
+});
+
+describe("paste-a-link: one YouTube video (S-239) @E2E-229", () => {
+  const V = { link: "https://youtu.be/dQw4w9WgXcQ", title: "Flood relief update", channel_name: "Channel TV", state: "AP", permission_note: "Channel owner confirmed in writing, 24 Nov 2026", permission_date: "2026-11-24", contact: "tv@channel.example" };
+  it("only a YouTube video link is accepted, and the headline is typed by the admin", async () => {
+    const { addVideoLink } = await import("../../server/civic/mediahub");
+    const a = admin();
+    expect(() => addVideoLink(a.id, { ...V, link: "https://evil.example.net/watch?v=dQw4w9WgXcQ" }, NOW)).toThrow(/YouTube video link/);
+    expect(() => addVideoLink(a.id, { ...V, link: "https://www.youtube.com/@channel" }, NOW)).toThrow(/YouTube video link/);
+    expect(() => addVideoLink(a.id, { ...V, title: "" }, NOW)).toThrow(/title/);
+  });
+  it("starts off, needs the permission record and a different admin, then members get the embed id; it is never fetched or called stale", async () => {
+    const { addVideoLink } = await import("../../server/civic/mediahub");
+    const a = admin(), b = admin();
+    const s = addVideoLink(a.id, V, NOW);
+    expect(s.enabled).toBe(0);
+    expect(s.feed_url).toBeNull();
+    expect(newsFor(undefined, NOW).items).toHaveLength(0);
+    expect(() => enableSource(a.id, s.id, NOW)).toThrow(/different admin/);
+    enableSource(b.id, s.id, NOW);
+    const later = new Date(NOW.getTime() + 20 * 3_600_000);
+    await refreshDue(async () => { throw new Error("must not fetch"); }, later);
+    const n = newsFor(undefined, later);
+    expect(n.items[0].youtube).toBe("dQw4w9WgXcQ");
+    expect(n.items[0].title).toBe("Flood relief update");
+    expect(n.sources[0].stale).toBe(false);
+    expect(newsFor(undefined, new Date(NOW.getTime() + 8 * 86_400_000)).items).toHaveLength(0);
+  });
+  it("is admin-only", async () => {
+    const u = mkPerson();
+    expect((await call("POST", "/m/admin/videos", u.token, V)).status).toBe(403);
+    expect((await call("POST", "/m/admin/videos", admin().token, V)).status).toBe(201);
+  });
+});
+
+describe("live channel with a YouTube live link (S-241) @E2E-233", () => {
+  const CH = { kind: "live", name_en: "Channel Live", site_url: "https://one.example.net/", stream_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", permission_note: "Confirmed in writing by the channel, 21 Nov 2026", permission_date: "2026-11-21", contact: "tech@one.example.net" };
+  it("a YouTube live link is accepted as the stream without the host list, still needs a second admin, and cannot be health-checked by us", async () => {
+    const a = admin(), b = admin();
+    const s = addSource(a.id, CH, NOW);
+    expect(s.stream_url).toContain("youtube.com/watch");
+    expect(() => addSource(a.id, { ...CH, stream_url: "https://elsewhere.example.net/live.m3u8" }, NOW)).toThrow(/approved list/);
+    expect(() => enableSource(a.id, s.id, NOW)).toThrow(/different admin/);
+    enableSource(b.id, s.id, NOW);
+    expect(liveChannels()).toHaveLength(1);
+    await expect(checkStream(s.id, async () => { throw new Error("must not fetch"); }, NOW)).rejects.toThrow(/YouTube/);
+  });
+});
+
+describe("candidate AP and Telangana news sources, loaded switched off (S-242) @E2E-235", () => {
+  const PERM = { permission_note: "Written reuse permission from the editor, mail of 25 Nov 2026", permission_date: "2026-11-25", contact: "desk@thehindu.example" };
+  it("two official state feeds exist, off, with no permission, and show nothing to members", async () => {
+    const { getSource } = await import("../../server/civic/mediahub");
+    const ap = getSource("cand-hindu-ap"), tg = getSource("cand-hindu-tg");
+    expect(ap.feed_url).toBe("https://www.thehindu.com/news/national/andhra-pradesh/feeder/default.rss");
+    expect(tg.feed_url).toBe("https://www.thehindu.com/news/national/telangana/feeder/default.rss");
+    expect([ap.enabled, tg.enabled]).toEqual([0, 0]);
+    expect([ap.state, tg.state]).toEqual(["AP", "TG"]);
+    expect(ap.permission_note).toBeNull();
+    expect(newsFor(undefined, NOW).items).toHaveLength(0);
+    expect(() => enableSource(admin().id, "cand-hindu-ap", NOW)).toThrow(/record the permission/);
+    await expect(refreshSource("cand-hindu-ap", feedOf("<rss/>"), NOW)).rejects.toThrow(/switched off/);
+  });
+  it("the admin who records the permission cannot switch it on; a different admin can; then the feed is read for its state only", async () => {
+    const a = admin(), b = admin();
+    expect(() => recordPermission(a.id, "cand-hindu-ap", { ...PERM, permission_date: "2099-01-01" }, NOW)).toThrow(/date/);
+    recordPermission(a.id, "cand-hindu-ap", PERM, NOW);
+    expect(() => enableSource(a.id, "cand-hindu-ap", NOW)).toThrow(/different admin/);
+    enableSource(b.id, "cand-hindu-ap", NOW);
+    await refreshSource("cand-hindu-ap", feedOf(RSS([{ t: "Water scheme opens", l: "https://www.thehindu.com/x/1.ece", d: "Thu, 26 Nov 2026 08:00:00 GMT" }])), NOW);
+    expect(newsFor("AP", NOW).items).toHaveLength(1);
+    expect(newsFor("TG", NOW).items).toHaveLength(0); // an AP-only source is not shown to the Telangana view
+  });
+  it("recording a permission is admin-only and cannot change a source that is on", async () => {
+    const u = mkPerson(), a = admin(), b = admin();
+    expect((await call("POST", "/m/admin/sources/cand-hindu-tg/permission", u.token, PERM)).status).toBe(403);
+    expect((await call("POST", "/m/admin/sources/cand-hindu-tg/permission", a.token, PERM)).status).toBe(200);
+    enableSource(b.id, "cand-hindu-tg", NOW);
+    expect((await call("POST", "/m/admin/sources/cand-hindu-tg/permission", a.token, PERM)).status).toBe(400);
   });
 });

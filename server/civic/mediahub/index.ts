@@ -51,6 +51,15 @@ CREATE TABLE mhub_reports (
 CREATE TABLE mhub_counts (kind TEXT NOT NULL, item_id TEXT NOT NULL, day TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (kind, item_id, day));
 `);
 
+// Candidate sources (S-242): The Hindu's official state feeds, loaded SWITCHED OFF with no permission record. Nothing is shown to members until an admin records
+// the written permission and a different admin switches the source on. The feed addresses were checked on 2026-11-26; the permission is the owner's to obtain.
+registerMigration("mhub_002_candidates", `
+ALTER TABLE mhub_sources ADD COLUMN permission_by TEXT;
+INSERT INTO mhub_sources (id,kind,name_en,name_te,site_url,feed_url,allow,state,created_by,created_at) VALUES
+ ('cand-hindu-ap','news','The Hindu: Andhra Pradesh','ది హిందూ: ఆంధ్రప్రదేశ్','https://www.thehindu.com/news/national/andhra-pradesh/','https://www.thehindu.com/news/national/andhra-pradesh/feeder/default.rss','headline','AP','system','2026-11-26T00:00:00.000Z'),
+ ('cand-hindu-tg','news','The Hindu: Telangana','ది హిందూ: తెలంగాణ','https://www.thehindu.com/news/national/telangana/','https://www.thehindu.com/news/national/telangana/feeder/default.rss','headline','TG','system','2026-11-26T00:00:00.000Z');
+`);
+
 export const MIN_COUNT_SHOWN = 10;
 export const NEWS_KEEP_DAYS = 7, STALE_HOURS = 6, REFRESH_MINUTES = 15;
 const MAX_ITEMS_PER_FETCH = 50, MAX_FEED_BYTES = 1_000_000, FETCH_TIMEOUT_MS = 8000;
@@ -62,7 +71,7 @@ const fail = (res: express.Response, status: number, code: string, message: stri
 const db = () => getDb();
 const isLocal = (h: string) => h === "localhost" || h === "127.0.0.1";
 
-interface Src { id: string; kind: "news" | "live"; name_en: string; name_te: string | null; site_url: string; feed_url: string | null; stream_url: string | null; allow: "headline" | "snippet"; state: "AP" | "TG" | "BOTH"; permission_note: string | null; permission_date: string | null; contact: string | null; enabled: number; created_by: string; created_at: string; enabled_by: string | null; enabled_at: string | null; last_fetch_at: string | null; last_ok_at: string | null; last_error: string | null; health_ok: number | null; health_at: string | null }
+interface Src { permission_by: string | null; id: string; kind: "news" | "live"; name_en: string; name_te: string | null; site_url: string; feed_url: string | null; stream_url: string | null; allow: "headline" | "snippet"; state: "AP" | "TG" | "BOTH"; permission_note: string | null; permission_date: string | null; contact: string | null; enabled: number; created_by: string; created_at: string; enabled_by: string | null; enabled_at: string | null; last_fetch_at: string | null; last_ok_at: string | null; last_error: string | null; health_ok: number | null; health_at: string | null }
 
 /** https only (http for localhost outside production); no login in the address; not too long. */
 export function checkUrl(label: string, raw: string, opts: { allowedHostsOnly?: boolean } = {}): string {
@@ -87,13 +96,27 @@ function text(label: string, v: unknown, min: number, max: number, required: boo
 
 const srcPublic = (s: Src) => ({ id: s.id, kind: s.kind, name_en: s.name_en, name_te: s.name_te, site_url: s.site_url, state: s.state });
 
+/** A YouTube video id from a watch or short link on youtube.com / youtu.be, else null. Used only to offer YouTube's own embed player; nothing is downloaded. */
+export function youtubeId(link: string): string | null {
+  try {
+    const u = new URL(link);
+    const h = u.hostname.toLowerCase();
+    const id = h === "youtu.be" ? u.pathname.slice(1) : (h === "www.youtube.com" || h === "youtube.com" || h === "m.youtube.com") ? (u.pathname === "/watch" ? (u.searchParams.get("v") ?? "") : u.pathname.startsWith("/shorts/") ? u.pathname.slice(8) : "") : "";
+    return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+  } catch { return null; }
+}
+/** YouTube publishes an official public feed for every channel. We build its address from the channel id so an admin cannot point it anywhere else. */
+export const youtubeFeedUrl = (channelId: string): string => `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+
 export function addSource(adminId: string, body: Record<string, unknown>, now: Date = new Date()): Src {
   const kind = body.kind === "live" ? "live" : body.kind === "news" ? "news" : null;
   if (!kind) throw new Bad("bad_kind", "kind must be news or live");
   const name_en = text("name", body.name_en, 2, 80, true)!, name_te = text("name_te", body.name_te, 1, 120, false);
-  const site_url = checkUrl("site address", str(body.site_url));
-  const feed_url = kind === "news" ? checkUrl("feed address", str(body.feed_url)) : null;
-  const stream_url = kind === "live" && str(body.stream_url) ? checkUrl("stream address", str(body.stream_url), { allowedHostsOnly: true }) : null;
+  const yt = str(body.youtube_channel_id);
+  if (yt && (kind !== "news" || !/^UC[A-Za-z0-9_-]{22}$/.test(yt))) throw new Bad("bad_youtube", "a YouTube channel id starts with UC and is 24 characters, and is only for a news source");
+  const site_url = checkUrl("site address", str(body.site_url) || (yt ? `https://www.youtube.com/channel/${yt}` : ""));
+  const feed_url = kind === "news" ? (yt ? youtubeFeedUrl(yt) : checkUrl("feed address", str(body.feed_url))) : null;
+  const stream_url = kind === "live" && str(body.stream_url) ? (youtubeId(str(body.stream_url)) ? checkUrl("stream address", str(body.stream_url)) : checkUrl("stream address", str(body.stream_url), { allowedHostsOnly: true })) : null;
   const allow = body.allow === "snippet" ? "snippet" : "headline";
   const state = body.state === "AP" || body.state === "TG" ? body.state : "BOTH";
   const id = crypto.randomUUID();
@@ -103,16 +126,46 @@ export function addSource(adminId: string, body: Record<string, unknown>, now: D
   return getSource(id);
 }
 
+/**
+ * Paste-a-link (S-239): one YouTube video from a channel that gave us permission. It is stored as its own news source with no feed, so it needs the same
+ * permission record and a different admin to switch it on, and it can be switched off or taken down like any source. The title is typed by the admin
+ * (we do not fetch the page); the video is shown for 7 days like other news. Nothing is downloaded.
+ */
+export function addVideoLink(adminId: string, body: Record<string, unknown>, now: Date = new Date()): Src {
+  const link = str(body.link);
+  const vid = youtubeId(link);
+  if (!vid) throw new Bad("bad_youtube", "paste a YouTube video link (youtube.com/watch?v=..., youtu.be/... or youtube.com/shorts/...)");
+  const title = text("title", body.title, 3, 200, true)!;
+  const watch = `https://www.youtube.com/watch?v=${vid}`;
+  const s = addSource(adminId, { kind: "news", name_en: body.channel_name, name_te: body.channel_name_te, site_url: watch, feed_url: watch, allow: "headline", state: body.state, permission_note: body.permission_note, permission_date: body.permission_date, contact: body.contact }, now);
+  db().prepare("UPDATE mhub_sources SET feed_url = NULL, last_ok_at = ? WHERE id = ?").run(now.toISOString(), s.id);
+  db().prepare("INSERT INTO mhub_news (id,source_id,title,link,snippet,published_at,fetched_at) VALUES (?,?,?,?,NULL,?,?)").run(crypto.randomUUID(), s.id, title, watch, now.toISOString(), now.toISOString());
+  audit(adminId, "media.video-link.add", "mhub-source:" + s.id, { video: vid });
+  return getSource(s.id);
+}
+
 export function getSource(id: string): Src {
   const s = db().prepare("SELECT * FROM mhub_sources WHERE id = ?").get(id) as unknown as Src | undefined;
   if (!s) throw new Bad("not_found", "no such source");
   return s;
 }
 
-/** Switching on needs the permission record AND a different admin than the one who added it. */
+/** Records the permission for a source that was added without one (for example a candidate loaded switched off). The admin who records it cannot also switch it on. */
+export function recordPermission(adminId: string, id: string, body: Record<string, unknown>, now: Date = new Date()): Src {
+  const s = getSource(id);
+  if (s.enabled) throw new Bad("already_on", "switch the source off before changing its permission record");
+  const note = text("permission_note", body.permission_note, 10, 500, true)!, contact = text("contact", body.contact, 5, 160, true)!;
+  const d = new Date(str(body.permission_date));
+  if (Number.isNaN(d.getTime()) || d.getTime() > now.getTime() + 86_400_000) throw new Bad("bad_date", "the permission date must be a real date, not in the future");
+  db().prepare("UPDATE mhub_sources SET permission_note = ?, permission_date = ?, contact = ?, permission_by = ? WHERE id = ?").run(note, str(body.permission_date), contact, adminId, id);
+  audit(adminId, "media.source.permission", "mhub-source:" + id);
+  return getSource(id);
+}
+
+/** Switching on needs the permission record AND a different admin than the one who added it or recorded the permission. */
 export function enableSource(adminId: string, id: string, now: Date = new Date()): Src {
   const s = getSource(id);
-  if (s.created_by === adminId) throw new Bad("same_person", "a different admin must switch a source on");
+  if (s.created_by === adminId || s.permission_by === adminId) throw new Bad("same_person", "a different admin must switch a source on");
   const date = s.permission_date ? new Date(s.permission_date) : null;
   if (!s.permission_note || !s.contact || !date || Number.isNaN(date.getTime()) || date.getTime() > now.getTime() + 86_400_000)
     throw new Bad("permission_missing", "record the permission first: a note saying why we may show it, the date it was given, and a contact at the source");
@@ -187,7 +240,7 @@ export async function refreshSource(id: string, fetcher: Fetcher = realFetch, no
 
 /** Refreshes every enabled news source not fetched in the last REFRESH_MINUTES. Used by the news route (without waiting) and by tests. */
 export async function refreshDue(fetcher: Fetcher = realFetch, now: Date = new Date()): Promise<void> {
-  const due = db().prepare("SELECT id FROM mhub_sources WHERE kind = 'news' AND enabled = 1 AND (last_fetch_at IS NULL OR last_fetch_at < ?)").all(new Date(now.getTime() - REFRESH_MINUTES * 60_000).toISOString()) as { id: string }[];
+  const due = db().prepare("SELECT id FROM mhub_sources WHERE kind = 'news' AND feed_url IS NOT NULL AND enabled = 1 AND (last_fetch_at IS NULL OR last_fetch_at < ?)").all(new Date(now.getTime() - REFRESH_MINUTES * 60_000).toISOString()) as { id: string }[];
   for (const d of due) await refreshSource(d.id, fetcher, now).catch(() => undefined);
 }
 
@@ -196,12 +249,12 @@ export function newsFor(state: string | undefined, now: Date = new Date()) {
   const st = state === "AP" || state === "TG" ? state : null;
   const rows = db().prepare(`SELECT n.id, n.title, n.link, n.snippet, n.published_at, s.id AS sid, s.name_en, s.name_te, s.state FROM mhub_news n JOIN mhub_sources s ON s.id = n.source_id
     WHERE s.enabled = 1 AND n.hidden = 0 AND n.published_at >= ? ${st ? "AND (s.state = ? OR s.state = 'BOTH')" : ""} ORDER BY n.published_at DESC LIMIT 100`).all(...(st ? [since, st] : [since])) as unknown as { id: string; title: string; link: string; snippet: string | null; published_at: string; sid: string; name_en: string; name_te: string | null; state: string }[];
-  const items = rows.map((r) => ({ id: r.id, title: r.title, link: r.link, snippet: r.snippet, published_at: r.published_at, outlet_en: r.name_en, outlet_te: r.name_te, source_id: r.sid }));
+  const items = rows.map((r) => ({ id: r.id, title: r.title, link: r.link, snippet: r.snippet, published_at: r.published_at, outlet_en: r.name_en, outlet_te: r.name_te, source_id: r.sid, youtube: youtubeId(r.link) }));
   const dayAgo = new Date(now.getTime() - 86_400_000).toISOString();
   const digest = items.filter((i) => i.published_at >= dayAgo).slice(0, 5);
   const srcs = db().prepare("SELECT * FROM mhub_sources WHERE kind = 'news' AND enabled = 1").all() as unknown as Src[];
   const staleBefore = new Date(now.getTime() - STALE_HOURS * 3_600_000).toISOString();
-  return { items, digest, sources: srcs.map((s) => ({ ...srcPublic(s), stale: !s.last_ok_at || s.last_ok_at < staleBefore })), label: "publisher" };
+  return { items, digest, sources: srcs.map((s) => ({ ...srcPublic(s), stale: !!s.feed_url && (!s.last_ok_at || s.last_ok_at < staleBefore) })), label: "publisher" };
 }
 
 /* ---------------- live channels ---------------- */
@@ -209,6 +262,7 @@ export function newsFor(state: string | undefined, now: Date = new Date()) {
 export async function checkStream(id: string, fetcher: Fetcher = realFetch, now: Date = new Date()): Promise<boolean> {
   const s = getSource(id);
   if (s.kind !== "live" || !s.stream_url) throw new Bad("no_stream", "this channel has no stream address to check");
+  if (youtubeId(s.stream_url)) throw new Bad("youtube_unchecked", "a YouTube stream plays in YouTube's own player; we cannot check it from here");
   let ok = false;
   try { const r = await fetcher(s.stream_url, { method: "HEAD", signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) }); ok = r.ok; } catch { ok = false; }
   db().prepare("UPDATE mhub_sources SET health_ok = ?, health_at = ? WHERE id = ?").run(ok ? 1 : 0, now.toISOString(), id);
@@ -293,9 +347,11 @@ mediaRouter.post("/report", requireAuth, wrap((req, res) => { reportItem(req.per
 
 mediaRouter.get("/admin/sources", ...adminOnly, wrap((req, res) => {
   const rows = db().prepare("SELECT * FROM mhub_sources ORDER BY created_at DESC").all() as unknown as Src[];
-  res.json({ sources: rows.map((s) => ({ ...s, enabled: s.enabled === 1, mine: s.created_by === req.person!.id, created_by: undefined, enabled_by: undefined })), min_shown: MIN_COUNT_SHOWN, hosts: mediaVideoHosts() });
+  res.json({ sources: rows.map((s) => ({ ...s, enabled: s.enabled === 1, mine: s.created_by === req.person!.id || s.permission_by === req.person!.id, created_by: undefined, enabled_by: undefined, permission_by: undefined })), min_shown: MIN_COUNT_SHOWN, hosts: mediaVideoHosts() });
 }));
+mediaRouter.post("/admin/videos", ...adminOnly, wrap((req, res) => { const s = addVideoLink(req.person!.id, req.body ?? {}); res.status(201).json({ id: s.id }); }));
 mediaRouter.post("/admin/sources", ...adminOnly, wrap((req, res) => { const s = addSource(req.person!.id, req.body ?? {}); res.status(201).json({ id: s.id }); }));
+mediaRouter.post("/admin/sources/:id/permission", ...adminOnly, wrap((req, res) => { recordPermission(req.person!.id, String(req.params.id), req.body ?? {}); res.json({ ok: true }); }));
 mediaRouter.post("/admin/sources/:id/enable", ...adminOnly, wrap((req, res) => { enableSource(req.person!.id, String(req.params.id)); res.json({ ok: true }); }));
 mediaRouter.post("/admin/sources/:id/disable", ...adminOnly, wrap((req, res) => { disableSource(req.person!.id, String(req.params.id)); res.json({ ok: true }); }));
 mediaRouter.post("/admin/sources/:id/refresh", ...adminOnly, wrap(async (req, res) => { res.json(await refreshSource(String(req.params.id))); }));

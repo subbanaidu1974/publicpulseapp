@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { pickSource, kindOf, clock, isSpeed } from "../../src/components/media/playerLogic";
+import { pickSource, kindOf, clock, isSpeed, youtubeIdOf, buildPlaylist, stepEntry } from "../../src/components/media/playerLogic";
 
 describe("free media player logic (S-227)", () => {
   const S = [{ url: "a", label: "720p", height: 720 }, { url: "b", label: "360p", height: 360 }, { url: "c", label: "1080p", height: 1080 }];
@@ -26,5 +26,26 @@ describe("free media player logic (S-227)", () => {
   });
   it("@E2E-220 only the listed speeds are accepted", () => {
     expect(isSpeed(1.25)).toBe(true); expect(isSpeed(3)).toBe(false); expect(isSpeed(0)).toBe(false);
+  });
+});
+
+describe("YouTube link player logic (S-240)", () => {
+  it("@E2E-231 accepts watch, short, embed, live and youtu.be links; refuses everything else", () => {
+    const id = "dQw4w9WgXcQ";
+    for (const u of [`https://www.youtube.com/watch?v=${id}&t=10`, `https://youtu.be/${id}?si=x`, `https://m.youtube.com/watch?v=${id}`, `https://www.youtube.com/shorts/${id}`, `https://www.youtube.com/embed/${id}`, `https://www.youtube.com/live/${id}`, ` https://www.youtube.com/watch?v=${id} `]) expect(youtubeIdOf(u)).toBe(id);
+    for (const u of ["http://www.youtube.com/watch?v=" + id, "https://evil.example.net/watch?v=" + id, "https://www.youtube.com/@channel", "https://www.youtube.com/watch?v=short", "javascript:alert(1)", "not a link", ""]) expect(youtubeIdOf(u)).toBeNull();
+  });
+});
+
+describe("watch playlist logic (S-243)", () => {
+  const e = (key: string, kind: "own" | "youtube" = "own") => ({ key, kind, title: key, by: "x", src: key });
+  it("@E2E-237 own videos first, a repeated video listed once, stepping wraps and starts at the ends", () => {
+    const list = buildPlaylist([e("own:1"), e("own:2")], [e("yt:a", "youtube"), e("yt:a", "youtube"), e("own:1")]);
+    expect(list.map((x) => x.key)).toEqual(["own:1", "own:2", "yt:a"]);
+    expect(stepEntry(list, null, 1)?.key).toBe("own:1");
+    expect(stepEntry(list, null, -1)?.key).toBe("yt:a");
+    expect(stepEntry(list, "yt:a", 1)?.key).toBe("own:1");
+    expect(stepEntry(list, "own:1", -1)?.key).toBe("yt:a");
+    expect(stepEntry([], null, 1)).toBeNull();
   });
 });

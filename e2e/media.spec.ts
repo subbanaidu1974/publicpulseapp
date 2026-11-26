@@ -131,3 +131,32 @@ test.describe('free media player (S-227)', () => {
     expect(r.violations.map((v) => `${v.id}: ${v.nodes.length}`)).toEqual([]);
   });
 });
+
+test.describe('YouTube link player (S-240)', () => {
+  test('@E2E-232 a pasted YouTube link plays in the Watch section, nothing loads from YouTube before Play, a bad link is refused, nothing is stored or sent to our server', async ({ page }) => {
+    let framed = 0;
+    const ours: string[] = [];
+    await page.route('https://www.youtube-nocookie.com/**', (r) => { framed++; return r.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>player</title>' }); });
+    page.on('request', (r) => { if (r.url().includes('dQw4w9WgXcQ') && !r.url().includes('youtube-nocookie')) ours.push(r.url()); });
+    await openMedia(page);
+    await page.getByTestId('media-tab-watch').click();
+    await expect(page.getByTestId('yt-player')).toBeVisible();
+    expect(framed).toBe(0);
+    await page.getByTestId('yt-link').fill('https://example.com/video');
+    await page.getByTestId('yt-go').click();
+    await expect(page.getByTestId('yt-bad')).toBeVisible();
+    await expect(page.getByTestId('yt-frame')).toHaveCount(0);
+    expect(framed).toBe(0);
+    await page.getByTestId('yt-link').fill('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+    await page.getByTestId('yt-go').click();
+    await expect(page.getByTestId('yt-frame')).toHaveAttribute('src', /^https:\/\/www\.youtube-nocookie\.com\/embed\/dQw4w9WgXcQ/);
+    await expect.poll(() => framed).toBeGreaterThan(0);
+    expect(ours).toEqual([]); // the link never went to our server
+    const stored = await page.evaluate(() => JSON.stringify({ ...localStorage }) + JSON.stringify({ ...sessionStorage }));
+    expect(stored).not.toContain('dQw4w9WgXcQ');
+    const r = await new AxeBuilder({ page }).include('[data-testid=yt-player]').withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+    expect(r.violations.map((v) => `${v.id}: ${v.nodes.length}`)).toEqual([]);
+    await page.getByTestId('yt-clear').click();
+    await expect(page.getByTestId('yt-frame')).toHaveCount(0);
+  });
+});

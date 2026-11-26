@@ -29,3 +29,32 @@ export function clock(sec: number): string {
   const s = Math.floor(sec), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
   return (h ? `${h}:${String(m).padStart(2, "0")}` : `${m}`) + `:${String(r).padStart(2, "0")}`;
 }
+
+/** A YouTube video id from a pasted link (watch, short, embed, live or youtu.be), else null. Pure: nothing is fetched. */
+export function youtubeIdOf(raw: string): string | null {
+  let u: URL;
+  try { u = new URL(raw.trim()); } catch { return null; }
+  if (u.protocol !== "https:") return null;
+  const h = u.hostname.toLowerCase();
+  let id = "";
+  if (h === "youtu.be") id = u.pathname.slice(1);
+  else if (h === "www.youtube.com" || h === "youtube.com" || h === "m.youtube.com" || h === "www.youtube-nocookie.com") {
+    if (u.pathname === "/watch") id = u.searchParams.get("v") ?? "";
+    else { const m = /^\/(shorts|embed|live)\/([^/]+)/.exec(u.pathname); id = m ? m[2] : ""; }
+  }
+  return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+}
+
+/** One row of the Watch playlist: our own broadcast video (plays from its file) or a YouTube video (plays in YouTube's own embed). */
+export interface WatchEntry { key: string; kind: "own" | "youtube"; title: string; by: string; src: string; media?: "video" | "audio"; note?: string | null; when?: string | null }
+/** Own videos first (newest first as given), then YouTube news; the same YouTube video is listed once. No history, no recommendation: the order is fixed. */
+export function buildPlaylist(own: WatchEntry[], yt: WatchEntry[]): WatchEntry[] {
+  const seen = new Set<string>();
+  return [...own, ...yt].filter((e) => (seen.has(e.key) ? false : (seen.add(e.key), true)));
+}
+/** The entry after (or before) the current one, wrapping at the ends. Null when the list is empty. */
+export function stepEntry(list: WatchEntry[], key: string | null, dir: 1 | -1): WatchEntry | null {
+  if (!list.length) return null;
+  const i = list.findIndex((e) => e.key === key);
+  return list[i < 0 ? (dir === 1 ? 0 : list.length - 1) : (i + dir + list.length) % list.length];
+}
