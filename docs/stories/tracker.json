@@ -2755,7 +2755,7 @@
       "priority": "P2",
       "wave": "W9",
       "source": "user request 2026-11-25 (panchayat roadmap)",
-      "notes": "Match each unit to data/generated/geo/lgd-AP.json and lgd-TG.json by LGD code, falling back to district, mandal and name; report unmatched units instead of guessing. Telugu names from the LGD file. Ties to S-212."
+      "notes": "Match each unit to data/generated/geo/lgd-AP.json and lgd-TG.json by LGD code, falling back to district, mandal and name; report unmatched units instead of guessing. Telugu names from the LGD file. Ties to S-212. BUILT on sample data under S-221 (matching by code or unique name, conflicts and leftovers listed); stays open until real unit rows are loaded and the match rate on them is checked."
     },
     {
       "id": "S-214",
@@ -2767,7 +2767,7 @@
       "priority": "P2",
       "wave": "W9",
       "source": "user request 2026-11-25 (panchayat roadmap)",
-      "notes": "Pages and API for browsing results by district, mandal and unit with search by village name, breadcrumb, phone-width layout and Telugu. Shows posts, contested, unopposed and turnout; no ranking of villages or parties."
+      "notes": "Pages and API for browsing results by district, mandal and unit with search by village name, breadcrumb, phone-width layout and Telugu. Shows posts, contested, unopposed and turnout; no ranking of villages or parties. BUILT on sample data under S-221 (district, mandal, panchayat, search); stays open until real rows are loaded."
     },
     {
       "id": "S-215",
@@ -2779,7 +2779,7 @@
       "priority": "P2",
       "wave": "W9",
       "source": "user request 2026-11-25 (panchayat roadmap)",
-      "notes": "Comparison across the cycles loaded in S-205 to S-211 for the same state: unopposed share, turnout, and reserved posts (SC, ST, BC, women) where the source gives them. Each chart states its source and what changed between cycles (new units, reservation rules)."
+      "notes": "Comparison across the cycles loaded in S-205 to S-211 for the same state: unopposed share, turnout, and reserved posts (SC, ST, BC, women) where the source gives them. Each chart states its source and what changed between cycles (new units, reservation rules). BUILT on sample data under S-221 (cycle table, shared units, change warning); reservation categories are not built; stays open until real rows are loaded."
     },
     {
       "id": "S-216",
@@ -2848,6 +2848,21 @@
       "wave": "W9",
       "source": "user request 2026-11-25 (add the latest panchayat results)",
       "notes": "Built: party totals for the newest rounds, read on 2026-11-25 from news reports and checked against each other. Telangana gram panchayat December 2025 (3 phases; INC-backed 6,794 to 7,010, BRS 3,502 to 3,503, BJP 688 to 697, others 1,505 to 1,651; 12,727 gram panchayats) is shown as ranges because no final count was found and the reports disagree. Andhra Pradesh ZPTC and MPTC of 5 November 2026 use the party figures on which two outlets that called their counts final agree (ZPTC: TDP 406, YSRCP 76, JSP 73, BJP 20, CPI(M) 1, independents 6; MPTC: TDP 4,806, YSRCP 1,711, JSP 938, BJP 117, CPI(M) 15, independents 162), with unopposed seats shown separately. Where reports disagree we show the range or leave the figure out (MPTC total seats; INC MPTC seats). The page lists every report the figures came from and says they are news-report figures, not commission data. Data format gains ranges, unopposed counts and news evidence; new licence record news-reports-facts (needs a counsel decision). NOT done: no final Telangana count; no phase 2 or phase 3 turnout; unopposed total for Telangana unknown; no figures for Telangana MPTC and ZPTC (no round found since 2019, status unconfirmed) or AP gram panchayat after 2021 (none found); nothing checked against the State Election Commissions; one outlet could not be read (Munsif Daily, 403); the AP 2026 report dates look odd against the 2021 round and should be confirmed; Telugu machine-drafted and unreviewed."
+    },
+    {
+      "id": "S-221",
+      "epic": "Elections",
+      "title": "Panchayat browse-by-place screens, place matching and cycle trends, built and tested on sample data",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-214",
+        "E2E-215"
+      ],
+      "priority": "P2",
+      "wave": "W9",
+      "source": "user request 2026-11-26 (build the panchayat screens on fixture data)",
+      "notes": "Built: a unit-level data path (units-<ST>.json beside the totals files) with its own API (/analytics/panchayat/:state/units and /trends); matching of gram panchayat rows to the Local Government Directory by code or by a unique district, mandal and name, with unmatched and conflicting rows listed and never guessed, and Telugu names taken from the directory; roll-ups by district and mandal listed by name with plain averages; a Browse by place section (district to mandal to panchayat, search, election picker, match status per row); a cycle-to-cycle table with the number of units present in every cycle and a warning when the unit list changed. All of it is exercised on a small invented sample (e2e/fixtures/panchayat/units-TG.json, 12 and 14 gram panchayats from real directory names with invented numbers and SAMPLE WINNER names). The sample is shown under a red banner, is refused by the server unless started with PANCHAYAT_UNITS_DIR (set only for the browser tests), and a test fails if any unit file in data/reference is marked as a sample. With no unit file, which is the case today, the page says village-level results are not loaded. NOT done: no real unit-level result exists, so S-213 to S-215 stay open until real rows are loaded and checked; reservation categories (SC, ST, BC, women) are not in the format; MPTC and ZPTC rows are not matched to places (only gram panchayats are); turnout is a plain average of units, not weighted by electors; no paging beyond the first 200 rows of a place; no map; Telugu machine-drafted and unreviewed."
     }
   ]
 }

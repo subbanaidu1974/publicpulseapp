@@ -20,7 +20,10 @@ import type { ElectionType, StateCode } from "../src/lib/states";
 import { candidateTrails, constituencyCompare, incumbencySummary, partyShareCompare, TRAIL_NOTE } from "../src/lib/comparison";
 import { turnoutReport } from "../src/lib/turnout";
 import { partyHistory } from "../src/lib/partyHistory";
-import { panchayatResponse } from "../src/lib/panchayat";
+import { panchayatResponse, validatePanchayatFile } from "../src/lib/panchayat";
+import type { PanchayatFile } from "../src/lib/panchayat";
+import { buildDirectory, joinUnits, rollup, trends as panchayatTrends } from "../src/lib/panchayatUnits";
+import type { Directory, LgdFile } from "../src/lib/panchayatUnits";
 import { comparabilityNotes } from "../src/lib/comparability";
 import type { Datasets } from "./api";
 import { peopleBlackout } from "./people-api";
@@ -179,6 +182,71 @@ export function createAnalyticsRouter(data: Datasets, opts: { baseDir?: string }
     if (!state) return bad(res, 404, "Unknown state. Valid: AP, TG", "unknown_state");
     res.set("Cache-Control", "public, max-age=300");
     res.json(panchayatResponse(state, readJson<unknown | null>(path.join(baseDir, `data/reference/panchayat/results-${state}.json`), null)));
+  });
+
+  /* ---- S-213 to S-215 panchayat unit-level browsing and trends. Unit rows come from units-<ST>.json in data/reference/panchayat (none exists yet) or, for tests, from PANCHAYAT_UNITS_DIR. ---- */
+  const unitsDir = process.env.PANCHAYAT_UNITS_DIR ? path.resolve(process.env.PANCHAYAT_UNITS_DIR) : path.join(baseDir, "data/reference/panchayat");
+  const lgdCache = new Map<string, Directory | null>();
+  const directory = (state: StateCode): Directory | null => {
+    if (!lgdCache.has(state)) {
+      const lgd = readJson<LgdFile | null>(path.join(baseDir, `data/generated/geo/lgd-${state}.json`), null);
+      lgdCache.set(state, lgd && Array.isArray(lgd.gps) ? buildDirectory(lgd) : null);
+    }
+    return lgdCache.get(state) ?? null;
+  };
+  /** The unit-level file for a state, or the reasons it was not accepted. Sample (fixture) data is refused unless the test directory was set. */
+  const unitFile = (state: StateCode): { file: PanchayatFile | null; problems: string[] } => {
+    const raw = readJson<unknown | null>(path.join(unitsDir, `units-${state}.json`), null);
+    if (raw == null) return { file: null, problems: [] };
+    const problems = validatePanchayatFile(raw, state);
+    const f = raw as PanchayatFile;
+    if (f.fixture === true && !process.env.PANCHAYAT_UNITS_DIR) problems.push("sample data is refused outside the test directory");
+    if (!problems.length && !f.elections.some((e) => e.units?.length)) problems.push("no election in this file has unit rows");
+    return problems.length ? { file: null, problems } : { file: f, problems: [] };
+  };
+  const unitNotes = [
+    "Unit rows are shown only from a file with a stated source and licence. Places are matched to the Local Government Directory by code, or by district, mandal and name when that is unique; units that cannot be matched are listed, never guessed.",
+    "Places are listed by name. Nothing here ranks a village, mandal or district.",
+  ];
+
+  router.get("/analytics/panchayat/:state/units", (req, res) => {
+    const state = state_(req.params.state);
+    if (!state) return bad(res, 404, "Unknown state. Valid: AP, TG", "unknown_state");
+    res.set("Cache-Control", "no-store");
+    const { file, problems } = unitFile(state);
+    if (!file) return res.json({ state, loaded: false, fixture: false, elections: [], problems, notes: unitNotes });
+    const withUnits = file.elections.filter((e) => e.units?.length).sort((a, b) => b.year - a.year || a.level.localeCompare(b.level));
+    const id = qs(req.query.election) ?? withUnits[0].id;
+    const e = withUnits.find((x) => x.id === id);
+    if (!e) return bad(res, 404, "Unknown election id", "unknown_election");
+    const joined = joinUnits(e.units!, e.level, directory(state), e.id);
+    const district = qs(req.query.district); const mandal = qs(req.query.mandal); const q = qs(req.query.q)?.toLowerCase();
+    let scope = joined.units;
+    if (district) scope = scope.filter((u) => u.district === district);
+    if (mandal) scope = scope.filter((u) => (u.mandal ?? "-") === mandal);
+    if (q) scope = scope.filter((u) => u.name.toLowerCase().includes(q) || (u.nameTe ?? "").includes(qs(req.query.q)!) || u.district.toLowerCase().includes(q) || (u.mandal ?? "").toLowerCase().includes(q));
+    const level = mandal ? "units" : district ? "mandal" : "district";
+    res.json({
+      state, loaded: true, fixture: file.fixture === true, source: file.source, notes: unitNotes, problems: [],
+      elections: withUnits.map((x) => ({ id: x.id, level: x.level, year: x.year, period: x.period, units: x.units!.length })),
+      election: { id: e.id, level: e.level, year: e.year, period: e.period, phases: e.phases ?? [], caveats: e.caveats ?? [] },
+      view: q ? "search" : level, district: district ?? null, mandal: mandal ?? null, q: q ?? null,
+      groups: q ? [] : level === "district" ? rollup(scope, "district") : level === "mandal" ? rollup(scope, "mandal") : [],
+      units: q || level === "units" ? scope.slice(0, 200) : [], unitTotal: scope.length,
+      join: joined.stats,
+    });
+  });
+
+  router.get("/analytics/panchayat/:state/trends", (req, res) => {
+    const state = state_(req.params.state);
+    if (!state) return bad(res, 404, "Unknown state. Valid: AP, TG", "unknown_state");
+    res.set("Cache-Control", "no-store");
+    const { file, problems } = unitFile(state);
+    if (!file) return res.json({ state, loaded: false, fixture: false, trends: [], problems, notes: unitNotes });
+    res.json({
+      state, loaded: true, fixture: file.fixture === true, source: file.source, problems: [], notes: unitNotes,
+      trends: (["gp", "mptc", "zptc"] as const).map((l) => panchayatTrends(file.elections, l)).filter((t) => t.points.length > 0),
+    });
   });
 
   router.get("/analytics/candidates/:state", (req, res) => {

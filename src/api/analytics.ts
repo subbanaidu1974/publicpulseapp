@@ -4,12 +4,21 @@ import type { SeatTurnout, TurnoutTotals, DistrictTurnout, SexSummary } from "..
 import type { PartyCompareRow, PcCompareRow, IncumbencySummary, CandidateTrail } from "../lib/comparison";
 import type { StateCode, ElectionType } from "../lib/states";
 import type { PartyHistory } from "../lib/partyHistory";
-import type { PanchayatResponse } from "../lib/panchayat";
+import type { PanchayatResponse, PanchayatSource } from "../lib/panchayat";
+import type { Group, JoinStats, JoinedUnit, Trend } from "../lib/panchayatUnits";
 import { reportShed, shedFrom } from "../lib/degraded";
 
 /** Typed client for the analytics endpoints (server/analytics-api.ts). */
 export interface ElectorsItem { acNo: number; acName: string; pcName: string; general: number; nri: number; service: number; male: number; female: number; thirdGender: number; total: number }
 export interface ElectorsResponse { state: StateCode; available: boolean; rollYear?: number; total: number; totalElectors?: number; items: ElectorsItem[]; note: string; source: SourceEnv | null }
+export interface PanchayatUnitsResponse {
+  state: StateCode; loaded: boolean; fixture: boolean; source?: PanchayatSource; notes: string[]; problems: string[];
+  elections: { id: string; level: "gp" | "mptc" | "zptc"; year: number; period: string; units: number }[];
+  election?: { id: string; level: "gp" | "mptc" | "zptc"; year: number; period: string; phases: { date: string }[]; caveats: string[] };
+  view?: "district" | "mandal" | "units" | "search"; district?: string | null; mandal?: string | null; q?: string | null;
+  groups?: Group[]; units?: JoinedUnit[]; unitTotal?: number; join?: JoinStats;
+}
+export interface PanchayatTrendsResponse { state: StateCode; loaded: boolean; fixture: boolean; source?: PanchayatSource; notes: string[]; problems: string[]; trends: Trend[] }
 export type PartiesResponse = PartyHistory & { demo: boolean; notes: string[]; source: SourceEnv | null };
 export interface SourceEnv { dataset: string; provenance: string; urls: string[]; licences: string[]; attribution: string; asOf: string | null }
 
@@ -63,6 +72,8 @@ export const analytics = {
   electors: (state: StateCode) => get<ElectorsResponse>(`/electors/${state}`),
   parties: (state: StateCode) => get<PartiesResponse>(`/analytics/parties/${state}`),
   panchayat: (state: StateCode) => get<PanchayatResponse>(`/analytics/panchayat/${state}`),
+  panchayatUnits: (state: StateCode, p: { election?: string; district?: string; mandal?: string; q?: string }) => get<PanchayatUnitsResponse>(`/analytics/panchayat/${state}/units`, p),
+  panchayatTrends: (state: StateCode) => get<PanchayatTrendsResponse>(`/analytics/panchayat/${state}/trends`),
   history: (state: StateCode) => get<HistoryResponse>(`/history/${state}`),
   byelections: (p: { state?: StateCode; type?: ElectionType; acNo?: number }) => get<ByElectionsResponse>("/byelections", p),
   partySwitches: (p: { state?: StateCode; name?: string; acNo?: number; type?: ElectionType }) => get<PartySwitchesResponse>("/party-switches", p),

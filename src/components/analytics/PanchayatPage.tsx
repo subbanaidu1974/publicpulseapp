@@ -6,6 +6,7 @@ import { partyColor } from "../../lib/parties";
 import type { PanchayatLevel } from "../../lib/panchayat";
 import { useAT, type AKey } from "./analyticsText";
 import { Wait, fnum } from "./common";
+import PanchayatBrowse from "./PanchayatBrowse";
 
 /**
  * Panchayat elections (S-203, S-219). Party totals per election from the secondary source named on the page (English Wikipedia, CC BY-SA 4.0);
@@ -134,6 +135,7 @@ export default function PanchayatPage() {
                 );
               })}
             </div>
+            <PanchayatBrowse />
             <ul className="text-[11px] list-disc pl-5 space-y-1" data-testid="panchayat-notes">{s.data.notes.map((n) => <li key={n}>{n}</li>)}</ul>
           </>
         )}

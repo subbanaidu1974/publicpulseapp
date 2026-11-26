@@ -82,3 +82,17 @@ Steps 3 to 9 cannot start before step 2 except the join and browse screens, whic
 - Placeholders and fixtures never count as real data and never ship in `data/reference`.
 - No scraping of a site whose terms forbid it; request volume stays low; nothing is fetched without the owner's go-ahead.
 - Telugu text stays marked machine-drafted until a native speaker reviews it.
+
+## Screens built on sample data (S-221)
+
+The Browse by place section and the cycle table exist and work, but only on an invented sample. Today `data/reference/panchayat` holds no `units-<ST>.json`, so the page says village-level results are not loaded.
+
+- **Real unit rows go in** `data/reference/panchayat/units-<ST>.json` (same file shape as the totals files, elections carry `units`). They are matched to the Local Government Directory by `lgdCode`, or by district, mandal and name when that is unique. Rows that cannot be matched, or whose code belongs to another district or mandal, are listed and never guessed.
+- **The sample** is `e2e/fixtures/panchayat/units-TG.json`: real place names from the directory, invented numbers, winners named `SAMPLE WINNER n`, marked `"fixture": true`. The server loads it only when started with `PANCHAYAT_UNITS_DIR` (the browser tests set this). A test fails if any file in `data/reference/panchayat` is marked as a sample.
+- **To look at the sample screens yourself**, start the dev server with the variable set:
+
+```powershell
+$env:PANCHAYAT_UNITS_DIR = (Resolve-Path e2e/fixtures/panchayat).Path; npm run dev
+```
+
+- **Not built:** reservation categories, MPTC and ZPTC place matching (only gram panchayats are matched), electors-weighted turnout, a map, paging beyond 200 rows of a place.

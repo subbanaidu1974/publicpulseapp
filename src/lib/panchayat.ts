@@ -43,7 +43,11 @@ export interface PanchayatEvidence {
   also?: { publisher: string; url: string; date: string }[];
 }
 export interface PanchayatSource { publisher: string; url: string; licence: string; terms: string; retrieved: string; quality: "commission" | "secondary" }
-export interface PanchayatFile { state: StateCode; source: PanchayatSource; otherSources?: PanchayatSource[]; elections: PanchayatElection[] }
+export interface PanchayatFile {
+  state: StateCode; source: PanchayatSource; otherSources?: PanchayatSource[]; elections: PanchayatElection[];
+  /** Sample data for tests. Refused by the server unless it was started with PANCHAYAT_UNITS_DIR, and never allowed in data/reference. */
+  fixture?: boolean;
+}
 export interface PanchayatSummary {
   id: string; level: PanchayatLevel; year: number; period: string; scope: string | null;
   units: number | null; posts: number | null; unopposed: number | null; tallies: PanchayatTally[]; phases: PanchayatPhase[]; evidence: PanchayatEvidence | null; caveats: string[];

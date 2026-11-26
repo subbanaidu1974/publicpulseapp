@@ -315,3 +315,84 @@ test.describe('panchayat elections (S-203, S-219)', () => {
     await expect(page.getByTestId('an-nav-panchayat')).toContainText('పంచాయతీ');
   });
 });
+
+test.describe('panchayat browse by place and trends (S-213, S-214, S-215) on sample data', () => {
+  test('@E2E-214 sample data is labelled loudly, districts open to mandals and then to panchayats, and unmatched or conflicting units are reported', async ({ page, request }) => {
+    const api = await request.get('/api/v1/analytics/panchayat/TG/units');
+    expect(api.status()).toBe(200);
+    const body = await api.json();
+    expect(body.loaded).toBe(true);
+    expect(body.fixture).toBe(true);
+    expect(body.election.id).toBe('fx-gp-2025'); // latest election first
+    expect((await request.get('/api/v1/analytics/panchayat/XX/units')).status()).toBe(404);
+    expect((await request.get('/api/v1/analytics/panchayat/TG/units?election=nope')).status()).toBe(404);
+
+    await page.goto('/?state=TG#/analytics/panchayat');
+    await expect(page.getByTestId('panchayat-fixture')).toContainText(/SAMPLE DATA FOR TESTING/);
+    await expect(page.getByTestId('panchayat-election')).toHaveValue('fx-gp-2025');
+    const groups = page.getByTestId('panchayat-group');
+    await expect(groups).toHaveCount(2);
+    const names = await groups.evaluateAll((els) => els.map((e) => e.getAttribute('data-key') ?? ''));
+    expect([...names].sort((a, b) => a.localeCompare(b))).toEqual(names); // by name, never ranked
+    await expect(page.getByTestId('panchayat-join')).toContainText(/1 not matched, 1 in conflict, of 14/);
+    await expect(page.getByTestId('panchayat-join')).toContainText(/Sample New Village/);
+
+    await groups.first().getByTestId('panchayat-open').click();
+    await expect(page.getByTestId('panchayat-crumbs')).toContainText(names[0]);
+    const mandals = page.getByTestId('panchayat-group');
+    await expect(mandals.first()).toBeVisible();
+    expect(await mandals.count()).toBeGreaterThanOrEqual(2);
+    await mandals.first().getByTestId('panchayat-open').click();
+    const units = page.getByTestId('panchayat-unit');
+    await expect(units.first()).toBeVisible();
+    expect(await units.count()).toBeGreaterThanOrEqual(3);
+    expect(await units.evaluateAll((els) => els.every((e) => ['code', 'name', 'none', 'conflict'].includes(e.getAttribute('data-match') ?? '')))).toBe(true);
+    await expect(page.getByTestId('panchayat-units').locator('tbody')).toContainText(/SAMPLE WINNER/);
+    // breadcrumb goes back up
+    await page.getByTestId('panchayat-crumbs').getByRole('button').first().click();
+    await expect(page.getByTestId('panchayat-group')).toHaveCount(2);
+
+    // search finds the unit with no directory entry and says it is not matched
+    await page.getByTestId('panchayat-search').fill('Sample New Village');
+    await expect(page.getByTestId('panchayat-unit')).toHaveCount(1);
+    await expect(page.getByTestId('panchayat-unit')).toHaveAttribute('data-match', 'none');
+    await page.getByTestId('panchayat-search').fill('zzzz-no-such-place');
+    await expect(page.getByTestId('panchayat-browse-nomatch')).toBeVisible();
+    await page.getByTestId('panchayat-search').fill('');
+
+    // the earlier election has every unit matched
+    await page.getByTestId('panchayat-election').selectOption('fx-gp-2019');
+    await expect(page.getByTestId('panchayat-join')).toContainText(/0 not matched, 0 in conflict, of 12/);
+  });
+
+  test('@E2E-214 cycle to cycle comparison shows both elections, the shared units and a warning when the unit list changed', async ({ page }) => {
+    await page.goto('/?state=TG#/analytics/panchayat');
+    const trend = page.locator('[data-testid=panchayat-trend][data-level=gp]');
+    await expect(trend).toBeVisible();
+    await expect(trend.getByTestId('panchayat-trend-row')).toHaveCount(2);
+    await expect(trend.getByTestId('panchayat-trend-row').first()).toContainText('2019');
+    await expect(trend.getByTestId('panchayat-trend-notes')).toContainText(/12 unit\(s\) appear in every cycle/);
+    await expect(trend.getByTestId('panchayat-trend-notes')).toContainText(/differs between cycles/);
+    await expect(trend.getByTestId('panchayat-trend-notes')).toContainText(/not weighted/);
+  });
+
+  test('@E2E-214 a state with no unit file says village-level results are not loaded and shows no table', async ({ page }) => {
+    await page.goto('/?state=AP#/analytics/panchayat');
+    await expect(page.getByTestId('panchayat-browse-empty')).toContainText(/not loaded yet/);
+    await expect(page.getByTestId('panchayat-fixture')).toHaveCount(0);
+    await expect(page.getByTestId('panchayat-groups')).toHaveCount(0);
+    await expect(page.getByTestId('panchayat-trends')).toHaveCount(0);
+  });
+
+  test('@E2E-214 Telugu: place names come from the directory in Telugu and the controls are in Telugu', async ({ page }) => {
+    await page.addInitScript(() => { try { localStorage.setItem('pp-lang', 'te'); } catch { /* ignore */ } });
+    await page.goto('/?state=TG#/analytics/panchayat');
+    await expect(page.getByTestId('panchayat-fixture')).toContainText(/[ఀ-౿]/);
+    await page.getByTestId('panchayat-search').fill('Sample New Village');
+    await page.getByTestId('panchayat-search').fill('');
+    await page.getByTestId('panchayat-group').first().getByTestId('panchayat-open').click();
+    await page.getByTestId('panchayat-group').first().getByTestId('panchayat-open').click();
+    const first = page.getByTestId('panchayat-unit').first().locator('th').first();
+    await expect(first).toContainText(/[ఀ-౿]/); // matched units show the directory's Telugu name
+  });
+});
