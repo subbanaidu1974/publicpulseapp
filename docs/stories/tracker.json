@@ -2863,6 +2863,35 @@
       "wave": "W9",
       "source": "user request 2026-11-26 (build the panchayat screens on fixture data)",
       "notes": "Built: a unit-level data path (units-<ST>.json beside the totals files) with its own API (/analytics/panchayat/:state/units and /trends); matching of gram panchayat rows to the Local Government Directory by code or by a unique district, mandal and name, with unmatched and conflicting rows listed and never guessed, and Telugu names taken from the directory; roll-ups by district and mandal listed by name with plain averages; a Browse by place section (district to mandal to panchayat, search, election picker, match status per row); a cycle-to-cycle table with the number of units present in every cycle and a warning when the unit list changed. All of it is exercised on a small invented sample (e2e/fixtures/panchayat/units-TG.json, 12 and 14 gram panchayats from real directory names with invented numbers and SAMPLE WINNER names). The sample is shown under a red banner, is refused by the server unless started with PANCHAYAT_UNITS_DIR (set only for the browser tests), and a test fails if any unit file in data/reference is marked as a sample. With no unit file, which is the case today, the page says village-level results are not loaded. NOT done: no real unit-level result exists, so S-213 to S-215 stay open until real rows are loaded and checked; reservation categories (SC, ST, BC, women) are not in the format; MPTC and ZPTC rows are not matched to places (only gram panchayats are); turnout is a plain average of units, not weighted by electors; no paging beyond the first 200 rows of a place; no map; Telugu machine-drafted and unreviewed."
+    },
+    {
+      "id": "S-222",
+      "epic": "Civic",
+      "title": "Civic page in tabs: Report an issue and My reports on separate tabs for every signed-in user, Sign in and Log out in the top bar",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-217"
+      ],
+      "priority": "P2",
+      "wave": "W8",
+      "source": "user request 2026-11-26",
+      "notes": "Built: six tabs under the trust badge (Report an issue, My reports, Household, My account, Explore, Roles and tools), the same for the resident, volunteer, officer, journalist and admin demo users; My reports holds the person's own reports and the local issues feed; inactive tabs stay loaded but hidden so drafts survive a switch; arrow, Home and End keys work; English and Telugu labels; the last tab is remembered for the session. A Sign in button sits in the top right of the bar at every width (it opens the Civic page) and turns into Log out once signed in; the old Log out button on the Civic page was removed. The demo sign-in lists only Resident, Volunteer, Government officer, Journalist and Platform admin (nine other demo accounts are hidden but still accepted by the login route because tests use them). About 15 existing browser specs were changed to start on the right tab. NOT done: no tab for roles the person does not hold is hidden (Roles and tools is always shown), the new Telugu tab labels and Log out are machine-drafted and unreviewed, not recorded on video."
+    },
+    {
+      "id": "S-223",
+      "epic": "Surveys",
+      "title": "Admin publishes a survey and every other user must answer it: validated for resident, volunteer, officer and journalist, with recorded video",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-216",
+        "E2E-202"
+      ],
+      "priority": "P1",
+      "wave": "W8",
+      "source": "user request 2026-11-26",
+      "notes": "Uses the broadcast poll built under S-185 (the 'survey' that pops up and forces an answer). Added a recorded journey: the demo admin publishes a poll from the Admin console (now under the Roles and tools tab); then the Resident, Volunteer, Government officer and Journalist demo users each sign in through the real sign-in screen, see the survey pop up over the whole app, cannot dismiss it (Escape does nothing, the app behind is inert), cannot submit until the question is answered, and after submitting reach the app and are not asked again, also after a reload; the admin is never blocked, then sees 4 answers (counts stay hidden under 10) and closes the survey. Two 1280x720 videos are saved by npm run e2e:poll-all-videos to test-results/videos/broadcast-poll-all-users/. NOT done: the same limits as S-185 (one admin can publish alone, no counsel view on forcing an answer, no targeting by place or role, English-only admin screen, machine-drafted Telugu), the journey is not recorded in Telugu or at phone width, a person who is signed out sees it at their next sign-in rather than at once."
     }
   ]
 }
