@@ -233,3 +233,4 @@ Layers: **API** = HTTP-level test (no browser), **UI** = Playwright browser.
 | E2E-236 | Journey | The two candidate feeds are listed off with a permission form; recording it does not let the same admin switch it on; a different admin can | S-242 |
 | E2E-237 | Unit | Watch playlist logic: own videos first, a repeated video listed once, next and previous wrap | S-243 |
 | E2E-238 | Journey | The Watch tab has a stage and a list of own and YouTube news videos; nothing loads until one is chosen; next and previous step through it; own video never autoplays; axe and phone width clean | S-243 |
+| E2E-239 | Unit | Candidate Telugu channel feeds (NTV Telugu, TV9 Telugu, 10TV, Sakshi): loaded off with no permission, Telugu names, enabling refused until permission is recorded, nothing shown | S-244 |
