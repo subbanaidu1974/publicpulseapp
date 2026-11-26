@@ -13,7 +13,8 @@ export interface PanchayatUnit {
   posts: number; contested?: number; unopposed?: boolean; turnoutPct?: number;
   winner?: { name: string; partyBacked?: string };
 }
-export interface PanchayatTally { party: string; won: number; byPhase?: (number | null)[] }
+/** `won` is the figure (or the lowest figure) reported; `wonMax` is the highest when outlets or snapshots disagree. */
+export interface PanchayatTally { party: string; won: number; wonMax?: number; byPhase?: (number | null)[] }
 export interface PanchayatPhase { date: string; gps?: number; turnoutPct?: number }
 export interface PanchayatElection {
   id: string; level: PanchayatLevel; year: number;
@@ -24,21 +25,32 @@ export interface PanchayatElection {
   scope?: string;
   /** Posts (seats) up for election, as the source states it. */
   totalPosts?: number;
+  /** Posts filled without a contest, where the source gives a number. */
+  unopposed?: number;
   tallies?: PanchayatTally[];
   units?: PanchayatUnit[];
-  evidence?: { url: string; revision: string; cites: string };
+  evidence?: PanchayatEvidence;
   /** Plain-language limits of these figures: gaps, disagreements inside the source, what is not covered. */
   caveats?: string[];
 }
+export interface PanchayatEvidence {
+  kind: "wikipedia" | "news";
+  url: string;
+  /** Wikipedia revision number; required for kind wikipedia. */
+  revision?: string;
+  cites: string;
+  /** The other reports the figures were checked against (kind news). */
+  also?: { publisher: string; url: string; date: string }[];
+}
 export interface PanchayatSource { publisher: string; url: string; licence: string; terms: string; retrieved: string; quality: "commission" | "secondary" }
-export interface PanchayatFile { state: StateCode; source: PanchayatSource; elections: PanchayatElection[] }
+export interface PanchayatFile { state: StateCode; source: PanchayatSource; otherSources?: PanchayatSource[]; elections: PanchayatElection[] }
 export interface PanchayatSummary {
   id: string; level: PanchayatLevel; year: number; period: string; scope: string | null;
-  units: number | null; posts: number | null; tallies: PanchayatTally[]; phases: PanchayatPhase[]; evidence: PanchayatElection["evidence"] | null; caveats: string[];
+  units: number | null; posts: number | null; unopposed: number | null; tallies: PanchayatTally[]; phases: PanchayatPhase[]; evidence: PanchayatEvidence | null; caveats: string[];
 }
 export interface PanchayatResponse {
   state: StateCode; loaded: boolean; granularity: "none" | "totals" | "units"; levels: readonly PanchayatLevel[];
-  elections: PanchayatSummary[]; source: PanchayatSource | null; problems: string[]; notes: string[];
+  elections: PanchayatSummary[]; source: PanchayatSource | null; otherSources: PanchayatSource[]; problems: string[]; notes: string[];
 }
 
 /** Keys that would mean voter-level or electoral-roll data; any file containing one is refused. */
@@ -67,6 +79,7 @@ export function validatePanchayatFile(raw: unknown, state: StateCode): string[] 
   if (!s || !s.publisher || !s.url || !s.licence || !s.terms || !s.retrieved) p.push("source needs publisher, url, licence, terms and retrieved");
   else if (!ISO.test(s.retrieved)) p.push("source.retrieved must be YYYY-MM-DD");
   if (!s || (s.quality !== "commission" && s.quality !== "secondary")) p.push("source.quality must be commission or secondary");
+  for (const o of f.otherSources ?? []) if (!o.publisher || !o.url || !o.licence || !o.terms || !o.retrieved || !ISO.test(o.retrieved)) p.push("each otherSources entry needs publisher, url, licence, terms and retrieved (YYYY-MM-DD)");
   if (!Array.isArray(f.elections) || f.elections.length === 0) { p.push("elections must be a non-empty list"); return p; }
   const ids = new Set<string>();
   for (const e of f.elections) {
@@ -82,11 +95,15 @@ export function validatePanchayatFile(raw: unknown, state: StateCode): string[] 
     const hasTallies = Array.isArray(e.tallies) && e.tallies.length > 0;
     if (!hasUnits && !hasTallies) { p.push(`${at}: needs units or tallies`); continue; }
     if (hasTallies) {
-      if (!e.evidence || !e.evidence.url || !e.evidence.revision || !e.evidence.cites) p.push(`${at}: totals need evidence (url, revision, cites)`);
+      const v = e.evidence;
+      if (!v || !v.url || !v.cites || (v.kind !== "wikipedia" && v.kind !== "news")) p.push(`${at}: totals need evidence (kind, url, cites)`);
+      else if (v.kind === "wikipedia" && !v.revision) p.push(`${at}: Wikipedia evidence needs the revision number`);
+      else if (v.kind === "news" && (!v.also || v.also.length < 1)) p.push(`${at}: news evidence needs at least one other report it was checked against`);
       if (!Array.isArray(e.caveats) || e.caveats.length === 0) p.push(`${at}: totals need at least one stated caveat`);
       let sum = 0;
       for (const t of e.tallies!) {
         if (!t.party || !Number.isInteger(t.won) || t.won < 0) p.push(`${at}: tally needs a party and a whole number won`);
+        if (t.wonMax != null && (!Number.isInteger(t.wonMax) || t.wonMax < t.won)) p.push(`${at}: ${t.party} wonMax must be a whole number not below won`);
         sum += t.won;
         if (t.byPhase && t.byPhase.some((n) => n != null && (!Number.isInteger(n) || n < 0))) p.push(`${at}: ${t.party} byPhase has a bad number`);
       }
@@ -105,24 +122,25 @@ export function validatePanchayatFile(raw: unknown, state: StateCode): string[] 
 }
 
 const NOTES = [
-  "Results are shown only from a source whose terms allow reuse, with its credit. Figures marked as totals come from a secondary source (English Wikipedia, CC BY-SA 4.0), which cites news reports; they are not commission data and are replaced when an official source is cleared.",
+  "Results are shown only from a source whose terms allow reuse, with its credit. Figures marked as totals come from secondary sources (English Wikipedia, CC BY-SA 4.0, and, for the newest rounds, news reports checked against each other); they are not commission data and are replaced when an official source is cleared.",
   "Gram panchayat elections are officially non-party. A party named here is the party the source says backs the winner, as reported, and is never inferred by us.",
   "No electoral-roll or voter-level data is requested or stored.",
 ];
 
 export function panchayatResponse(state: StateCode, raw: unknown | null): PanchayatResponse {
   const base = { state, levels: PANCHAYAT_LEVELS, notes: NOTES };
-  if (raw == null) return { ...base, loaded: false, granularity: "none", elections: [], source: null, problems: [] };
+  if (raw == null) return { ...base, loaded: false, granularity: "none", elections: [], source: null, otherSources: [], problems: [] };
   const problems = validatePanchayatFile(raw, state);
-  if (problems.length) return { ...base, loaded: false, granularity: "none", elections: [], source: null, problems };
+  if (problems.length) return { ...base, loaded: false, granularity: "none", elections: [], source: null, otherSources: [], problems };
   const f = raw as PanchayatFile;
   const elections: PanchayatSummary[] = f.elections
     .map((e) => ({
       id: e.id, level: e.level, year: e.year, period: e.period, scope: e.scope ?? null,
       units: e.units ? e.units.length : null,
       posts: e.units ? e.units.reduce((n, u) => n + u.posts, 0) : e.totalPosts ?? null,
+      unopposed: e.units ? e.units.filter((u) => u.unopposed).length : e.unopposed ?? null,
       tallies: e.tallies ?? [], phases: e.phases ?? [], evidence: e.evidence ?? null, caveats: e.caveats ?? [],
     }))
     .sort((a, b) => b.year - a.year || a.level.localeCompare(b.level));
-  return { ...base, loaded: true, granularity: f.elections.some((e) => e.units?.length) ? "units" : "totals", source: f.source, problems: [], elections };
+  return { ...base, loaded: true, granularity: f.elections.some((e) => e.units?.length) ? "units" : "totals", source: f.source, otherSources: f.otherSources ?? [], problems: [], elections };
 }

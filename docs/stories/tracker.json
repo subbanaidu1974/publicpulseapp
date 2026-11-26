@@ -2659,7 +2659,7 @@
       "priority": "P1",
       "wave": "W9",
       "source": "user request 2026-11-25 (panchayat roadmap)",
-      "notes": "Latest Telangana cycle per news reports only (11, 14 and 17 Dec 2025); dates and counts to be confirmed from the source. Load unit-level rows (panchayat, mandal, district, posts, contested, unopposed, turnout, winner and the party backing them only where the source states it). Blocked on S-204. NOT in scope: voter-level data, candidate histories, any inferred party. Checked 2026-11-25: Wikipedia has no page with the December 2025 results (the page the 2019 article links to does not exist), so nothing loaded."
+      "notes": "Latest Telangana cycle per news reports only (11, 14 and 17 Dec 2025); dates and counts to be confirmed from the source. Load unit-level rows (panchayat, mandal, district, posts, contested, unopposed, turnout, winner and the party backing them only where the source states it). Blocked on S-204. NOT in scope: voter-level data, candidate histories, any inferred party. Checked 2026-11-25: Wikipedia has no page with the December 2025 results (the page the 2019 article links to does not exist), so nothing loaded. UPDATE 2026-11-25: approximate totals loaded under S-220 from news reports (ranges, no final count); unit-level rows still need S-204."
     },
     {
       "id": "S-206",
@@ -2719,7 +2719,7 @@
       "priority": "P1",
       "wave": "W9",
       "source": "user request 2026-11-25 (panchayat roadmap)",
-      "notes": "AP parishad elections reported as held in April 2021 with counting later after court orders; dates to be confirmed from the source. Blocked on S-204. Checked 2026-11-25: the Wikipedia page for the 2021 AP local elections has no ZPTC or MPTC results, so nothing loaded."
+      "notes": "AP parishad elections reported as held in April 2021 with counting later after court orders; dates to be confirmed from the source. Blocked on S-204. Checked 2026-11-25: the Wikipedia page for the 2021 AP local elections has no ZPTC or MPTC results, so nothing loaded. UPDATE 2026-11-25: the newer AP ZPTC and MPTC round (5 Nov 2026) is loaded under S-220; the 2021 round is still not found."
     },
     {
       "id": "S-211",
@@ -2832,6 +2832,22 @@
       "wave": "W9",
       "source": "user request 2026-11-25 (use other sources instead of waiting for the commissions)",
       "notes": "Built: the Panchayat page now shows party totals per election, read on 2026-11-25 from three English Wikipedia pages (CC BY-SA 4.0; each election records the page, the revision number and the news reports the page cites). Loaded: Telangana gram panchayat, ZPTC and MPTC 2019; ZPTC and MPTC 2014 for the Telangana districts; Andhra Pradesh sarpanch seats 2021 by party and phase, with phase turnout for phases 1 and 2; Andhra Pradesh ZPTC and MPTC 2014. The page carries a banner saying this is a secondary source and not commission data, and each card lists its own caveats (for example Telangana 2019 gives 12,751 and 12,571 gram panchayats; the 2014 Telangana MPTC rows add to 6,487 against a stated 6,497; the AP 2021 page is marked by its editors as needing an update). Data format widened to carry totals, a period, phases and evidence; the checks refuse totals with no evidence or caveat. Files registered in the manifest and licence registry. NOT done: no unit-level (village or constituency) results; NOT loaded because no readable source was found: Telangana gram panchayat December 2025, Andhra Pradesh ZPTC and MPTC 2021, any 2013 gram panchayat; ward-level results; the Wikipedia figures have not been checked against the State Election Commissions or the cited news reports; share-alike on a compiled table has not been decided with counsel; Telugu machine-drafted and unreviewed."
+    },
+    {
+      "id": "S-220",
+      "epic": "Elections",
+      "title": "Latest panchayat rounds from news reports: Telangana gram panchayat 2025, AP ZPTC and MPTC 2026",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-211",
+        "E2E-212",
+        "E2E-213"
+      ],
+      "priority": "P1",
+      "wave": "W9",
+      "source": "user request 2026-11-25 (add the latest panchayat results)",
+      "notes": "Built: party totals for the newest rounds, read on 2026-11-25 from news reports and checked against each other. Telangana gram panchayat December 2025 (3 phases; INC-backed 6,794 to 7,010, BRS 3,502 to 3,503, BJP 688 to 697, others 1,505 to 1,651; 12,727 gram panchayats) is shown as ranges because no final count was found and the reports disagree. Andhra Pradesh ZPTC and MPTC of 5 November 2026 use the party figures on which two outlets that called their counts final agree (ZPTC: TDP 406, YSRCP 76, JSP 73, BJP 20, CPI(M) 1, independents 6; MPTC: TDP 4,806, YSRCP 1,711, JSP 938, BJP 117, CPI(M) 15, independents 162), with unopposed seats shown separately. Where reports disagree we show the range or leave the figure out (MPTC total seats; INC MPTC seats). The page lists every report the figures came from and says they are news-report figures, not commission data. Data format gains ranges, unopposed counts and news evidence; new licence record news-reports-facts (needs a counsel decision). NOT done: no final Telangana count; no phase 2 or phase 3 turnout; unopposed total for Telangana unknown; no figures for Telangana MPTC and ZPTC (no round found since 2019, status unconfirmed) or AP gram panchayat after 2021 (none found); nothing checked against the State Election Commissions; one outlet could not be read (Munsif Daily, 403); the AP 2026 report dates look odd against the 2021 round and should be confirmed; Telugu machine-drafted and unreviewed."
     }
   ]
 }

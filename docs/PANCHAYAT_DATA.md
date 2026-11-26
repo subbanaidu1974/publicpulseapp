@@ -1,20 +1,22 @@
 # Panchayat elections: data format, sources and roadmap (S-203 to S-218)
 
-Status on 2026-11-25: the section shows **party totals only**, read from English Wikipedia (CC BY-SA 4.0) under S-219. No State Election Commission data and no unit-level (village or constituency) result is loaded. Nothing on the page is estimated.
+Status on 2026-11-25: the section shows **party totals only**, read from English Wikipedia (CC BY-SA 4.0, S-219) and, for the newest rounds, from news reports checked against each other (S-220). No State Election Commission data and no unit-level (village or constituency) result is loaded. Nothing on the page is estimated.
 
-### What is loaded (S-219)
+### What is loaded (S-219, S-220)
 
 | State | Level | Cycle | What we hold | Source page (revision) |
 |---|---|---|---|---|
+| TG | Gram panchayat | **Dec 2025** | INC, BRS, BJP and others as **ranges** (no final count found; reports disagree), 12,727 gram panchayats | News reports, 4 outlets (S-220) |
 | TG | Gram panchayat | 2019 | Top 3 parties' seats, posts | 2019 Telangana local elections (1387651623) |
 | TG | ZPTC, MPTC | 2019 | Top 3 parties' seats, posts | same |
 | TG | ZPTC, MPTC | 2014 | Party seats for the Telangana districts of undivided AP | 2014 Andhra Pradesh rural local bodies elections (1344762082) |
+| AP | ZPTC, MPTC | **5 Nov 2026** | Party seats where two outlets with final counts agree; unopposed seats; disputed figures left out | News reports, 2 outlets agreeing plus a partial count not used (S-220) |
 | AP | Gram panchayat | 2021 | Sarpanch seats by party and phase, phase dates, turnout for phases 1 and 2 | 2021 Andhra Pradesh local elections (1383614314) |
 | AP | ZPTC, MPTC | 2014 | Party seats for the AP districts of undivided AP | 2014 page above |
 
-Not loaded because no readable source was found: Telangana gram panchayat December 2025 (Wikipedia has no page for it), AP ZPTC and MPTC 2021, any 2013 gram panchayat, and everything at unit level. Known problems inside the source are recorded as caveats on each election and shown on the page.
+Not loaded: a final Telangana 2025 count, Telangana MPTC and ZPTC after 2019 (none found; status unconfirmed), AP ZPTC and MPTC 2021, any AP gram panchayat after 2021 (none found), any 2013 gram panchayat, and everything at unit level. Known problems inside the source are recorded as caveats on each election and shown on the page.
 
-The Wikipedia figures cite news reports. They have not been checked against the Commissions or those reports. Share-alike on a compiled table has not been decided with counsel.
+None of these figures has been checked against the Commissions. Wikipedia figures cite news reports we have not read. News-report figures are numbers only with links; the licence record `news-reports-facts` is marked as needing a counsel decision, and share-alike on a compiled table (Wikipedia) has not been decided either.
 
 ## What the section will hold
 
