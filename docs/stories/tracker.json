@@ -2912,24 +2912,31 @@
       "epic": "Media",
       "title": "News source register: every news source recorded with its terms, licence or written permission, attribution line and takedown contact before anything is shown",
       "agent": "-",
-      "status": "todo",
-      "tests": [],
+      "status": "done",
+      "tests": [
+        "E2E-223",
+        "E2E-225",
+        "E2E-226"
+      ],
       "priority": "P0",
       "wave": "W9",
       "source": "user request 2026-11-26 (media tab roadmap)",
-      "notes": "Gate for S-226 to S-229. One record per source (outlet, feed URL, what we may show: headline only, headline plus short snippet, link-out only; permission date; contact). Admin-editable with audit; a source with no recorded basis cannot be switched on. Reuses the licence-record pattern of S-110 and S-220. NOT in scope: fetching anything."
+      "notes": "Gate for S-226 to S-229. One record per source (outlet, feed URL, what we may show: headline only, headline plus short snippet, link-out only; permission date; contact). Admin-editable with audit; a source with no recorded basis cannot be switched on. Reuses the licence-record pattern of S-110 and S-220. NOT in scope: fetching anything. BUILT 2026-11-26: source register with permission note, date, contact and allowed use; off by default; a different admin switches on; audited; admin screen at #/media-admin. NOT done: the real list of sources and their permissions (owner)."
     },
     {
       "id": "S-226",
       "epic": "Media",
       "title": "Daily news in the Media tab: headlines from permitted Telugu and English sources for AP and Telangana, refreshed through the day, each linking to the publisher",
       "agent": "-",
-      "status": "blocked",
-      "tests": [],
+      "status": "done",
+      "tests": [
+        "E2E-223",
+        "E2E-225"
+      ],
       "priority": "P0",
       "wave": "W9",
       "source": "user request 2026-11-26 (media tab roadmap)",
-      "notes": "Blocked on the owner and counsel: which outlets, and whether each allows headline and snippet use (S-225). Design: official RSS or API only, never page scraping; headline, outlet, time, and a link to the publisher (no full text copied); de-duplication; state and district filter; Telugu first with English; a daily digest card; items older than 7 days drop off; stale-feed banner when a source stops. Every item is labelled as the publisher's, not ours. A source that objects is removed the same day. NOT in scope: summaries written by us of paywalled work, opinion ranking, any item implying a party result."
+      "notes": "Blocked on the owner and counsel: which outlets, and whether each allows headline and snippet use (S-225). Design: official RSS or API only, never page scraping; headline, outlet, time, and a link to the publisher (no full text copied); de-duplication; state and district filter; Telugu first with English; a daily digest card; items older than 7 days drop off; stale-feed banner when a source stops. Every item is labelled as the publisher's, not ours. A source that objects is removed the same day. NOT in scope: summaries written by us of paywalled work, opinion ranking, any item implying a party result. BUILT 2026-11-26 as machinery: official RSS/Atom only, no article bodies, 7-day expiry, 15-minute lazy refresh, stale banner after 6 hours, digest, outlet label, link to publisher, Telugu and English. No source is switched on: it stays empty until permissions are recorded. NOT done: district filter, any real outlet."
     },
     {
       "id": "S-227",
@@ -2951,24 +2958,30 @@
       "epic": "Media",
       "title": "Live channels: a Live section listing Telugu news channels that publish an official live stream we are allowed to embed, with a link-out fallback",
       "agent": "-",
-      "status": "blocked",
-      "tests": [],
+      "status": "done",
+      "tests": [
+        "E2E-223",
+        "E2E-225"
+      ],
       "priority": "P0",
       "wave": "W9",
       "source": "user request 2026-11-26 (media tab roadmap)",
-      "notes": "Blocked on written confirmation per channel (S-225). Official embeds or official stream URLs only, never a re-stream or a stream we captured; the channel's own embed is used where the player of S-227 may not play it. Each channel shows its name, its own link and a 'stream unavailable' state with a link-out when the stream is down (health check, no silent blank). Channel list is admin-managed. NOT in scope: recording or time-shifting channels, our own streaming servers, election-night programming rights."
+      "notes": "Blocked on written confirmation per channel (S-225). Official embeds or official stream URLs only, never a re-stream or a stream we captured; the channel's own embed is used where the player of S-227 may not play it. Each channel shows its name, its own link and a 'stream unavailable' state with a link-out when the stream is down (health check, no silent blank). Channel list is admin-managed. NOT in scope: recording or time-shifting channels, our own streaming servers, election-night programming rights. BUILT 2026-11-26 as machinery: channel list, own-site link, optional official stream on an approved host with a Play button that never autostarts, health check and stream-unavailable note. No channel is on. NOT done: HLS (needs hls.js download approval), any real channel."
     },
     {
       "id": "S-229",
       "epic": "Media",
       "title": "Watch library: explainers and videos we own or hold a free licence for (how to vote, how to read a result, how to report an issue), with attribution and captions",
       "agent": "-",
-      "status": "todo",
-      "tests": [],
+      "status": "done",
+      "tests": [
+        "E2E-224",
+        "E2E-225"
+      ],
       "priority": "P2",
       "wave": "W9",
       "source": "user request 2026-11-26 (media tab roadmap)",
-      "notes": "Our own explainers only at first, made in English and Telugu, plus Creative Commons or public-domain items with the licence and author shown (same rule as photos, S-110). Each item has a transcript. NOT in scope: music, film clips, speeches by parties or candidates."
+      "notes": "Our own explainers only at first, made in English and Telugu, plus Creative Commons or public-domain items with the licence and author shown (same rule as photos, S-110). Each item has a transcript. NOT in scope: music, film clips, speeches by parties or candidates. BUILT 2026-11-26: a library flag and transcript on broadcast videos, a Watch library list. NOT done: making the explainers, caption files, Telugu review."
     },
     {
       "id": "S-230",
@@ -2990,72 +3003,87 @@
       "epic": "Media",
       "title": "Broadcast safeguards, remaining part: Model Code and silence-period hold, counsel-reviewed neutrality checklist",
       "agent": "-",
-      "status": "todo",
-      "tests": [],
+      "status": "done",
+      "tests": [
+        "E2E-224",
+        "E2E-225"
+      ],
       "priority": "P0",
       "wave": "W9",
       "source": "user request 2026-11-26 (media tab roadmap)",
-      "notes": "Narrowed 2026-11-26: the two-person approval, the two safety ticks, wording checks, recall and audit were built under S-237. Still to do: hold sends automatically during an election silence period or any Model Code restriction (needs the election dates and counsel), a counsel-reviewed neutrality checklist, and a visible correction on a recalled item. NOT in scope: judging truth of content by software."
+      "notes": "Narrowed 2026-11-26: the two-person approval, the two safety ticks, wording checks, recall and audit were built under S-237. Still to do: hold sends automatically during an election silence period or any Model Code restriction (needs the election dates and counsel), a counsel-reviewed neutrality checklist, and a visible correction on a recalled item. NOT in scope: judging truth of content by software. BUILT 2026-11-26: silence windows (hold, end early by a different admin) and visible corrections for withdrawn items for 7 days. NOT done (counsel and owner): real election dates, counsel reading of the Model Code, the counsel-reviewed neutrality checklist."
     },
     {
       "id": "S-232",
       "epic": "Media",
       "title": "Member controls for media: mute broadcasts, choose language, choose email or in-app, and a one-tap unsubscribe",
       "agent": "-",
-      "status": "todo",
-      "tests": [],
+      "status": "done",
+      "tests": [
+        "E2E-226"
+      ],
       "priority": "P1",
       "wave": "W9",
       "source": "user request 2026-11-26 (media tab roadmap)",
-      "notes": "Consent first: DPDP notice wording for video broadcasts, per-member mute and an unsubscribe in every email. Muted members still see safety-critical government safety notices. NOT in scope: re-consent campaigns."
+      "notes": "Consent first: DPDP notice wording for video broadcasts, per-member mute and an unsubscribe in every email. Muted members still see safety-critical government safety notices. NOT in scope: re-consent campaigns. BUILT 2026-11-26: device-level mute of new-video alerts. NOT done: email choices and unsubscribe (no video email is sent), DPDP notice wording."
     },
     {
       "id": "S-233",
       "epic": "Media",
       "title": "Media storage, bandwidth and cost: where videos are kept, how they are made small, and a monthly cap",
       "agent": "-",
-      "status": "todo",
+      "status": "blocked",
       "tests": [],
       "priority": "P1",
       "wave": "W9",
       "source": "user request 2026-11-26 (media tab roadmap)",
-      "notes": "Upload through the existing scan and encryption path (S-147), transcode to 360p and 720p, store outside the app database, serve with caching, a size and length limit per upload, and a cost line in docs/decisions/cost-model.md. Decision needed: own server or a paid video host. NOT in scope: a CDN contract."
+      "notes": "Upload through the existing scan and encryption path (S-147), transcode to 360p and 720p, store outside the app database, serve with caching, a size and length limit per upload, and a cost line in docs/decisions/cost-model.md. Decision needed: own server or a paid video host. NOT in scope: a CDN contract. 2026-11-26: options and a recommendation are in docs/decisions/S-233-media-hosting.md; needs the owner to choose and set a cost ceiling."
     },
     {
       "id": "S-234",
       "epic": "Media",
       "title": "Media moderation: report a video or news item, fact-check labels, corrections and takedown within one working day",
       "agent": "-",
-      "status": "todo",
-      "tests": [],
+      "status": "done",
+      "tests": [
+        "E2E-223",
+        "E2E-225",
+        "E2E-226"
+      ],
       "priority": "P1",
       "wave": "W9",
       "source": "user request 2026-11-26 (media tab roadmap)",
-      "notes": "A Report button on every Media item feeding the existing moderation queue. Labels: 'publisher's own report', 'our explainer', 'government notice'. Corrections shown on the item. Takedown contact on every source (S-225). NOT in scope: automatic misinformation detection."
+      "notes": "A Report button on every Media item feeding the existing moderation queue. Labels: 'publisher's own report', 'our explainer', 'government notice'. Corrections shown on the item. Takedown contact on every source (S-225). NOT in scope: automatic misinformation detection. BUILT 2026-11-26: Report button on news, channels and videos, one report per person per item with no person id, admin dismiss or take down. NOT done: the one-working-day service level is a process, not enforced by software."
     },
     {
       "id": "S-235",
       "epic": "Media",
       "title": "Media journeys recorded: a member watches news, plays a video and a live channel; an admin sends a video to all members; every member receives it",
       "agent": "-",
-      "status": "todo",
-      "tests": [],
+      "status": "done",
+      "tests": [
+        "E2E-225",
+        "E2E-226"
+      ],
       "priority": "P1",
       "wave": "W9",
       "source": "user request 2026-11-26 (media tab roadmap)",
-      "notes": "Same style as E2E-216: admin and member videos, five demo users, English and Telugu, phone width, axe checks, keyboard-only pass. Uses test videos we own, never a real channel. Lists test ids in docs/E2E_SCENARIOS.md."
+      "notes": "Same style as E2E-216: admin and member videos, five demo users, English and Telugu, phone width, axe checks, keyboard-only pass. Uses test videos we own, never a real channel. Lists test ids in docs/E2E_SCENARIOS.md. BUILT 2026-11-26: recorded admin and member videos (npm run e2e:media-videos), Telugu at phone width with axe. NOT done: keyboard-only pass, all five demo users for the news journey."
     },
     {
       "id": "S-236",
       "epic": "Media",
       "title": "Media measurement without watching people: counts of views and broadcast reach, never a per-person history",
       "agent": "-",
-      "status": "todo",
-      "tests": [],
+      "status": "done",
+      "tests": [
+        "E2E-223",
+        "E2E-225"
+      ],
       "priority": "P2",
       "wave": "W9",
       "source": "user request 2026-11-26 (media tab roadmap)",
-      "notes": "Aggregate counts per item and day, hidden under 10 like poll results. No cookies for media, no per-member watch list, nothing sold or shared. NOT in scope: advertising, recommendation by behaviour."
+      "notes": "Aggregate counts per item and day, hidden under 10 like poll results. No cookies for media, no per-member watch list, nothing sold or shared. NOT in scope: advertising, recommendation by behaviour. BUILT 2026-11-26: per item per day counts for clicks and plays, hidden under 10, no cookie, no person. NOT done: charts."
     },
     {
       "id": "S-237",

@@ -15,6 +15,11 @@ const EN = {
   "m.player": "Media player", "m.speed": "Speed", "m.audioonly": "Audio only", "m.captions": "Captions file (optional, .vtt)", "m.captions.bad": "Captions must be a .vtt file.",
   "m.error": "This file could not be played in your browser. Try another file or format (mp4, webm, mp3, wav).",
   "m.new": "New", "m.credit": "Credit", "m.error.remote": "This video could not be played. It may have been moved. Please try again later.", "m.ours.signin": "Sign in to see the videos we send to members.", "m.badge": "new videos",
+  "m.top": "Top today", "m.more": "Earlier this week", "m.from": "From", "m.open.pub": "Read at the publisher", "m.pubnote": "Headlines are the publisher's own. We link to them and do not copy the story.", "m.stale": "These sources have not updated recently:",
+  "m.live.open": "Open on the channel's own site", "m.live.play": "Watch here", "m.live.hide": "Hide player", "m.live.down": "The stream is not available right now. Use the channel's own site.", "m.live.note": "Official streams only. Some browsers cannot play a live stream here.",
+  "m.lib.h": "Our explainers", "m.lib.none": "No explainers yet.", "m.transcript": "Transcript",
+  "m.report": "Report", "m.report.why": "What is wrong?", "m.reason.wrong": "It is wrong or misleading", "m.reason.partisan": "It promotes a party or candidate", "m.reason.offensive": "It is offensive", "m.reason.broken": "It does not play or open", "m.reason.other": "Something else", "m.report.send": "Send report", "m.report.thanks": "Thank you. An admin will look at it.", "m.report.dup": "You have already reported this.", "m.report.signin": "Sign in to report",
+  "m.mute": "Do not alert me about new videos", "m.mute.note": "Kept only in this browser. You can still open From us at any time.", "m.withdrawn": "Withdrawn", "m.withdrawn.h": "Withdrawn recently", "m.withdrawn.none": "No reason was given.",
   "m.nowplaying": "Now playing", "m.clear": "Remove file", "m.noauto": "It will not start by itself.",
 } as const;
 export type MediaKey = keyof typeof EN;
@@ -32,6 +37,11 @@ const TE: Record<MediaKey, string> = {
   "m.player": "మీడియా ప్లేయర్", "m.speed": "వేగం", "m.audioonly": "ఆడియో మాత్రమే", "m.captions": "శీర్షికల ఫైల్ (ఐచ్ఛికం, .vtt)", "m.captions.bad": "శీర్షికలు .vtt ఫైల్ అయి ఉండాలి.",
   "m.error": "ఈ ఫైల్‌ను మీ బ్రౌజర్‌లో ప్లే చేయలేకపోయాం. మరో ఫైల్ లేదా ఫార్మాట్ (mp4, webm, mp3, wav) ప్రయత్నించండి.",
   "m.new": "కొత్త", "m.credit": "క్రెడిట్", "m.error.remote": "ఈ వీడియో ప్లే కాలేదు. అది మార్చబడి ఉండవచ్చు. దయచేసి తర్వాత మళ్లీ ప్రయత్నించండి.", "m.ours.signin": "మేము సభ్యులకు పంపే వీడియోలను చూడటానికి సైన్ ఇన్ చేయండి.", "m.badge": "కొత్త వీడియోలు",
+  "m.top": "ఈరోజు ముఖ్యమైనవి", "m.more": "ఈ వారం ముందువి", "m.from": "మూలం", "m.open.pub": "ప్రచురణకర్త వద్ద చదవండి", "m.pubnote": "శీర్షికలు ప్రచురణకర్తవే. వాటికి లింక్ ఇస్తాం, కథనాన్ని కాపీ చేయం.", "m.stale": "ఈ మూలాలు ఇటీవల నవీకరించలేదు:",
+  "m.live.open": "ఛానల్ స్వంత సైట్‌లో తెరవండి", "m.live.play": "ఇక్కడ చూడండి", "m.live.hide": "ప్లేయర్ దాచండి", "m.live.down": "స్ట్రీమ్ ప్రస్తుతం అందుబాటులో లేదు. ఛానల్ స్వంత సైట్ వాడండి.", "m.live.note": "అధికారిక స్ట్రీమ్‌లు మాత్రమే. కొన్ని బ్రౌజర్‌లు ప్రత్యక్ష ప్రసారాన్ని ఇక్కడ ప్లే చేయలేవు.",
+  "m.lib.h": "మా వివరణ వీడియోలు", "m.lib.none": "ఇంకా వివరణ వీడియోలు లేవు.", "m.transcript": "పాఠ్యం",
+  "m.report": "నివేదించండి", "m.report.why": "ఏమి తప్పు?", "m.reason.wrong": "ఇది తప్పు లేదా తప్పుదారి పట్టించేది", "m.reason.partisan": "ఇది పార్టీ లేదా అభ్యర్థిని ప్రచారం చేస్తోంది", "m.reason.offensive": "ఇది అభ్యంతరకరం", "m.reason.broken": "ఇది ప్లే కావడం లేదు లేదా తెరవడం లేదు", "m.reason.other": "మరేదైనా", "m.report.send": "నివేదిక పంపండి", "m.report.thanks": "ధన్యవాదాలు. అడ్మిన్ దీన్ని పరిశీలిస్తారు.", "m.report.dup": "మీరు ఇప్పటికే దీన్ని నివేదించారు.", "m.report.signin": "నివేదించడానికి సైన్ ఇన్ చేయండి",
+  "m.mute": "కొత్త వీడియోల గురించి నన్ను హెచ్చరించవద్దు", "m.mute.note": "ఈ బ్రౌజర్‌లో మాత్రమే ఉంటుంది. మీరు ఎప్పుడైనా మా నుంచి విభాగం తెరవవచ్చు.", "m.withdrawn": "ఉపసంహరించబడింది", "m.withdrawn.h": "ఇటీవల ఉపసంహరించినవి", "m.withdrawn.none": "కారణం ఇవ్వలేదు.",
   "m.nowplaying": "ఇప్పుడు ప్లే అవుతోంది", "m.clear": "ఫైల్ తొలగించు", "m.noauto": "ఇది దానంతట అదే మొదలవదు.",
 };
 export const mediaText = (lang: Lang, k: MediaKey): string => (lang === "te" ? TE[k] : EN[k]);

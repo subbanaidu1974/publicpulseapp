@@ -99,7 +99,7 @@ test.describe('an admin sends a video, a second admin approves, every member see
       await expect(U.getByTestId('nav-media')).toHaveText('Media'); // no badge
       await U.getByTestId('nav-media').click();
       await U.getByTestId('media-tab-ours').click();
-      await expect(U.getByTestId('media-ours-empty')).toBeVisible(); await beat(U, 1200);
+      await expect(U.getByTestId('video-card').filter({ hasText: title })).toHaveCount(0); await beat(U, 1200);
       await U.getByTestId('sign-out').click();
 
       // ---- ADMIN B: a different admin reviews and approves ---------------------------------------------------------------------------------
@@ -152,7 +152,7 @@ test.describe('an admin sends a video, a second admin approves, every member see
       await expect(U.getByTestId('civic-signed-in')).toBeVisible();
       await U.getByTestId('nav-media').click(); await U.getByTestId('media-tab-ours').click();
       await expect(U.getByTestId('video-card').filter({ hasText: title })).toHaveCount(0);
-      await expect(U.getByTestId('media-ours-empty')).toBeVisible(); await beat(U, 1200);
+      await expect(U.getByTestId('video-correction').filter({ hasText: title })).toBeVisible(); await beat(U, 1200); // a recalled item leaves a visible correction
     } finally {
       await second.close().catch(() => undefined);
       videos.push(await admin.save(), await users.save());

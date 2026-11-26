@@ -50,7 +50,7 @@ describe("video broadcasts (S-230, S-231) @E2E-221", () => {
     const live = (await call("GET", "/", u.token)).json.items;
     expect(live).toHaveLength(1);
     expect(live[0]).toMatchObject({ id, title_en: VIDEO.title_en, media_url: VIDEO.media_url, kind: "video", credit: VIDEO.credit });
-    expect(Object.keys(live[0]).sort()).toEqual(["credit", "id", "kind", "live_at", "media_url", "note_en", "note_te", "title_en", "title_te"]); // no creator, no counts
+    expect(Object.keys(live[0]).sort()).toEqual(["credit", "id", "kind", "library", "live_at", "media_url", "note_en", "note_te", "title_en", "title_te", "transcript"]); // no creator, no counts
     expect((await call("POST", `/admin/${id}/approve`, b.token)).json.code).toBe("not_pending"); // cannot approve twice
   });
 

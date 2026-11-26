@@ -12,16 +12,16 @@ const say = (e: unknown): string => (e as { body?: { message?: string } }).body?
 export default function VideosAdmin() {
   const { data, state, reload } = useGuarded(() => videocastApi.adminList());
   const [f, setF] = useState({ title_en: "", title_te: "", note_en: "", note_te: "", media_url: "", credit: "", publish_at: "" });
-  const [neutral, setNeutral] = useState(false), [rights, setRights] = useState(false);
+  const [neutral, setNeutral] = useState(false), [rights, setRights] = useState(false), [library, setLibrary] = useState(false), [transcript, setTranscript] = useState("");
   const [err, setErr] = useState<string | null>(null), [msg, setMsg] = useState<string | null>(null);
   const set = (k: keyof typeof f, v: string) => setF((c) => ({ ...c, [k]: v }));
 
   const propose = async () => {
     setErr(null); setMsg(null);
     try {
-      await videocastApi.adminCreate({ ...f, publish_at: f.publish_at ? new Date(f.publish_at).toISOString() : undefined, confirm_neutral: neutral, confirm_rights: rights });
+      await videocastApi.adminCreate({ ...f, publish_at: f.publish_at ? new Date(f.publish_at).toISOString() : undefined, confirm_neutral: neutral, confirm_rights: rights, library, transcript: transcript.trim() || undefined });
       setMsg("Sent for approval. A different admin must approve it before any member sees it.");
-      setF({ title_en: "", title_te: "", note_en: "", note_te: "", media_url: "", credit: "", publish_at: "" }); setNeutral(false); setRights(false); reload();
+      setF({ title_en: "", title_te: "", note_en: "", note_te: "", media_url: "", credit: "", publish_at: "" }); setNeutral(false); setRights(false); setLibrary(false); setTranscript(""); reload();
     } catch (e) { setErr(say(e)); }
   };
   const act = async (fn: () => Promise<unknown>, done: string) => { setErr(null); setMsg(null); try { await fn(); setMsg(done); reload(); } catch (e) { setErr(say(e)); } };
@@ -39,6 +39,8 @@ export default function VideosAdmin() {
         <Field id="va-url" label="Address of the video or audio file (https, straight to an mp4, webm, mp3, m4a, ogg or wav file)"><TextInput id="va-url" data-testid="va-url" inputMode="url" value={f.media_url} maxLength={500} onChange={(e) => set("media_url", e.target.value)} /></Field>
         <Field id="va-credit" label="Credit line (who made it, and the licence or permission)"><TextInput id="va-credit" data-testid="va-credit" value={f.credit} maxLength={160} onChange={(e) => set("credit", e.target.value)} /></Field>
         <Field id="va-at" label="Start at (optional, within 30 days; empty means as soon as it is approved)"><input id="va-at" data-testid="va-at" type="datetime-local" className={inputCls} value={f.publish_at} onChange={(e) => set("publish_at", e.target.value)} /></Field>
+        <Field id="va-transcript" label="Transcript (optional, shown under the video, no links)"><textarea id="va-transcript" data-testid="va-transcript" className={inputCls} rows={4} maxLength={4000} value={transcript} onChange={(e) => setTranscript(e.target.value)} /></Field>
+        <label className="flex items-start gap-3 min-h-[44px]"><input type="checkbox" data-testid="va-library" checked={library} onChange={(e) => setLibrary(e.target.checked)} /><span className="text-sm">Also keep it in the Watch library (an explainer people can come back to).</span></label>
         <label className="flex items-start gap-3 min-h-[44px]"><input type="checkbox" data-testid="va-neutral" checked={neutral} onChange={(e) => setNeutral(e.target.checked)} /><span className="text-sm">This video does not promote or attack a party or candidate, and does not ask anyone how to vote.</span></label>
         <label className="flex items-start gap-3 min-h-[44px]"><input type="checkbox" data-testid="va-rights" checked={rights} onChange={(e) => setRights(e.target.checked)} /><span className="text-sm">We made it, or we have the right to show it to {data ? data.registered_users : "all"} registered members.</span></label>
         <Btn data-testid="va-propose" disabled={!neutral || !rights} onClick={propose}>Send for approval</Btn>

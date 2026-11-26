@@ -27,14 +27,14 @@ export const KNOWN_PURPOSES = [
   "phone", "otp", "rate", "pinsrc", "attest", "session", "enrolcode", "mfa-recovery", "audit", "media-at-rest", "sms-idem", "mail-idem",
   "reporter-pseudonym", "actor-pseudonym", "issue-link", "ivr-call-person", "ivr-call-phone", "people_contact", "issue-gps", "residence", "totp", "sms-payload",
   "survey-credential", "survey-actor", "notify-signing", "notify-device", "notify-antiphish",
-  "countday-signing", "assist-receipt",
+  "countday-signing", "assist-receipt", "media-report",
 ] as const;
 
 /** What rotating a purpose costs (docs/PROVIDERS.md section "Rotation"). `refuse` purposes cannot be rotated without force. */
 export const ROTATION_IMPACT: Record<string, "rehash" | "ephemeral" | "encrypt-only" | "refuse"> = {
   phone: "rehash", "reporter-pseudonym": "rehash", "actor-pseudonym": "rehash", "issue-link": "rehash",
   otp: "ephemeral", rate: "ephemeral", pinsrc: "ephemeral", attest: "ephemeral", session: "ephemeral", sms: "ephemeral", "sms-idem": "ephemeral", "mail-idem": "ephemeral",
-  "survey-credential": "encrypt-only", "notify-signing": "encrypt-only", "notify-device": "encrypt-only", "notify-antiphish": "encrypt-only", "survey-actor": "refuse", audit: "refuse", "assist-receipt": "refuse", enrolcode: "rehash", "mfa-recovery": "rehash", "media-at-rest": "rehash",
+  "survey-credential": "encrypt-only", "notify-signing": "encrypt-only", "notify-device": "encrypt-only", "notify-antiphish": "encrypt-only", "survey-actor": "refuse", audit: "refuse", "assist-receipt": "refuse", enrolcode: "rehash", "mfa-recovery": "rehash", "media-at-rest": "rehash", "media-report": "rehash",
 };
 
 export interface KeyVersionInfo { purpose: string; keyId: string; version: number; createdAt: number; retiredAt: number | null }
