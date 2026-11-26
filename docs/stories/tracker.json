@@ -2898,12 +2898,14 @@
       "epic": "Media",
       "title": "Media tab shell: a new top-level Media tab (English and Telugu) with News, Watch, Live and From us sections, lite and accessible, no hard-coded content",
       "agent": "-",
-      "status": "todo",
-      "tests": [],
+      "status": "done",
+      "tests": [
+        "E2E-218"
+      ],
       "priority": "P1",
       "wave": "W9",
       "source": "user request 2026-11-26 (media tab roadmap)",
-      "notes": "First story: the empty, honest tab. Nav entry, route, four sections that each show a plain 'nothing yet' state until their story lands, phone and desktop layout, Telugu labels (machine-drafted, flagged for review). Follows S-125: no hard-coded news, no hotlinked media. NOT in scope: any content, player or live stream."
+      "notes": "First story: the empty, honest tab. Nav entry, route, four sections that each show a plain 'nothing yet' state until their story lands, phone and desktop layout, Telugu labels (machine-drafted, flagged for review). Follows S-125: no hard-coded news, no hotlinked media. NOT in scope: any content, player or live stream. BUILT 2026-11-26: a Media tab (after Civic) with News, Watch, Live and From us sections; News, Live and From us show a plain empty state with no content, links or frames; Watch holds the player (S-227). English and Telugu (Telugu is a machine draft and shows the review note), keyboard arrows/Home/End, last section remembered for the browser session, fits 375px with no sideways scroll, axe clean. NOT done: any real content (S-226, S-228, S-229), the Telugu has not been read by a native speaker, no unread badge yet (S-230)."
     },
     {
       "id": "S-225",
@@ -2934,12 +2936,15 @@
       "epic": "Media",
       "title": "Free built-in media player: one accessible player for video and audio on an open-source stack, with captions, keyboard control, no autoplay and a low-data mode",
       "agent": "-",
-      "status": "todo",
-      "tests": [],
+      "status": "done",
+      "tests": [
+        "E2E-219",
+        "E2E-220"
+      ],
       "priority": "P1",
       "wave": "W9",
       "source": "user request 2026-11-26 (media tab roadmap)",
-      "notes": "Plain HTML5 video and audio, plus hls.js (Apache-2.0) for streams, so there is no licence fee and no vendor script. Keyboard and screen-reader operable, captions and transcript where the source has them, never autoplays, audio-only and 360p-first low-data mode, remembers nothing about what a person watched. Axe and 375px checks. NOT in scope: DRM, downloads, picture-in-picture polish, casting."
+      "notes": "Plain HTML5 video and audio, plus hls.js (Apache-2.0) for streams, so there is no licence fee and no vendor script. Keyboard and screen-reader operable, captions and transcript where the source has them, never autoplays, audio-only and 360p-first low-data mode, remembers nothing about what a person watched. Axe and 375px checks. NOT in scope: DRM, downloads, picture-in-picture polish, casting. BUILT 2026-11-26 as a first version: the browser's own video element (its keyboard and screen-reader controls) plays a video or audio file the person picks on their own device; speed 0.75x to 2x, audio only for video, optional .vtt captions, time read-out, a clear message for a file that is not media or cannot be decoded, never autoplays, nothing uploaded, stored or counted (tested: no network write, no file name in storage). Works in English and Telugu at 375px, axe clean. NOT done: streams (HLS needs hls.js, a new dependency that needs the owner's OK to download), playing a pasted link, playlists of our own videos (S-229, S-230), quality picker and low-data source choice (the logic is written and unit tested but has no source list to act on yet), Telugu not reviewed, only browser-supported formats play (mp4, webm, mp3, wav and similar)."
     },
     {
       "id": "S-228",

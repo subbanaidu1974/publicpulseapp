@@ -10,6 +10,7 @@ import Navbar from "./components/Navbar";
 import FAQPage from "./components/FAQPage";
 import ElectionsPage from "./components/ElectionsPage";
 import CivicHome from "./components/civic/CivicHome";
+import MediaPage from "./components/media/MediaPage";
 import PollGate from "./components/civic/PollGate";
 import PollsAdmin from "./components/civic/consoles/PollsAdmin";
 import ConstituencySearch from "./components/ConstituencySearch";
@@ -36,7 +37,7 @@ import AnalyticsRoot, { AnalyticsLinks, isAnalyticsHash } from "./components/ana
 
 type Theme = "beige" | "dark" | "dark-beige" | "earth-yellow";
 const THEMES: Theme[] = ["beige", "dark", "dark-beige", "earth-yellow"];
-const TABS = ["home", "map", "analytics", "elections", "civic", "constituencies", "survey", "methodology", "faq", "admin", "privacy", "terms", "who", "people"];
+const TABS = ["home", "map", "analytics", "elections", "civic", "media", "constituencies", "survey", "methodology", "faq", "admin", "privacy", "terms", "who", "people"];
 
 function initialTab(): string {
   try { if (window.location.pathname.replace(/\/+$/, "") === "/admin") return "admin"; } catch { /* ignore */ }
@@ -148,6 +149,7 @@ function AppInner() {
         {currentTab === "analytics" && (anRoute ? <AnalyticsRoot /> : <><AnalyticsLinks /><AnalyticsPage /></>)}
         {currentTab === "elections" && <ElectionsPage />}
         {currentTab === "civic" && <CivicHome />}
+        {currentTab === "media" && <MediaPage />}
         {currentTab === "constituencies" && <><ConstituencySearch year={latestAssemblyYear} type="assembly" /><PlaceSearch /></>}
         {currentTab === "survey" && <SurveyPage />}
         {currentTab === "methodology" && <MethodologyPage />}
