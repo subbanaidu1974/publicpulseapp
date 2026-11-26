@@ -1,0 +1,357 @@
+{
+  "state": "TG",
+  "fixture": true,
+  "source": {
+    "publisher": "SAMPLE DATA FOR TESTS: invented numbers, not real results",
+    "url": "https://example.invalid/sample",
+    "licence": "none; invented for tests",
+    "terms": "Never shipped. The production server refuses a file marked fixture. Place names come from the Local Government Directory; every number and winner is made up.",
+    "retrieved": "2026-11-26",
+    "quality": "secondary"
+  },
+  "elections": [
+    {
+      "id": "fx-gp-2019",
+      "level": "gp",
+      "year": 2019,
+      "period": "2019-01",
+      "phases": [
+        {
+          "date": "2019-01-21"
+        }
+      ],
+      "units": [
+        {
+          "name": "Bandal Nagpur",
+          "district": "Adilabad",
+          "mandal": "Tamsi",
+          "posts": 6,
+          "unopposed": true,
+          "winner": {
+            "name": "SAMPLE WINNER 1",
+            "partyBacked": "Sample Party A"
+          },
+          "lgdCode": "195677"
+        },
+        {
+          "name": "Ghotkuri",
+          "district": "Adilabad",
+          "mandal": "Tamsi",
+          "posts": 8,
+          "unopposed": false,
+          "winner": {
+            "name": "SAMPLE WINNER 2",
+            "partyBacked": "Sample Party B"
+          },
+          "turnoutPct": 77
+        },
+        {
+          "name": "Girigaon",
+          "district": "Adilabad",
+          "mandal": "Tamsi",
+          "posts": 10,
+          "unopposed": false,
+          "winner": {
+            "name": "SAMPLE WINNER 3",
+            "partyBacked": "Sample Party A"
+          },
+          "turnoutPct": 84
+        },
+        {
+          "name": "Ada",
+          "district": "Adilabad",
+          "mandal": "Jainath",
+          "posts": 12,
+          "unopposed": false,
+          "winner": {
+            "name": "SAMPLE WINNER 4",
+            "partyBacked": "Sample Party B"
+          },
+          "turnoutPct": 91,
+          "lgdCode": "195180"
+        },
+        {
+          "name": "Bahadurpur",
+          "district": "Adilabad",
+          "mandal": "Jainath",
+          "posts": 6,
+          "unopposed": false,
+          "winner": {
+            "name": "SAMPLE WINNER 5",
+            "partyBacked": "Sample Party A"
+          },
+          "turnoutPct": 73
+        },
+        {
+          "name": "Belluri",
+          "district": "Adilabad",
+          "mandal": "Jainath",
+          "posts": 8,
+          "unopposed": true,
+          "winner": {
+            "name": "SAMPLE WINNER 6",
+            "partyBacked": "Sample Party B"
+          }
+        },
+        {
+          "name": "Ananthapur",
+          "district": "Kumuram Bheem Asifabad",
+          "mandal": "Kerameri",
+          "posts": 10,
+          "unopposed": false,
+          "winner": {
+            "name": "SAMPLE WINNER 7",
+            "partyBacked": "Sample Party A"
+          },
+          "turnoutPct": 87,
+          "lgdCode": "195315"
+        },
+        {
+          "name": "Devapur",
+          "district": "Kumuram Bheem Asifabad",
+          "mandal": "Kerameri",
+          "posts": 12,
+          "unopposed": false,
+          "winner": {
+            "name": "SAMPLE WINNER 8",
+            "partyBacked": "Sample Party B"
+          },
+          "turnoutPct": 94
+        },
+        {
+          "name": "Goyagaon",
+          "district": "Kumuram Bheem Asifabad",
+          "mandal": "Kerameri",
+          "posts": 6,
+          "unopposed": false,
+          "winner": {
+            "name": "SAMPLE WINNER 9",
+            "partyBacked": "Sample Party A"
+          },
+          "turnoutPct": 76
+        },
+        {
+          "name": "Bambara",
+          "district": "Kumuram Bheem Asifabad",
+          "mandal": "Wankidi",
+          "posts": 8,
+          "unopposed": false,
+          "winner": {
+            "name": "SAMPLE WINNER 10",
+            "partyBacked": "Sample Party B"
+          },
+          "turnoutPct": 83,
+          "lgdCode": "195764"
+        },
+        {
+          "name": "Bendera",
+          "district": "Kumuram Bheem Asifabad",
+          "mandal": "Wankidi",
+          "posts": 10,
+          "unopposed": true,
+          "winner": {
+            "name": "SAMPLE WINNER 11",
+            "partyBacked": "Sample Party A"
+          }
+        },
+        {
+          "name": "Chowpanguda",
+          "district": "Kumuram Bheem Asifabad",
+          "mandal": "Wankidi",
+          "posts": 12,
+          "unopposed": false,
+          "winner": {
+            "name": "SAMPLE WINNER 12",
+            "partyBacked": "Sample Party B"
+          },
+          "turnoutPct": 72
+        }
+      ],
+      "caveats": [
+        "Sample data for tests. Not a real election."
+      ]
+    },
+    {
+      "id": "fx-gp-2025",
+      "level": "gp",
+      "year": 2025,
+      "period": "2025-12",
+      "phases": [
+        {
+          "date": "2025-12-11"
+        }
+      ],
+      "units": [
+        {
+          "name": "Bandal Nagpur",
+          "district": "Adilabad",
+          "mandal": "Tamsi",
+          "posts": 6,
+          "unopposed": true,
+          "winner": {
+            "name": "SAMPLE WINNER 1",
+            "partyBacked": "Sample Party A"
+          },
+          "lgdCode": "195677"
+        },
+        {
+          "name": "Ghotkuri",
+          "district": "Adilabad",
+          "mandal": "Tamsi",
+          "posts": 8,
+          "unopposed": false,
+          "winner": {
+            "name": "SAMPLE WINNER 2",
+            "partyBacked": "Sample Party B"
+          },
+          "turnoutPct": 80
+        },
+        {
+          "name": "Girigaon",
+          "district": "Adilabad",
+          "mandal": "Tamsi",
+          "posts": 10,
+          "unopposed": false,
+          "winner": {
+            "name": "SAMPLE WINNER 3",
+            "partyBacked": "Sample Party A"
+          },
+          "turnoutPct": 87
+        },
+        {
+          "name": "Ada",
+          "district": "Adilabad",
+          "mandal": "Jainath",
+          "posts": 12,
+          "unopposed": false,
+          "winner": {
+            "name": "SAMPLE WINNER 4",
+            "partyBacked": "Sample Party B"
+          },
+          "turnoutPct": 94,
+          "lgdCode": "195180"
+        },
+        {
+          "name": "Bahadurpur",
+          "district": "Adilabad",
+          "mandal": "Jainath",
+          "posts": 6,
+          "unopposed": false,
+          "winner": {
+            "name": "SAMPLE WINNER 5",
+            "partyBacked": "Sample Party A"
+          },
+          "turnoutPct": 76
+        },
+        {
+          "name": "Belluri",
+          "district": "Adilabad",
+          "mandal": "Jainath",
+          "posts": 8,
+          "unopposed": true,
+          "winner": {
+            "name": "SAMPLE WINNER 6",
+            "partyBacked": "Sample Party B"
+          }
+        },
+        {
+          "name": "Ananthapur",
+          "district": "Kumuram Bheem Asifabad",
+          "mandal": "Kerameri",
+          "posts": 10,
+          "unopposed": false,
+          "winner": {
+            "name": "SAMPLE WINNER 7",
+            "partyBacked": "Sample Party A"
+          },
+          "turnoutPct": 90,
+          "lgdCode": "195315"
+        },
+        {
+          "name": "Devapur",
+          "district": "Kumuram Bheem Asifabad",
+          "mandal": "Kerameri",
+          "posts": 12,
+          "unopposed": false,
+          "winner": {
+            "name": "SAMPLE WINNER 8",
+            "partyBacked": "Sample Party B"
+          },
+          "turnoutPct": 97
+        },
+        {
+          "name": "Goyagaon",
+          "district": "Kumuram Bheem Asifabad",
+          "mandal": "Kerameri",
+          "posts": 6,
+          "unopposed": false,
+          "winner": {
+            "name": "SAMPLE WINNER 9",
+            "partyBacked": "Sample Party A"
+          },
+          "turnoutPct": 79
+        },
+        {
+          "name": "Bambara",
+          "district": "Kumuram Bheem Asifabad",
+          "mandal": "Wankidi",
+          "posts": 8,
+          "unopposed": false,
+          "winner": {
+            "name": "SAMPLE WINNER 10",
+            "partyBacked": "Sample Party B"
+          },
+          "turnoutPct": 86,
+          "lgdCode": "195764"
+        },
+        {
+          "name": "Bendera",
+          "district": "Kumuram Bheem Asifabad",
+          "mandal": "Wankidi",
+          "posts": 10,
+          "unopposed": true,
+          "winner": {
+            "name": "SAMPLE WINNER 11",
+            "partyBacked": "Sample Party A"
+          }
+        },
+        {
+          "name": "Chowpanguda",
+          "district": "Kumuram Bheem Asifabad",
+          "mandal": "Wankidi",
+          "posts": 12,
+          "unopposed": false,
+          "winner": {
+            "name": "SAMPLE WINNER 12",
+            "partyBacked": "Sample Party B"
+          },
+          "turnoutPct": 75
+        },
+        {
+          "name": "Sample New Village",
+          "district": "Adilabad",
+          "mandal": "Tamsi",
+          "posts": 8,
+          "turnoutPct": 78.0,
+          "winner": {
+            "name": "SAMPLE WINNER 13"
+          }
+        },
+        {
+          "name": "Chowpanguda",
+          "district": "Adilabad",
+          "mandal": "Tamsi",
+          "lgdCode": "195766",
+          "posts": 8,
+          "turnoutPct": 74.0,
+          "winner": {
+            "name": "SAMPLE WINNER 14"
+          }
+        }
+      ],
+      "caveats": [
+        "Sample data for tests. Not a real election."
+      ]
+    }
+  ]
+}
