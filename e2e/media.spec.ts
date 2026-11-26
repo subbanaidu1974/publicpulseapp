@@ -33,7 +33,7 @@ test.describe('media tab shell (S-224)', () => {
     await expect(page.getByTestId('media-tab-news')).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByTestId('media-news-empty')).toBeVisible();
     await expect(page.getByTestId('media-news-empty')).toContainText('No news is shown yet');
-    for (const [tab, id] of [['live', 'media-live-empty'], ['ours', 'media-ours-empty']] as const) {
+    for (const [tab, id] of [['live', 'media-live-empty'], ['ours', 'media-ours-signin']] as const) {
       await page.getByTestId(`media-tab-${tab}`).click();
       await expect(page.getByTestId(id)).toBeVisible();
     }

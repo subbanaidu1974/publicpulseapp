@@ -37,6 +37,7 @@
     "test:e2e": "playwright test",
     "e2e:poll-watch": "playwright test e2e/broadcast-poll.journey.spec.ts e2e/broadcast-poll.spec.ts --project=chromium --workers=1 --headed",
     "e2e:poll-videos": "playwright test e2e/broadcast-poll.journey.spec.ts --project=chromium --workers=1",
+    "e2e:video-videos": "playwright test e2e/video-broadcast.spec.ts --project=chromium --workers=1",
     "e2e:poll-all-videos": "playwright test e2e/broadcast-poll.allusers.spec.ts --project=chromium --workers=1",
     "tracker": "tsx scripts/gen-tracker.ts",
     "tracker:html": "node scripts/tracker-html.cjs",

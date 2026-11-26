@@ -2975,24 +2975,27 @@
       "epic": "Media",
       "title": "Broadcast a video to every registered member: an admin publishes a video as a Media card with an in-app notice, scheduled or immediate",
       "agent": "-",
-      "status": "todo",
-      "tests": [],
+      "status": "done",
+      "tests": [
+        "E2E-221",
+        "E2E-222"
+      ],
       "priority": "P0",
       "wave": "W9",
       "source": "user request 2026-11-26 (media tab roadmap)",
-      "notes": "Builds on broadcast polls (S-185) and notifications (S-184, NOTIFICATIONS.md). An admin picks an approved video (ours or a permitted link), a title and a short note, and a send time. Every signed-in member sees it as the top Media card and an unread badge on the Media tab; email-only members get it by email link; it does not block the app (unlike a poll). Seen and unseen counts only, no per-person watch record, hidden under 10 views. NOT in scope: autoplay on sign-in, SMS video, per-party or per-caste targeting, paid placement."
+      "notes": "Builds on broadcast polls (S-185) and notifications (S-184, NOTIFICATIONS.md). An admin picks an approved video (ours or a permitted link), a title and a short note, and a send time. Every signed-in member sees it as the top Media card and an unread badge on the Media tab; email-only members get it by email link; it does not block the app (unlike a poll). Seen and unseen counts only, no per-person watch record, hidden under 10 views. NOT in scope: autoplay on sign-in, SMS video, per-party or per-caste targeting, paid placement. BUILT 2026-11-26 (docs/VIDEO_BROADCASTS.md): an admin proposes a video or audio item (a link to a direct file on an approved host, a credit line, optional start time); once approved it is a card under Media > From us for every signed-in member, with a badge on the Media tab, a New label, the browser's own player, no autoplay and no blocking. Which cards were seen is kept only in the member's browser; plays are one counter per item with no person, hidden under 10. Recorded journey for the Resident, Volunteer, Government officer and Journalist demo users (npm run e2e:video-videos). NOT done: the email link for members with no phone and any push notice (members see it when they open the app), uploading or hosting videos ourselves (S-233), streams and YouTube links (only direct files play), captions on broadcast items, Telugu not reviewed, admin screen English only, the files must come from hosts listed in MEDIA_VIDEO_HOSTS (an owner decision)."
     },
     {
       "id": "S-231",
       "epic": "Media",
-      "title": "Broadcast safeguards: two-person approval, neutrality checklist, Model Code of Conduct and silence-period holds, recall and audit",
+      "title": "Broadcast safeguards, remaining part: Model Code and silence-period hold, counsel-reviewed neutrality checklist",
       "agent": "-",
       "status": "todo",
       "tests": [],
       "priority": "P0",
       "wave": "W9",
       "source": "user request 2026-11-26 (media tab roadmap)",
-      "notes": "A broadcast is held until a second admin approves it (the same two-person rule used for role grants). Checklist before send: no party or candidate promotion, no appeal to vote, no unverified claim. During an announced election's silence period and under any Model Code restriction, sends are held automatically (needs counsel input and the election dates). An admin can recall a broadcast, which removes the card and notes the correction. Everything is in the audit log. Needs counsel (see docs/MEDIA_ROADMAP.md). NOT in scope: judging truth of content by software."
+      "notes": "Narrowed 2026-11-26: the two-person approval, the two safety ticks, wording checks, recall and audit were built under S-237. Still to do: hold sends automatically during an election silence period or any Model Code restriction (needs the election dates and counsel), a counsel-reviewed neutrality checklist, and a visible correction on a recalled item. NOT in scope: judging truth of content by software."
     },
     {
       "id": "S-232",
@@ -3053,6 +3056,21 @@
       "wave": "W9",
       "source": "user request 2026-11-26 (media tab roadmap)",
       "notes": "Aggregate counts per item and day, hidden under 10 like poll results. No cookies for media, no per-member watch list, nothing sold or shared. NOT in scope: advertising, recommendation by behaviour."
+    },
+    {
+      "id": "S-237",
+      "epic": "Media",
+      "title": "Video broadcast safeguards, first part: a different admin must approve, two safety ticks, wording checks, recall and audit",
+      "agent": "-",
+      "status": "done",
+      "tests": [
+        "E2E-221",
+        "E2E-222"
+      ],
+      "priority": "P0",
+      "wave": "W9",
+      "source": "user request 2026-11-26 (build the broadcast video feature)",
+      "notes": "Part of S-231, split out so it could be built and tested without counsel. The proposer cannot approve their own item (the API refuses it and the button is off); a second admin approves or refuses; any admin can recall; title, notes and credit are refused if they carry a link, ask for a code or ID number, or ask for a party or candidate choice; both ticks (no party promotion, we have the right to show it) are required; the host must be on MEDIA_VIDEO_HOSTS; every step is audited; at most 20 items wait. NOT done: silence-period hold and counsel-reviewed checklist (remaining S-231), approval by more than one person, a visible correction note to members after a recall."
     }
   ]
 }

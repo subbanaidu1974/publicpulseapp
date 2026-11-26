@@ -1,7 +1,9 @@
-import { useState, type KeyboardEvent } from "react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 import { useT } from "../../i18n";
 import { TranslationNote } from "../TranslationNote";
 import MediaPlayer from "./MediaPlayer";
+import VideoCards from "./VideoCards";
+import { useVideos } from "./useVideos";
 import { mediaText as mt, type MediaKey } from "./mediaText";
 
 const SECTIONS = ["news", "watch", "live", "ours"] as const;
@@ -14,6 +16,10 @@ export default function MediaPage() {
   const { lang } = useT();
   const t = (k: MediaKey) => mt(lang, k);
   const [sec, setSec] = useState<Section>(read);
+  const vids = useVideos();
+  // Something new from us opens that section first, once.
+  const [jumped, setJumped] = useState(false);
+  useEffect(() => { if (!jumped && vids.unseen.length) { setJumped(true); setSec("ours"); } }, [jumped, vids.unseen.length]);
   const pick = (s: Section) => { setSec(s); try { sessionStorage.setItem(KEY, s); } catch { /* ignore */ } };
   const onKey = (e: KeyboardEvent) => {
     const i = SECTIONS.indexOf(sec);
@@ -47,7 +53,11 @@ export default function MediaPage() {
       <section role="tabpanel" id="media-panel-news" aria-labelledby="media-tab-news" data-testid="media-panel-news" hidden={sec !== "news"}>{empty("m.news.h", "m.news.none", "news")}</section>
       <section role="tabpanel" id="media-panel-watch" aria-labelledby="media-tab-watch" data-testid="media-panel-watch" hidden={sec !== "watch"}><MediaPlayer /></section>
       <section role="tabpanel" id="media-panel-live" aria-labelledby="media-tab-live" data-testid="media-panel-live" hidden={sec !== "live"}>{empty("m.live.h", "m.live.none", "live")}</section>
-      <section role="tabpanel" id="media-panel-ours" aria-labelledby="media-tab-ours" data-testid="media-panel-ours" hidden={sec !== "ours"}>{empty("m.ours.h", "m.ours.none", "ours")}</section>
+      <section role="tabpanel" id="media-panel-ours" aria-labelledby="media-tab-ours" data-testid="media-panel-ours" hidden={sec !== "ours"}>
+        {!vids.signedIn ? <div className="space-y-2" data-testid="media-ours-signin"><h3 className="text-lg font-bold">{t("m.ours.h")}</h3><p className="text-sm">{t("m.ours.signin")}</p></div>
+          : vids.items.length ? <div className="space-y-3"><h3 className="text-lg font-bold">{t("m.ours.h")}</h3>{sec === "ours" && <VideoCards items={vids.items} />}</div>
+          : empty("m.ours.h", "m.ours.none", "ours")}
+      </section>
     </div>
   );
 }

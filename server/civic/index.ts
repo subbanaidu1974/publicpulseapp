@@ -24,6 +24,7 @@ import { officersRouter } from "./officers";
 import { representativesRouter } from "./representatives";
 import { assistedRouter } from "./assisted/routes";
 import { broadcastRouter } from "./broadcast";
+import { videocastRouter } from "./videocast";
 
 /** Default JSON body cap for civic routes (the app mounts this router before its own global parser). */
 export const CIVIC_JSON_LIMIT = "64kb";
@@ -59,6 +60,7 @@ export function createCivicRouter(): Router {
   r.use("/admin", adminRouter);
   r.use("/audit", auditRouter);
   r.use("/broadcast", broadcastRouter); // S-185: admin-pushed opinion polls that block the app until answered (docs/BROADCAST_POLLS.md)
+  r.use("/videocast", videocastRouter); // S-230: admin-published videos for every signed-in member, with two-person approval (docs/VIDEO_BROADCASTS.md)
   r.use("/officers", officersRouter); // verified officer onboarding: applications and the admin verification queue (docs/OFFICERS.md)
   r.use("/representatives", representativesRouter); // representative replies, scheme tags, grievance adapter (docs/REPRESENTATIVES.md)
   r.use("/assisted", assistedRouter); // assisted participation (S-49): OFF unless ASSISTED_ENABLED=1 + ASSISTED_SUNSET_DATE (docs/ASSISTED_PARTICIPATION.md)

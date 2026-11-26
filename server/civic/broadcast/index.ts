@@ -48,11 +48,11 @@ interface PollRow { id: string; title_en: string; title_te: string | null; intro
 const str = (v: unknown): string => (typeof v === "string" ? v.normalize("NFKC").trim() : "");
 const fail = (res: express.Response, status: number, code: string, message: string): void => { res.status(status).json({ error: code, code, message }); };
 const pseud = (pollId: string, personId: string): string => getKeys().hmac("survey-actor", `bpoll:${pollId}:${personId}`);
-const hasLink = (s: string): boolean => /https?:|www\.|\.(com|in|org|net|gov)\b|bit\.ly/i.test(s);
-const asksSecret = (s: string): boolean => /\b(otp|pin|password|aadhaar|bank account|card number)\b/i.test(s) || /ఓటీపీ|పాస్‌వర్డ్|ఆధార్/.test(s);
+export const hasLink = (s: string): boolean => /https?:|www\.|\.(com|in|org|net|gov)\b|bit\.ly/i.test(s);
+export const asksSecret = (s: string): boolean => /\b(otp|pin|password|aadhaar|bank account|card number)\b/i.test(s) || /ఓటీపీ|పాస్‌వర్డ్|ఆధార్/.test(s);
 
 /** The survey policy lint plus vote-intention wording ("who will you vote for", Telugu party / candidate words next to a vote word). */
-const asksPartyPreference = (t: string): boolean =>
+export const asksPartyPreference = (t: string): boolean =>
   policyAsksParty(t) || (/\b(vote|voting|ballot)\b|ఓటు/i.test(t) && /\b(part(y|ies)|candidates?|alliance|mla|mp|chief minister)\b|పార్టీ|అభ్యర్థి|ముఖ్యమంత్రి/i.test(t));
 
 class Bad extends Error { constructor(public code: string, m: string) { super(m); } }
