@@ -41,6 +41,7 @@ test.describe('broadcast polls (S-185)', () => {
       await openCivic(page);
       await page.getByTestId('demo-admin').click();
       await expect(page.getByTestId('civic-signed-in')).toBeVisible();
+      await page.getByTestId('admin-more').click({ timeout: 2500 }).catch(() => undefined);
       await page.getByTestId('civic-tab-roles').click();
       await page.getByTestId('console-tab-admin').click();
       await page.getByTestId('polls-admin-link').click();
@@ -65,6 +66,7 @@ test.describe('broadcast polls (S-185)', () => {
     try {
       await openCivic(page);
       await page.getByTestId('demo-admin').click();
+      await page.getByTestId('admin-more').click({ timeout: 2500 }).catch(() => undefined);
       await page.getByTestId('civic-tab-roles').click();
       await page.getByTestId('console-tab-admin').click();
       await page.getByTestId('polls-admin-link').click();
@@ -160,6 +162,7 @@ test.describe('broadcast polls (S-185)', () => {
     try {
       await openCivic(page);
       await page.getByTestId('demo-admin').click();
+      await page.getByTestId('admin-more').click({ timeout: 2500 }).catch(() => undefined);
       await page.getByTestId('civic-tab-roles').click();
       await page.getByTestId('console-tab-admin').click();
       await page.getByTestId('polls-admin-link').click();

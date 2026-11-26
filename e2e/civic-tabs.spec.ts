@@ -9,7 +9,7 @@ test.describe('civic tabs and top-bar sign in (S-222)', () => {
     await openCivic(page);
     // the tab bar is not shown to a person who is not signed in
     await expect(page.getByTestId('civic-tabs')).toHaveCount(0);
-    for (const who of ['resident_verified', 'volunteer', 'officer', 'journalist', 'admin']) {
+    for (const who of ['resident_verified', 'volunteer', 'officer', 'journalist']) {
       await page.getByTestId(`demo-${who}`).click();
       await expect(page.getByTestId('civic-signed-in')).toBeVisible();
       const ids = await page.locator('[role=tab]').evaluateAll((els) => els.map((e) => (e.getAttribute('data-testid') ?? '').replace('civic-tab-', '')));
@@ -25,6 +25,17 @@ test.describe('civic tabs and top-bar sign in (S-222)', () => {
       await page.getByTestId('sign-out').click();
       await expect(page.getByTestId('demo-personas')).toBeVisible();
     }
+  });
+
+  test('@E2E-217 the admin lands on the survey page only, and can open the other tools', async ({ page }) => {
+    await openCivic(page);
+    await page.getByTestId('demo-admin').click();
+    await expect(page.getByTestId('admin-survey-home')).toBeVisible();
+    await expect(page.getByTestId('polls-admin')).toBeVisible();
+    await expect(page.getByTestId('civic-tabs')).toHaveCount(0);
+    await page.getByTestId('admin-more').click();
+    await expect(page.getByTestId('civic-tabs')).toBeVisible();
+    await expect(page.getByTestId('admin-survey-home')).toHaveCount(0);
   });
 
   test('@E2E-217 tabs work from the keyboard and read in Telugu', async ({ page }) => {
