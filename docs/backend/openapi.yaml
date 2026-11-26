@@ -1,0 +1,291 @@
+openapi: 3.0.3
+info:
+  title: People Pulse API
+  version: 1.0.0-design
+  description: |
+    Design contract. Covers the shared rules (errors, paging, auth, idempotency) and the NEW media endpoints.
+    The 347 existing routes are listed in ROUTE_INVENTORY.md; story S-247 generates their entries and adds
+    a contract test. Nothing here is implemented yet.
+servers:
+  - url: /api/v1
+tags:
+  - name: media
+    description: Uploads and reads of images, audio and videos (object storage)
+  - name: ops
+    description: Health and readiness
+security:
+  - bearer: []
+paths:
+  /civic/media/uploads:
+    post:
+      tags: [media]
+      operationId: createUpload
+      summary: Start an upload (step 1 of 2)
+      description: Returns a short-lived presigned URL. The file goes straight to object storage, not through the API.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UploadRequest" }
+      responses:
+        "201":
+          description: Upload created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UploadTicket" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /civic/media/uploads/{uploadId}/complete:
+    post:
+      tags: [media]
+      operationId: completeUpload
+      summary: Finish an upload (step 2 of 2)
+      description: Verifies size and sha256, then queues scanning and processing. The object is not readable until state is ready.
+      parameters:
+        - { name: uploadId, in: path, required: true, schema: { type: string } }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                parts:
+                  type: array
+                  description: Multipart parts (part number and etag), only for multipart uploads
+                  items:
+                    type: object
+                    required: [part, etag]
+                    properties: { part: { type: integer }, etag: { type: string } }
+      responses:
+        "200":
+          description: Accepted for processing
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [media_id, state]
+                properties:
+                  media_id: { type: string }
+                  state: { type: string, enum: [uploaded, scanning, ready, rejected] }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /civic/media/{mediaId}:
+    get:
+      tags: [media]
+      operationId: getMedia
+      summary: State and variants of one media object
+      parameters:
+        - { name: mediaId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Media description (never the file itself)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Media" }
+        "404": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [media]
+      operationId: deleteMedia
+      summary: Delete a media object (owner, or admin for takedown); purge is audited
+      responses:
+        "204": { description: Deleted }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /civic/media/{mediaId}/content:
+    get:
+      tags: [media]
+      operationId: getMediaContent
+      summary: Stream a private object after an authorisation check
+      description: Only for private media. Public media is served by CDN URL. May answer 302 to a signed URL valid for about a minute.
+      parameters:
+        - { name: mediaId, in: path, required: true, schema: { type: string } }
+        - { name: variant, in: query, required: false, schema: { type: string, example: thumb } }
+      responses:
+        "200":
+          description: File bytes
+          content:
+            "*/*": { schema: { type: string, format: binary } }
+        "302": { description: Redirect to a short-lived signed URL }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /civic/media/videos:
+    get:
+      tags: [media]
+      operationId: listVideos
+      summary: Library videos for the Watch tab (v2)
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+        - { name: lang, in: query, schema: { type: string, enum: [te, en] } }
+      responses:
+        "200":
+          description: A page of videos with renditions
+          headers:
+            ETag: { schema: { type: string } }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, next_cursor]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/Video" } }
+                  next_cursor: { type: string, nullable: true }
+        "304": { description: Not modified }
+  /civic/media/admin/videos/{videoId}/transcode:
+    get:
+      tags: [media]
+      operationId: getTranscodeState
+      summary: Admin view of processing state for an uploaded video
+      parameters:
+        - { name: videoId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: State
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transcode_state: { type: string, enum: [queued, running, ready, failed] }
+                  transcode_error: { type: string, nullable: true }
+                  renditions:
+                    type: array
+                    items: { $ref: "#/components/schemas/Rendition" }
+        "403": { $ref: "#/components/responses/Error" }
+  /readyz:
+    get:
+      tags: [ops]
+      operationId: readyz
+      summary: Readiness (database per store, object storage, queue)
+      security: []
+      responses:
+        "200":
+          description: Ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, enum: [ok] }
+                  checks:
+                    type: object
+                    additionalProperties: { type: string, enum: [ok] }
+        "503":
+          description: Not ready; the failing check is named
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      description: Opaque server-side session token
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: UUID. Same key and body returns the first result for 24 hours; same key with a different body is 422.
+      schema: { type: string, format: uuid }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+    Cursor:
+      name: cursor
+      in: query
+      description: Opaque value from next_cursor of the previous page
+      schema: { type: string }
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    RateLimited:
+      description: Too many requests
+      headers:
+        Retry-After: { schema: { type: integer } }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+  schemas:
+    Error:
+      type: object
+      required: [error, code, message, request_id]
+      properties:
+        error: { type: string, description: Machine code, kept for older clients }
+        code: { type: string }
+        message: { type: string }
+        request_id: { type: string }
+    UploadRequest:
+      type: object
+      required: [purpose, filename, content_type, size_bytes, sha256]
+      properties:
+        purpose: { type: string, enum: [issue_photo, consultation_audio, video, video_poster, source_logo, public_photo] }
+        filename: { type: string, maxLength: 200 }
+        content_type: { type: string }
+        size_bytes: { type: integer, minimum: 1 }
+        sha256: { type: string, pattern: "^[0-9a-f]{64}$" }
+        owner_item: { type: string, description: Id of the report or consultation the file belongs to, where the purpose needs one }
+    UploadTicket:
+      type: object
+      required: [upload_id, method, url, expires_at]
+      properties:
+        upload_id: { type: string }
+        method: { type: string, enum: [PUT] }
+        url: { type: string }
+        headers: { type: object, additionalProperties: { type: string } }
+        multipart:
+          type: object
+          nullable: true
+          properties:
+            part_size: { type: integer }
+            part_urls: { type: array, items: { type: string } }
+        expires_at: { type: string, format: date-time }
+    Media:
+      type: object
+      required: [id, purpose, state, content_type, size_bytes]
+      properties:
+        id: { type: string }
+        purpose: { type: string }
+        state: { type: string, enum: [pending, uploaded, scanning, ready, rejected, deleted] }
+        content_type: { type: string }
+        size_bytes: { type: integer }
+        url: { type: string, nullable: true, description: CDN URL; only for public media }
+        variants:
+          type: array
+          items:
+            type: object
+            properties:
+              variant: { type: string }
+              width: { type: integer, nullable: true }
+              height: { type: integer, nullable: true }
+              url: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+    Rendition:
+      type: object
+      properties:
+        label: { type: string, example: 720p }
+        bitrate_kbps: { type: integer }
+        width: { type: integer }
+        height: { type: integer }
+    Video:
+      type: object
+      required: [id, title_en, title_te, kind]
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [own, youtube, link] }
+        title_en: { type: string }
+        title_te: { type: string, nullable: true }
+        source: { type: string }
+        poster_url: { type: string, nullable: true }
+        manifest_url: { type: string, nullable: true, description: HLS playlist for own videos }
+        renditions: { type: array, items: { $ref: "#/components/schemas/Rendition" } }
+        duration_ms: { type: integer, nullable: true }
+        live_at: { type: string, format: date-time }

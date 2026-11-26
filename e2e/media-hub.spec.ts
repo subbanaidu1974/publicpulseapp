@@ -189,8 +189,9 @@ test.describe('Media tab journey, recorded (S-225 to S-236)', () => {
       const ch = M.getByTestId('live-channel').filter({ hasText: CHANNEL });
       await expect(ch).toBeVisible();
       await expect(ch.getByTestId('live-link')).toHaveAttribute('href', 'https://channel-one.example.net/');
-      await ch.getByTestId('live-play').click();
-      const vid = ch.getByTestId('live-video');
+      await ch.getByTestId('live-pick').click();
+      await M.getByTestId('live-play').click();
+      const vid = M.getByTestId('live-video');
       await expect(vid).toBeVisible();
       expect(await vid.evaluate((m: HTMLMediaElement) => m.paused)).toBe(true); // never starts by itself
       await vid.evaluate((m: HTMLMediaElement) => { m.muted = true; return m.play(); });
@@ -413,7 +414,7 @@ test.describe('Paste a YouTube link (S-239)', () => {
 });
 
 test.describe('Live tab player (S-241)', () => {
-  test('@E2E-234 the Live tab has a link player, and a channel whose stream is a YouTube live link plays in the no-cookie embed after Play', async ({ page, request }) => {
+  test('@E2E-234 the Live tab has a player stage and channel list, and a channel whose stream is a YouTube live link plays in the no-cookie embed after Play', async ({ page, request }) => {
     const a = await seedPerson(request, [{ role: 'admin' }]), b = await seedPerson(request, [{ role: 'admin' }]);
     let framed = 0;
     await page.route('https://www.youtube-nocookie.com/**', (r) => { framed++; return r.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>player</title>' }); });
@@ -424,12 +425,14 @@ test.describe('Live tab player (S-241)', () => {
       await page.goto('/');
       await page.getByTestId('nav-media').click();
       await page.getByTestId('media-tab-live').click();
-      await expect(page.getByTestId('yt-player')).toBeVisible(); // a link player is always on the Live tab
+      await expect(page.getByTestId('yt-player')).toHaveCount(0); // the paste-a-link box was removed (2026-11-26)
       const ch = page.getByTestId('live-channel').filter({ hasText: nm });
       await expect(ch).toBeVisible();
       expect(framed).toBe(0);
-      await ch.getByTestId('live-play').click();
-      await expect(ch.getByTestId('live-yt-frame')).toHaveAttribute('src', /youtube-nocookie\.com\/embed\/dQw4w9WgXcQ/);
+      await ch.getByTestId('live-pick').click();
+      await expect(page.getByTestId('live-yt-frame')).toHaveCount(0);
+      await page.getByTestId('live-play').click();
+      await expect(page.getByTestId('live-yt-frame')).toHaveAttribute('src', /youtube-nocookie\.com\/embed\/dQw4w9WgXcQ/);
       await expect.poll(() => framed).toBeGreaterThan(0);
     } finally { await request.post(`${API}/media/admin/sources/${s.id}/disable`, { headers: bearer(a.token) }); }
   });
@@ -487,7 +490,8 @@ test.describe('Watch player with a video list (S-243)', () => {
       await openCivicAs(page, m.token);
       await page.getByTestId('nav-media').click();
       await page.getByTestId('media-tab-watch').click();
-      await expect(page.getByTestId('wp-placeholder')).toBeVisible();
+      await expect(page.getByTestId('wp-video')).toBeVisible(); // our own first video is ready in the stage
+      expect(await page.getByTestId('wp-video').evaluate((v: HTMLMediaElement) => v.paused)).toBe(true); // and does not start by itself
       const items = page.getByTestId('wp-item');
       await expect(items.filter({ hasText: vt })).toHaveAttribute('data-kind', 'own');
       await expect(items.filter({ hasText: `News video one ${tag}` })).toHaveAttribute('data-kind', 'youtube');

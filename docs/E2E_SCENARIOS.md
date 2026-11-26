@@ -234,3 +234,5 @@ Layers: **API** = HTTP-level test (no browser), **UI** = Playwright browser.
 | E2E-237 | Unit | Watch playlist logic: own videos first, a repeated video listed once, next and previous wrap | S-243 |
 | E2E-238 | Journey | The Watch tab has a stage and a list of own and YouTube news videos; nothing loads until one is chosen; next and previous step through it; own video never autoplays; axe and phone width clean | S-243 |
 | E2E-239 | Unit | Candidate Telugu channel feeds (NTV Telugu, TV9 Telugu, 10TV, Sakshi): loaded off with no permission, Telugu names, enabling refused until permission is recorded, nothing shown | S-244 |
+| E2E-240 | Unit | Demo news preview: off unless CIVIC_DEMO_NEWS=1 and never in production; one labelled sample source with five sample headlines, refreshed without duplicates | S-245 |
+| E2E-241 | Unit | Google News topic feeds for Andhra Pradesh and Telangana (English and Telugu) exist switched off with no permission record, show nothing, and cannot be enabled until permission is recorded | S-278 |
