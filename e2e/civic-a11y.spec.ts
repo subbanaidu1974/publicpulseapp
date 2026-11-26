@@ -143,6 +143,7 @@ for (const lang of ['en', 'te'] as const) {
     await assertTouchTargets(page);
     await openCivicSignedIn(page, request, lang);
     await expect(page.getByTestId('tier-badge')).toBeVisible();
+    await page.getByTestId('civic-tab-account').click();
     if (await page.getByTestId('res-change').isVisible()) await page.getByTestId('res-change').click();
     await expect(page.getByTestId('residence-flow')).toBeVisible();
     expect(await axe(page), 'tier badge and residence').toEqual([]);

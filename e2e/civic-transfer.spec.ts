@@ -3,6 +3,8 @@ import { randomPhone } from './civic-helpers';
 import { auth, openCivicAs, seedPerson, signUpApi } from './civic-identity-helpers';
 
 import type { Page } from '@playwright/test';
+import { startOnCivicTab } from './civic-helpers';
+test.beforeEach(async ({ page }) => { await startOnCivicTab(page, 'household'); });
 async function toCivic(p: Page) { await p.goto('/?state=AP'); const nav = p.getByTestId('nav-civic'); if (!(await nav.isVisible())) await p.locator('#mobile-menu-toggle').click(); await nav.click(); }
 
 const H = '/api/v1/civic/households';
@@ -33,6 +35,7 @@ test.describe('civic household head transfer (two-step)', () => {
 
     // Member (Telugu): sees the request as recipient, declines first, then is asked again and accepts.
     const memberPage = await page.context().newPage();
+    await startOnCivicTab(memberPage, 'household');
     await memberPage.addInitScript((t) => { try { sessionStorage.setItem('civic-token', t); localStorage.setItem('pp-lang', 'te'); } catch { /* ignore */ } }, member.token);
     await toCivic(memberPage);
     await expect(memberPage.getByTestId('transfer-pending')).toHaveAttribute('data-role', 'recipient');

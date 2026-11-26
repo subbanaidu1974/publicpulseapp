@@ -49,7 +49,7 @@ describe("demo personas, no registration (S-166)", () => {
     process.env.CIVIC_DEMO_PERSONAS = "1"; process.env.NODE_ENV = "test";
     const list = await call("GET", "/demo/personas");
     expect(list.status).toBe(200);
-    expect(list.json.personas.map((p: { key: string }) => p.key)).toEqual(DEMO_PERSONAS.map((p) => p.key));
+    expect(list.json.personas.map((p: { key: string }) => p.key)).toEqual(DEMO_PERSONAS.filter((p) => p.listed !== false).map((p) => p.key));
     for (const p of DEMO_PERSONAS) {
       const r = await call("POST", "/demo/login", { persona: p.key });
       expect(r.status).toBe(200);

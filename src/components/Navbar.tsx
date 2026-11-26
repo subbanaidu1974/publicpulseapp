@@ -119,16 +119,14 @@ export default function Navbar({ currentTab, setCurrentTab, theme, setTheme }: N
           </div>
 
           <div className="flex items-center lg:hidden space-x-1 shrink-0">
-            {signedIn && (
-              <button
-                type="button"
-                data-testid="sign-out-mobile"
-                onClick={() => void logout()}
-                className="p-1.5 border border-black bg-black text-[#F9F7F2] text-[10px] font-bold uppercase tracking-wider"
-              >
-                {t("nav.signout")}
-              </button>
-            )}
+            <button
+              type="button"
+              data-testid={signedIn ? "sign-out-mobile" : "sign-in-mobile"}
+              onClick={signedIn ? () => void logout() : () => handleNavClick("civic")}
+              className="p-1.5 border border-black bg-black text-[#F9F7F2] text-[10px] font-bold uppercase tracking-wider"
+            >
+              {signedIn ? t("nav.signout") : t("nav.signin")}
+            </button>
             <button
               type="button"
               onClick={() => setTheme(NEXT_THEME[theme])}

@@ -23,23 +23,25 @@ export interface DemoPersona {
   key: string; label: string; description: string;
   roles: { role: RoleName; jurisdiction?: string; department?: string }[];
   residence?: boolean; matureDays?: number; emailOnly?: boolean;
+  /** false = not offered on the sign-in screen. Still accepted by POST /demo/login, because the automated tests sign in as these. */
+  listed?: false;
 }
 
 const DEMO_VILLAGE = "demo-village";
 export const DEMO_PERSONAS: DemoPersona[] = [
-  { key: "resident_new", label: "New resident", description: "Just signed up: unverified (T0), inside the 14-day waiting period.", roles: [] },
-  { key: "resident_verified", label: "Verified resident", description: "Declared a village (T1) and past the waiting period: can report issues and take surveys.", roles: [], residence: true, matureDays: AGE_GATE_DAYS + 1 },
-  { key: "resident_email_only", label: "Email-only resident", description: "Signed up with an email and no phone: can report issues, cannot take surveys.", roles: [], emailOnly: true },
+  { key: "resident_new", label: "New resident", description: "Just signed up: unverified (T0), inside the 14-day waiting period.", roles: [], listed: false },
+  { key: "resident_verified", label: "Resident", description: "Declared a village (T1) and past the waiting period: can report issues and take surveys.", roles: [], residence: true, matureDays: AGE_GATE_DAYS + 1 },
+  { key: "resident_email_only", label: "Email-only resident", description: "Signed up with an email and no phone: can report issues, cannot take surveys.", roles: [], emailOnly: true, listed: false },
   { key: "volunteer", label: "Volunteer", description: "Enrolled volunteer: can enrol adults and confirm neighbours.", roles: [{ role: "volunteer" }], residence: true, matureDays: AGE_GATE_DAYS + 1 },
   { key: "officer", label: "Government officer", description: "Verified officer of the Demo Department.", roles: [{ role: "officer", department: "Demo Department" }] },
-  { key: "politician", label: "Politician", description: "A representative who can reply to issues.", roles: [{ role: "politician", department: "DEMO" }] },
-  { key: "moderator", label: "Moderator", description: "Reviews held and reported content.", roles: [{ role: "moderator" }] },
+  { key: "politician", label: "Politician", description: "A representative who can reply to issues.", roles: [{ role: "politician", department: "DEMO" }], listed: false },
+  { key: "moderator", label: "Moderator", description: "Reviews held and reported content.", roles: [{ role: "moderator" }], listed: false },
   { key: "journalist", label: "Journalist", description: "Read access for journalists.", roles: [{ role: "journalist" }] },
-  { key: "geo_reviewer", label: "Geo reviewer", description: "Reviews location and boundary corrections.", roles: [{ role: "geo_reviewer" }] },
-  { key: "eci_liaison", label: "ECI liaison", description: "Election Commission liaison for election notices.", roles: [{ role: "eci_liaison" }] },
-  { key: "survey_panel", label: "Survey panel member", description: "A nominated independent panel member for survey wording.", roles: [{ role: "survey_panel", department: "Demo Panel" }] },
-  { key: "assist_coordinator", label: "Assisted-participation coordinator", description: "Coordinates assisted participation (still off unless enabled).", roles: [{ role: "assist_coordinator" }] },
-  { key: "assist_reviewer", label: "Assisted-participation reviewer", description: "Reviews assisted participation records.", roles: [{ role: "assist_reviewer" }] },
+  { key: "geo_reviewer", label: "Geo reviewer", description: "Reviews location and boundary corrections.", roles: [{ role: "geo_reviewer" }], listed: false },
+  { key: "eci_liaison", label: "ECI liaison", description: "Election Commission liaison for election notices.", roles: [{ role: "eci_liaison" }], listed: false },
+  { key: "survey_panel", label: "Survey panel member", description: "A nominated independent panel member for survey wording.", roles: [{ role: "survey_panel", department: "Demo Panel" }], listed: false },
+  { key: "assist_coordinator", label: "Assisted-participation coordinator", description: "Coordinates assisted participation (still off unless enabled).", roles: [{ role: "assist_coordinator" }], listed: false },
+  { key: "assist_reviewer", label: "Assisted-participation reviewer", description: "Reviews assisted participation records.", roles: [{ role: "assist_reviewer" }], listed: false },
   { key: "admin", label: "Platform admin", description: "Full admin console access.", roles: [{ role: "admin" }] },
 ];
 
@@ -80,7 +82,7 @@ export function createDemoRouter(): Router {
     next();
   });
   r.get("/personas", (_req, res) => {
-    res.json({ personas: DEMO_PERSONAS.map((p) => ({ key: p.key, label: p.label, description: p.description, roles: p.roles.map((x) => x.role) })) });
+    res.json({ personas: DEMO_PERSONAS.filter((p) => p.listed !== false).map((p) => ({ key: p.key, label: p.label, description: p.description, roles: p.roles.map((x) => x.role) })) });
   });
   r.post("/login", (req, res) => {
     const key = typeof req.body?.persona === "string" ? req.body.persona : "";

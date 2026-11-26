@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { openCivicSignedIn } from './civic-helpers';
+import { startOnCivicTab } from './civic-helpers';
+test.beforeEach(async ({ page }) => { await startOnCivicTab(page, 'account'); });
 
 test.describe('civic residence declaration (T1)', () => {
   test('@E2E-148 declare residence state > district > mandal > village, honest self-declared copy, badge updates to T1', async ({ page, request }) => {

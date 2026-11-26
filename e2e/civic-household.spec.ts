@@ -1,5 +1,7 @@
 import { test, expect, type APIRequestContext } from '@playwright/test';
 import { openCivicSignedIn, randomPhone, sharedToken } from './civic-helpers';
+import { startOnCivicTab } from './civic-helpers';
+test.beforeEach(async ({ page }) => { await startOnCivicTab(page, 'household'); });
 
 /** Create the household through the API first (idempotent; a 4xx just means it exists) so parallel workers cannot race in the UI. */
 async function ensureHousehold(request: APIRequestContext) {

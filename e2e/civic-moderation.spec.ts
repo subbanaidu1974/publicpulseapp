@@ -1,6 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { API, FAULT, bearer, findVillage, openCivicAs, report, seedPerson, uniq } from './civic-seed';
+import { startOnCivicTab } from './civic-helpers';
+test.beforeEach(async ({ page }) => { await startOnCivicTab(page, 'roles'); });
 
 // Real server: moderators are real core roles created through the test-only seeding route; held reports come from the real moderation rules.
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
@@ -80,6 +82,7 @@ test.describe('moderation (S-142)', () => {
     const ctx = await browser.newContext();
     try {
       const p2 = await ctx.newPage();
+      await startOnCivicTab(p2, 'roles');
       await openCivicAs(p2, m2.token);
       await p2.getByTestId('console-tab-moderator').click();
       await p2.getByTestId('lx-item').filter({ hasText: term }).getByTestId('lx-accept').click();

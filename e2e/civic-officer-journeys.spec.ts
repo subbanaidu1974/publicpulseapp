@@ -1,6 +1,8 @@
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { API, bearer, enrolAdmin, openCivicAs, seedPerson, uniq, type Seeded, type Totp } from './civic-seed';
+import { startOnCivicTab } from './civic-helpers';
+test.beforeEach(async ({ page }) => { await startOnCivicTab(page, 'roles'); });
 
 /**
  * E2E-156 (S-141): an officer applies in the browser with an allow-listed e-mail domain and a letter, proves the address with the e-mailed
@@ -87,6 +89,7 @@ test.describe('E2E-156 verified officer onboarding', () => {
     const ctx1 = await browser.newContext();
     try {
       const p1 = await ctx1.newPage();
+      await startOnCivicTab(p1, 'roles');
       await adminPage(p1, a1);
       const row = p1.getByTestId('oq-item').filter({ hasText: email });
       await expect(row).toHaveCount(1);
@@ -111,6 +114,7 @@ test.describe('E2E-156 verified officer onboarding', () => {
     const ctx2 = await browser.newContext();
     try {
       const p1 = await ctx2.newPage();
+      await startOnCivicTab(p1, 'roles');
       await adminPage(p1, a1);
       const row = p1.getByTestId('oq-item').filter({ hasText: email });
       await expect(row.getByTestId('oq-mail')).toContainText('confirmed by the applicant');
@@ -137,6 +141,7 @@ test.describe('E2E-156 verified officer onboarding', () => {
     const ctx3 = await browser.newContext();
     try {
       const p2 = await ctx3.newPage();
+      await startOnCivicTab(p2, 'roles');
       await openCivicAs(p2, a2.token);
       await p2.getByTestId('console-tab-admin').click();
       const row = p2.getByTestId('rr-item').filter({ hasText: applicant.personId });
@@ -185,6 +190,7 @@ test.describe('E2E-156 verified officer onboarding', () => {
     const ctx = await browser.newContext();
     try {
       const p2 = await ctx.newPage();
+      await startOnCivicTab(p2, 'roles');
       await openCivicAs(p2, self.token);
       await p2.getByTestId('console-tab-admin').click();
       const rr = p2.getByTestId('rr-item').filter({ hasText: self.personId });
@@ -217,6 +223,7 @@ test.describe('E2E-156 verified officer onboarding', () => {
     const ctx = await browser.newContext();
     try {
       const p1 = await ctx.newPage();
+      await startOnCivicTab(p1, 'roles');
       await adminPage(p1, a1, 'te');
       const row = p1.getByTestId('oq-item').filter({ hasText: email });
       await expect(row).toHaveCount(1);

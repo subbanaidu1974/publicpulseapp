@@ -79,3 +79,8 @@ export async function openCivicSignedIn(page: Page, request: APIRequestContext, 
   await openCivic(page, lang);
   await expect(page.getByTestId('civic-signed-in')).toBeVisible();
 }
+
+/** The Civic page opens on its Issues tab. Specs for another tab call this once; it persists across reloads in the same page. */
+export async function startOnCivicTab(page: Page, tab: 'issues' | 'household' | 'account' | 'explore' | 'roles') {
+  await page.addInitScript((t) => { try { sessionStorage.setItem('pp-civic-tab', t); } catch { /* ignore */ } }, tab);
+}

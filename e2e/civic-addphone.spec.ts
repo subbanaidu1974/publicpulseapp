@@ -1,10 +1,15 @@
 import { test, expect } from '@playwright/test';
 import { openCivic, randomPhone } from './civic-helpers';
+import { startOnCivicTab } from './civic-helpers';
+test.beforeEach(async ({ page }) => { await startOnCivicTab(page, 'account'); });
 
 test.describe('adding a phone to an email-only account (S-167)', () => {
-  test('@E2E-194 an email-only person sees the add-phone panel and a person with a phone never does', async ({ page }) => {
+  test('@E2E-194 an email-only person sees the add-phone panel and a person with a phone never does', async ({ page, request }) => {
+    // the email-only demo account is not on the sign-in screen any more (only five are), but the route still signs in as it
+    const login = await request.post('/api/v1/civic/demo/login', { data: { persona: 'resident_email_only' } });
+    const { token } = await login.json();
+    await page.addInitScript((t) => { try { sessionStorage.setItem('civic-token', t); } catch { /* ignore */ } }, token);
     await openCivic(page);
-    await page.getByTestId('demo-resident_email_only').click();
     await expect(page.getByTestId('civic-signed-in')).toBeVisible();
     await expect(page.getByTestId('add-phone')).toBeVisible();
     // a person with a phone never sees it

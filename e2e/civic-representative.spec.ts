@@ -1,6 +1,8 @@
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { API, bearer, findVillage, freshText, openCivicAs, report, seedPerson, uniq } from './civic-seed';
+import { startOnCivicTab } from './civic-helpers';
+test.beforeEach(async ({ page }) => { await startOnCivicTab(page, 'roles'); });
 
 /**
  * E2E-160 (S-145): a verified representative posts a labelled reply with scheme tags on an issue in their constituency, from the real console;
@@ -124,6 +126,7 @@ test.describe('E2E-160 representative reply', () => {
     const ctx3 = await browser.newContext();
     try {
       const pm = await ctx3.newPage();
+      await startOnCivicTab(pm, 'roles');
       await openCivicAs(pm, s.mod.token);
       await pm.getByTestId('console-tab-moderator').click();
       const item = pm.getByTestId('rep-mod-item').filter({ hasText: 'Ramesh' });
