@@ -2,6 +2,8 @@ import { test, expect } from '@playwright/test';
 import { openCivicAs } from './civic-seed';
 import { randomPhone } from './civic-helpers';
 import { auth, signUpApi } from './civic-identity-helpers';
+import { startOnCivicTab } from './civic-helpers';
+test.beforeEach(async ({ page }) => { await startOnCivicTab(page, 'account'); });
 
 const API = '/api/v1/civic/identity';
 
@@ -43,6 +45,7 @@ test.describe('change PIN (S-158)', () => {
     expect((await request.post(`${API}/login`, { data: { phone: '+91' + phone, pin: '4821' } })).status()).toBe(401);
     expect((await request.post(`${API}/login`, { data: { phone: '+91' + phone, pin: '7302' } })).ok()).toBeTruthy();
     await expect(page.getByTestId('civic-signed-in')).toBeVisible(); // this device stays signed in on the new token
+    await page.getByTestId('civic-tab-issues').click();
     await page.getByTestId('my-reports-refresh').click();
     await expect(page.getByTestId('my-reports-error')).toHaveCount(0); // authenticated calls keep working with the swapped token
   });

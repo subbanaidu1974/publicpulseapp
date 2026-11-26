@@ -85,7 +85,7 @@ test.describe('demo personas, no registration (S-166)', () => {
   test('@E2E-192 the sign-in screen offers ready-made accounts and one click signs in as a platform admin', async ({ page, request }) => {
     await openCivic(page);
     await expect(page.getByTestId('demo-personas')).toBeVisible();
-    for (const key of ['resident_verified', 'resident_email_only', 'volunteer', 'officer', 'moderator', 'admin']) await expect(page.getByTestId(`demo-${key}`)).toBeVisible();
+    for (const key of ['resident_verified', 'volunteer', 'officer', 'journalist', 'admin']) await expect(page.getByTestId(`demo-${key}`)).toBeVisible();
     await page.getByTestId('demo-admin').click();
     await expect(page.getByTestId('civic-signed-in')).toBeVisible();
     const token = await page.evaluate(() => Object.values(localStorage).concat(Object.values(sessionStorage)).find((v) => typeof v === 'string' && /^[A-Za-z0-9_-]{20,}$/.test(v)) ?? '');

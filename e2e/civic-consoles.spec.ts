@@ -1,6 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { API, FAULT, Totp, bearer, enrolAdmin, findVillage, freshText, openCivicAs, report, seedPerson, uniq } from './civic-seed';
+import { startOnCivicTab } from './civic-helpers';
+test.beforeEach(async ({ page }) => { await startOnCivicTab(page, 'roles'); });
 
 // Real server for roles, the officer queue, role requests with TOTP and the audit log. Fault injection is marked and limited to
 // responses a healthy server never gives (a believed-admin client, a 401 mid-session, a broken audit chain).
@@ -157,6 +159,7 @@ test.describe('admin console (real admin routes, TOTP)', () => {
     const ctx = await page.context().browser()!.newContext();
     try {
       const p2 = await ctx.newPage();
+      await startOnCivicTab(p2, 'roles');
       await openCivicAs(p2, b.token);
       await p2.getByTestId('console-tab-admin').click();
       const row = p2.getByTestId('rr-item').filter({ hasText: target.personId });

@@ -37,3 +37,7 @@ API: `GET /api/v1/civic/demo/personas`, `POST /api/v1/civic/demo/login { persona
 ## In automated tests
 
 Playwright's web server sets the flag, so specs can sign in as any persona in one call (`e2e/civic-persona-matrix.spec.ts`). The role matrix there checks that each role-gated route answers 200 to the roles that may use it and 403 to everyone else, and 401 without a session. Add a route to its table when you add a role-gated route.
+
+## Which personas the sign-in screen offers
+
+The screen and `GET /demo/personas` list five: Resident, Volunteer, Government officer, Journalist and Platform admin. The other personas in `server/civic/demo.ts` are marked `listed: false`. They are not shown, but `POST /demo/login` still accepts them because automated tests sign in as them (moderator, politician, email-only resident and so on).

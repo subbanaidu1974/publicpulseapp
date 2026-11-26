@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { randomPhone } from './civic-helpers';
 import { auth, openCivicAs, seedPerson } from './civic-identity-helpers';
+import { startOnCivicTab } from './civic-helpers';
+test.beforeEach(async ({ page }) => { await startOnCivicTab(page, 'account'); });
 
 const API = '/api/v1/civic/identity';
 
