@@ -1,6 +1,6 @@
 # Backend plan: MySQL, object storage and a stable API
 
-Status: **design only. Nothing here is implemented, and nothing will be started until the owner says "start the backend".** Written 2026-11-26.
+Status: **backend started 2026-11-27 (phase B0).** Built so far: the async data layer with SQLite and MySQL engines (`server/data/`, S-248), the migration runner (S-249) and the generated route contract (S-247). **No store has been ported to MySQL yet, and nothing is provisioned in any cloud**: S-246 (provider, region, budget, Redis, video upload) and S-257 (object storage provider) still wait for the owner. Local MySQL for tests: `npm run db:mysql:up`, then `MYSQL_TEST_URL=mysql://root:pp_root@127.0.0.1:3307 npm run test:backend`. Regenerate the contract after any route change: `npm run backend:contract`.
 
 ## Why this plan exists
 The app already has a working server (Express and TypeScript, about 347 routes, about 116 tables). It runs on four **SQLite** files and keeps photos as encrypted files on local disk. That is right for a single-machine pilot and wrong for production: SQLite is single-writer, the server cannot run as more than one copy, and files on one disk cannot be backed up, replicated or served at scale. The owner has asked for MySQL for data and a proper home for images and videos. This plan turns that into stories that can be picked up one by one.
@@ -13,7 +13,8 @@ The app already has a working server (Express and TypeScript, about 347 routes, 
 | [ROUTE_INVENTORY.md](ROUTE_INVENTORY.md) | Every route that exists today, generated from the code (the baseline that must keep working) |
 | [DATA_MODEL_MYSQL.md](DATA_MODEL_MYSQL.md) | How the four SQLite stores become MySQL schemas, type and SQL rules, key tables as DDL, backups, security |
 | [MEDIA_STORAGE.md](MEDIA_STORAGE.md) | Where images and videos live, the options compared, the recommendation, the metadata tables and the upload flow |
-| [openapi.yaml](openapi.yaml) | A machine-readable contract for the shared rules and the new media endpoints (the rest is generated from the inventory in story S-247) |
+| [openapi.routes.yaml](openapi.routes.yaml) | Generated OpenAPI paths for every route in the code (no shapes yet, auth labels come with S-263) |
+| [openapi.yaml](openapi.yaml) | A machine-readable contract for the shared rules and the new media endpoints (the rest of the paths are generated into openapi.routes.yaml by S-247) |
 
 Stories S-246 to S-277 in `docs/stories/tracker.json` (epic **Backend**, waves B0 to B4) carry the work.
 

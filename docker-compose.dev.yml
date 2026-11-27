@@ -1,0 +1,15 @@
+# Local MySQL for the backend tests (S-248/S-249). Not for production. Usage: npm run db:mysql:up, then
+#   MYSQL_TEST_URL=mysql://root:pp_root@127.0.0.1:3307 npx vitest run tests/backend
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: pp-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: pp_root
+    ports:
+      - "127.0.0.1:3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-ppp_root"]
+      interval: 5s
+      timeout: 5s
+      retries: 20

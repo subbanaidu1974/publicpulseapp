@@ -37,7 +37,7 @@ getStore("identity" | "issues" | "survey" | "audit"): Db
 |---|---|---|
 | `TEXT PRIMARY KEY` (UUID strings) | `CHAR(36) CHARACTER SET ascii COLLATE ascii_bin` | same app-generated ids, no code change; a compact `BINARY(16)` form is a measured later option (S-274) |
 | `INTEGER PRIMARY KEY` (`audit_log.seq`) | `BIGINT UNSIGNED AUTO_INCREMENT` or a managed counter | audit uses a chain head row (section 6) |
-| ISO time strings in `TEXT` (`'2026-11-26T10:00:00.000Z'`) | `DATETIME(3)` in UTC | the adapter converts ISO strings to `'YYYY-MM-DD HH:MM:SS.mmm'` on write and back to ISO on read; connection time zone `+00:00`. Comparisons use the same format on both sides. `strftime` (1 use) becomes `DATE_FORMAT` |
+| ISO time strings in `TEXT` (`'2026-11-26T10:00:00.000Z'`) | `VARCHAR(24)` holding the same 24-character ISO UTC string (**changed during S-248**) | MySQL rejects a trailing `Z` in `DATETIME` (error 1292), and a string that sorts and compares identically on both engines removes a whole class of conversion bugs. Fixed-width UTC ISO strings order correctly. The DDL below that says `DATETIME(3)` is superseded by this rule; use `VARCHAR(24)` for application timestamps. `strftime` (1 use) becomes `DATE_FORMAT` on a cast |
 | `TEXT` JSON blobs | `JSON` where queried, else `TEXT`/`MEDIUMTEXT` | keep the app's JSON.parse; no JSON functions are used today |
 | booleans as `INTEGER` 0/1 | `TINYINT(1)` | unchanged |
 | `INSERT OR IGNORE` (28) | `INSERT ... ON DUPLICATE KEY UPDATE <pk>=<pk>` | not `INSERT IGNORE`, which also hides unrelated errors |

@@ -3234,37 +3234,44 @@
       "id": "S-247",
       "epic": "Backend",
       "title": "OpenAPI contract for every route (generated from the route inventory) plus a contract test that fails when a route and the contract disagree",
-      "agent": "-",
-      "status": "todo",
-      "tests": [],
+      "agent": "claude",
+      "status": "in_progress",
+      "tests": [
+        "tests/backend/routeInventory.test.ts"
+      ],
       "priority": "P0",
       "wave": "B0",
       "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
-      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. Start from docs/backend/openapi.yaml and ROUTE_INVENTORY.md. Includes the authorisation label per route (feeds S-263). NOT in scope: changing any route. See docs/backend/."
+      "notes": "STARTED 2026-11-27. DONE: scripts/route-inventory.ts generates docs/backend/ROUTE_INVENTORY.md (357 routes) and docs/backend/openapi.routes.yaml (paths, path parameters, standard error response, operationId); tests/backend/routeInventory.test.ts fails when code and files disagree or a router file has no mount entry (npm run backend:contract regenerates). NOT done: request and response shapes per route, the authorisation label per route (x-auth is unclassified, feeds S-263), merging with the hand-written openapi.yaml, a runtime check that the live server matches the contract, the mount map is hand-kept in the script. No route changed."
     },
     {
       "id": "S-248",
       "epic": "Backend",
       "title": "Async data-access layer (get, all, run, tx) with a SQLite adapter and a MySQL adapter, lint rule against direct node:sqlite use, same tests on both",
-      "agent": "-",
-      "status": "todo",
-      "tests": [],
+      "agent": "claude",
+      "status": "in_progress",
+      "tests": [
+        "tests/backend/dataLayer.test.ts",
+        "tests/backend/syncDbGuard.test.ts"
+      ],
       "priority": "P0",
       "wave": "B0",
       "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
-      "notes": "DESIGN ONLY 2026-11-26, not started. Size L. Design in DATA_MODEL_MYSQL.md sections 2 and 3. Converts call sites store by store, behind the existing tests. NOT in scope: moving any real data. See docs/backend/."
+      "notes": "STARTED 2026-11-27. DONE: server/data (Db interface, SQLite adapter, MySQL adapter via mysql2, portable upsert and row-lock helpers, error kinds, deadlock retry, savepoints); one contract suite runs on SQLite always and on MySQL 8.4 when MYSQL_TEST_URL is set (verified locally 36 passed on MySQL 8.4 in Docker, CI job added but not yet run on GitHub); ratchet test and list of the 61 server files still on the synchronous handle (it can only shrink). NOT done: no store ported (S-250 onward), the 61 files still use node:sqlite, no ESLint rule (the ratchet test is the guard for now), no production MySQL, timestamps are VARCHAR(24) ISO strings (DATA_MODEL_MYSQL.md updated), connection pool sizing and TLS settings untested against a managed server."
     },
     {
       "id": "S-249",
       "epic": "Backend",
       "title": "MySQL migration runner (ordered, checksummed, locked, expand then contract), MySQL service in CI, schema drift check",
-      "agent": "-",
-      "status": "todo",
-      "tests": [],
+      "agent": "claude",
+      "status": "in_progress",
+      "tests": [
+        "tests/backend/dataLayer.test.ts"
+      ],
       "priority": "P0",
       "wave": "B0",
       "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
-      "notes": "DESIGN ONLY 2026-11-26, not started. Size M. Port registerMigration to the layer; GET_LOCK so one job migrates. NOT in scope: production database. See docs/backend/."
+      "notes": "STARTED 2026-11-27. DONE: server/data/migrate.ts (ordered ids, sha256 checksum, drift detection, per-engine SQL, GET_LOCK on MySQL, transactional apply on SQLite); tests for apply, idempotence, drift, failure message and the lock; docker-compose.dev.yml, npm run db:mysql:up and a MySQL job in .github/workflows/ci.yml. NOT done: the existing registerMigration in server/civic/core/stores.ts is not moved onto it (it keeps its own legacy runner and backups), no schema drift check against a live database, no expand-then-contract policy check, MySQL DDL cannot roll back so a failed migration needs a manual fix, no production database."
     },
     {
       "id": "S-250",
