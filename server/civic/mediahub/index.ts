@@ -79,6 +79,22 @@ INSERT INTO mhub_sources (id,kind,name_en,name_te,site_url,feed_url,allow,state,
  ('cand-gnews-tg-te','news','Google News: Telangana (Telugu)','గూగుల్ న్యూస్: తెలంగాణ (తెలుగు)','https://news.google.com/','https://news.google.com/rss/search?q=%E0%B0%A4%E0%B1%86%E0%B0%B2%E0%B0%82%E0%B0%97%E0%B0%BE%E0%B0%A3&hl=te&gl=IN&ceid=IN:te','headline','TG','system','2026-11-26T00:00:00.000Z');
 `);
 
+// Telugu news channels' YouTube videos (S-279): the same rule as above. Each channel id was read from the channel's own page and its video feed answered with 15 recent videos on 2026-11-27.
+// Nothing is shown until an admin records the channel's written permission and a different admin switches it on; the Watch tab then plays each video in YouTube's no-cookie embed after a tap.
+registerMigration("mhub_005_telugu_youtube_candidates", `
+INSERT INTO mhub_sources (id,kind,name_en,name_te,site_url,feed_url,allow,state,created_by,created_at) VALUES
+ ('cand-yt-ntv','news','NTV Telugu (YouTube videos)','ఎన్టీవీ తెలుగు (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCumtYpCY26F6Jr3satUgMvA','https://www.youtube.com/feeds/videos.xml?channel_id=UCumtYpCY26F6Jr3satUgMvA','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-yt-tv9','news','TV9 Telugu (YouTube videos)','టీవీ9 తెలుగు (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCPXTXMecYqnRKNdqdVOGSFg','https://www.youtube.com/feeds/videos.xml?channel_id=UCPXTXMecYqnRKNdqdVOGSFg','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-yt-10tv','news','10TV News Telugu (YouTube videos)','10టీవీ న్యూస్ తెలుగు (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCfymZbh17_3T_UhgjkQ9fRQ','https://www.youtube.com/feeds/videos.xml?channel_id=UCfymZbh17_3T_UhgjkQ9fRQ','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-yt-sakshi','news','Sakshi TV (YouTube videos)','సాక్షి టీవీ (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCZ9m4KOh8Ei60428xeGYDCQ','https://www.youtube.com/feeds/videos.xml?channel_id=UCZ9m4KOh8Ei60428xeGYDCQ','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-yt-abn','news','ABN Telugu (YouTube videos)','ఏబీఎన్ తెలుగు (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UC_2irx_BQR7RsBKmUV9fePQ','https://www.youtube.com/feeds/videos.xml?channel_id=UC_2irx_BQR7RsBKmUV9fePQ','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-yt-tv5','news','TV5 News (YouTube videos)','టీవీ5 న్యూస్ (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCAR3h_9fLV82N2FH4cE4RKw','https://www.youtube.com/feeds/videos.xml?channel_id=UCAR3h_9fLV82N2FH4cE4RKw','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-yt-v6','news','V6 News Telugu (YouTube videos)','వీ6 న్యూస్ తెలుగు (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCDCMjD1XIAsCZsYHNMGVcog','https://www.youtube.com/feeds/videos.xml?channel_id=UCDCMjD1XIAsCZsYHNMGVcog','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-yt-tnews','news','T News Telugu (YouTube videos)','టీ న్యూస్ తెలుగు (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCu6edg8_eu3-A8ylgaWereA','https://www.youtube.com/feeds/videos.xml?channel_id=UCu6edg8_eu3-A8ylgaWereA','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-yt-mahaa','news','Mahaa News (YouTube videos)','మహా న్యూస్ (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCDKjhgRoPF1CQk7HluMz23A','https://www.youtube.com/feeds/videos.xml?channel_id=UCDKjhgRoPF1CQk7HluMz23A','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-yt-etv','news','ETV Andhra Pradesh (YouTube videos)','ఈటీవీ ఆంధ్రప్రదేశ్ (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCJi8M0hRKjz8SLPvJKEVTOg','https://www.youtube.com/feeds/videos.xml?channel_id=UCJi8M0hRKjz8SLPvJKEVTOg','headline','BOTH','system','2026-11-27T00:00:00.000Z');
+`);
+
 export const MIN_COUNT_SHOWN = 10;
 export const NEWS_KEEP_DAYS = 7, STALE_HOURS = 6, REFRESH_MINUTES = 15;
 const MAX_ITEMS_PER_FETCH = 50, MAX_FEED_BYTES = 1_000_000, FETCH_TIMEOUT_MS = 8000;
@@ -362,6 +378,11 @@ export function ensureDemoNews(now: Date = new Date()): void {
     d.prepare("INSERT INTO mhub_sources (id,kind,name_en,name_te,site_url,feed_url,allow,state,created_by,created_at,permission_note,permission_date,contact,enabled,enabled_by,enabled_at,last_ok_at) VALUES (?,?,?,?,?,NULL,'headline','BOTH','system',?,?,?,?,1,'system',?,?)")
       .run(DEMO_ID, "news", "DEMO outlet (sample headlines, not real news)", "డెమో (నమూనా శీర్షికలు, నిజమైన వార్తలు కావు)", "https://example.com/", now.toISOString(), "Sample content written by us for a preview; no real outlet is involved", now.toISOString().slice(0, 10), "demo@example.invalid", now.toISOString(), now.toISOString());
   }
+  // One sample live channel that "streams" a looping sample clip from our own server, so the Live tab player can be seen working. Clearly labelled; demo only.
+  if (!d.prepare("SELECT 1 FROM mhub_sources WHERE id = ?").get("demo-live")) {
+    d.prepare("INSERT INTO mhub_sources (id,kind,name_en,name_te,site_url,feed_url,stream_url,allow,state,created_by,created_at,permission_note,permission_date,contact,enabled,enabled_by,enabled_at) VALUES (?,?,?,?,?,NULL,?,'headline','BOTH','system',?,?,?,?,1,'system',?)")
+      .run("demo-live", "live", "DEMO live channel (sample clip, not a real broadcast)", "డెమో ప్రత్యక్ష ఛానల్ (నమూనా క్లిప్, నిజమైన ప్రసారం కాదు)", "https://example.com/", "/demo/sample-1.webm", now.toISOString(), "Sample clip made by us for a preview; no real channel is involved", now.toISOString().slice(0, 10), "demo@example.invalid", now.toISOString());
+  }
   // Fresh times on every call so the samples never age out of the 7-day window.
   d.prepare("UPDATE mhub_sources SET last_ok_at = ? WHERE id = ?").run(now.toISOString(), DEMO_ID);
   DEMO_ITEMS.forEach((t, i) => {
@@ -398,7 +419,7 @@ mediaRouter.get("/news", wrap((req, res) => {
   res.json(newsFor(typeof req.query.state === "string" ? req.query.state : undefined));
 }));
 mediaRouter.get("/demo-videos", wrap((_req, res) => { res.set("Cache-Control", "no-store"); res.json({ videos: demoVideos() }); }));
-mediaRouter.get("/live", wrap((_req, res) => { res.set("Cache-Control", "no-store"); res.json({ channels: liveChannels() }); }));
+mediaRouter.get("/live", wrap((_req, res) => { res.set("Cache-Control", "no-store"); ensureDemoNews(); res.json({ channels: liveChannels() }); }));
 mediaRouter.post("/click", wrap((req, res) => { countClick(str(req.body?.kind), str(req.body?.id)); res.json({ ok: true }); }));
 mediaRouter.post("/report", requireAuth, wrap((req, res) => { reportItem(req.person!.id, req.body ?? {}); res.status(201).json({ ok: true }); }));
 

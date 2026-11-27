@@ -46,7 +46,8 @@ export default function LiveList() {
   if (!list.length) return (
     <div className="space-y-2" data-testid="media-live-empty">
       <h3 className="text-lg font-bold">{t("m.live.h")}</h3>
-      <p className="text-sm">{t("m.live.none")}</p>
+      {/* The player is always on the tab; with no channel cleared yet it is an empty stage with the reason. */}
+      <div data-testid="live-stage-empty" className="flex w-full aspect-video items-center justify-center bg-black p-4 text-center text-white"><p className="text-sm">{t("m.live.none")}</p></div>
     </div>
   );
   const nameOf = (c: LiveChannel) => (lang === "te" && c.name_te) || c.name_en;

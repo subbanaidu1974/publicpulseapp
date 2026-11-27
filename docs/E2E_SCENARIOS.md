@@ -236,3 +236,4 @@ Layers: **API** = HTTP-level test (no browser), **UI** = Playwright browser.
 | E2E-239 | Unit | Candidate Telugu channel feeds (NTV Telugu, TV9 Telugu, 10TV, Sakshi): loaded off with no permission, Telugu names, enabling refused until permission is recorded, nothing shown | S-244 |
 | E2E-240 | Unit | Demo news preview: off unless CIVIC_DEMO_NEWS=1 and never in production; one labelled sample source with five sample headlines, refreshed without duplicates | S-245 |
 | E2E-241 | Unit | Google News topic feeds for Andhra Pradesh and Telangana (English and Telugu) exist switched off with no permission record, show nothing, and cannot be enabled until permission is recorded | S-278 |
+| E2E-242 | Unit | Ten Telugu news channels' YouTube video feeds exist switched off with no permission record, show nothing, and cannot be enabled until permission is recorded | S-279 |

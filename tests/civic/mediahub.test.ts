@@ -408,6 +408,16 @@ describe("demo news preview (S-245) @E2E-240", () => {
     expect(n.items.every((i) => i.title.startsWith("Sample headline") && i.link.startsWith("https://example.com/") && /DEMO/.test(i.outlet_en))).toBe(true);
     expect(n.sources[0].stale).toBe(false);
   });
+  it("adds one labelled sample live channel that plays a sample clip from our own server, once, and none when the demo is off", () => {
+    ensureDemoNews(NOW);
+    expect(liveChannels()).toEqual([]);
+    process.env.CIVIC_DEMO_NEWS = "1";
+    ensureDemoNews(NOW); ensureDemoNews(NOW);
+    const l = liveChannels();
+    expect(l).toHaveLength(1);
+    expect(l[0].stream_url).toBe("/demo/sample-1.webm");
+    expect(/DEMO/.test(l[0].name_en)).toBe(true);
+  });
 });
 
 describe("candidate Google News topic feeds, loaded switched off (S-278) @E2E-241", () => {
@@ -418,6 +428,21 @@ describe("candidate Google News topic feeds, loaded switched off (S-278) @E2E-24
       expect(c.feed_url?.startsWith("https://news.google.com/rss/search?q=")).toBe(true);
       expect(c.feed_url).toContain(`&hl=${lang}&gl=IN&ceid=IN:`);
       expect(c.state).toBe(state);
+      expect(c.enabled).toBe(0);
+      expect(c.permission_note).toBeNull();
+      expect(c.name_te).toBeTruthy();
+      expect(() => enableSource(admin().id, id, NOW)).toThrow(/record the permission/);
+    }
+    expect(newsFor(undefined, NOW).items).toHaveLength(0);
+  });
+});
+
+describe("candidate Telugu news channels on YouTube, loaded switched off (S-279) @E2E-242", () => {
+  it("ten channels exist off with a YouTube video feed and no permission, show nothing, and cannot be enabled until permission is recorded", async () => {
+    const { getSource } = await import("../../server/civic/mediahub");
+    for (const [id, ch] of [["cand-yt-ntv", "UCumtYpCY26F6Jr3satUgMvA"],["cand-yt-tv9", "UCPXTXMecYqnRKNdqdVOGSFg"],["cand-yt-10tv", "UCfymZbh17_3T_UhgjkQ9fRQ"],["cand-yt-sakshi", "UCZ9m4KOh8Ei60428xeGYDCQ"],["cand-yt-abn", "UC_2irx_BQR7RsBKmUV9fePQ"],["cand-yt-tv5", "UCAR3h_9fLV82N2FH4cE4RKw"],["cand-yt-v6", "UCDCMjD1XIAsCZsYHNMGVcog"],["cand-yt-tnews", "UCu6edg8_eu3-A8ylgaWereA"],["cand-yt-mahaa", "UCDKjhgRoPF1CQk7HluMz23A"],["cand-yt-etv", "UCJi8M0hRKjz8SLPvJKEVTOg"]] as const) {
+      const c = getSource(id);
+      expect(c.feed_url).toBe(`https://www.youtube.com/feeds/videos.xml?channel_id=${ch}`);
       expect(c.enabled).toBe(0);
       expect(c.permission_note).toBeNull();
       expect(c.name_te).toBeTruthy();
