@@ -49,3 +49,13 @@ describe("watch playlist logic (S-243)", () => {
     expect(stepEntry([], null, 1)).toBeNull();
   });
 });
+
+describe("youtubeLiveChannelOf (S-282) @E2E-243", () => {
+  it("reads a channel id from a channel live address and refuses everything else", async () => {
+    const { youtubeLiveChannelOf } = await import("../../src/components/media/playerLogic");
+    const id = "UCKwucPzHZ7zCUIf7If-Wo1g";
+    expect(youtubeLiveChannelOf(`https://www.youtube.com/channel/${id}/live`)).toBe(id);
+    expect(youtubeLiveChannelOf(`https://youtube.com/channel/${id}/live/`)).toBe(id);
+    for (const u of [`http://www.youtube.com/channel/${id}/live`, `https://evil.example.net/channel/${id}/live`, `https://www.youtube.com/channel/${id}`, "https://www.youtube.com/channel/UCshort/live", "https://www.youtube.com/@DDnews/live", "nope"]) expect(youtubeLiveChannelOf(u)).toBeNull();
+  });
+});

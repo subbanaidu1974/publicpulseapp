@@ -45,6 +45,16 @@ export function youtubeIdOf(raw: string): string | null {
   return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
 }
 
+/** A YouTube channel id from a channel live address (youtube.com/channel/UC.../live), else null: the channel's current live stream plays in YouTube's own embed. Pure. */
+export function youtubeLiveChannelOf(raw: string): string | null {
+  let u: URL;
+  try { u = new URL(raw.trim()); } catch { return null; }
+  const h = u.hostname.toLowerCase();
+  if (u.protocol !== "https:" || !(h === "www.youtube.com" || h === "youtube.com")) return null;
+  const m = /^\/channel\/(UC[A-Za-z0-9_-]{22})\/live\/?$/.exec(u.pathname);
+  return m ? m[1] : null;
+}
+
 /** One row of the Watch playlist: our own broadcast video (plays from its file) or a YouTube video (plays in YouTube's own embed). */
 export interface WatchEntry { key: string; kind: "own" | "youtube"; title: string; by: string; src: string; media?: "video" | "audio"; note?: string | null; when?: string | null }
 /** Own videos first (newest first as given), then YouTube news; the same YouTube video is listed once. No history, no recommendation: the order is fixed. */

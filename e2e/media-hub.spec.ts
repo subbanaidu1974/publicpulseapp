@@ -438,6 +438,29 @@ test.describe('Live tab player (S-241)', () => {
   });
 });
 
+test.describe('Live channel by channel address (S-282)', () => {
+  test('@E2E-244 a live channel given as a YouTube channel live address plays that channel in the no-cookie live embed after Play, and nothing loads before', async ({ page, request }) => {
+    const a = await seedPerson(request, [{ role: 'admin' }]), b = await seedPerson(request, [{ role: 'admin' }]);
+    let framed = 0;
+    await page.route('https://www.youtube-nocookie.com/**', (r) => { framed++; return r.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>player</title>' }); });
+    const nm = `Channel Live ${Date.now() % 100000}`;
+    const s = await (await request.post(`${API}/media/admin/sources`, { headers: bearer(a.token), data: { kind: 'live', name_en: nm, site_url: 'https://livetv.example.net/', stream_url: 'https://www.youtube.com/channel/UCKwucPzHZ7zCUIf7If-Wo1g/live', permission_note: 'Channel confirmed in writing, 27 Nov 2026', permission_date: '2026-11-27', contact: 'tv@livetv.example' } })).json();
+    await request.post(`${API}/media/admin/sources/${s.id}/enable`, { headers: bearer(b.token) });
+    try {
+      await page.goto('/');
+      await page.getByTestId('nav-media').click();
+      await page.getByTestId('media-tab-live').click();
+      const ch = page.getByTestId('live-channel').filter({ hasText: nm });
+      await expect(ch).toBeVisible();
+      await ch.getByTestId('live-pick').click();
+      expect(framed).toBe(0);
+      await page.getByTestId('live-play').click();
+      await expect(page.getByTestId('live-yt-frame')).toHaveAttribute('src', /youtube-nocookie\.com\/embed\/live_stream\?channel=UCKwucPzHZ7zCUIf7If-Wo1g/);
+      await expect.poll(() => framed).toBeGreaterThan(0);
+    } finally { await request.post(`${API}/media/admin/sources/${s.id}/disable`, { headers: bearer(a.token) }); }
+  });
+});
+
 test.describe('Candidate AP and Telangana news sources (S-242)', () => {
   test('@E2E-236 the two candidate feeds are listed switched off; an admin records the permission and cannot switch it on; a different admin can', async ({ browser, request }) => {
     const a = await seedPerson(request, [{ role: 'admin' }]), b = await seedPerson(request, [{ role: 'admin' }]);

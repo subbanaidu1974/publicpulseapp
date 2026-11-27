@@ -451,3 +451,45 @@ describe("candidate Telugu news channels on YouTube, loaded switched off (S-279)
     expect(newsFor(undefined, NOW).items).toHaveLength(0);
   });
 });
+
+describe("harvested candidates: live channels, news feeds and video channels, all switched off (S-280 to S-282) @E2E-243", () => {
+  const CH = /^UC[A-Za-z0-9_-]{22}$/;
+  it("fifteen live channels exist off, each with a youtube.com/channel/UC.../live stream address and no permission, and none shows to members", async () => {
+    const { getSource } = await import("../../server/civic/mediahub");
+    const ids = ["ntv", "tv9", "sakshi", "10tv", "tv5", "abn", "v6", "tnews", "mahaa", "etv", "ddnews", "sansad", "ddsaptagiri", "aljazeera", "dw"];
+    for (const k of ids) {
+      const c = getSource(`cand-live-${k}`);
+      expect(c.kind).toBe("live");
+      expect(c.stream_url).toMatch(/^https:\/\/www\.youtube\.com\/channel\/UC[A-Za-z0-9_-]{22}\/live$/);
+      expect(CH.test(c.stream_url!.split("/")[4])).toBe(true);
+      expect([c.enabled, c.permission_note, c.name_te ? 1 : 0]).toEqual([0, null, 1]);
+      expect(() => enableSource(admin().id, `cand-live-${k}`, NOW)).toThrow(/record the permission/);
+    }
+    expect(liveChannels()).toEqual([]);
+  });
+  it("twenty-one news feeds and eight video channels exist off with no permission, and newsFor shows nothing", async () => {
+    const { getSource } = await import("../../server/civic/mediahub");
+    const feeds = ["bbc-te", "oneindia-te", "visalaandhra", "prabha", "andhrajyothy", "namasthe", "news18-ap", "news18-tg", "asianet-te", "abp-te", "telanganatoday", "hans-ap", "hans-tg", "hindu-hyd", "hindu-vja", "nie-ap", "toi-hyd", "ie-hyd", "tg-gov", "pib", "air"];
+    for (const k of feeds) {
+      const c = getSource(`cand-feed-${k}`);
+      expect(c.feed_url).toMatch(/^https:\/\//);
+      expect([c.kind, c.enabled, c.permission_note]).toEqual(["news", 0, null]);
+      expect(() => enableSource(admin().id, `cand-feed-${k}`, NOW)).toThrow(/record the permission/);
+    }
+    const vids = ["ddnews", "sansad", "pib", "bbc-te", "hans", "ddsaptagiri", "dw", "aljazeera"];
+    for (const k of vids) {
+      const c = getSource(`cand-ytv-${k}`);
+      expect(c.feed_url).toMatch(/^https:\/\/www\.youtube\.com\/feeds\/videos\.xml\?channel_id=UC[A-Za-z0-9_-]{22}$/);
+      expect([c.enabled, c.permission_note]).toEqual([0, null]);
+    }
+    expect(newsFor(undefined, NOW).items).toHaveLength(0);
+  });
+  it("an admin can add a live channel by its YouTube channel live address; the stream check does not try to fetch it", async () => {
+    const { isYoutubeLiveChannel } = await import("../../server/civic/mediahub");
+    expect(isYoutubeLiveChannel("https://www.youtube.com/channel/UCKwucPzHZ7zCUIf7If-Wo1g/live")).toBe(true);
+    for (const u of ["https://www.youtube.com/channel/UCshort/live", "https://evil.example.net/channel/UCKwucPzHZ7zCUIf7If-Wo1g/live", "http://www.youtube.com/channel/UCKwucPzHZ7zCUIf7If-Wo1g/live"]) expect(isYoutubeLiveChannel(u)).toBe(false);
+    const a = admin();
+    const s = addSource(a.id, { kind: "live", name_en: "Live by channel", site_url: "https://channel-live.example.net/", stream_url: "https://www.youtube.com/channel/UCKwucPzHZ7zCUIf7If-Wo1g/live", permission_note: "Written permission by mail, 27 Nov 2026", permission_date: "2026-11-27", contact: "desk@channel-live.example" }, NOW);
+    expect(s.stream_url).toBe("https://www.youtube.com/channel/UCKwucPzHZ7zCUIf7If-Wo1g/live");
+  });
+});

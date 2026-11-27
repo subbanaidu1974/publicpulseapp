@@ -3629,6 +3629,49 @@
       "wave": "W9",
       "source": "user request 2026-11-27 (play telugu news videos directly in the watch tab, pull the news videos from famous news channels)",
       "notes": "BUILT 2026-11-27: ten YouTube channel video feeds loaded off with no permission record; channel ids read from each channel's page and each feed answered with 15 videos on 2026-11-27. Once permission is recorded and a different admin switches a channel on, its videos list in the Watch tab and play in the no-cookie embed after a tap (already built, S-238/S-243). NOT done: nothing is shown to members yet because no permission is recorded; permission from each channel (and a check of YouTube terms for the embedded videos) is the owner's; live streams not added; TV9 and TV5 ids are the best match found, confirm in the admin screen."
+    },
+    {
+      "agent": "-",
+      "status": "done",
+      "priority": "P1",
+      "wave": "W9",
+      "epic": "Media",
+      "id": "S-280",
+      "title": "Daily news harvest: 21 more feeds (Telugu outlets, state editions, Telangana government, PIB, All India Radio) loaded switched off",
+      "tests": [
+        "E2E-243"
+      ],
+      "source": "user request 2026-11-27 (find free sources: news into News, videos into Watch, live streams into Live; research and harvest)",
+      "notes": "BUILT 2026-11-27: each feed fetched and read with our own reader on 2026-11-27; research in docs/MEDIA_SOURCES_RESEARCH.md. PIB's copyright policy allows free reproduction (strongest candidate: an admin can record the policy page as the permission). NOT done: none switched on; no permission recorded; BBC and DW terms not confirmed; other outlets' terms not read; several feeds failed and were left out (listed in the research doc)."
+    },
+    {
+      "agent": "-",
+      "status": "done",
+      "priority": "P1",
+      "wave": "W9",
+      "epic": "Media",
+      "id": "S-281",
+      "title": "Video harvest: 8 YouTube channels (DD News, Sansad TV, PIB India, BBC News Telugu, Hans India, DD Saptagiri, DW, Al Jazeera) for the Watch tab, loaded switched off",
+      "tests": [
+        "E2E-243"
+      ],
+      "source": "user request 2026-11-27 (find free sources: news into News, videos into Watch, live streams into Live; research and harvest)",
+      "notes": "BUILT 2026-11-27: channel ids read from each channel's page; each video feed answered. NOT done: none switched on; Telangana CMO, Telangana Today, AP Government, DD India and AIR News channels not added (YouTube errors); channel content can include third-party material; YouTube terms are the owner's to read."
+    },
+    {
+      "agent": "-",
+      "status": "done",
+      "priority": "P1",
+      "wave": "W9",
+      "epic": "Media",
+      "id": "S-282",
+      "title": "Live news harvest: 15 live channels by YouTube channel live address (Telugu news, Doordarshan, Sansad TV, Al Jazeera, DW) loaded switched off, plus the live-by-channel embed",
+      "tests": [
+        "E2E-243",
+        "E2E-244"
+      ],
+      "source": "user request 2026-11-27 (find free sources: news into News, videos into Watch, live streams into Live; research and harvest)",
+      "notes": "BUILT 2026-11-27: a live channel may be given as youtube.com/channel/UC.../live and plays in the no-cookie live embed after a tap (checked by E2E-244); 14 of 15 were live with an embeddable stream when checked, DD Saptagiri weaker. NOT done: none switched on; the stream health check cannot test YouTube streams; whether a channel allows embedding can change; permission is the owner's."
     }
   ]
 }
