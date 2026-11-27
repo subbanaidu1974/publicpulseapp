@@ -1,8 +1,8 @@
 # Route inventory (generated)
 
-Generated from the route declarations in `server/` by a script, on 2026-11-26. It lists what exists today; it is the baseline the backend stories must keep working (or version) when the database moves to MySQL. Re-generate rather than edit by hand.
+Generated from the route declarations in `server/` by `npm run backend:contract` (scripts/route-inventory.ts). It lists what exists today; it is the baseline the backend stories must keep working (or version) when the database moves to MySQL. Do not edit by hand: `tests/backend/routeInventory.test.ts` fails when this file and the code disagree.
 
-Total: 347 routes in 17 groups.
+Total: 357 routes in 21 groups.
 
 ## Admin and audit (14)
 
@@ -101,6 +101,21 @@ Total: 347 routes in 17 groups.
 | POST | `/admin/:id/close` | `/api/v1/civic/broadcast` | `server/civic/broadcast/index.ts` |
 | GET | `/admin/:id/results` | `/api/v1/civic/broadcast` | `server/civic/broadcast/index.ts` |
 | GET | `/pending` | `/api/v1/civic/broadcast` | `server/civic/broadcast/index.ts` |
+
+## demo.ts (2)
+
+| Method | Path (relative to mount) | Mount | Source |
+|---|---|---|---|
+| POST | `/login` | `/api/v1/civic/demo (dev only)` | `server/civic/demo.ts` |
+| GET | `/personas` | `/api/v1/civic/demo (dev only)` | `server/civic/demo.ts` |
+
+## e2e-seed.ts (3)
+
+| Method | Path (relative to mount) | Mount | Source |
+|---|---|---|---|
+| POST | `/notify/org` | `/api/v1/civic/e2e (test only)` | `server/civic/e2e-seed.ts` |
+| POST | `/notify/sender` | `/api/v1/civic/e2e (test only)` | `server/civic/e2e-seed.ts` |
+| POST | `/person` | `/api/v1/civic/e2e (test only)` | `server/civic/e2e-seed.ts` |
 
 ## Geography (5)
 
@@ -218,6 +233,14 @@ Total: 347 routes in 17 groups.
 | GET | `/volunteer/rechecks` | `/api/v1/civic/identity` | `server/civic/identity/routes.ts` |
 | POST | `/volunteer/rechecks/:id/result` | `/api/v1/civic/identity` | `server/civic/identity/routes.ts` |
 
+## index.ts (3)
+
+| Method | Path (relative to mount) | Mount | Source |
+|---|---|---|---|
+| GET | `/degraded` | `/api/v1/civic` | `server/civic/index.ts` |
+| GET | `/ops/jobs` | `/api/v1/civic` | `server/civic/index.ts` |
+| GET | `/ops/providers` | `/api/v1/civic` | `server/civic/index.ts` |
+
 ## Issues (citizen reports) (27)
 
 | Method | Path (relative to mount) | Mount | Source |
@@ -250,7 +273,7 @@ Total: 347 routes in 17 groups.
 | GET | `/moderation/queue` | `/api/v1/civic/issues` | `server/civic/issues/routes.ts` |
 | GET | `/officer/queue` | `/api/v1/civic/issues` | `server/civic/issues/routes.ts` |
 
-## Media hub (news, live, reports) (16)
+## Media hub (news, live, reports) (17)
 
 | Method | Path (relative to mount) | Mount | Source |
 |---|---|---|---|
@@ -269,6 +292,7 @@ Total: 347 routes in 17 groups.
 | GET | `/demo-videos` | `/api/v1/civic/media` | `server/civic/mediahub/index.ts` |
 | GET | `/live` | `/api/v1/civic/media` | `server/civic/mediahub/index.ts` |
 | GET | `/news` | `/api/v1/civic/media` | `server/civic/mediahub/index.ts` |
+| GET | `/preview` | `/api/v1/civic/media` | `server/civic/mediahub/index.ts` |
 | POST | `/report` | `/api/v1/civic/media` | `server/civic/mediahub/index.ts` |
 
 ## Officer onboarding (10)
@@ -293,6 +317,12 @@ Total: 347 routes in 17 groups.
 | POST | `/ivr` | `/api/v1/civic/channels` | `server/civic/channels/routes.ts` |
 | POST | `/missed-call` | `/api/v1/civic/channels` | `server/civic/channels/routes.ts` |
 | POST | `/voice-note` | `/api/v1/civic/channels` | `server/civic/channels/routes.ts` |
+
+## providers (1)
+
+| Method | Path (relative to mount) | Mount | Source |
+|---|---|---|---|
+| POST | `/` | `/api/v1/civic/channels/sms-receipt` | `server/civic/providers/sms.ts` |
 
 ## Public data and ops (74)
 
@@ -435,3 +465,4 @@ Total: 347 routes in 17 groups.
 | GET | `/admin/windows` | `/api/v1/civic/videocast` | `server/civic/videocast/index.ts` |
 | POST | `/admin/windows` | `/api/v1/civic/videocast` | `server/civic/videocast/index.ts` |
 | POST | `/admin/windows/:id/end` | `/api/v1/civic/videocast` | `server/civic/videocast/index.ts` |
+

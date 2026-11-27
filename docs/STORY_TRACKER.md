@@ -7,14 +7,14 @@
 | Status | Count |
 |---|---|
 | done | 221 |
-| in_progress | 0 |
-| todo | 37 |
+| in_progress | 3 |
+| todo | 34 |
 | blocked | 26 |
 | retired | 2 |
 
 | Wave | Done | In progress | Todo | Blocked | Retired | Total (active) |
 |---|---|---|---|---|---|---|
-| B0 | 0 | 0 | 3 | 1 | 0 | 4 |
+| B0 | 0 | 3 | 0 | 1 | 0 | 4 |
 | B1 | 0 | 0 | 7 | 0 | 0 | 7 |
 | B2 | 0 | 0 | 5 | 1 | 0 | 6 |
 | B3 | 0 | 0 | 8 | 0 | 0 | 8 |
@@ -31,7 +31,7 @@
 
 | Priority | Done | In progress | Todo | Blocked | Retired | Total (active) |
 |---|---|---|---|---|---|---|
-| P0 | 38 | 0 | 17 | 11 | 0 | 66 |
+| P0 | 38 | 3 | 14 | 11 | 0 | 66 |
 | P1 | 83 | 0 | 12 | 8 | 0 | 103 |
 | P2 | 49 | 0 | 6 | 5 | 0 | 60 |
 | P3 | 3 | 0 | 2 | 2 | 0 | 7 |
@@ -42,7 +42,7 @@
 | Accessibility | 1 | 0 | 0 | 0 | 0 | 1 |
 | Admin | 2 | 0 | 0 | 0 | 0 | 2 |
 | Analytics | 7 | 0 | 0 | 0 | 0 | 7 |
-| Backend | 0 | 0 | 30 | 2 | 0 | 32 |
+| Backend | 0 | 3 | 27 | 2 | 0 | 32 |
 | Channels | 1 | 0 | 0 | 0 | 0 | 1 |
 | Civic | 20 | 0 | 0 | 0 | 0 | 20 |
 | Compliance | 5 | 0 | 0 | 4 | 0 | 9 |
@@ -322,9 +322,9 @@
 | S-244 | Media | Candidate Telugu news channel feeds loaded switched off: NTV Telugu, TV9 Telugu, 10TV and Sakshi | - | done | E2E-239 | yes |
 | S-245 | Media | Demo news preview: one clearly labelled sample source so the News tab can be looked at before any real outlet is cleared | - | done | E2E-240 | yes |
 | S-246 | Backend | Backend decision record: MySQL provider and region, managed or self-run, budget ceiling, Redis yes or no, video upload in the first release | - | blocked |  | yes |
-| S-247 | Backend | OpenAPI contract for every route (generated from the route inventory) plus a contract test that fails when a route and the contract disagree | - | todo |  | yes |
-| S-248 | Backend | Async data-access layer (get, all, run, tx) with a SQLite adapter and a MySQL adapter, lint rule against direct node:sqlite use, same tests on both | - | todo |  | yes |
-| S-249 | Backend | MySQL migration runner (ordered, checksummed, locked, expand then contract), MySQL service in CI, schema drift check | - | todo |  | yes |
+| S-247 | Backend | OpenAPI contract for every route (generated from the route inventory) plus a contract test that fails when a route and the contract disagree | claude | in_progress | tests/backend/routeInventory.test.ts | no (missing: tests/backend/routeInventory.test.ts) |
+| S-248 | Backend | Async data-access layer (get, all, run, tx) with a SQLite adapter and a MySQL adapter, lint rule against direct node:sqlite use, same tests on both | claude | in_progress | tests/backend/dataLayer.test.ts, tests/backend/syncDbGuard.test.ts | no (missing: tests/backend/dataLayer.test.ts, tests/backend/syncDbGuard.test.ts) |
+| S-249 | Backend | MySQL migration runner (ordered, checksummed, locked, expand then contract), MySQL service in CI, schema drift check | claude | in_progress | tests/backend/dataLayer.test.ts | no (missing: tests/backend/dataLayer.test.ts) |
 | S-250 | Backend | Port the identity store to MySQL (persons, sessions, consents, households, officers, notify, provider keys, content tables) | - | todo |  | yes |
 | S-251 | Backend | Port the issues store to MySQL (issues, media references, assisted, moderation, geography) | - | todo |  | yes |
 | S-252 | Backend | Port the survey store to MySQL (surveys, responses, spent tokens, broadcast polls, consultations) | - | todo |  | yes |

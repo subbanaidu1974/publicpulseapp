@@ -34,6 +34,10 @@
     "test:pipeline": "vitest run tests/pipeline",
     "test:api": "vitest run tests/api tests/lib",
     "test": "vitest run",
+    "test:backend": "vitest run tests/backend",
+    "backend:contract": "tsx scripts/route-inventory.ts",
+    "db:mysql:up": "docker compose -f docker-compose.dev.yml up -d --wait",
+    "db:mysql:down": "docker compose -f docker-compose.dev.yml down",
     "test:e2e": "playwright test",
     "e2e:poll-watch": "playwright test e2e/broadcast-poll.journey.spec.ts e2e/broadcast-poll.spec.ts --project=chromium --workers=1 --headed",
     "e2e:poll-videos": "playwright test e2e/broadcast-poll.journey.spec.ts --project=chromium --workers=1",
@@ -72,6 +76,7 @@
     "leaflet": "^1.9.4",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
+    "mysql2": "^3.24.6",
     "protomaps-leaflet": "^5.1.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1"
