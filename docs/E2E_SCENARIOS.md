@@ -237,3 +237,5 @@ Layers: **API** = HTTP-level test (no browser), **UI** = Playwright browser.
 | E2E-240 | Unit | Demo news preview: off unless CIVIC_DEMO_NEWS=1 and never in production; one labelled sample source with five sample headlines, refreshed without duplicates | S-245 |
 | E2E-241 | Unit | Google News topic feeds for Andhra Pradesh and Telangana (English and Telugu) exist switched off with no permission record, show nothing, and cannot be enabled until permission is recorded | S-278 |
 | E2E-242 | Unit | Ten Telugu news channels' YouTube video feeds exist switched off with no permission record, show nothing, and cannot be enabled until permission is recorded | S-279 |
+| E2E-243 | Unit | Fifteen live channels, twenty-one news feeds and eight video channels exist switched off with no permission; a live channel can be given as a YouTube channel live address, and the stream check does not fetch it | S-280, S-281, S-282 |
+| E2E-244 | E2E | A live channel given as a YouTube channel live address plays that channel in the no-cookie live embed after Play, and nothing loads before | S-282 |

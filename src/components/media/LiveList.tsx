@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from "react";
 import { mediaApi, type LiveChannel } from "../../api/mediahub";
 import { useT } from "../../i18n";
-import { youtubeIdOf } from "./playerLogic";
+import { youtubeIdOf, youtubeLiveChannelOf } from "./playerLogic";
 import ReportButton from "./ReportButton";
 import { mediaText as mt, type MediaKey } from "./mediaText";
 
@@ -13,13 +13,15 @@ function Stage({ c, name }: { c: LiveChannel; name: string }) {
   const t = (k: MediaKey) => mt(lang, k);
   const [on, setOn] = useState(false);
   const [err, setErr] = useState(false);
-  const yt = c.stream_url ? youtubeIdOf(c.stream_url) : null;
+  const ytChannel = c.stream_url ? youtubeLiveChannelOf(c.stream_url) : null;
+  const yt = ytChannel ? null : c.stream_url ? youtubeIdOf(c.stream_url) : null;
+  const embed = ytChannel ? `live_stream?channel=${ytChannel}&` : yt ? `${yt}?` : null;
   const down = !playable(c) || err;
   return (
     <div className="space-y-2" data-testid="live-stage">
       <div className="relative w-full aspect-video bg-black text-white">
-        {on && !down && yt && <iframe data-testid="live-yt-frame" title={name} src={`https://www.youtube-nocookie.com/embed/${yt}?rel=0&playsinline=1&autoplay=1`} referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-presentation" allow="fullscreen; autoplay" allowFullScreen className="absolute inset-0 h-full w-full border-0" />}
-        {on && !down && !yt && <video data-testid="live-video" aria-label={name} src={c.stream_url ?? undefined} controls preload="none" playsInline className="absolute inset-0 h-full w-full" onError={() => setErr(true)} />}
+        {on && !down && embed && <iframe data-testid="live-yt-frame" title={name} src={`https://www.youtube-nocookie.com/embed/${embed}rel=0&playsinline=1&autoplay=1`} referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-presentation" allow="fullscreen; autoplay" allowFullScreen className="absolute inset-0 h-full w-full border-0" />}
+        {on && !down && !embed && <video data-testid="live-video" aria-label={name} src={c.stream_url ?? undefined} controls preload="none" playsInline className="absolute inset-0 h-full w-full" onError={() => setErr(true)} />}
         {(!on || down) && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4 text-center">
             <p className="font-bold break-words">{name}</p>

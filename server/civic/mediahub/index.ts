@@ -95,6 +95,68 @@ INSERT INTO mhub_sources (id,kind,name_en,name_te,site_url,feed_url,allow,state,
  ('cand-yt-etv','news','ETV Andhra Pradesh (YouTube videos)','ఈటీవీ ఆంధ్రప్రదేశ్ (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCJi8M0hRKjz8SLPvJKEVTOg','https://www.youtube.com/feeds/videos.xml?channel_id=UCJi8M0hRKjz8SLPvJKEVTOg','headline','BOTH','system','2026-11-27T00:00:00.000Z');
 `);
 
+// Live news channels (S-282): each channel's current live stream on its own YouTube channel (youtube.com/channel/UC.../live), loaded SWITCHED OFF with no permission record.
+// Every channel had a live stream that YouTube allows to be embedded on 2026-11-27. When a channel is not live, YouTube's own player says so. Nothing loads until a member taps Play.
+registerMigration("mhub_006_live_candidates", `
+INSERT INTO mhub_sources (id,kind,name_en,name_te,site_url,feed_url,stream_url,allow,state,created_by,created_at) VALUES
+ ('cand-live-ntv','live','NTV Telugu Live','ఎన్టీవీ తెలుగు లైవ్','https://www.youtube.com/channel/UCtzYV2L-m8ew93mZb3qhf5w',NULL,'https://www.youtube.com/channel/UCtzYV2L-m8ew93mZb3qhf5w/live','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-tv9','live','TV9 Telugu Live','టీవీ9 తెలుగు లైవ్','https://www.youtube.com/channel/UCPXTXMecYqnRKNdqdVOGSFg',NULL,'https://www.youtube.com/channel/UCPXTXMecYqnRKNdqdVOGSFg/live','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-sakshi','live','Sakshi TV Live','సాక్షి టీవీ లైవ్','https://www.youtube.com/channel/UCQ_FATLW83q-4xJ2fsi8qAw',NULL,'https://www.youtube.com/channel/UCQ_FATLW83q-4xJ2fsi8qAw/live','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-10tv','live','10TV News Telugu Live','10టీవీ న్యూస్ తెలుగు లైవ్','https://www.youtube.com/channel/UCfymZbh17_3T_UhgjkQ9fRQ',NULL,'https://www.youtube.com/channel/UCfymZbh17_3T_UhgjkQ9fRQ/live','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-tv5','live','TV5 News Live','టీవీ5 న్యూస్ లైవ్','https://www.youtube.com/channel/UCAR3h_9fLV82N2FH4cE4RKw',NULL,'https://www.youtube.com/channel/UCAR3h_9fLV82N2FH4cE4RKw/live','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-abn','live','ABN Telugu Live','ఏబీఎన్ తెలుగు లైవ్','https://www.youtube.com/channel/UC_2irx_BQR7RsBKmUV9fePQ',NULL,'https://www.youtube.com/channel/UC_2irx_BQR7RsBKmUV9fePQ/live','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-v6','live','V6 News Telugu Live','వీ6 న్యూస్ తెలుగు లైవ్','https://www.youtube.com/channel/UCDCMjD1XIAsCZsYHNMGVcog',NULL,'https://www.youtube.com/channel/UCDCMjD1XIAsCZsYHNMGVcog/live','headline','TG','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-tnews','live','T News Telugu Live','టీ న్యూస్ తెలుగు లైవ్','https://www.youtube.com/channel/UCu6edg8_eu3-A8ylgaWereA',NULL,'https://www.youtube.com/channel/UCu6edg8_eu3-A8ylgaWereA/live','headline','TG','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-mahaa','live','Mahaa News Live','మహా న్యూస్ లైవ్','https://www.youtube.com/channel/UCDKjhgRoPF1CQk7HluMz23A',NULL,'https://www.youtube.com/channel/UCDKjhgRoPF1CQk7HluMz23A/live','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-etv','live','ETV Andhra Pradesh Live','ఈటీవీ ఆంధ్రప్రదేశ్ లైవ్','https://www.youtube.com/channel/UCJi8M0hRKjz8SLPvJKEVTOg',NULL,'https://www.youtube.com/channel/UCJi8M0hRKjz8SLPvJKEVTOg/live','headline','AP','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-ddnews','live','DD News Live (Doordarshan)','డీడీ న్యూస్ లైవ్ (దూరదర్శన్)','https://www.youtube.com/channel/UCKwucPzHZ7zCUIf7If-Wo1g',NULL,'https://www.youtube.com/channel/UCKwucPzHZ7zCUIf7If-Wo1g/live','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-sansad','live','Sansad TV Live (Parliament)','సంసద్ టీవీ లైవ్ (పార్లమెంట్)','https://www.youtube.com/channel/UCISgnSNwqQ2i8lhCun3KtQg',NULL,'https://www.youtube.com/channel/UCISgnSNwqQ2i8lhCun3KtQg/live','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-ddsaptagiri','live','DD Saptagiri (Doordarshan, Andhra Pradesh)','డీడీ సప్తగిరి (దూరదర్శన్, ఆంధ్రప్రదేశ్)','https://www.youtube.com/channel/UCDytyrifMKGH-A2snskPcVw',NULL,'https://www.youtube.com/channel/UCDytyrifMKGH-A2snskPcVw/live','headline','AP','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-aljazeera','live','Al Jazeera English Live','అల్ జజీరా ఇంగ్లీష్ లైవ్','https://www.youtube.com/channel/UCNye-wNBqNL5ZzHSJj3l8Bg',NULL,'https://www.youtube.com/channel/UCNye-wNBqNL5ZzHSJj3l8Bg/live','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-dw','live','DW News Live','డీడబ్ల్యూ న్యూస్ లైవ్','https://www.youtube.com/channel/UCknLrEdhRCp1aegoMqRaCZg',NULL,'https://www.youtube.com/channel/UCknLrEdhRCp1aegoMqRaCZg/live','headline','BOTH','system','2026-11-27T00:00:00.000Z');
+`);
+
+// More daily news feeds (S-280), loaded SWITCHED OFF with no permission record: Telugu outlets, state editions of national papers, government and public-broadcaster feeds.
+// Each feed address answered with a feed our reader parses (headline, link, time) on 2026-11-27. Terms differ by outlet; a public feed is not permission, so each stays off until written permission is recorded.
+registerMigration("mhub_007_news_feed_candidates", `
+INSERT INTO mhub_sources (id,kind,name_en,name_te,site_url,feed_url,stream_url,allow,state,created_by,created_at) VALUES
+ ('cand-feed-bbc-te','news','BBC News Telugu','బీబీసీ తెలుగు','https://www.bbc.com/telugu','https://feeds.bbci.co.uk/telugu/rss.xml',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-oneindia-te','news','Oneindia Telugu','వన్ఇండియా తెలుగు','https://telugu.oneindia.com/','https://telugu.oneindia.com/rss/telugu-news-fb.xml',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-visalaandhra','news','Visalaandhra','విశాలాంధ్ర','https://www.visalaandhra.com/','https://www.visalaandhra.com/feed',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-prabha','news','Andhra Prabha','ఆంధ్రప్రభ','https://www.prabhanews.com/','https://www.prabhanews.com/feed',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-andhrajyothy','news','Andhra Jyothy','ఆంధ్రజ్యోతి','https://www.andhrajyothy.com/','https://www.andhrajyothy.com/rss/feed.xml',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-namasthe','news','Namasthe Telangana','నమస్తే తెలంగాణ','https://www.ntnews.com/','https://www.ntnews.com/rss',NULL,'headline','TG','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-news18-ap','news','News18 Telugu: Andhra Pradesh','న్యూస్18 తెలుగు: ఆంధ్రప్రదేశ్','https://telugu.news18.com/','https://telugu.news18.com/commonfeeds/v1/tel/rss/andhra-pradesh.xml',NULL,'headline','AP','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-news18-tg','news','News18 Telugu: Telangana','న్యూస్18 తెలుగు: తెలంగాణ','https://telugu.news18.com/','https://telugu.news18.com/commonfeeds/v1/tel/rss/telangana.xml',NULL,'headline','TG','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-asianet-te','news','Asianet News Telugu','ఏషియానెట్ న్యూస్ తెలుగు','https://telugu.asianetnews.com/','https://telugu.asianetnews.com/rss',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-abp-te','news','ABP Desam (Telugu)','ఏబీపీ దేశం','https://telugu.abplive.com/','https://telugu.abplive.com/home/feed',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-telanganatoday','news','Telangana Today','తెలంగాణ టుడే','https://telanganatoday.com/','https://telanganatoday.com/feed',NULL,'headline','TG','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-hans-ap','news','The Hans India: Andhra Pradesh','ది హన్స్ ఇండియా: ఆంధ్రప్రదేశ్','https://www.thehansindia.com/andhra-pradesh','https://www.thehansindia.com/andhra-pradesh/feed',NULL,'headline','AP','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-hans-tg','news','The Hans India: Telangana','ది హన్స్ ఇండియా: తెలంగాణ','https://www.thehansindia.com/telangana','https://www.thehansindia.com/telangana/feed',NULL,'headline','TG','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-hindu-hyd','news','The Hindu: Hyderabad','ది హిందూ: హైదరాబాద్','https://www.thehindu.com/news/cities/Hyderabad/','https://www.thehindu.com/news/cities/Hyderabad/feeder/default.rss',NULL,'headline','TG','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-hindu-vja','news','The Hindu: Vijayawada','ది హిందూ: విజయవాడ','https://www.thehindu.com/news/cities/Vijayawada/','https://www.thehindu.com/news/cities/Vijayawada/feeder/default.rss',NULL,'headline','AP','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-nie-ap','news','The New Indian Express: Andhra Pradesh','ది న్యూ ఇండియన్ ఎక్స్‌ప్రెస్: ఆంధ్రప్రదేశ్','https://www.newindianexpress.com/states/andhra-pradesh','https://www.newindianexpress.com/states/andhra-pradesh/rssfeed/?id=190',NULL,'headline','AP','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-toi-hyd','news','Times of India: Hyderabad','టైమ్స్ ఆఫ్ ఇండియా: హైదరాబాద్','https://timesofindia.indiatimes.com/city/hyderabad','https://timesofindia.indiatimes.com/rssfeeds/-2128816011.cms',NULL,'headline','TG','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-ie-hyd','news','The Indian Express: Hyderabad','ది ఇండియన్ ఎక్స్‌ప్రెస్: హైదరాబాద్','https://indianexpress.com/section/cities/hyderabad/','https://indianexpress.com/section/cities/hyderabad/feed/',NULL,'headline','TG','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-tg-gov','news','Government of Telangana: press releases','తెలంగాణ ప్రభుత్వం: పత్రికా ప్రకటనలు','https://www.telangana.gov.in/','https://www.telangana.gov.in/feed/',NULL,'headline','TG','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-pib','news','Press Information Bureau (Government of India)','పత్రికా సమాచార కార్యాలయం (భారత ప్రభుత్వం)','https://pib.gov.in/','https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=3',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-air','news','All India Radio News (Prasar Bharati)','ఆల్ ఇండియా రేడియో వార్తలు (ప్రసార భారతి)','https://newsonair.gov.in/','https://newsonair.gov.in/rss-feeds/',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z');
+`);
+
+// Videos from public-broadcaster, government and news YouTube channels for the Watch tab (S-281), loaded SWITCHED OFF with no permission record.
+// Each channel id was read from the channel's own page and its video feed answered with recent videos on 2026-11-27.
+registerMigration("mhub_008_video_channel_candidates", `
+INSERT INTO mhub_sources (id,kind,name_en,name_te,site_url,feed_url,stream_url,allow,state,created_by,created_at) VALUES
+ ('cand-ytv-ddnews','news','DD News (Doordarshan) (YouTube videos)','డీడీ న్యూస్ (దూరదర్శన్) (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCKwucPzHZ7zCUIf7If-Wo1g','https://www.youtube.com/feeds/videos.xml?channel_id=UCKwucPzHZ7zCUIf7If-Wo1g',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-ytv-sansad','news','Sansad TV (Parliament) (YouTube videos)','సంసద్ టీవీ (పార్లమెంట్) (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCISgnSNwqQ2i8lhCun3KtQg','https://www.youtube.com/feeds/videos.xml?channel_id=UCISgnSNwqQ2i8lhCun3KtQg',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-ytv-pib','news','PIB India (YouTube videos)','పీఐబీ ఇండియా (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCGn6a5SI8SNlj7WylmPD6GQ','https://www.youtube.com/feeds/videos.xml?channel_id=UCGn6a5SI8SNlj7WylmPD6GQ',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-ytv-bbc-te','news','BBC News Telugu (YouTube videos)','బీబీసీ న్యూస్ తెలుగు (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCiTCB-B_weEmwHk7ifNobQw','https://www.youtube.com/feeds/videos.xml?channel_id=UCiTCB-B_weEmwHk7ifNobQw',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-ytv-hans','news','The Hans India (YouTube videos)','ది హన్స్ ఇండియా (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCE5KgJvhksSdNnI3xzizfEA','https://www.youtube.com/feeds/videos.xml?channel_id=UCE5KgJvhksSdNnI3xzizfEA',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-ytv-ddsaptagiri','news','DD Saptagiri (Doordarshan, Andhra Pradesh) (YouTube videos)','డీడీ సప్తగిరి (దూరదర్శన్, ఆంధ్రప్రదేశ్) (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCDytyrifMKGH-A2snskPcVw','https://www.youtube.com/feeds/videos.xml?channel_id=UCDytyrifMKGH-A2snskPcVw',NULL,'headline','AP','system','2026-11-27T00:00:00.000Z'),
+ ('cand-ytv-dw','news','DW News (YouTube videos)','డీడబ్ల్యూ న్యూస్ (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCknLrEdhRCp1aegoMqRaCZg','https://www.youtube.com/feeds/videos.xml?channel_id=UCknLrEdhRCp1aegoMqRaCZg',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-ytv-aljazeera','news','Al Jazeera English (YouTube videos)','అల్ జజీరా ఇంగ్లీష్ (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCNye-wNBqNL5ZzHSJj3l8Bg','https://www.youtube.com/feeds/videos.xml?channel_id=UCNye-wNBqNL5ZzHSJj3l8Bg',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z');
+`);
+
 export const MIN_COUNT_SHOWN = 10;
 export const NEWS_KEEP_DAYS = 7, STALE_HOURS = 6, REFRESH_MINUTES = 15;
 const MAX_ITEMS_PER_FETCH = 50, MAX_FEED_BYTES = 1_000_000, FETCH_TIMEOUT_MS = 8000;
@@ -141,6 +203,8 @@ export function youtubeId(link: string): string | null {
   } catch { return null; }
 }
 /** YouTube publishes an official public feed for every channel. We build its address from the channel id so an admin cannot point it anywhere else. */
+/** A YouTube channel live address (youtube.com/channel/UC.../live): the channel's current live stream, played in YouTube's own embed. */
+export const isYoutubeLiveChannel = (link: string): boolean => /^https:\/\/(www\.)?youtube\.com\/channel\/UC[A-Za-z0-9_-]{22}\/live\/?$/.test(link);
 export const youtubeFeedUrl = (channelId: string): string => `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
 
 export function addSource(adminId: string, body: Record<string, unknown>, now: Date = new Date()): Src {
@@ -151,7 +215,7 @@ export function addSource(adminId: string, body: Record<string, unknown>, now: D
   if (yt && (kind !== "news" || !/^UC[A-Za-z0-9_-]{22}$/.test(yt))) throw new Bad("bad_youtube", "a YouTube channel id starts with UC and is 24 characters, and is only for a news source");
   const site_url = checkUrl("site address", str(body.site_url) || (yt ? `https://www.youtube.com/channel/${yt}` : ""));
   const feed_url = kind === "news" ? (yt ? youtubeFeedUrl(yt) : checkUrl("feed address", str(body.feed_url))) : null;
-  const stream_url = kind === "live" && str(body.stream_url) ? (youtubeId(str(body.stream_url)) ? checkUrl("stream address", str(body.stream_url)) : checkUrl("stream address", str(body.stream_url), { allowedHostsOnly: true })) : null;
+  const stream_url = kind === "live" && str(body.stream_url) ? (youtubeId(str(body.stream_url)) || isYoutubeLiveChannel(str(body.stream_url)) ? checkUrl("stream address", str(body.stream_url)) : checkUrl("stream address", str(body.stream_url), { allowedHostsOnly: true })) : null;
   const allow = body.allow === "snippet" ? "snippet" : "headline";
   const state = body.state === "AP" || body.state === "TG" ? body.state : "BOTH";
   const id = crypto.randomUUID();
@@ -297,7 +361,7 @@ export function newsFor(state: string | undefined, now: Date = new Date()) {
 export async function checkStream(id: string, fetcher: Fetcher = realFetch, now: Date = new Date()): Promise<boolean> {
   const s = getSource(id);
   if (s.kind !== "live" || !s.stream_url) throw new Bad("no_stream", "this channel has no stream address to check");
-  if (youtubeId(s.stream_url)) throw new Bad("youtube_unchecked", "a YouTube stream plays in YouTube's own player; we cannot check it from here");
+  if (youtubeId(s.stream_url) || isYoutubeLiveChannel(s.stream_url)) throw new Bad("youtube_unchecked", "a YouTube stream plays in YouTube's own player; we cannot check it from here");
   let ok = false;
   try { const r = await fetcher(s.stream_url, { method: "HEAD", signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) }); ok = r.ok; } catch { ok = false; }
   db().prepare("UPDATE mhub_sources SET health_ok = ?, health_at = ? WHERE id = ?").run(ok ? 1 : 0, now.toISOString(), id);
