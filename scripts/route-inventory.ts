@@ -14,6 +14,6 @@ if (process.argv.includes("--check")) {
   if (stale.length) { console.error("stale (run npm run backend:contract): " + stale.map(([f]) => path.relative(ROOT, f)).join(", ")); process.exit(1); }
   console.log(`route inventory current (${routes.length} routes)`);
 } else {
-  fs.writeFileSync(f1, md + "\n"); fs.writeFileSync(f2, yaml);
+  fs.writeFileSync(f1, md); fs.writeFileSync(f2, yaml);
   console.log(`wrote ${routes.length} routes`);
 }

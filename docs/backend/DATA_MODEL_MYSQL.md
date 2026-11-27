@@ -199,3 +199,19 @@ None of these blocks the plan; if one becomes important the data layer (S-248) i
 
 ## 10. What this document does not decide
 Provider, instance sizes, exact recovery targets (proposals above), whether `pp_audit` and `pp_identity` get separate instances on day one, and the optional `pp_content` split. These are in S-246, S-272, S-273 and S-274.
+
+
+## Identity store schema (S-250, built 2026-11-27)
+The MySQL schema of the identity store (46 tables, 30 indexes) is **generated**, not hand-written: `npm run backend:schema` migrates a fresh SQLite identity store, reads its DDL and translates it (`server/data/schema/translate.ts`) into `server/data/schema/identity.mysql.sql`. `tests/backend/identitySchema.test.ts` fails when that file is stale, and (with MYSQL_TEST_URL) compares the real MySQL tables, columns, nullability, keys and indexes with SQLite.
+
+Rules the translator applies, and why:
+- **Collation `utf8mb4_bin` on every table and text column.** SQLite compares text exactly; MySQL 8 defaults to a case- and accent-insensitive collation, which would make ids, hashes and codes that differ only by case collide. The tests check this.
+- Text in any key becomes `VARCHAR(190)` (index limit); other text becomes `MEDIUMTEXT`; `INTEGER` becomes `BIGINT`; `AUTOINCREMENT` becomes `AUTO_INCREMENT`. Timestamps that are indexed are `VARCHAR(190)` and the others `MEDIUMTEXT`, all holding the same ISO strings as SQLite (the `VARCHAR(24)` rule above applies to new tables).
+- The two partial unique indexes (`WHERE col IS NOT NULL`) become plain unique indexes, because MySQL allows many NULLs in a unique column. Any other partial index, foreign key, trigger or view stops the translation instead of being silently changed.
+- CHECK constraints are kept. Text defaults are written as expressions (MySQL requires it for TEXT types).
+- **Reserved words:** the column `rate_events.key` is a MySQL reserved word. The DDL quotes every identifier; SQL in code that runs on MySQL must write it with backticks, for example `` `key` ``, when that table is ported.
+- A key longer than 190 characters is refused by MySQL; the copy tool reports the table and keeps nothing from it.
+
+This is one baseline for a database that is not live yet. After the cutover (S-256) it is never regenerated: changes become new migrations after it.
+
+**Copying and checking data:** `server/data/copy.ts` (`copyTables`, `verifyTables`) copies rows in batches inside one transaction per table, refuses a target table that already has rows, and compares row counts and an order-independent content digest per table. It is the building block for the cutover (S-256); it does not lock the source.
