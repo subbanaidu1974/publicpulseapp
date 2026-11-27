@@ -24,3 +24,10 @@ NTV, TV9 Telugu, Sakshi TV, 10TV, TV5, ABN, V6, T News, Mahaa and ETV Andhra Pra
 
 ## What is still the owner's
 Permission from each source (or recording a published open licence such as PIB's policy), reading each outlet's and YouTube's terms, confirming that TV9, TV5 and DD Saptagiri are the right YouTube channels, and a Telugu review of the machine-drafted Telugu names. Nothing is shown to members until an admin records permission and a different admin switches a source on.
+
+## Second pass (S-284 to S-286)
+Added after more searching: 25 news feeds, 16 video channels and 14 live channels, every one fetched and checked the same way. Live channels added: Prime9, ETV Telangana, CVR News Telugu, Akashvani AIR, NDTV, India Today, Times Now, CNN-News18, Euronews, FRANCE 24 English, Sky News, ABC News Australia, NHK World-Japan, TRT World (all live with an embeddable stream on 2026-11-27).
+
+Tried and not added: HMTV (old channel, 2 videos), Studio N is added for video only (no live), Swatantra TV (not live, last upload May 2026), Bharat Today and TV1 (old or non-news), Raj News, News Capital and Suman TV (no channel found under the guessed name), WION and Lok Sabha TV (channel id found but no recent videos), The Hindu's YouTube channel (last upload 2016), CNA's channel (not found). Feeds that failed or returned nothing: ThePrint (empty), The Wire, Deccan Herald, The News Minute, TNIE national (404), Sakshi Post, Teluguone, Way2News, TeluguStop, MEA, ECI, HMDA, Tirumala, ISRO, Guardian (403), TRT and NHK (empty or 404). WHO's feed returned old items.
+
+Preview mode (S-283) is the way to try all of this without permission records: see docs/MEDIA_HUB.md.

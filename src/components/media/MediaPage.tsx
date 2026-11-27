@@ -5,6 +5,7 @@ import MediaPlayer from "./MediaPlayer";
 import WatchPlayer from "./WatchPlayer";
 import VideoCards, { Card } from "./VideoCards";
 import NewsList from "./NewsList";
+import { mediaApi } from "../../api/mediahub";
 import LiveList from "./LiveList";
 import { useVideos } from "./useVideos";
 import { mediaText as mt, type MediaKey } from "./mediaText";
@@ -22,6 +23,8 @@ export default function MediaPage() {
   const vids = useVideos();
   // Something new from us opens that section first, once.
   const [jumped, setJumped] = useState(false);
+  const [preview, setPreview] = useState(false);
+  useEffect(() => { let on = true; mediaApi.preview().then((r) => { if (on) setPreview(!!r.preview); }).catch(() => undefined); return () => { on = false; }; }, []);
   useEffect(() => { if (!jumped && vids.unseen.length) { setJumped(true); setSec("ours"); } }, [jumped, vids.unseen.length]);
   const pick = (s: Section) => { setSec(s); try { sessionStorage.setItem(KEY, s); } catch { /* ignore */ } };
   const onKey = (e: KeyboardEvent) => {
@@ -43,6 +46,7 @@ export default function MediaPage() {
         <h2 className="text-2xl font-serif italic">{t("m.title")}</h2>
         <p className="text-sm">{t("m.intro")}</p>
         <TranslationNote status="machine-draft" />
+        {preview && <p role="note" data-testid="media-preview-banner" className="border border-black p-2 text-sm font-bold">{t("m.preview")}</p>}
       </header>
       <div role="tablist" aria-label={t("m.tabs")} data-testid="media-tabs" className="flex gap-1 border-b border-black overflow-x-auto whitespace-nowrap" onKeyDown={onKey}>
         {SECTIONS.map((s) => (

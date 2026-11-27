@@ -3,7 +3,7 @@ import express from "express";
 import type { Server } from "http";
 import type { AddressInfo } from "net";
 import { getDb, grantRole, migrate, resetDbForTests } from "../../server/civic/core";
-import { mediaRouter, parseFeed, addSource, enableSource, disableSource, refreshSource, refreshDue, newsFor, checkStream, liveChannels, countClick, numbers, reportItem, resolveReport, checkUrl, recordPermission, ensureDemoNews, demoVideos, MIN_COUNT_SHOWN, type Fetcher } from "../../server/civic/mediahub";
+import { mediaRouter, parseFeed, addSource, enableSource, disableSource, refreshSource, refreshDue, newsFor, checkStream, liveChannels, countClick, numbers, reportItem, resolveReport, checkUrl, recordPermission, ensureDemoNews, demoVideos, applyPreviewSources, previewSourcesEnabled, PREVIEW_NOTE, MIN_COUNT_SHOWN, type Fetcher } from "../../server/civic/mediahub";
 import { createVideo, approveVideo, addWindow, endWindow, liveFor, correctionsFor, recallVideo, afterSilence } from "../../server/civic/videocast";
 import { videocastRouter } from "../../server/civic/videocast";
 import { mkPerson } from "./notify/helpers";
@@ -491,5 +491,58 @@ describe("harvested candidates: live channels, news feeds and video channels, al
     const a = admin();
     const s = addSource(a.id, { kind: "live", name_en: "Live by channel", site_url: "https://channel-live.example.net/", stream_url: "https://www.youtube.com/channel/UCKwucPzHZ7zCUIf7If-Wo1g/live", permission_note: "Written permission by mail, 27 Nov 2026", permission_date: "2026-11-27", contact: "desk@channel-live.example" }, NOW);
     expect(s.stream_url).toBe("https://www.youtube.com/channel/UCKwucPzHZ7zCUIf7If-Wo1g/live");
+  });
+});
+
+describe("preview of the loaded candidates, development only (S-283) @E2E-245", () => {
+  afterEach(() => { delete process.env.CIVIC_PREVIEW_SOURCES; applyPreviewSources(NOW); });
+  it("does nothing unless CIVIC_PREVIEW_SOURCES=1, and never in production", async () => {
+    const { getSource } = await import("../../server/civic/mediahub");
+    applyPreviewSources(NOW);
+    expect(previewSourcesEnabled()).toBe(false);
+    expect(getSource("cand-ntv").enabled).toBe(0);
+    process.env.CIVIC_PREVIEW_SOURCES = "1";
+    const prev = process.env.NODE_ENV; process.env.NODE_ENV = "production";
+    try { applyPreviewSources(NOW); expect(previewSourcesEnabled()).toBe(false); expect(getSource("cand-ntv").enabled).toBe(0); } finally { process.env.NODE_ENV = prev; }
+  });
+  it("switches only the loaded candidates on, with a plain preview note and no invented permission, and puts them back when the setting goes", async () => {
+    const { getSource } = await import("../../server/civic/mediahub");
+    process.env.CIVIC_PREVIEW_SOURCES = "1";
+    applyPreviewSources(NOW);
+    const c = getSource("cand-ntv");
+    expect([c.enabled, c.enabled_by, c.permission_note]).toEqual([1, "preview-setting", PREVIEW_NOTE]);
+    expect(liveChannels().length).toBeGreaterThanOrEqual(15);
+    delete process.env.CIVIC_PREVIEW_SOURCES;
+    applyPreviewSources(NOW);
+    const off = getSource("cand-ntv");
+    expect([off.enabled, off.enabled_by, off.permission_note]).toEqual([0, null, null]);
+    expect(liveChannels()).toEqual([]);
+  });
+  it("leaves a source an admin switched on, or one with a real permission record, untouched", async () => {
+    const { getSource } = await import("../../server/civic/mediahub");
+    const a = admin(), b = admin();
+    recordPermission(a.id, "cand-tv9", { permission_note: "Written permission from the channel, 27 Nov 2026", permission_date: "2026-11-27", contact: "desk@tv9.example" }, NOW);
+    enableSource(b.id, "cand-tv9", NOW);
+    process.env.CIVIC_PREVIEW_SOURCES = "1";
+    applyPreviewSources(NOW);
+    delete process.env.CIVIC_PREVIEW_SOURCES;
+    applyPreviewSources(NOW);
+    const c = getSource("cand-tv9");
+    expect([c.enabled, c.permission_note]).toEqual([1, "Written permission from the channel, 27 Nov 2026"]);
+    disableSource(a.id, "cand-tv9");
+  });
+});
+
+describe("more harvested candidates, all switched off (S-284 to S-286) @E2E-246", () => {
+  it("25 more news feeds, 16 more video channels and 14 more live channels exist off with no permission, and show nothing", async () => {
+    const { getSource } = await import("../../server/civic/mediahub");
+    const feeds = ["ht-india", "firstpost", "vaartha", "tnie-tg", "dc", "indiatoday-rss", "ndtv-rss", "news18-in", "hindu-natl", "hindu-tg-state", "ie-india", "ie-explained", "toi-top", "toi-india", "bbc-world", "bbc-india", "sky-world", "euronews-rss", "abc-au-rss", "npr", "cna-asia", "un-news", "nasa", "greatandhra", "bizstd"];
+    for (const k of feeds) { const c = getSource(`cand-feed-${k}`); expect([c.kind, c.enabled, c.permission_note]).toEqual(["news", 0, null]); expect(c.feed_url).toMatch(/^https:\/\//); }
+    const vids = ["prime9", "etv-tg", "cvr", "studion", "akashvani", "mygov", "ndtv", "indiatoday", "timesnow", "cnn18", "euronews", "france24", "sky", "abc-au", "nhk", "trt"];
+    for (const k of vids) { const c = getSource(`cand-ytv-${k}`); expect([c.enabled, c.permission_note]).toEqual([0, null]); expect(c.feed_url).toMatch(/channel_id=UC[A-Za-z0-9_-]{22}$/); }
+    const live = ["prime9", "etv-tg", "cvr", "akashvani", "ndtv", "indiatoday", "timesnow", "cnn18", "euronews", "france24", "sky", "abc-au", "nhk", "trt"];
+    for (const k of live) { const c = getSource(`cand-live-${k}`); expect([c.kind, c.enabled, c.permission_note]).toEqual(["live", 0, null]); expect(c.stream_url).toMatch(/\/channel\/UC[A-Za-z0-9_-]{22}\/live$/); }
+    expect(newsFor(undefined, NOW).items).toHaveLength(0);
+    expect(liveChannels()).toEqual([]);
   });
 });
