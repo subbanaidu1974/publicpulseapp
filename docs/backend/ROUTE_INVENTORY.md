@@ -465,4 +465,3 @@ Total: 357 routes in 21 groups.
 | GET | `/admin/windows` | `/api/v1/civic/videocast` | `server/civic/videocast/index.ts` |
 | POST | `/admin/windows` | `/api/v1/civic/videocast` | `server/civic/videocast/index.ts` |
 | POST | `/admin/windows/:id/end` | `/api/v1/civic/videocast` | `server/civic/videocast/index.ts` |
-

@@ -36,6 +36,7 @@
     "test": "vitest run",
     "test:backend": "vitest run tests/backend",
     "backend:contract": "tsx scripts/route-inventory.ts",
+    "backend:schema": "tsx scripts/identity-mysql-schema.ts",
     "db:mysql:up": "docker compose -f docker-compose.dev.yml up -d --wait",
     "db:mysql:down": "docker compose -f docker-compose.dev.yml down",
     "test:e2e": "playwright test",
