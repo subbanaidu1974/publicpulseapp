@@ -15,6 +15,7 @@ export interface SilenceWindow { id: string; label: string; starts_at: string; e
 export const mediaApi = {
   news: (state?: string) => call<NewsPayload>(`/media/news${state ? `?state=${encodeURIComponent(state)}` : ""}`, { fresh: true, auth: false }),
   live: () => call<{ channels: LiveChannel[] }>("/media/live", { fresh: true, auth: false }),
+  preview: () => call<{ preview: boolean }>("/media/preview", { fresh: true, auth: false }),
   click: (kind: "news" | "live", id: string) => call<{ ok: true }>("/media/click", { method: "POST", body: { kind, id }, auth: false }),
   report: (body: { kind: "video" | "news" | "live"; id: string; reason: string; note?: string }) => call<{ ok: true }>("/media/report", { method: "POST", body }),
   adminSources: () => call<{ sources: AdminSource[]; hosts: string[] }>("/media/admin/sources", { fresh: true }),

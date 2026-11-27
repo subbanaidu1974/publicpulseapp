@@ -3672,6 +3672,62 @@
       ],
       "source": "user request 2026-11-27 (find free sources: news into News, videos into Watch, live streams into Live; research and harvest)",
       "notes": "BUILT 2026-11-27: a live channel may be given as youtube.com/channel/UC.../live and plays in the no-cookie live embed after a tap (checked by E2E-244); 14 of 15 were live with an embeddable stream when checked, DD Saptagiri weaker. NOT done: none switched on; the stream health check cannot test YouTube streams; whether a channel allows embedding can change; permission is the owner's."
+    },
+    {
+      "agent": "-",
+      "status": "done",
+      "priority": "P1",
+      "wave": "W9",
+      "epic": "Media",
+      "id": "S-283",
+      "title": "Development preview switch: CIVIC_PREVIEW_SOURCES=1 shows every loaded candidate with a banner, never in production",
+      "tests": [
+        "E2E-245"
+      ],
+      "source": "user request 2026-11-27 (harvest and add free videos, live and news; as much content as possible to play for hours)",
+      "notes": "BUILT 2026-11-27: dev-only setting that switches loaded candidates on with a plain preview note (no invented permission), banner on the Media tab, reverts when off, never touches admin-enabled sources; News API reads headlines and videos separately (150 + 400). NOT done: not permission and not for production; the preview fetches real feeds every 15 minutes in development; 500 or more list rows are heavy on a slow phone (no paging yet)."
+    },
+    {
+      "agent": "-",
+      "status": "done",
+      "priority": "P1",
+      "wave": "W9",
+      "epic": "Media",
+      "id": "S-284",
+      "title": "News harvest, second pass: 25 more feeds (national, state and international) loaded switched off",
+      "tests": [
+        "E2E-246"
+      ],
+      "source": "user request 2026-11-27 (harvest and add free videos, live and news; as much content as possible to play for hours)",
+      "notes": "BUILT 2026-11-27: each feed parsed by our reader on 2026-11-27. NOT done: none switched on in production; terms not read for most outlets; international feeds are not AP or Telangana news; failed feeds listed in docs/MEDIA_SOURCES_RESEARCH.md."
+    },
+    {
+      "agent": "-",
+      "status": "done",
+      "priority": "P1",
+      "wave": "W9",
+      "epic": "Media",
+      "id": "S-285",
+      "title": "Video harvest, second pass: 16 more YouTube channels loaded switched off",
+      "tests": [
+        "E2E-246"
+      ],
+      "source": "user request 2026-11-27 (harvest and add free videos, live and news; as much content as possible to play for hours)",
+      "notes": "BUILT 2026-11-27: channel ids read from each channel's page; each video feed answered. NOT done: none switched on in production; YouTube terms and each channel's own rules are the owner's to read."
+    },
+    {
+      "agent": "-",
+      "status": "done",
+      "priority": "P1",
+      "wave": "W9",
+      "epic": "Media",
+      "id": "S-286",
+      "title": "Live harvest, second pass: 14 more live channels loaded switched off",
+      "tests": [
+        "E2E-246"
+      ],
+      "source": "user request 2026-11-27 (harvest and add free videos, live and news; as much content as possible to play for hours)",
+      "notes": "BUILT 2026-11-27: each was live with an embeddable stream on 2026-11-27; with S-282 that is 29 live channels. NOT done: none switched on in production; a channel can stop streaming or disable embedding at any time."
     }
   ]
 }

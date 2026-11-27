@@ -2,6 +2,7 @@ import type { Lang } from "../../i18n";
 
 /** Media tab text, English and Telugu together. The Telugu is a machine-drafted first pass and has not been reviewed by a native speaker. */
 const EN = {
+  "m.preview": "Preview mode (development only): the sources shown here have NOT given permission. Do not use this setting in production.",
   "m.title": "Media",
   "m.intro": "News, videos and live channels, each from its own publisher. We link to the source and never copy it.",
   "m.tabs": "Media sections",
@@ -24,6 +25,7 @@ const EN = {
 } as const;
 export type MediaKey = keyof typeof EN;
 const TE: Record<MediaKey, string> = {
+  "m.preview": "ప్రివ్యూ మోడ్ (అభివృద్ధి కోసం మాత్రమే): ఇక్కడ చూపే మూలాలు అనుమతి ఇవ్వలేదు. ఈ సెట్టింగ్‌ను ప్రొడక్షన్‌లో ఉపయోగించకండి.",
   "m.title": "మీడియా",
   "m.intro": "వార్తలు, వీడియోలు, ప్రత్యక్ష ఛానళ్లు, ప్రతిదీ దాని ప్రచురణకర్త నుంచే. మూలానికి లింక్ ఇస్తాం, కాపీ చేయం.",
   "m.tabs": "మీడియా విభాగాలు",

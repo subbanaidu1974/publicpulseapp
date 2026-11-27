@@ -239,3 +239,5 @@ Layers: **API** = HTTP-level test (no browser), **UI** = Playwright browser.
 | E2E-242 | Unit | Ten Telugu news channels' YouTube video feeds exist switched off with no permission record, show nothing, and cannot be enabled until permission is recorded | S-279 |
 | E2E-243 | Unit | Fifteen live channels, twenty-one news feeds and eight video channels exist switched off with no permission; a live channel can be given as a YouTube channel live address, and the stream check does not fetch it | S-280, S-281, S-282 |
 | E2E-244 | E2E | A live channel given as a YouTube channel live address plays that channel in the no-cookie live embed after Play, and nothing loads before | S-282 |
+| E2E-245 | Unit | Preview of loaded candidates: off unless CIVIC_PREVIEW_SOURCES=1 and never in production; switches only loaded candidates on with a plain preview note and no invented permission; puts them back when the setting goes; leaves admin-enabled sources untouched | S-283 |
+| E2E-246 | Unit | 25 more news feeds, 16 more video channels and 14 more live channels exist switched off with no permission and show nothing | S-284, S-285, S-286 |

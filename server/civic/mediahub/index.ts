@@ -157,6 +157,77 @@ INSERT INTO mhub_sources (id,kind,name_en,name_te,site_url,feed_url,stream_url,a
  ('cand-ytv-aljazeera','news','Al Jazeera English (YouTube videos)','అల్ జజీరా ఇంగ్లీష్ (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCNye-wNBqNL5ZzHSJj3l8Bg','https://www.youtube.com/feeds/videos.xml?channel_id=UCNye-wNBqNL5ZzHSJj3l8Bg',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z');
 `);
 
+// More live news channels (S-286), loaded SWITCHED OFF with no permission record: Telugu (Prime9, ETV Telangana, CVR), Akashvani AIR, Indian national and international news.
+// Each was live with a stream YouTube allows to be embedded on 2026-11-27.
+registerMigration("mhub_009_more_live_candidates", `
+INSERT INTO mhub_sources (id,kind,name_en,name_te,site_url,feed_url,stream_url,allow,state,created_by,created_at) VALUES
+ ('cand-live-prime9','live','Prime9 News Live','ప్రైమ్9 న్యూస్ లైవ్','https://www.youtube.com/channel/UCLTZ5y21NnklrxpU5AfWd8w',NULL,'https://www.youtube.com/channel/UCLTZ5y21NnklrxpU5AfWd8w/live','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-etv-tg','live','ETV Telangana Live','ఈటీవీ తెలంగాణ లైవ్','https://www.youtube.com/channel/UC6ickpgDIsltU_-8CbZaksQ',NULL,'https://www.youtube.com/channel/UC6ickpgDIsltU_-8CbZaksQ/live','headline','TG','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-cvr','live','CVR News Telugu Live','సీవీఆర్ న్యూస్ తెలుగు లైవ్','https://www.youtube.com/channel/UCixD-KrpjXtMupkzkdFFlFg',NULL,'https://www.youtube.com/channel/UCixD-KrpjXtMupkzkdFFlFg/live','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-akashvani','live','Akashvani AIR Live (Prasar Bharati)','ఆకాశవాణి ఏఐఆర్ లైవ్ (ప్రసార భారతి)','https://www.youtube.com/channel/UCdwm5QNss1TpY_whBkql0dw',NULL,'https://www.youtube.com/channel/UCdwm5QNss1TpY_whBkql0dw/live','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-ndtv','live','NDTV 24x7 Live','ఎన్డీటీవీ 24x7 లైవ్','https://www.youtube.com/channel/UCZFMm1mMw0F81Z37aaEzTUA',NULL,'https://www.youtube.com/channel/UCZFMm1mMw0F81Z37aaEzTUA/live','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-indiatoday','live','India Today Live','ఇండియా టుడే లైవ్','https://www.youtube.com/channel/UCYPvAwZP8pZhSMW8qs7cVCw',NULL,'https://www.youtube.com/channel/UCYPvAwZP8pZhSMW8qs7cVCw/live','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-timesnow','live','Times Now Live','టైమ్స్ నౌ లైవ్','https://www.youtube.com/channel/UC6RJ7-PaXg6TIH2BzZfTV7w',NULL,'https://www.youtube.com/channel/UC6RJ7-PaXg6TIH2BzZfTV7w/live','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-cnn18','live','CNN-News18 Live','సీఎన్ఎన్-న్యూస్18 లైవ్','https://www.youtube.com/channel/UCef1-8eOpJgud7szVPlZQAQ',NULL,'https://www.youtube.com/channel/UCef1-8eOpJgud7szVPlZQAQ/live','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-euronews','live','Euronews English Live','యూరోన్యూస్ ఇంగ్లీష్ లైవ్','https://www.youtube.com/channel/UCSrZ3UV4jOidv8ppoVuvW9Q',NULL,'https://www.youtube.com/channel/UCSrZ3UV4jOidv8ppoVuvW9Q/live','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-france24','live','FRANCE 24 English Live','ఫ్రాన్స్ 24 ఇంగ్లీష్ లైవ్','https://www.youtube.com/channel/UCQfwfsi5VrQ8yKZ-UWmAEFg',NULL,'https://www.youtube.com/channel/UCQfwfsi5VrQ8yKZ-UWmAEFg/live','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-sky','live','Sky News Live','స్కై న్యూస్ లైవ్','https://www.youtube.com/channel/UCoMdktPbSTixAyNGwb-UYkQ',NULL,'https://www.youtube.com/channel/UCoMdktPbSTixAyNGwb-UYkQ/live','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-abc-au','live','ABC News Australia Live','ఏబీసీ న్యూస్ ఆస్ట్రేలియా లైవ్','https://www.youtube.com/channel/UCVgO39Bk5sMo66-6o6Spn6Q',NULL,'https://www.youtube.com/channel/UCVgO39Bk5sMo66-6o6Spn6Q/live','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-nhk','live','NHK World-Japan Live','ఎన్‌హెచ్‌కే వరల్డ్-జపాన్ లైవ్','https://www.youtube.com/channel/UCSPEjw8F2nQDtmUKPFNF7_A',NULL,'https://www.youtube.com/channel/UCSPEjw8F2nQDtmUKPFNF7_A/live','headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-live-trt','live','TRT World Live','టీఆర్‌టీ వరల్డ్ లైవ్','https://www.youtube.com/channel/UC7fWeaHhqgM4Ry-RMpM2YYw',NULL,'https://www.youtube.com/channel/UC7fWeaHhqgM4Ry-RMpM2YYw/live','headline','BOTH','system','2026-11-27T00:00:00.000Z');
+`);
+
+// More daily news feeds (S-284), loaded SWITCHED OFF with no permission record: national, state and international. Each answered with a feed our reader parses on 2026-11-27.
+registerMigration("mhub_010_more_feed_candidates", `
+INSERT INTO mhub_sources (id,kind,name_en,name_te,site_url,feed_url,stream_url,allow,state,created_by,created_at) VALUES
+ ('cand-feed-ht-india','news','Hindustan Times: India','హిందుస్థాన్ టైమ్స్: భారత్','https://www.hindustantimes.com/india-news','https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-firstpost','news','Firstpost: India','ఫస్ట్‌పోస్ట్: భారత్','https://www.firstpost.com/india','https://www.firstpost.com/commonfeeds/v1/mfp/rss/india.xml',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-vaartha','news','Vaartha (Telugu)','వార్త','https://www.vaartha.com/','https://www.vaartha.com/feed/',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-tnie-tg','news','The New Indian Express: Telangana','ది న్యూ ఇండియన్ ఎక్స్‌ప్రెస్: తెలంగాణ','https://www.newindianexpress.com/states/telangana','https://www.newindianexpress.com/states/telangana/rssfeed/?id=213',NULL,'headline','TG','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-dc','news','Deccan Chronicle','డెక్కన్ క్రానికల్','https://www.deccanchronicle.com/','https://www.deccanchronicle.com/rss_feed/',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-indiatoday-rss','news','India Today','ఇండియా టుడే','https://www.indiatoday.in/','https://www.indiatoday.in/rss/1206578',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-ndtv-rss','news','NDTV: latest','ఎన్డీటీవీ: తాజా','https://www.ndtv.com/','https://feeds.feedburner.com/NDTV-LatestNews',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-news18-in','news','News18: India','న్యూస్18: భారత్','https://www.news18.com/india/','https://www.news18.com/commonfeeds/v1/eng/rss/india.xml',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-hindu-natl','news','The Hindu: National','ది హిందూ: జాతీయం','https://www.thehindu.com/news/national/','https://www.thehindu.com/news/national/feeder/default.rss',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-hindu-tg-state','news','Telangana news in The Hindu (state page)','తెలంగాణ వార్తలు, ది హిందూ (రాష్ట్ర పేజీ)','https://www.thehindu.com/news/national/telangana/','https://www.thehindu.com/news/national/telangana/feeder/default.rss',NULL,'headline','TG','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-ie-india','news','The Indian Express: India','ది ఇండియన్ ఎక్స్‌ప్రెస్: భారత్','https://indianexpress.com/section/india/','https://indianexpress.com/section/india/feed/',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-ie-explained','news','The Indian Express: Explained','ది ఇండియన్ ఎక్స్‌ప్రెస్: ఎక్స్‌ప్లెయిన్డ్','https://indianexpress.com/section/explained/','https://indianexpress.com/section/explained/feed/',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-toi-top','news','Times of India: top stories','టైమ్స్ ఆఫ్ ఇండియా: ముఖ్య వార్తలు','https://timesofindia.indiatimes.com/','https://timesofindia.indiatimes.com/rssfeedstopstories.cms',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-toi-india','news','Times of India: India','టైమ్స్ ఆఫ్ ఇండియా: భారత్','https://timesofindia.indiatimes.com/india','https://timesofindia.indiatimes.com/rssfeeds/-2128936835.cms',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-bbc-world','news','BBC News: World','బీబీసీ న్యూస్: ప్రపంచం','https://www.bbc.com/news/world','https://feeds.bbci.co.uk/news/world/rss.xml',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-bbc-india','news','BBC News: India','బీబీసీ న్యూస్: భారత్','https://www.bbc.com/news/world/asia/india','https://feeds.bbci.co.uk/news/world/asia/india/rss.xml',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-sky-world','news','Sky News: World','స్కై న్యూస్: ప్రపంచం','https://news.sky.com/world','https://feeds.skynews.com/feeds/rss/world.xml',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-euronews-rss','news','Euronews','యూరోన్యూస్','https://www.euronews.com/','https://www.euronews.com/rss?format=mrss',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-abc-au-rss','news','ABC News (Australia)','ఏబీసీ న్యూస్ (ఆస్ట్రేలియా)','https://www.abc.net.au/news/','https://www.abc.net.au/news/feed/51120/rss.xml',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-npr','news','NPR: top stories','ఎన్‌పీఆర్: ముఖ్య వార్తలు','https://www.npr.org/','https://feeds.npr.org/1001/rss.xml',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-cna-asia','news','CNA: Asia','సీఎన్‌ఏ: ఆసియా','https://www.channelnewsasia.com/asia','https://www.channelnewsasia.com/api/v1/rss-outbound-feed?_format=xml&category=6511',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-un-news','news','UN News','ఐక్యరాజ్యసమితి వార్తలు','https://news.un.org/','https://news.un.org/feed/subscribe/en/news/all/rss.xml',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-nasa','news','NASA: breaking news','నాసా: తాజా వార్తలు','https://www.nasa.gov/','https://www.nasa.gov/rss/dyn/breaking_news.rss',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-greatandhra','news','GreatAndhra: politics','గ్రేట్‌ఆంధ్ర: రాజకీయాలు','https://www.greatandhra.com/','https://www.greatandhra.com/rss',NULL,'headline','AP','system','2026-11-27T00:00:00.000Z'),
+ ('cand-feed-bizstd','news','Business Standard: top stories','బిజినెస్ స్టాండర్డ్: ముఖ్య వార్తలు','https://www.business-standard.com/','https://www.business-standard.com/rss/home_page_top_stories.rss',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z');
+`);
+
+// More video channels for the Watch tab (S-285), loaded SWITCHED OFF with no permission record. Each channel id was read from the channel's own page and its video feed answered on 2026-11-27.
+registerMigration("mhub_011_more_video_candidates", `
+INSERT INTO mhub_sources (id,kind,name_en,name_te,site_url,feed_url,stream_url,allow,state,created_by,created_at) VALUES
+ ('cand-ytv-prime9','news','Prime9 News (YouTube videos)','ప్రైమ్9 న్యూస్ (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCLTZ5y21NnklrxpU5AfWd8w','https://www.youtube.com/feeds/videos.xml?channel_id=UCLTZ5y21NnklrxpU5AfWd8w',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-ytv-etv-tg','news','ETV Telangana (YouTube videos)','ఈటీవీ తెలంగాణ (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UC6ickpgDIsltU_-8CbZaksQ','https://www.youtube.com/feeds/videos.xml?channel_id=UC6ickpgDIsltU_-8CbZaksQ',NULL,'headline','TG','system','2026-11-27T00:00:00.000Z'),
+ ('cand-ytv-cvr','news','CVR News Telugu (YouTube videos)','సీవీఆర్ న్యూస్ తెలుగు (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCixD-KrpjXtMupkzkdFFlFg','https://www.youtube.com/feeds/videos.xml?channel_id=UCixD-KrpjXtMupkzkdFFlFg',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-ytv-studion','news','Studio N (Telugu) (YouTube videos)','స్టూడియో ఎన్ (తెలుగు) (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCJkSrimcnkPCDvlDgsOOzNQ','https://www.youtube.com/feeds/videos.xml?channel_id=UCJkSrimcnkPCDvlDgsOOzNQ',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-ytv-akashvani','news','Akashvani AIR (YouTube videos)','ఆకాశవాణి ఏఐఆర్ (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCdwm5QNss1TpY_whBkql0dw','https://www.youtube.com/feeds/videos.xml?channel_id=UCdwm5QNss1TpY_whBkql0dw',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-ytv-mygov','news','MyGov India (YouTube videos)','మైగవ్ ఇండియా (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCTJpJk8bqQQEqeX58z8eimA','https://www.youtube.com/feeds/videos.xml?channel_id=UCTJpJk8bqQQEqeX58z8eimA',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-ytv-ndtv','news','NDTV (YouTube videos)','ఎన్డీటీవీ (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCZFMm1mMw0F81Z37aaEzTUA','https://www.youtube.com/feeds/videos.xml?channel_id=UCZFMm1mMw0F81Z37aaEzTUA',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-ytv-indiatoday','news','India Today (YouTube videos)','ఇండియా టుడే (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCYPvAwZP8pZhSMW8qs7cVCw','https://www.youtube.com/feeds/videos.xml?channel_id=UCYPvAwZP8pZhSMW8qs7cVCw',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-ytv-timesnow','news','Times Now (YouTube videos)','టైమ్స్ నౌ (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UC6RJ7-PaXg6TIH2BzZfTV7w','https://www.youtube.com/feeds/videos.xml?channel_id=UC6RJ7-PaXg6TIH2BzZfTV7w',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-ytv-cnn18','news','CNN-News18 (YouTube videos)','సీఎన్ఎన్-న్యూస్18 (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCef1-8eOpJgud7szVPlZQAQ','https://www.youtube.com/feeds/videos.xml?channel_id=UCef1-8eOpJgud7szVPlZQAQ',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-ytv-euronews','news','Euronews (YouTube videos)','యూరోన్యూస్ (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCSrZ3UV4jOidv8ppoVuvW9Q','https://www.youtube.com/feeds/videos.xml?channel_id=UCSrZ3UV4jOidv8ppoVuvW9Q',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-ytv-france24','news','FRANCE 24 English (YouTube videos)','ఫ్రాన్స్ 24 ఇంగ్లీష్ (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCQfwfsi5VrQ8yKZ-UWmAEFg','https://www.youtube.com/feeds/videos.xml?channel_id=UCQfwfsi5VrQ8yKZ-UWmAEFg',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-ytv-sky','news','Sky News (YouTube videos)','స్కై న్యూస్ (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCoMdktPbSTixAyNGwb-UYkQ','https://www.youtube.com/feeds/videos.xml?channel_id=UCoMdktPbSTixAyNGwb-UYkQ',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-ytv-abc-au','news','ABC News (Australia) (YouTube videos)','ఏబీసీ న్యూస్ (ఆస్ట్రేలియా) (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCVgO39Bk5sMo66-6o6Spn6Q','https://www.youtube.com/feeds/videos.xml?channel_id=UCVgO39Bk5sMo66-6o6Spn6Q',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-ytv-nhk','news','NHK World-Japan (YouTube videos)','ఎన్‌హెచ్‌కే వరల్డ్-జపాన్ (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UCSPEjw8F2nQDtmUKPFNF7_A','https://www.youtube.com/feeds/videos.xml?channel_id=UCSPEjw8F2nQDtmUKPFNF7_A',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z'),
+ ('cand-ytv-trt','news','TRT World (YouTube videos)','టీఆర్‌టీ వరల్డ్ (యూట్యూబ్ వీడియోలు)','https://www.youtube.com/channel/UC7fWeaHhqgM4Ry-RMpM2YYw','https://www.youtube.com/feeds/videos.xml?channel_id=UC7fWeaHhqgM4Ry-RMpM2YYw',NULL,'headline','BOTH','system','2026-11-27T00:00:00.000Z');
+`);
+
 export const MIN_COUNT_SHOWN = 10;
 export const NEWS_KEEP_DAYS = 7, STALE_HOURS = 6, REFRESH_MINUTES = 15;
 const MAX_ITEMS_PER_FETCH = 50, MAX_FEED_BYTES = 1_000_000, FETCH_TIMEOUT_MS = 8000;
@@ -346,8 +417,14 @@ export async function refreshDue(fetcher: Fetcher = realFetch, now: Date = new D
 export function newsFor(state: string | undefined, now: Date = new Date()) {
   const since = new Date(now.getTime() - NEWS_KEEP_DAYS * 86_400_000).toISOString();
   const st = state === "AP" || state === "TG" ? state : null;
-  const rows = db().prepare(`SELECT n.id, n.title, n.link, n.snippet, n.published_at, s.id AS sid, s.name_en, s.name_te, s.state FROM mhub_news n JOIN mhub_sources s ON s.id = n.source_id
-    WHERE s.enabled = 1 AND n.hidden = 0 AND n.published_at >= ? ${st ? "AND (s.state = ? OR s.state = 'BOTH')" : ""} ORDER BY n.published_at DESC LIMIT 100`).all(...(st ? [since, st] : [since])) as unknown as { id: string; title: string; link: string; snippet: string | null; published_at: string; sid: string; name_en: string; name_te: string | null; state: string }[];
+  const base = `SELECT n.id, n.title, n.link, n.snippet, n.published_at, s.id AS sid, s.name_en, s.name_te, s.state FROM mhub_news n JOIN mhub_sources s ON s.id = n.source_id
+    WHERE s.enabled = 1 AND n.hidden = 0 AND n.published_at >= ? ${st ? "AND (s.state = ? OR s.state = 'BOTH')" : ""}`;
+  const args = st ? [since, st] : [since];
+  type Row = { id: string; title: string; link: string; snippet: string | null; published_at: string; sid: string; name_en: string; name_te: string | null; state: string };
+  // Headlines and YouTube videos are read separately: with many channels switched on, the newest 100 rows would otherwise be all videos (or all headlines).
+  const heads = db().prepare(`${base} AND n.link NOT LIKE 'https://www.youtube.com/watch%' ORDER BY n.published_at DESC LIMIT 150`).all(...args) as unknown as Row[];
+  const vids = db().prepare(`${base} AND n.link LIKE 'https://www.youtube.com/watch%' ORDER BY n.published_at DESC LIMIT 400`).all(...args) as unknown as Row[];
+  const rows = [...heads, ...vids].sort((a, b) => (a.published_at < b.published_at ? 1 : a.published_at > b.published_at ? -1 : 0));
   const items = rows.map((r) => ({ id: r.id, title: r.title, link: r.link, snippet: r.snippet, published_at: r.published_at, outlet_en: r.name_en, outlet_te: r.name_te, source_id: r.sid, youtube: youtubeId(r.link) }));
   const dayAgo = new Date(now.getTime() - 86_400_000).toISOString();
   const digest = items.filter((i) => i.published_at >= dayAgo).slice(0, 5);
@@ -426,6 +503,20 @@ export function numbers() {
 /* ---------------- demo news (S-245) ---------------- */
 
 /** Preview only: CIVIC_DEMO_NEWS=1, never in production. One clearly labelled sample source with sample headlines we wrote, so the News tab can be looked at before any real outlet is cleared. */
+/** DEV-ONLY preview of the loaded candidate sources (CIVIC_PREVIEW_SOURCES=1, never in production). It switches the candidates on, with a plain note that no permission is recorded,
+ * so the News, Watch and Live tabs can be tried with real content. Turning the setting off puts them back. It never touches a source an admin switched on or recorded permission for. */
+export const previewSourcesEnabled = (): boolean => !isProductionEnv() && process.env.CIVIC_PREVIEW_SOURCES === "1";
+export const PREVIEW_NOTE = "PREVIEW ONLY (development setting): no permission has been recorded for this source";
+export function applyPreviewSources(now: Date = new Date()): void {
+  const d = db();
+  if (previewSourcesEnabled()) {
+    d.prepare("UPDATE mhub_sources SET enabled = 1, enabled_by = 'preview-setting', enabled_at = ?, permission_note = ?, permission_date = ?, contact = 'preview@example.invalid' WHERE id LIKE 'cand-%' AND enabled = 0 AND permission_note IS NULL")
+      .run(now.toISOString(), PREVIEW_NOTE, now.toISOString().slice(0, 10));
+  } else {
+    d.prepare("UPDATE mhub_sources SET enabled = 0, enabled_by = NULL, enabled_at = NULL, permission_note = NULL, permission_date = NULL, contact = NULL WHERE enabled_by = 'preview-setting'").run();
+  }
+}
+
 export const demoNewsEnabled = (): boolean => !isProductionEnv() && process.env.CIVIC_DEMO_NEWS === "1";
 const DEMO_ID = "demo-news";
 const DEMO_ITEMS = [
@@ -478,12 +569,13 @@ const adminOnly = [requireAuth, requireRole("admin")];
 
 mediaRouter.get("/news", wrap((req, res) => {
   res.set("Cache-Control", "no-store");
-  ensureDemoNews();
+  ensureDemoNews(); applyPreviewSources();
   void refreshDue().catch(() => undefined); // never makes the reader wait
   res.json(newsFor(typeof req.query.state === "string" ? req.query.state : undefined));
 }));
+mediaRouter.get("/preview", wrap((_req, res) => { res.set("Cache-Control", "no-store"); res.json({ preview: previewSourcesEnabled() }); }));
 mediaRouter.get("/demo-videos", wrap((_req, res) => { res.set("Cache-Control", "no-store"); res.json({ videos: demoVideos() }); }));
-mediaRouter.get("/live", wrap((_req, res) => { res.set("Cache-Control", "no-store"); ensureDemoNews(); res.json({ channels: liveChannels() }); }));
+mediaRouter.get("/live", wrap((_req, res) => { res.set("Cache-Control", "no-store"); ensureDemoNews(); applyPreviewSources(); res.json({ channels: liveChannels(), preview: previewSourcesEnabled() }); }));
 mediaRouter.post("/click", wrap((req, res) => { countClick(str(req.body?.kind), str(req.body?.id)); res.json({ ok: true }); }));
 mediaRouter.post("/report", requireAuth, wrap((req, res) => { reportItem(req.person!.id, req.body ?? {}); res.status(201).json({ ok: true }); }));
 
