@@ -196,7 +196,7 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
   const photoDir = path.join(baseDir, "data", "generated", "photos");
   const winnerKey = (p: Json) => `${p.state}-assembly-${p.acNo}`;
   const visibleWinners = async (): Promise<{ photos: Json[]; blackout: Record<string, boolean> }> => {
-    const gate = photoGate();
+    const gate = await photoGate();
     const blackout = { AP: gate.blackout("AP"), TG: gate.blackout("TG") } as Record<string, boolean>;
     const commons = (readJson(path.join(photoDir, "index.json"))?.photos as Json[]) ?? [];
     // S-200: a photo the candidate side supplied and an admin approved replaces the Commons photo for that seat
@@ -205,8 +205,8 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
     const all = [...uploads, ...commons.filter((p) => !upSeats.has(winnerKey(p)))];
     return { blackout, photos: all.filter((p) => !blackout[String(p.state)] && !gate.hidden("photo", winnerKey(p))) };
   };
-  const visibleLeaders = (): { photos: Json[]; blackout: boolean } => {
-    const gate = photoGate();
+  const visibleLeaders = async (): Promise<{ photos: Json[]; blackout: boolean }> => {
+    const gate = await photoGate();
     const blackout = gate.blackout();
     const all = (readJson(path.join(photoDir, "leaders.json"))?.photos as Json[]) ?? [];
     return { blackout, photos: blackout ? [] : all.filter((p) => !gate.hidden("photo", `leader-${p.party}`)) };
@@ -215,13 +215,13 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
     const v = await visibleWinners();
     res.set("Cache-Control", "no-store").json({ schema: 1, blackout: v.blackout, photos: v.photos });
   }));
-  router.get("/photos/leaders.json", (_req, res) => {
-    const v = visibleLeaders();
+  router.get("/photos/leaders.json", asyncRoute(async (_req, res) => {
+    const v = await visibleLeaders();
     res.set("Cache-Control", "no-store").json({ schema: 1, blackout: v.blackout, photos: v.photos });
-  });
+  }));
   router.get("/photos/:file", asyncRoute(async (req, res) => {
     const file = String(req.params.file);
-    const listed = [...(await visibleWinners()).photos, ...visibleLeaders().photos].some((p) => p.file === file);
+    const listed = [...(await visibleWinners()).photos, ...(await visibleLeaders()).photos].some((p) => p.file === file);
     if (!/^([A-Z]{2}-\d{4}-\d+|leader-[A-Z]{2,6}|upload-ph_[0-9a-f]{16})\.(jpg|jpeg|png|webp)$/.test(file) || !listed) return err(res, 404, "no_photo", "No such photo");
     const target = file.startsWith("upload-") ? await approvedUploadPath(file) : path.join(photoDir, file);
     if (!target || !fs.existsSync(target)) return err(res, 404, "no_photo", "No such photo");

@@ -59,7 +59,6 @@
     "server/civic/videocast/index.ts",
     "server/history/api.ts",
     "server/history/store.ts",
-    "server/obs.ts",
-    "server/people-api.ts"
+    "server/obs.ts"
   ]
 }
