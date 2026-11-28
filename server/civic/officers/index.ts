@@ -295,7 +295,7 @@ officersRouter.post("/admin/applications/:id/verify", requireRole("admin"), requ
   if (req.body?.letter_checked !== true) throw new OfficerError(400, "confirm that you checked the letter against the application", { code: "letter_check_required" });
   const note = clean(req.body?.note, 300);
   if (!checkOfficialEmail(details(r).email).ok) throw new OfficerError(422, "the e-mail domain is no longer on the official list", { code: "domain_not_allowed" }); // the registry may have changed since submission
-  const rr = insertRoleRequest(me, { action: "grant", personId: r.person_id, role: "officer", jurisdiction: r.jurisdiction, department: r.department, reason: `officer application ${r.id.slice(0, 8)}: letter checked` });
+  const rr = await insertRoleRequest(me, { action: "grant", personId: r.person_id, role: "officer", jurisdiction: r.jurisdiction, department: r.department, reason: `officer application ${r.id.slice(0, 8)}: letter checked` });
   const now = new Date().toISOString();
   await repo().markVerified(r.id, rr.id, me, now, note || null);
   audit(me, "officer.application.verify", "application:" + r.id, { request: rr.id, department: r.department });

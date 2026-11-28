@@ -3,7 +3,7 @@ import express from "express";
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { createSession, getDb, getKeys, grantRole, migrate, resetDbForTests, smsOutbox } from "../../../server/civic/core";
-import { confirmMfa, enrolMfa, base32Decode, totp } from "../../../server/civic/admin/mfa";
+import { base32Encode, totp } from "../../../server/civic/admin/mfa";
 import { notifyRouter, setNotifyClock, setPushTransport, setWebAuthnConfig, setMccTemplates, setNotifyCalendar, pushOutbox, DevPushTransport } from "../../../server/civic/notify";
 import * as svc from "../../../server/civic/notify/service";
 import { setNotifyPolicy } from "../../../server/civic/notify/content";
@@ -90,9 +90,10 @@ export function mkPerson(o: { unit?: string | null; phone?: boolean } = {}): { i
 export function mkAdmin() {
   const p = mkPerson({ unit: null });
   grantRole("system", p.id, "admin");
-  const en = enrolMfa(p.id);
-  const secret = base32Decode(en.secret);
-  confirmMfa(p.id, totp(secret, Date.now()));
+  // An enrolled and confirmed second factor, written as the enrolment would (test setup only; the enrolment itself is async and has its own tests).
+  const raw = crypto.randomBytes(20);
+  const secret = raw;
+  getDb().prepare("INSERT INTO admin_mfa (person_id, secret_enc, confirmed, created_at, last_counter) VALUES (?,?,1,?,0)").run(p.id, getKeys().encrypt("totp", base32Encode(raw)), new Date().toISOString());
   let step = 0;
   return { ...p, code: () => totp(secret, Date.now() + 30_000 * ++step) };
 }
