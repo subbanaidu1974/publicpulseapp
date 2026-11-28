@@ -137,10 +137,11 @@ identityRouter.post("/sim/link", requireAuth, wrap(async (req, res) => {
   res.status(201).json({ person: publicPerson(p) });
 }));
 
-identityRouter.get("/sim/members", requireAuth, wrap((req, res) => {
+identityRouter.get("/sim/members", requireAuth, wrap(async (req, res) => {
   const me = getPerson(req.person!.id);
   if (!me?.phone_hash) return fail(res, 404, "not found");
-  res.json({ members: simMembers(me).filter((m) => !isPendingActivation(m)).map((m) => ({ person_id: m.id, label: m.label, locked: isLockedAnywhere(m.id), self: m.id === me.id })) });
+  const members = simMembers(me).filter((m) => !isPendingActivation(m));
+  res.json({ members: await Promise.all(members.map(async (m) => ({ person_id: m.id, label: m.label, locked: await isLockedAnywhere(m.id), self: m.id === me.id }))) });
 }));
 
 identityRouter.post("/login", wrap(async (req, res) => {
@@ -151,7 +152,7 @@ identityRouter.post("/login", wrap(async (req, res) => {
   // Limits are per (phone, person, source): someone flooding this phone from their own source only slows themselves.
   if (!rateAllow("login:ip:" + ctx.ip, capScale(ctx, 60), 15 * MIN) || !loginSourceAllow(phone, personId, src)) return fail(res, 429, "too many attempts; wait and retry");
   const cands = personsOnPhone(phone).filter((c) => !isPendingActivation(c));
-  if (!loginCeilingAllow(phone, cands.map((c) => c.id), src)) return fail(res, 429, "too many sign-in attempts for this number; wait and retry, or reset your PIN with a code sent to your number", { limited: true });
+  if (!(await loginCeilingAllow(phone, cands.map((c) => c.id), src))) return fail(res, 429, "too many sign-in attempts for this number; wait and retry, or reset your PIN with a code sent to your number", { limited: true });
   if (cands.length === 0) { await verifyPinAsync(pin, DUMMY.salt, DUMMY.hash); return fail(res, 401, "wrong phone or PIN"); }
   let target = cands[0];
   if (personId) {
@@ -160,7 +161,7 @@ identityRouter.post("/login", wrap(async (req, res) => {
     target = t;
   } else if (cands.length > 1) {
     return fail(res, 400, "several adults share this number; send person_id", {
-      code: "person_required", members: cands.map((c) => ({ person_id: c.id, label: c.label, locked: isLockedAnywhere(c.id) })),
+      code: "person_required", members: await Promise.all(cands.map(async (c) => ({ person_id: c.id, label: c.label, locked: await isLockedAnywhere(c.id) }))),
     });
   }
   const r = await checkPin(target, pin, new Date(), src);

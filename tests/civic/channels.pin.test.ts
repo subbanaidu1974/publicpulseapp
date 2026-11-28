@@ -127,7 +127,7 @@ describe("IVR on a shared SIM: which adult, then personal PIN (S-45)", () => {
     }
     expect(last.body).toMatchObject({ state: "goodbye", error: "pin_locked" });
     expect(last.body.prompts.map((p: any) => p.id)).toEqual(["locked", "goodbye"]);
-    expect(isLockedAnywhere(a.id)).toBe(true);
+    expect(await isLockedAnywhere(a.id)).toBe(true);
     expect(smsOutbox.some((m) => m.to === PHONE && /locked/i.test(m.text))).toBe(true);
     // even the correct PIN is refused on this source while locked
     const callId = await newCall();

@@ -10,6 +10,7 @@ import {
 import type { Tier } from "../core";
 import { phoneHashCandidates } from "../providers/rehash";
 import { OtpStore } from "../../data/repos/otp";
+import { PinFailureStore } from "../../data/repos/pinFailures";
 import { identityDb } from "../core/asyncBridge";
 import type { Db } from "../../data";
 
@@ -288,11 +289,8 @@ export function loginSourceReset(phone: string, personId: string, source: string
  * Global per-phone ceiling: a pure rate limit (never a lock). Sources that have already signed in successfully as one of `personIds` bypass it,
  * so an attacker flooding a phone from many sources slows other NEW sources but never the owner's known devices.
  */
-export function loginCeilingAllow(phone: string, personIds: string[], source: string, now = Date.now()): boolean {
-  const known = personIds.length > 0 && !!getDb().prepare(
-    `SELECT 1 AS x FROM pin_failures WHERE source_key = ? AND ok_at IS NOT NULL AND person_id IN (${personIds.map(() => "?").join(",")})`)
-    .get(getKeys().hmac("pinsrc", source), ...personIds);
-  if (known) return true;
+export async function loginCeilingAllow(phone: string, personIds: string[], source: string, now = Date.now()): Promise<boolean> {
+  if (await pins().knownSource(getKeys().hmac("pinsrc", source), personIds)) return true;
   return rateAllow("login:phone:" + phone, loginPhoneCeiling(), LOGIN_WINDOW_MS, now);
 }
 
@@ -464,7 +462,7 @@ export function publicPerson(p: PersonRow, now = new Date()) {
 // ---------------------------------------------------------------------------------------------
 
 export type PinResult = "ok" | "wrong" | "locked" | "just_locked" | "limited";
-interface FailRow { failed: number; locked_until: string | null; ok_at: string | null }
+const pins = (): PinFailureStore => new PinFailureStore(identityDb());
 
 /**
  * PIN check with lockout scoped to (person, source). `source` identifies the caller (IP + device); a wrong-PIN streak locks only
@@ -474,28 +472,22 @@ interface FailRow { failed: number; locked_until: string | null; ok_at: string |
  * The owner can always recover with a fresh OTP on the number (POST /pin/recover).
  */
 export async function checkPin(p: PersonRow, pin: string, now = new Date(), source = "-"): Promise<PinResult> {
-  const d = getDb();
+  const st = pins();
   const sk = getKeys().hmac("pinsrc", source);
-  const row = d.prepare("SELECT failed, locked_until, ok_at FROM pin_failures WHERE person_id = ? AND source_key = ?").get(p.id, sk) as unknown as FailRow | undefined;
+  const row = await st.row(p.id, sk);
   const t = now.getTime();
   if (row?.locked_until && new Date(row.locked_until).getTime() > t) return "locked";
   const ceilingKey = "pin:person:" + p.id;
   if (!row?.ok_at && rateCount(ceilingKey, PIN_CEILING_WINDOW_MS, t) >= pinCeiling()) return "limited";
   let failed = row && !row.locked_until ? row.failed : 0; // an expired lock starts a fresh streak
   if (!isPendingActivation(p) && p.pin_salt && p.pin_hash && await verifyPinAsync(pin, p.pin_salt, p.pin_hash)) {
-    d.prepare(
-      `INSERT INTO pin_failures (person_id, source_key, failed, locked_until, ok_at, updated_at) VALUES (?,?,0,NULL,?,?)
-       ON CONFLICT(person_id, source_key) DO UPDATE SET failed = 0, locked_until = NULL, ok_at = excluded.ok_at, updated_at = excluded.updated_at`)
-      .run(p.id, sk, now.toISOString(), now.toISOString());
+    await st.success(p.id, sk, now.toISOString());
     return "ok";
   }
   rateAllow(ceilingKey, Number.MAX_SAFE_INTEGER, PIN_CEILING_WINDOW_MS, t); // record the wrong attempt
   failed += 1;
   const lock = failed >= LOCKOUT_AFTER ? new Date(t + LOCKOUT_MS).toISOString() : null;
-  d.prepare(
-    `INSERT INTO pin_failures (person_id, source_key, failed, locked_until, ok_at, updated_at) VALUES (?,?,?,?,?,?)
-     ON CONFLICT(person_id, source_key) DO UPDATE SET failed = excluded.failed, locked_until = excluded.locked_until, updated_at = excluded.updated_at`)
-    .run(p.id, sk, failed, lock, row?.ok_at ?? null, now.toISOString());
+  await st.failure(p.id, sk, failed, lock, now.toISOString());
   if (!lock) return "wrong";
   audit("system", "pin.lockout", "person:" + p.id, { attempts: failed });
   if (p.phone_enc && rateAllow("pinnotice:" + p.id, 1, LOCKOUT_MS, t)) {
@@ -506,9 +498,7 @@ export async function checkPin(p: PersonRow, pin: string, now = new Date(), sour
 }
 
 /** Is any source currently locked out of this person's sign-in? (informational, for the SIM members list) */
-export function isLockedAnywhere(personId: string, now = new Date()): boolean {
-  return !!getDb().prepare("SELECT 1 AS x FROM pin_failures WHERE person_id = ? AND locked_until > ?").get(personId, now.toISOString());
-}
+export function isLockedAnywhere(personId: string, now = new Date()): Promise<boolean> { return pins().lockedAnywhere(personId, now.toISOString()); }
 
 /** Owner recovery (after a fresh OTP on the number): set a new PIN, clear every lock and the ceiling counter. */
 export function resetPin(personId: string, newPin: string): void {
