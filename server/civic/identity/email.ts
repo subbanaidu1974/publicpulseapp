@@ -163,7 +163,7 @@ export function createEmailRouter(): Router {
     if (!rateAllow("login:ip:" + ctx.ip, capScale(ctx, 60), 15 * MIN) || !loginSourceAllow(key, "", src)) return fail(res, 429, "too many attempts; wait and retry");
     const target = personOnEmail(email);
     if (!target || isPendingActivation(target)) { await verifyPinAsync(pin, DUMMY.salt, DUMMY.hash); return fail(res, 401, "wrong email or PIN"); }
-    if (!loginCeilingAllow(key, [target.id], src)) return fail(res, 429, "too many sign-in attempts for this address; wait and retry, or reset your PIN with a code sent to your email", { limited: true });
+    if (!(await loginCeilingAllow(key, [target.id], src))) return fail(res, 429, "too many sign-in attempts for this address; wait and retry, or reset your PIN with a code sent to your email", { limited: true });
     const result = await checkPin(target, pin, new Date(), src);
     if (result === "limited") return fail(res, 429, "too many wrong PINs for this sign-in; wait and retry, or reset your PIN with a code sent to your email", { limited: true });
     if (result === "ok") {
