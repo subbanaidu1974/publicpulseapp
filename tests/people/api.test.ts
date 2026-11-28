@@ -6,7 +6,6 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createApiRouter } from "../../server/api";
 import type { Datasets } from "../../server/api";
-import { resetPeopleDbFlag } from "../../server/people-api";
 import { createSession, grantRole, migrate, resetDbForTests } from "../../server/civic/core";
 import { createPerson } from "../../server/civic/identity/service";
 import type { CandidateResult } from "../../src/lib/elections";
@@ -33,7 +32,7 @@ beforeAll(async () => {
 });
 afterAll(() => { server.close(); delete process.env.PEOPLE_BLACKOUT; });
 beforeEach(() => {
-  resetDbForTests(); resetPeopleDbFlag(); migrate();
+  resetDbForTests(); migrate();
   const p = createPerson({ phone: "+919876543210", pin: "4821", label: "admin", consentVersion: "t" });
   grantRole("system", p.id, "admin");
   adminToken = createSession(p.id);
