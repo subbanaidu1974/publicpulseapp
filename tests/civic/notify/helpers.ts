@@ -99,33 +99,33 @@ export function mkAdmin() {
 export type Admin = ReturnType<typeof mkAdmin>;
 
 /** A verified organisation (two admins), returns its id. */
-export function mkOrg(kind = "department", name = "Revenue Department"): { id: string; a: Admin; b: Admin } {
+export async function mkOrg(kind = "department", name = "Revenue Department"): Promise<{ id: string; a: Admin; b: Admin }> {
   const a = mkAdmin(), b = mkAdmin();
-  const { id } = svc.requestOrg(a.id, { name, kind, letter_ref: "GO/2026/17", email_domain: kind === "eci_liaison" ? "ceo.nic.in" : "revenue.ap.gov.in", contact: "pio@revenue.ap.gov.in" });
-  svc.decideOrg(b.id, id, true);
+  const { id } = await svc.requestOrg(a.id, { name, kind, letter_ref: "GO/2026/17", email_domain: kind === "eci_liaison" ? "ceo.nic.in" : "revenue.ap.gov.in", contact: "pio@revenue.ap.gov.in" });
+  await svc.decideOrg(b.id, id, true);
   return { id, a, b };
 }
 
 /** An active sender bound to the org with a registered authenticator. */
-export function mkSender(org: { id: string; a: Admin; b: Admin }, role = "department_sender", alg: "es256" | "eddsa" = "es256", register = true) {
+export async function mkSender(org: { id: string; a: Admin; b: Admin }, role = "department_sender", alg: "es256" | "eddsa" = "es256", register = true) {
   const p = mkPerson({ unit: null });
-  const r = svc.requestSender(org.a.id, { org_id: org.id, person_id: p.id, role });
-  svc.decideSender(org.b.id, r.id, true);
+  const r = await svc.requestSender(org.a.id, { org_id: org.id, person_id: p.id, role });
+  await svc.decideSender(org.b.id, r.id, true);
   const authn = new Authn(alg);
-  if (register) { const o = svc.registrationOptions(p.id); svc.finishRegistration(p.id, authn.register(o.challenge as string) as never); }
+  if (register) { const o = await svc.registrationOptions(p.id); await svc.finishRegistration(p.id, authn.register(o.challenge as string) as never); }
   return { ...p, authn, senderId: r.id };
 }
-export type Sender = ReturnType<typeof mkSender>;
+export type Sender = Awaited<ReturnType<typeof mkSender>>;
 
-export const assertFor = (s: Sender, messageId: string, purpose: "approve" | "send") => s.authn.assert(svc.assertionOptions(s.id, messageId, purpose).challenge as string) as never;
+export const assertFor = async (s: Sender, messageId: string, purpose: "approve" | "send") => s.authn.assert((await svc.assertionOptions(s.id, messageId, purpose)).challenge as string) as never;
 
 export const MSG = { category: "service", target: { state: "AP", units: ["U1"] }, text_en: "Free health camp at the village hall on Monday.", text_te: "సోమవారం గ్రామ సభా భవనంలో ఉచిత ఆరోగ్య శిబిరం." };
 
 /** Create, approve with the second sender and send with the first. */
 export async function sendFull(a: Sender, b: Sender, body: Record<string, unknown> = {}) {
-  const m = svc.createMessage(a.id, { ...MSG, ...body });
-  svc.approveMessage(b.id, m.id as string, assertFor(b, m.id as string, "approve"));
-  return svc.sendMessage(a.id, m.id as string, assertFor(a, m.id as string, "send"));
+  const m = await svc.createMessage(a.id, { ...MSG, ...body });
+  await svc.approveMessage(b.id, m.id as string, await assertFor(b, m.id as string, "approve"));
+  return await svc.sendMessage(a.id, m.id as string, await assertFor(a, m.id as string, "send"));
 }
 
 export async function serve(): Promise<{ s: Server; base: string }> {
