@@ -42,8 +42,8 @@ const extraJobs: JobDef[] = [];
 function baseJobs(): JobDef[] {
   return [
     { name: "purgeExpired", intervalMs: 6 * HOUR, run: (now) => purgeExpired(now) },
-    { name: "eraseDependentsAt18", intervalMs: DAY, run: (now) => ({ erased: eraseDependentsAt18(now) }) },
-    { name: "expireInvites", intervalMs: HOUR, run: (now) => { expireInvites(now.getTime()); return { pendingEnrolmentsExpired: expirePendingEnrolments(now) }; } },
+    { name: "eraseDependentsAt18", intervalMs: DAY, run: async (now) => ({ erased: await eraseDependentsAt18(now) }) },
+    { name: "expireInvites", intervalMs: HOUR, run: async (now) => { await expireInvites(now.getTime()); return { pendingEnrolmentsExpired: expirePendingEnrolments(now) }; } },
     // S-74: the second step of account erasure (issue-store unlinking, audit redaction) is retried until it succeeds.
     { name: "retryErasureOutbox", intervalMs: 5 * MIN, run: () => { const r = drainErasureOutbox(); return { done: r.done, failed: r.failed, pending: pendingErasureCount() }; } },
     { name: "anchorAuditHead", intervalMs: HOUR, run: () => { const a = anchorAuditHead(); return a ? { seq: a.seq } : { seq: null }; } },
@@ -88,15 +88,17 @@ export function runJob(name: string, now: Date = clockFn()): boolean {
   if (s.running) return false;
   s.running = true;
   const t0 = Date.now();
-  try {
-    const result = d.run(now);
-    s.lastOk = true; s.lastError = null; s.lastResult = result ?? null;
-  } catch (e) {
-    s.lastOk = false; s.lastError = short((e as Error).message ?? String(e)); s.failures++;
-  } finally {
+  const done = (ok: boolean, result: unknown, error: unknown): void => {
+    if (ok) { s.lastOk = true; s.lastError = null; s.lastResult = result ?? null; }
+    else { s.lastOk = false; s.lastError = short((error as Error)?.message ?? String(error)); s.failures++; }
     s.running = false; s.runs++; s.lastRunAt = now.toISOString();
-  }
-  try { audit("system", "job.run", "job:" + name, { ok: s.lastOk, error: s.lastError, ms: Date.now() - t0 }); } catch { /* audit must not break a job */ }
+    try { audit("system", "job.run", "job:" + name, { ok: s.lastOk, error: s.lastError, ms: Date.now() - t0 }); } catch { /* audit must not break a job */ }
+  };
+  let result: unknown;
+  try { result = d.run(now); } catch (e) { done(false, null, e); return true; }
+  // A job on the async data layer returns a promise: it stays "running" until it settles, then records the same way. Synchronous jobs finish here, as before.
+  if (result instanceof Promise) { result.then((r) => done(true, r, null), (e) => done(false, null, e)); return true; }
+  done(true, result, null);
   return true;
 }
 

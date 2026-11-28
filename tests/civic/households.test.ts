@@ -160,7 +160,7 @@ describe("households: minor dependents (S-22)", () => {
     expect(JSON.stringify(row)).not.toContain("Asha");
 
     // The schema itself forbids a dependent with a person account.
-    expect(() => db.prepare("INSERT INTO hh_member (id, household_id, person_id, relation, status, year_of_birth, created_at) VALUES ('x','h','p','son','dependent',2020,1)").run()).toThrow();
+    await expect((async () => db.prepare("INSERT INTO hh_member (id, household_id, person_id, relation, status, year_of_birth, created_at) VALUES ('x','h','p','son','dependent',2020,1)").run())()).rejects.toThrow();
     // Cannot be made head.
     expect((await call(head.token, "POST", "/transfer-head", { toPersonId: row.id })).status).toBe(400);
   });
@@ -175,8 +175,8 @@ describe("households: minor dependents (S-22)", () => {
 
     const kid = (await call(head.token, "POST", "/dependents", { relation: "son", yearOfBirth: yr - 17, parentalConsentVersion: "v1" })).body.id;
     const small = (await call(head.token, "POST", "/dependents", { relation: "son", yearOfBirth: yr - 3, parentalConsentVersion: "v1" })).body.id;
-    expect(eraseDependentsAt18(new Date())).toBe(0);
-    expect(eraseDependentsAt18(new Date(yr + 1, 5, 1))).toBe(1); // the 17-year-old turns 18 next year
+    expect(await eraseDependentsAt18(new Date())).toBe(0);
+    expect(await eraseDependentsAt18(new Date(yr + 1, 5, 1))).toBe(1); // the 17-year-old turns 18 next year
     const db = getDb();
     expect(db.prepare("SELECT 1 FROM hh_member WHERE id=?").get(kid)).toBeUndefined();
     expect(db.prepare("SELECT 1 FROM hh_member WHERE id=?").get(small)).toBeDefined();
@@ -421,10 +421,10 @@ describe("households: atomic erasure and deletion", () => {
     const cnt = () => (db.prepare("SELECT COUNT(*) AS c FROM hh_member WHERE status='dependent'").get() as { c: number }).c;
     const start = cnt();
     try {
-      expect(() => eraseDependentsAt18(new Date(yr + 5, 1, 1))).toThrow();
+      await expect((async () => await eraseDependentsAt18(new Date(yr + 5, 1, 1)))()).rejects.toThrow();
       expect(cnt()).toBe(start);
     } finally { db.exec("DROP TRIGGER boom"); }
-    expect(eraseDependentsAt18(new Date(yr + 5, 1, 1))).toBeGreaterThanOrEqual(2);
+    expect(await eraseDependentsAt18(new Date(yr + 5, 1, 1))).toBeGreaterThanOrEqual(2);
   });
 
   it("head deletes the household in one go; members cannot", async () => {

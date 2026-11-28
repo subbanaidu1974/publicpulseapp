@@ -43,12 +43,12 @@ describe("job scheduler (S-66)", () => {
     expect(unref).toHaveBeenCalledTimes(defaultJobs().length);
   });
 
-  it("@E2E-81 every default job runs on its interval, records status and writes an audit entry", () => {
+  it("@E2E-81 every default job runs on its interval, records status and writes an audit entry", async () => {
     vi.useFakeTimers();
     let now = T0;
     startJobs({ force: true, now: () => now });
     now = new Date(T0.getTime() + 25 * 3_600_000);
-    vi.advanceTimersByTime(25 * 3_600_000);
+    await vi.advanceTimersByTimeAsync(25 * 3_600_000);
     const s = jobsStatus();
     expect(s.jobs.map((j) => j.name).sort()).toEqual(expect.arrayContaining(["anchorAuditHead", "closeDueSurveys", "eraseDependentsAt18", "expireInvites", "purgeExpired", "purgeExpiredMedia", "retryErasureOutbox", "sweep", "verifyAuditChain"]));
     for (const j of s.jobs) {
@@ -107,9 +107,10 @@ describe("job scheduler (S-66)", () => {
     expect(auditActions().some((a) => a.action === "alarm.audit_chain_broken")).toBe(true);
   });
 
-  it("@E2E-81 default jobs do their work without error", () => {
+  it("@E2E-81 default jobs do their work without error", async () => {
     startJobs({ force: true });
     runAllJobs(T0);
+    await new Promise((r) => setTimeout(r, 100)); // the household jobs finish on the async data layer
     expect(jobsStatus().jobs.every((j) => j.lastOk)).toBe(true);
   });
 
