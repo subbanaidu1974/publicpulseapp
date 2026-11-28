@@ -109,11 +109,11 @@ async function requestEmailCode(req: Request, res: Response, purpose: "signup" |
   }
   if (!rateAllow("emailotp:addr:" + key, 3, 10 * MIN) || !rateAllow("emailotp:ip:" + ctx.ip, capScale(ctx, Number(process.env.CIVIC_OTP_IP_LIMIT || 10)), 10 * MIN)
     || (ctx.device && !rateAllow("emailotp:dev:" + ctx.device, 5, 10 * MIN))) return fail(res, 429, "too many code requests; wait and retry");
-  const left = otpRemainingMs(key, purpose);
+  const left = await otpRemainingMs(key, purpose);
   if (left > 0) return void res.json({ ok: true, already_sent: true, expires_in_s: Math.ceil(left / 1000) });
   if (!rateAllow("email:global", emailHourlyBudget(), 60 * MIN)) return fail(res, 429, "email capacity reached; try again later", { degraded: true, notice_en: OTP_NOTICE_EN });
   const code = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
-  storeOtp(key, purpose, code);
+  await storeOtp(key, purpose, code);
   const existing = personOnEmail(email);
   const text = purpose === "signup" && existing
     ? `People Pulse: someone asked to create an account with this address, but it already has one. Sign in with your PIN, or use "forgot PIN". If this was not you, ignore this message.`
@@ -121,7 +121,7 @@ async function requestEmailCode(req: Request, res: Response, purpose: "signup" |
   try {
     await getMail().send({ to: email, subject: "People Pulse: your code", text, idempotencyKey: `otp:${purpose}:${crypto.createHash("sha256").update(key + code).digest("hex").slice(0, 24)}` });
   } catch {
-    discardOtp(key, purpose);
+    await discardOtp(key, purpose);
     audit("system", "email_otp.delivery_failed", "otp", { purpose });
     return fail(res, 502, "we could not send the code; try again in a moment", { delivery: "failed", can_retry: true });
   }
@@ -144,7 +144,7 @@ export function createEmailRouter(): Router {
     const why = weakPinReason(pin);
     if (why) return fail(res, 400, WEAK_PIN_MESSAGE, { code: "weak_pin", reason: why });
     if (isBlockedEmailDomain(email)) return fail(res, 400, "this kind of email address cannot be used to sign up", { code: "email_domain_blocked" });
-    if (!consumeOtp(emailKey(email), "signup", otp)) return fail(res, 400, "code expired or invalid; request a new one");
+    if (!(await consumeOtp(emailKey(email), "signup", otp))) return fail(res, 400, "code expired or invalid; request a new one");
     if (personOnEmail(email)) return fail(res, 409, "this email already has an account; sign in, or use forgot PIN", { code: "email_registered" });
     let p: PersonRow;
     try { p = await createEmailPerson({ email, pin, label: str(req.body?.label).slice(0, 40) || undefined, consentVersion: str(req.body?.consent_version) || "v1" }); }
@@ -188,7 +188,7 @@ export function createEmailRouter(): Router {
     if (!me) return fail(res, 404, "not found");
     if (me.phone_hash) return fail(res, 409, "this account already has a phone number", { code: "phone_already_set" });
     if (!rateAllow("phoneadd:" + me.id, 5, 60 * MIN)) return fail(res, 429, "too many attempts; wait and retry");
-    if (!consumeOtp(phone, "signup", otp)) return fail(res, 400, "code expired or invalid; request a new one");
+    if (!(await consumeOtp(phone, "signup", otp))) return fail(res, 400, "code expired or invalid; request a new one");
     if (personsOnPhone(phone).length >= Number(process.env.CIVIC_MAX_ADULTS_PER_SIM || 5)) return fail(res, 409, "this number already has the most adults it can have", { code: "sim_full" });
     const info = await lookupNumber(phone);
     if (info.voip) return fail(res, 403, "this number cannot be used on an account");
@@ -207,7 +207,7 @@ export function createEmailRouter(): Router {
     if (why) return fail(res, 400, WEAK_PIN_MESSAGE, { code: "weak_pin", reason: why });
     const ctx = await requestContext(req);
     if (!rateAllow("recover:ip:" + ctx.ip, capScale(ctx, 20), 15 * MIN)) return fail(res, 429, "too many attempts; wait and retry");
-    if (!consumeOtp(emailKey(email), "recovery", otp)) return fail(res, 400, "code expired or invalid; request a new one");
+    if (!(await consumeOtp(emailKey(email), "recovery", otp))) return fail(res, 400, "code expired or invalid; request a new one");
     const target = personOnEmail(email);
     if (!target) return fail(res, 400, "no account on this email");
     await resetPinAsync(target.id, pin);
