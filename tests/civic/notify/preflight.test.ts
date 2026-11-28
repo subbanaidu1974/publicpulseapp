@@ -13,9 +13,9 @@ describe("sender pre-flight: lint, public status (S-155)", () => {
     const { s, base } = await serve();
     try {
       setNotifyCalendar(CAL);
-      const org = mkOrg(), a = mkSender(org);
+      const org = await mkOrg(), a = await mkSender(org);
       const before = (getDb().prepare("SELECT COUNT(*) AS c FROM notify_messages").get() as { c: number }).c;
-      const blocksBefore = svc.publicBlockLog().length;
+      const blocksBefore = (await svc.publicBlockLog()).length;
       expect((await call(base, "POST", "/messages/lint", { body: MSG })).status).toBe(401);
       expect((await call(base, "POST", "/messages/lint", { token: mkPerson().token, body: MSG })).body.code).toBe("not_a_sender");
       const clean = await call(base, "POST", "/messages/lint", { token: a.token, body: { text_en: MSG.text_en, text_te: MSG.text_te, state: "AP" } });
@@ -29,7 +29,7 @@ describe("sender pre-flight: lint, public status (S-155)", () => {
       expect((await call(base, "POST", "/messages/lint", { token: a.token, body: { slots: { place: "pay by UPI" } } })).body.findings[0]).toMatchObject({ field: "slot:place", rule: "payment" });
       // nothing was created, no block log row, and the real create path still refuses the same text
       expect((getDb().prepare("SELECT COUNT(*) AS c FROM notify_messages").get() as { c: number }).c).toBe(before);
-      expect(svc.publicBlockLog().length).toBe(blocksBefore);
+      expect((await svc.publicBlockLog()).length).toBe(blocksBefore);
       const real = await call(base, "POST", "/messages", { token: a.token, body: { ...MSG, text_en: "Share your OTP now" } });
       expect(real.status).toBe(422);
       expect(real.body.rules).toContain("otp");
@@ -40,20 +40,20 @@ describe("sender pre-flight: lint, public status (S-155)", () => {
     const { s, base } = await serve();
     try {
       setNotifyCalendar(CAL);
-      const org = mkOrg(), other = mkOrg("department", "Health Department");
+      const org = await mkOrg(), other = await mkOrg("department", "Health Department");
       const open = await call(base, "GET", "/status?state=AP");
       expect(open.status).toBe(200);
       expect(open.body.kill).toMatchObject({ engaged: false, scope: null, since: null });
       expect(open.body.window).toMatchObject({ state: "AP", status: "open", declaration_needed: false });
       expect((await call(base, "GET", "/status?state=1x")).body.code).toBe("bad_state");
       const admin = mkAdmin();
-      svc.engageKill(admin.id, { scope: "org", org_id: org.id, reason: "suspected hijack of a sender" });
+      await svc.engageKill(admin.id, { scope: "org", org_id: org.id, reason: "suspected hijack of a sender" });
       const orgKill = await call(base, "GET", `/status?state=AP&org_id=${org.id}`);
       expect(orgKill.body.kill).toMatchObject({ engaged: true, scope: "org", orgs_suspended: 1 });
       expect(orgKill.body.kill.notice_te).toMatch(/[ఀ-౿]/);
       expect((await call(base, "GET", `/status?org_id=${other.id}`)).body.kill.engaged).toBe(false);
       expect((await call(base, "GET", "/status")).body.kill).toMatchObject({ engaged: false, orgs_suspended: 1 });
-      svc.engageKill(admin.id, { scope: "all", reason: "global stop for the test" });
+      await svc.engageKill(admin.id, { scope: "all", reason: "global stop for the test" });
       const all = await call(base, "GET", "/status");
       expect(all.body.kill).toMatchObject({ engaged: true, scope: "all" });
       expect(all.body.kill.since).toMatch(/^\d{4}-/);
@@ -78,9 +78,9 @@ describe("own devices (S-155)", () => {
       const p = mkPerson(), q = mkPerson();
       expect((await call(base, "GET", "/devices")).status).toBe(401);
       expect((await call(base, "GET", "/devices", { token: p.token })).body).toEqual({ devices: [], count: 0 });
-      d.registerDevice(p.id, "token-abcdefghij-1", "android");
-      d.registerDevice(p.id, "token-abcdefghij-2", "ios");
-      d.registerDevice(q.id, "token-other-person", "web");
+      await d.registerDevice(p.id, "token-abcdefghij-1", "android");
+      await d.registerDevice(p.id, "token-abcdefghij-2", "ios");
+      await d.registerDevice(q.id, "token-other-person", "web");
       const r = await call(base, "GET", "/devices", { token: p.token });
       expect(r.body.count).toBe(2);
       expect(r.body.devices.map((x: any) => x.platform).sort()).toEqual(["android", "ios"]);
@@ -129,7 +129,7 @@ describe("admin lookups (S-155)", () => {
   it("@E2E-170 credential lookup by sender: ids for revocation, no key material, admin only", async () => {
     const { s, base } = await serve();
     try {
-      const org = mkOrg(), a = mkSender(org), admin = mkAdmin();
+      const org = await mkOrg(), a = await mkSender(org), admin = mkAdmin();
       expect((await call(base, "GET", `/admin/credentials?sender=${a.senderId}`, { token: a.token })).status).toBe(403);
       expect((await call(base, "GET", "/admin/credentials", { token: admin.token })).body.code).toBe("sender_required");
       expect((await call(base, "GET", "/admin/credentials?sender=nope", { token: admin.token })).status).toBe(404);
@@ -139,7 +139,7 @@ describe("admin lookups (S-155)", () => {
       expect(r.body.credentials).toHaveLength(1);
       expect(r.body.credentials[0]).toMatchObject({ id: a.authn.id, revoked: false });
       expect(JSON.stringify(r.body)).not.toMatch(/spki|public_key/);
-      svc.revokeCredential(admin.id, a.authn.id);
+      await svc.revokeCredential(admin.id, a.authn.id);
       expect((await call(base, "GET", `/admin/credentials?sender=${a.senderId}`, { token: admin.token })).body.credentials[0].revoked).toBe(true);
       expect(getStore("audit").prepare("SELECT 1 AS x FROM audit_log WHERE action = 'read.sensitive' AND object LIKE 'notify_credentials:%'").get()).toBeTruthy();
     } finally { s.close(); }

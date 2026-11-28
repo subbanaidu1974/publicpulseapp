@@ -4,12 +4,15 @@
  * reports "no_push_provider" so the SMS fallback applies and the inbox stays the in-app channel.
  */
 import crypto from "node:crypto";
-import { audit, getDb, getKeys, getSms } from "../core";
+import { audit, getKeys, getSms } from "../core";
+import { identityDb } from "../core/asyncBridge";
+import { NotifyStore } from "../../data/repos/notify";
 import { getMail } from "../providers/mail";
 import type { SmsProviderV2 } from "../providers/sms";
 import { loadTemplateRegistry } from "../providers/sms";
 import { notifyPolicy } from "./content";
 
+const st = (): NotifyStore => new NotifyStore(identityDb());
 export const IST_MS = 330 * 60_000;
 export const nowFn: { now: () => Date } = { now: () => new Date() };
 /** Tests only. */
@@ -50,29 +53,25 @@ export interface Prefs {
   quiet_hours: { start: string; end: string; default: boolean };
   language: "te" | "en"; sms_ok: boolean; email_ok: boolean; has_email: boolean; push_blocked: boolean; antiphish_set: boolean;
 }
-interface PersonRow { quiet_start: string | null; quiet_end: string | null; antiphish_enc: string | null; language: string; sms_ok: number; email_ok: number; push_blocked: number }
-const personRow = (id: string): PersonRow | undefined => getDb().prepare("SELECT quiet_start, quiet_end, antiphish_enc, language, sms_ok, email_ok, push_blocked FROM notify_person WHERE person_id = ?").get(id) as unknown as PersonRow | undefined;
 
-export function getPrefs(personId: string): Prefs {
-  const p = notifyPolicy(), row = personRow(personId);
-  const stored = new Map((getDb().prepare("SELECT category, opted_in FROM notify_prefs WHERE person_id = ?").all(personId) as { category: string; opted_in: number }[]).map((r) => [r.category, !!r.opted_in]));
+export async function getPrefs(personId: string): Promise<Prefs> {
+  const p = notifyPolicy(), s = st(), row = await s.personPrefs(personId);
+  const stored = await s.categoryPrefs(personId);
   const categories: Prefs["categories"] = {};
   for (const c of p.categories) categories[c] = c === "emergency" ? { opted_in: true, locked: true } : { opted_in: stored.get(c) ?? false, locked: false };
   return {
     categories,
     quiet_hours: { start: row?.quiet_start ?? p.quiet_hours.default_start, end: row?.quiet_end ?? p.quiet_hours.default_end, default: !row?.quiet_start },
-    language: row?.language === "en" ? "en" : "te", sms_ok: !!row?.sms_ok, email_ok: !!row?.email_ok, has_email: hasEmail(personId), push_blocked: !!row?.push_blocked, antiphish_set: !!row?.antiphish_enc,
+    language: row?.language === "en" ? "en" : "te", sms_ok: !!row?.sms_ok, email_ok: !!row?.email_ok, has_email: await hasEmail(personId), push_blocked: !!row?.push_blocked, antiphish_set: !!row?.antiphish_enc,
   };
 }
 
 export class PrefError extends Error { constructor(public code: string, m: string) { super(m); } }
-function ensurePerson(personId: string): void {
-  getDb().prepare("INSERT OR IGNORE INTO notify_person (person_id, language, updated_at) VALUES (?, 'te', ?)").run(personId, nowFn.now().toISOString());
-}
+const ensurePerson = (personId: string): Promise<void> => st().ensurePerson(personId, nowFn.now().toISOString());
 
-export function updatePrefs(personId: string, body: Record<string, unknown>): Prefs {
-  const p = notifyPolicy(), d = getDb(), ts = nowFn.now().toISOString();
-  ensurePerson(personId);
+export async function updatePrefs(personId: string, body: Record<string, unknown>): Promise<Prefs> {
+  const p = notifyPolicy(), d = st(), ts = nowFn.now().toISOString();
+  await ensurePerson(personId);
   const cats = body.categories;
   if (cats !== undefined) {
     if (!cats || typeof cats !== "object") throw new PrefError("bad_categories", "categories must be an object of category: boolean");
@@ -80,65 +79,64 @@ export function updatePrefs(personId: string, body: Record<string, unknown>): Pr
       if (!p.categories.includes(c)) throw new PrefError("unknown_category", "unknown category");
       if (typeof v !== "boolean") throw new PrefError("bad_categories", "category values must be true or false");
       if (c === "emergency") { if (v === false) throw new PrefError("emergency_locked", "emergency notices cannot be switched off"); continue; }
-      d.prepare("INSERT INTO notify_prefs (person_id, category, opted_in, updated_at) VALUES (?,?,?,?) ON CONFLICT(person_id, category) DO UPDATE SET opted_in = excluded.opted_in, updated_at = excluded.updated_at").run(personId, c, v ? 1 : 0, ts);
+      await d.setCategory(personId, c, v, ts);
     }
   }
   const q = body.quiet_hours as { start?: unknown; end?: unknown } | undefined;
   if (q !== undefined) {
     if (!q || typeof q.start !== "string" || typeof q.end !== "string" || !HHMM.test(q.start) || !HHMM.test(q.end) || q.start === q.end) throw new PrefError("bad_quiet_hours", "quiet_hours needs start and end as HH:MM (IST), different from each other");
-    d.prepare("UPDATE notify_person SET quiet_start = ?, quiet_end = ? WHERE person_id = ?").run(q.start, q.end, personId);
+    await d.setQuiet(personId, q.start, q.end);
   }
-  if (body.language !== undefined) { if (body.language !== "te" && body.language !== "en") throw new PrefError("bad_language", "language must be te or en"); d.prepare("UPDATE notify_person SET language = ? WHERE person_id = ?").run(body.language, personId); }
-  if (body.sms_ok !== undefined) { if (typeof body.sms_ok !== "boolean") throw new PrefError("bad_sms_ok", "sms_ok must be true or false"); d.prepare("UPDATE notify_person SET sms_ok = ? WHERE person_id = ?").run(body.sms_ok ? 1 : 0, personId); }
+  if (body.language !== undefined) { if (body.language !== "te" && body.language !== "en") throw new PrefError("bad_language", "language must be te or en"); await d.setLanguage(personId, body.language); }
+  if (body.sms_ok !== undefined) { if (typeof body.sms_ok !== "boolean") throw new PrefError("bad_sms_ok", "sms_ok must be true or false"); await d.setFlag(personId, "sms_ok", body.sms_ok); }
   if (body.email_ok !== undefined) {
     if (typeof body.email_ok !== "boolean") throw new PrefError("bad_email_ok", "email_ok must be true or false");
-    if (body.email_ok && !hasEmail(personId)) throw new PrefError("no_email", "this account has no email address on it");
-    d.prepare("UPDATE notify_person SET email_ok = ? WHERE person_id = ?").run(body.email_ok ? 1 : 0, personId);
+    if (body.email_ok && !(await hasEmail(personId))) throw new PrefError("no_email", "this account has no email address on it");
+    await d.setFlag(personId, "email_ok", body.email_ok);
   }
-  if (body.push_blocked !== undefined) { if (typeof body.push_blocked !== "boolean") throw new PrefError("bad_push_blocked", "push_blocked must be true or false"); d.prepare("UPDATE notify_person SET push_blocked = ? WHERE person_id = ?").run(body.push_blocked ? 1 : 0, personId); }
-  d.prepare("UPDATE notify_person SET updated_at = ? WHERE person_id = ?").run(ts, personId);
+  if (body.push_blocked !== undefined) { if (typeof body.push_blocked !== "boolean") throw new PrefError("bad_push_blocked", "push_blocked must be true or false"); await d.setFlag(personId, "push_blocked", body.push_blocked); }
+  await d.touchPerson(personId, ts);
   audit(personId, "notify.prefs.update", "person:" + personId, {});
   return getPrefs(personId);
 }
 
 /** Unsubscribe: every non-emergency category off. Emergency notices stay (see docs/NOTIFICATIONS.md). */
-export function unsubscribeAll(personId: string): Prefs {
+export async function unsubscribeAll(personId: string): Promise<Prefs> {
   const cats: Record<string, boolean> = {};
   for (const c of notifyPolicy().categories) if (c !== "emergency") cats[c] = false;
   return updatePrefs(personId, { categories: cats });
 }
 
-export function setAntiPhish(personId: string, word: unknown): void {
+export async function setAntiPhish(personId: string, word: unknown): Promise<void> {
   const p = notifyPolicy();
   const w = typeof word === "string" ? word.normalize("NFKC").trim() : "";
   if (w.length < p.limits.antiphish_min || w.length > p.limits.antiphish_max) throw new PrefError("bad_word", `the word or phrase must be ${p.limits.antiphish_min} to ${p.limits.antiphish_max} characters`);
   if (/[<>{}\\]|https?:|www\.|@|\d{4,}/i.test(w)) throw new PrefError("bad_word", "the word or phrase cannot contain links, symbols or long numbers");
-  ensurePerson(personId);
-  getDb().prepare("UPDATE notify_person SET antiphish_enc = ?, updated_at = ? WHERE person_id = ?").run(getKeys().encrypt("notify-antiphish", w), nowFn.now().toISOString(), personId);
+  await ensurePerson(personId);
+  await st().setAntiphish(personId, getKeys().encrypt("notify-antiphish", w), nowFn.now().toISOString());
   audit(personId, "notify.antiphish.set", "person:" + personId, {});
 }
-export function getAntiPhish(personId: string): string | null {
-  const r = personRow(personId);
+export async function getAntiPhish(personId: string): Promise<string | null> {
+  const r = await st().personPrefs(personId);
   if (!r?.antiphish_enc) return null;
   try { return getKeys().decrypt("notify-antiphish", r.antiphish_enc); } catch { return null; }
 }
 
-export function registerDevice(personId: string, token: unknown, platform: unknown): void {
+export async function registerDevice(personId: string, token: unknown, platform: unknown): Promise<void> {
   if (typeof token !== "string" || token.length < 8 || token.length > 4096) throw new PrefError("bad_token", "token missing or malformed");
   const pf = platform === "ios" || platform === "web" ? platform : "android";
   const k = getKeys();
-  getDb().prepare("INSERT OR REPLACE INTO notify_devices (token_hash, person_id, token_enc, platform, created_at) VALUES (?,?,?,?,?)")
-    .run(k.hmac("notify-device", token), personId, k.encrypt("notify-device", token), pf, nowFn.now().toISOString());
+  await st().saveDevice({ token_hash: k.hmac("notify-device", token), person_id: personId, token_enc: k.encrypt("notify-device", token), platform: pf, at: nowFn.now().toISOString() });
 }
 /** The caller's own registered devices for the settings screen. The token (and its hash) is never returned: `id` is a short reference only. */
-export function listDevices(personId: string): { id: string; platform: string; label_en: string; label_te: string; created_at: string }[] {
+export async function listDevices(personId: string): Promise<{ id: string; platform: string; label_en: string; label_te: string; created_at: string }[]> {
   const names: Record<string, [string, string]> = { android: ["Android phone", "ఆండ్రాయిడ్ ఫోన్"], ios: ["iPhone or iPad", "ఐఫోన్ లేదా ఐప్యాడ్"], web: ["Web browser", "వెబ్ బ్రౌజర్"] };
-  const rows = getDb().prepare("SELECT token_hash, platform, created_at FROM notify_devices WHERE person_id = ? ORDER BY created_at").all(personId) as { token_hash: string; platform: string; created_at: string }[];
+  const rows = (await st().devices(personId)) as { token_hash: string; platform: string; created_at: string }[];
   return rows.map((r) => { const n = names[r.platform] ?? names.android; return { id: r.token_hash.slice(0, 12), platform: r.platform, label_en: n[0], label_te: n[1], created_at: r.created_at }; });
 }
-export function removeDevices(personId: string): void { getDb().prepare("DELETE FROM notify_devices WHERE person_id = ?").run(personId); }
-function deviceTokens(personId: string): string[] {
-  return (getDb().prepare("SELECT token_enc FROM notify_devices WHERE person_id = ?").all(personId) as { token_enc: string }[]).flatMap((r) => { try { return [getKeys().decrypt("notify-device", r.token_enc)]; } catch { return []; } });
+export const removeDevices = (personId: string): Promise<void> => st().removeDevices(personId);
+async function deviceTokens(personId: string): Promise<string[]> {
+  return (await st().deviceTokensEnc(personId)).flatMap((enc) => { try { return [getKeys().decrypt("notify-device", enc)]; } catch { return []; } });
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -158,13 +156,13 @@ export function quietEndsAt(end: string, t: Date): Date {
 }
 const istDayStart = (t: Date): number => Math.floor((t.getTime() + IST_MS) / 86_400_000) * 86_400_000 - IST_MS;
 
-function capReached(personId: string, category: string, t: Date): "daily" | "weekly" | null {
+async function capReached(personId: string, category: string, t: Date): Promise<"daily" | "weekly" | null> {
   const cap = notifyPolicy().caps[category];
   if (!cap) return null;
-  const q = (since: number) => (getDb().prepare("SELECT COUNT(*) AS c FROM notify_inbox WHERE person_id = ? AND category = ? AND created_at >= ?").get(personId, category, new Date(since).toISOString()) as { c: number }).c;
+  const q = (since: number) => st().capCount(personId, category, new Date(since).toISOString());
   const day = istDayStart(t);
-  if (q(day) >= cap.daily) return "daily";
-  if (q(day - 6 * 86_400_000) >= cap.weekly) return "weekly";
+  if ((await q(day)) >= cap.daily) return "daily";
+  if ((await q(day - 6 * 86_400_000)) >= cap.weekly) return "weekly";
   return null;
 }
 
@@ -181,30 +179,27 @@ export interface DeliveryOutcome { result: "delivered" | "deferred" | "skipped";
 /** Decide and (when allowed) deliver one message to one person. Never throws. */
 export async function deliverTo(personId: string, m: DeliverableMessage, t: Date = nowFn.now()): Promise<DeliveryOutcome> {
   const p = notifyPolicy();
-  const prefs = getPrefs(personId);
+  const prefs = await getPrefs(personId);
   const emergency = m.category === "emergency";
   if (!emergency && !prefs.categories[m.category]?.opted_in) return { result: "skipped", skip: "opted_out" };
-  const cap = capReached(personId, m.category, t);
+  const cap = await capReached(personId, m.category, t);
   if (cap) return { result: "skipped", skip: cap === "daily" ? "daily_cap" : "weekly_cap" };
   const id = crypto.randomUUID(), ts = t.toISOString();
   const bypass = p.quiet_hours.bypass.includes(m.category);
   if (!bypass && inQuiet(prefs.quiet_hours.start, prefs.quiet_hours.end, t)) {
     const after = quietEndsAt(prefs.quiet_hours.end, t);
     if (!m.expires_at || after.toISOString() < m.expires_at) {
-      getDb().prepare("INSERT INTO notify_inbox (id, person_id, message_id, category, status, deliver_after, created_at) VALUES (?,?,?,?, 'deferred', ?, ?)").run(id, personId, m.id, m.category, after.toISOString(), ts);
+      await st().insertDeferred({ id, person_id: personId, message_id: m.id, category: m.category, deliver_after: after.toISOString(), at: ts });
       return { result: "deferred" };
     }
     return { result: "skipped", skip: "none" };
   }
-  getDb().prepare("INSERT INTO notify_inbox (id, person_id, message_id, category, status, created_at, delivered_at) VALUES (?,?,?,?, 'delivered', ?, ?)").run(id, personId, m.id, m.category, ts, ts);
+  await st().insertDelivered({ id, person_id: personId, message_id: m.id, category: m.category, at: ts });
   const ch = await dispatch(id, personId, m, prefs);
   return { result: "delivered", ...ch };
 }
 
-function hasEmail(personId: string): boolean {
-  const r = getDb().prepare("SELECT email_enc FROM persons WHERE id = ? AND deleted_at IS NULL").get(personId) as { email_enc: string | null } | undefined;
-  return !!r?.email_enc;
-}
+async function hasEmail(personId: string): Promise<boolean> { return !!(await st().emailEnc(personId)); }
 
 /**
  * Email channel (S-184). Only for a person who switched it on (`email_ok`); never otherwise, emergency included, because holding and using
@@ -212,9 +207,9 @@ function hasEmail(personId: string): boolean {
  */
 async function sendEmail(personId: string, m: DeliverableMessage, lang: "te" | "en", word: string | null): Promise<string> {
   try {
-    const row = getDb().prepare("SELECT email_enc FROM persons WHERE id = ? AND deleted_at IS NULL").get(personId) as { email_enc: string | null } | undefined;
-    if (!row?.email_enc) return "no_email";
-    const to = getKeys().decrypt("phone", row.email_enc).replace(/^email:/, ""); // stored as "email:<canonical address>" (identity/email.ts emailKey)
+    const enc = await st().emailEnc(personId);
+    if (!enc) return "no_email";
+    const to = getKeys().decrypt("phone", enc).replace(/^email:/, ""); // stored as "email:<canonical address>" (identity/email.ts emailKey)
     const te = lang === "te";
     const title = te ? m.title_te : m.title_en, text = te ? m.text_te : m.text_en;
     const safe = (s: string): string => s.replace(/https?:\/\/\S+/gi, "[link removed]");
@@ -234,10 +229,10 @@ async function sendEmail(personId: string, m: DeliverableMessage, lang: "te" | "
 
 async function dispatch(inboxId: string, personId: string, m: DeliverableMessage, prefs: Prefs): Promise<{ push: string; sms?: string; email?: string }> {
   const p = notifyPolicy();
-  const lang = prefs.language, word = getAntiPhish(personId);
+  const lang = prefs.language, word = await getAntiPhish(personId);
   const title = lang === "te" ? m.title_te : m.title_en, body = lang === "te" ? m.text_te : m.text_en;
   let push: string;
-  const tokens = prefs.push_blocked ? [] : deviceTokens(personId);
+  const tokens = prefs.push_blocked ? [] : await deviceTokens(personId);
   if (prefs.push_blocked) push = "blocked";
   else if (tokens.length === 0) push = "no_device";
   else {
@@ -253,13 +248,13 @@ async function dispatch(inboxId: string, personId: string, m: DeliverableMessage
   // Email: emergency always (if opted in); other categories only when push did not reach the person.
   let email: string | undefined;
   if (prefs.email_ok && (always || !pushOk)) email = await sendEmail(personId, m, lang, word);
-  getDb().prepare("UPDATE notify_inbox SET push_status = ?, sms_status = ?, email_status = ? WHERE id = ?").run(push, sms ?? null, email ?? null, inboxId);
+  await st().setChannels(inboxId, push, sms ?? null, email ?? null);
   return { push, sms, email };
 }
 
 async function sendSms(personId: string, m: DeliverableMessage, lang: "te" | "en", word: string | null): Promise<string> {
   try {
-    const row = getDb().prepare("SELECT phone_enc, phone_purged_at FROM persons WHERE id = ? AND deleted_at IS NULL").get(personId) as { phone_enc: string | null; phone_purged_at: string | null } | undefined;
+    const row = await st().phoneRow(personId);
     if (!row?.phone_enc || row.phone_purged_at) return "no_phone";
     const to = getKeys().decrypt("phone", row.phone_enc);
     const vars = { word: (word ?? (lang === "te" ? "పదం లేదు" : "no word set")).slice(0, 30), org: m.org_name.slice(0, 60), text: (lang === "te" ? m.text_te : m.text_en).slice(0, 480) };
@@ -276,14 +271,13 @@ async function sendSms(personId: string, m: DeliverableMessage, lang: "te" | "en
 
 /** Job: deliver deferred messages whose quiet hours ended; drop the ones whose message expired. */
 export async function processDeferred(t: Date = nowFn.now()): Promise<{ delivered: number; expired: number }> {
-  const d = getDb();
-  const rows = d.prepare(`SELECT i.id, i.person_id, i.message_id, m.org_id, m.category, m.title_en, m.title_te, m.text_en, m.text_te, m.signature, m.key_id, m.sent_at, m.expires_at, o.name AS org_name
-      FROM notify_inbox i JOIN notify_messages m ON m.id = i.message_id JOIN notify_orgs o ON o.id = m.org_id WHERE i.status = 'deferred' AND i.deliver_after <= ? LIMIT 500`).all(t.toISOString()) as unknown as (DeliverableMessage & { id: string; person_id: string; message_id: string })[];
+  const d = st();
+  const rows = (await d.deferredDue(t.toISOString())) as unknown as (DeliverableMessage & { id: string; person_id: string; message_id: string })[];
   let delivered = 0, expired = 0;
   for (const r of rows) {
-    if (r.expires_at && r.expires_at <= t.toISOString()) { d.prepare("UPDATE notify_inbox SET status = 'expired' WHERE id = ?").run(r.id); expired++; continue; }
-    d.prepare("UPDATE notify_inbox SET status = 'delivered', delivered_at = ? WHERE id = ? AND status = 'deferred'").run(t.toISOString(), r.id);
-    await dispatch(r.id, r.person_id, { ...r, id: r.message_id } as DeliverableMessage, getPrefs(r.person_id));
+    if (r.expires_at && r.expires_at <= t.toISOString()) { await d.expireInbox(r.id); expired++; continue; }
+    await d.deliverDeferred(r.id, t.toISOString());
+    await dispatch(r.id, r.person_id, { ...r, id: r.message_id } as DeliverableMessage, await getPrefs(r.person_id));
     delivered++;
   }
   return { delivered, expired };
@@ -293,11 +287,9 @@ export async function processDeferred(t: Date = nowFn.now()): Promise<{ delivere
 // Inbox
 // ---------------------------------------------------------------------------------------------
 
-export function inbox(personId: string, limit = 50): Record<string, unknown>[] {
-  const prefs = getPrefs(personId), word = getAntiPhish(personId);
-  const rows = getDb().prepare(`SELECT i.id, i.message_id, i.category, i.delivered_at, i.read_at, i.push_status, i.sms_status, i.email_status, m.title_en, m.title_te, m.text_en, m.text_te, m.signature, m.key_id, m.sent_at, m.signed_payload, o.id AS org_id, o.name AS org_name
-      FROM notify_inbox i JOIN notify_messages m ON m.id = i.message_id JOIN notify_orgs o ON o.id = m.org_id
-      WHERE i.person_id = ? AND i.status = 'delivered' ORDER BY i.delivered_at DESC LIMIT ?`).all(personId, Math.min(Math.max(limit, 1), 200)) as unknown as Record<string, string | null>[];
+export async function inbox(personId: string, limit = 50): Promise<Record<string, unknown>[]> {
+  const prefs = await getPrefs(personId), word = await getAntiPhish(personId);
+  const rows = (await st().inbox(personId, Math.min(Math.max(limit, 1), 200))) as unknown as Record<string, string | null>[];
   return rows.map((r) => ({
     id: r.id, message_id: r.message_id, category: r.category, sender: { org_id: r.org_id, name: r.org_name },
     title: prefs.language === "te" ? r.title_te : r.title_en, text: prefs.language === "te" ? r.text_te : r.text_en,
@@ -307,7 +299,4 @@ export function inbox(personId: string, limit = 50): Record<string, unknown>[] {
     channels: { push: r.push_status, sms: r.sms_status, email: r.email_status },
   }));
 }
-export function markRead(personId: string, inboxId: string): boolean {
-  const r = getDb().prepare("UPDATE notify_inbox SET read_at = COALESCE(read_at, ?) WHERE id = ? AND person_id = ? AND status = 'delivered'").run(nowFn.now().toISOString(), inboxId, personId);
-  return Number(r.changes) > 0;
-}
+export const markRead = (personId: string, inboxId: string): Promise<boolean> => st().markRead(personId, inboxId, nowFn.now().toISOString());

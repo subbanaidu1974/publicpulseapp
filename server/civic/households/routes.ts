@@ -2,6 +2,9 @@ import { randomBytes, randomUUID } from "node:crypto";
 import express, { Router } from "express";
 import type { Request, Response } from "express";
 import { audit, getDb, getKeys, getSms, recordConsent, registerErasureHook, registerMigration, requireAuth } from "../core";
+import { identityDb } from "../core/asyncBridge";
+import { asyncRoute } from "../../data/http";
+import { HouseholdStore } from "../../data/repos/households";
 import { phoneHashCandidates } from "../providers/rehash";
 import { DEGRADED_NOTICE, WEAK_PIN_MESSAGE, checkPin, getPerson, hashPinAsync, personsOnSim, phoneHash, rateAllow, rateCount, smsBudgetAllow, weakPinReason } from "../identity/service";
 import { ENROL_CONTEXTS, createEnrolment, enrolQuota as enrolQuotaFn } from "../identity/enrolment";
@@ -109,8 +112,9 @@ CREATE INDEX IF NOT EXISTS idx_hh_transfer_household ON hh_transfer(household_id
 
 type Row = Record<string, unknown>;
 const db = () => getDb();
+const st = (): HouseholdStore => new HouseholdStore(identityDb());
 let spSeq = 0;
-/** Run fn atomically. Uses a SAVEPOINT so it also nests inside a caller's transaction. Never call audit() inside: it opens its own transaction. */
+/** Synchronous atomic block, used only by the account-erasure hook (erasure hooks run inside the caller's synchronous identity transaction, so they move with the core). Run fn atomically. Uses a SAVEPOINT so it also nests inside a caller's transaction. Never call audit() inside: it opens its own transaction. */
 function tx<T>(fn: () => T): T {
   const d = db();
   const sp = `hh_sp_${++spSeq}`;
@@ -135,42 +139,35 @@ export function normalisePhone(raw: unknown): string | null {
   return m ? `+91${m[1]}` : null;
 }
 
-function householdOf(personId: string): { household: Row; isHead: boolean } | null {
-  const head = db().prepare("SELECT * FROM hh_household WHERE head_person_id = ?").get(personId) as Row | undefined;
+async function householdOf(personId: string): Promise<{ household: Row; isHead: boolean } | null> {
+  const head = await st().byHead(personId);
   if (head) return { household: head, isHead: true };
-  const mem = db().prepare("SELECT household_id FROM hh_member WHERE person_id = ?").get(personId) as Row | undefined;
-  if (!mem) return null;
-  const h = db().prepare("SELECT * FROM hh_household WHERE id = ?").get(mem.household_id as string) as Row;
-  return { household: h, isHead: false };
+  const hid = await st().memberHouseholdId(personId);
+  if (!hid) return null;
+  return { household: (await st().household(hid))!, isHead: false };
 }
 
-function expireStaleInvites(now: number): void {
-  // Expired invites lose their phone hash: nothing about the invitee remains.
-  db().prepare("UPDATE hh_invite SET status='expired', phone_hash=NULL WHERE status='pending' AND expires_at <= ?").run(now);
-  db().prepare("DELETE FROM hh_invite_cooldown WHERE until <= ?").run(now);
-  db().prepare("UPDATE hh_transfer SET status='expired' WHERE status='pending' AND expires_at <= ?").run(now);
-}
-const inList = (n: number) => Array.from({ length: n }, () => "?").join(",");
+/** Expired invites lose their phone hash: nothing about the invitee remains. */
+const expireStaleInvites = (now: number): Promise<void> => st().expireStale(now);
 /** (S-161) Does this person's verified number match a stored invite hash, whichever key version either side was written under? */
 function samePhone(me: { phone_hash: string | null; phone_enc?: string | null }, inviteHash: string): boolean {
   if (me.phone_hash === inviteHash) return true;
   if (!me.phone_enc) return false;
   try { return phoneHashCandidates(getKeys().decrypt("phone", me.phone_enc)).includes(inviteHash); } catch { return false; }
 }
-function startCooldown(targetHash: string | null | undefined, householdId: string, reason: "declined" | "reported", now: number): void {
+async function startCooldown(targetHash: string | null | undefined, householdId: string, reason: "declined" | "reported", now: number): Promise<void> {
   if (!targetHash) return;
   // A report protects the number from every head; a decline only from the household that asked.
-  db().prepare("INSERT OR REPLACE INTO hh_invite_cooldown (target_hash, household_id, until, reason) VALUES (?,?,?,?)")
-    .run(targetHash, reason === "reported" ? "*" : householdId, now + INVITE_COOLDOWN_MS, reason);
+  await st().startCooldown(targetHash, reason === "reported" ? "*" : householdId, now + INVITE_COOLDOWN_MS, reason);
 }
 
 /** Job: erase dependents who have turned (or are turning this calendar year) 18. All-or-nothing; audit entries follow the commit. Returns number erased. */
-export function eraseDependentsAt18(now: Date = new Date()): number {
+export async function eraseDependentsAt18(now: Date = new Date()): Promise<number> {
   const cutoff = now.getFullYear() - 18; // born in or before this year: erase (conservative: never keep past 18th birthday)
-  const erased = tx(() => {
-    const rows = db().prepare("SELECT id, household_id FROM hh_member WHERE status='dependent' AND year_of_birth <= ?").all(cutoff) as Row[];
-    const del = db().prepare("DELETE FROM hh_member WHERE id = ?");
-    for (const r of rows) del.run(r.id as string);
+  const erased = await identityDb().tx(async (t) => {
+    const s = new HouseholdStore(t);
+    const rows = await s.dependentsBornBy(cutoff);
+    for (const r of rows) await s.deleteMember(r.id);
     return rows;
   });
   for (const r of erased) audit("system", "dependent_erased_at_18", String(r.household_id), {});
@@ -178,7 +175,9 @@ export function eraseDependentsAt18(now: Date = new Date()): number {
 }
 
 /** Remove a household and everything hanging off it (members incl. dependents, invites). Atomic; the caller audits after commit. */
-function dissolveHousehold(householdId: string): void {
+const dissolveHousehold = (householdId: string): Promise<void> => identityDb().tx((t) => new HouseholdStore(t).dissolve(householdId));
+/** The same, synchronous, for the erasure hook only. */
+function dissolveHouseholdSync(householdId: string): void {
   tx(() => {
     db().prepare("DELETE FROM hh_member WHERE household_id = ?").run(householdId);
     db().prepare("DELETE FROM hh_invite WHERE household_id = ?").run(householdId);
@@ -187,7 +186,7 @@ function dissolveHousehold(householdId: string): void {
 }
 
 /** Job: purge invites that expired (hash already nulled). */
-export function expireInvites(now: number = Date.now()): void { expireStaleInvites(now); }
+export function expireInvites(now: number = Date.now()): Promise<void> { return expireStaleInvites(now); }
 
 export const householdRouter = Router();
 householdRouter.use(express.json({ limit: "10kb" }));
@@ -199,12 +198,12 @@ householdRouter.get("/notices/:purpose", (req, res) => {
   res.json(n);
 });
 householdRouter.get("/grievance-officer", (_req, res) => { res.json(grievanceOfficer); });
-householdRouter.get("/invites/:inviteId/notice", (req, res) => {
-  expireStaleInvites(Date.now());
-  const inv = db().prepare("SELECT status, expires_at FROM hh_invite WHERE id = ?").get(req.params.inviteId) as Row | undefined;
+householdRouter.get("/invites/:inviteId/notice", asyncRoute(async (req, res) => {
+  await expireStaleInvites(Date.now());
+  const inv = await st().inviteState(String(req.params.inviteId));
   if (!inv) return fail(res, 404, "invite not found");
   res.json({ status: inv.status, expiresAt: inv.expires_at, notice: getNotice("household_invite") });
-});
+}));
 
 householdRouter.use(requireAuth);
 
@@ -217,24 +216,24 @@ householdRouter.post("/consents", (req: Request, res: Response) => {
 });
 
 // ---- Household
-householdRouter.post("/", (req: Request, res: Response) => {
+householdRouter.post("/", asyncRoute(async (req: Request, res: Response) => {
   const pid = req.person!.id;
-  if (householdOf(pid)) return fail(res, 409, "already in a household");
+  if (await householdOf(pid)) return fail(res, 409, "already in a household");
   const id = randomUUID();
-  db().prepare("INSERT INTO hh_household (id, head_person_id, created_at) VALUES (?,?,?)").run(id, pid, Date.now());
+  await st().insertHousehold(id, pid, Date.now());
   audit(pid, "household_created", id);
   res.status(201).json({ id });
-});
+}));
 
-householdRouter.get("/mine", (req: Request, res: Response) => {
+householdRouter.get("/mine", asyncRoute(async (req: Request, res: Response) => {
   const pid = req.person!.id;
   const now = Date.now();
-  expireStaleInvites(now);
-  const h = householdOf(pid);
+  await expireStaleInvites(now);
+  const h = await householdOf(pid);
   if (!h) return fail(res, 404, "no household");
   const hid = h.household.id as string;
   const headId = h.household.head_person_id as string;
-  const members = (db().prepare("SELECT id, person_id, relation, status, year_of_birth FROM hh_member WHERE household_id = ? ORDER BY created_at").all(hid) as Row[]).map((m) => ({
+  const members = (await st().members(hid)).map((m) => ({
     id: m.id,
     relation: m.relation,
     status: m.status,
@@ -245,18 +244,18 @@ householdRouter.get("/mine", (req: Request, res: Response) => {
   }));
   const roster = [{ id: "head", relation: "head", status: "accepted", isHead: true, isYou: headId === pid, personId: headId }, ...members];
   const invites = h.isHead
-    ? (db().prepare("SELECT id, relation, status, expires_at FROM hh_invite WHERE household_id = ? AND status='pending' ORDER BY created_at").all(hid) as Row[]).map((i) => ({ id: i.id, relation: i.relation, status: i.status, expiresAt: i.expires_at }))
+    ? (await st().pendingInvites(hid)).map((i) => ({ id: i.id, relation: i.relation, status: i.status, expiresAt: i.expires_at }))
     : [];
-  const tr = db().prepare("SELECT id, from_person, to_person, expires_at FROM hh_transfer WHERE household_id = ? AND status = 'pending'").get(hid) as Row | undefined;
+  const tr = await st().pendingTransfer(hid);
   const pendingTransfer = tr && (tr.from_person === pid || tr.to_person === pid)
     ? { id: tr.id, role: tr.from_person === pid ? "sender" : "recipient", expiresAt: tr.expires_at, ...(tr.from_person === pid ? { toPersonId: tr.to_person } : {}) } : null;
   res.json({ id: hid, isHead: h.isHead, members: roster, invites, pendingTransfer });
-});
+}));
 
 // ---- Adult invite
-householdRouter.post("/members/invite", async (req: Request, res: Response) => {
+householdRouter.post("/members/invite", asyncRoute(async (req: Request, res: Response) => {
   const pid = req.person!.id;
-  const h = householdOf(pid);
+  const h = await householdOf(pid);
   if (!h?.isHead) return fail(res, 403, "only the household head can invite");
   const { phone, relation } = (req.body ?? {}) as { phone?: unknown; relation?: unknown };
   const norm = normalisePhone(phone);
@@ -264,15 +263,14 @@ householdRouter.post("/members/invite", async (req: Request, res: Response) => {
   if (typeof relation !== "string" || !(ADULT_RELATIONS as readonly string[]).includes(relation)) return fail(res, 400, "invalid relation");
   const hid = h.household.id as string;
   const now = Date.now();
-  expireStaleInvites(now);
+  await expireStaleInvites(now);
   // S-161: the WRITE hash is the current key version; every duplicate / cooldown / cap check reads under ALL active versions.
   const cands = phoneHashCandidates(norm);
   const hash = cands[0] ?? phoneHash(norm);
-  const marks = inList(cands.length);
-  if (db().prepare(`SELECT 1 FROM hh_invite WHERE household_id=? AND phone_hash IN (${marks}) AND status='pending'`).get(hid, ...cands)) return fail(res, 409, "already invited");
-  const cool = db().prepare(`SELECT until FROM hh_invite_cooldown WHERE target_hash IN (${marks}) AND (household_id=? OR household_id='*') AND until > ? ORDER BY until DESC`).get(...cands, hid, now) as Row | undefined;
-  if (cool) return fail(res, 429, "this number recently declined or reported an invitation; it cannot be invited again yet", { code: "invite_cooldown", retryAt: cool.until });
-  const pending = (db().prepare("SELECT COUNT(*) AS c FROM hh_invite WHERE household_id=? AND status='pending'").get(hid) as { c: number }).c;
+  if (await st().pendingInviteFor(hid, cands)) return fail(res, 409, "already invited");
+  const coolUntil = await st().cooldownUntil(cands, hid, now);
+  if (coolUntil !== undefined) return fail(res, 429, "this number recently declined or reported an invitation; it cannot be invited again yet", { code: "invite_cooldown", retryAt: coolUntil });
+  const pending = await st().pendingInviteCount(hid);
   if (pending >= MAX_PENDING_INVITES) return fail(res, 429, "too many pending invites");
   if (rateCount(`invite:head:${pid}`, DAY_MS, now) >= inviteDailyCap()) return fail(res, 429, "daily invitation limit reached", { code: "invite_daily_cap" });
   if (Math.max(...cands.map((c) => rateCount(`invite:target:${c}`, DAY_MS, now))) >= inviteTargetDailyCap()) return fail(res, 429, "this number has received too many invitations today", { code: "invite_target_cap" });
@@ -282,33 +280,32 @@ householdRouter.post("/members/invite", async (req: Request, res: Response) => {
   const inviteId = randomBytes(18).toString("base64url"); // unguessable: possession proves the SMS was received
   const notice = getNotice("household_invite")!;
   // Only a keyed hash of the number is stored; the plaintext goes to the SMS provider and is never persisted here.
-  db().prepare("INSERT INTO hh_invite (id, household_id, phone_hash, relation, status, created_at, expires_at) VALUES (?,?,?,?,?,?,?)")
-    .run(inviteId, hid, hash, relation, "pending", now, now + INVITE_TTL_MS);
+  await st().insertInvite({ id: inviteId, household_id: hid, phone_hash: hash, relation, at: now, expires_at: now + INVITE_TTL_MS });
   try {
     await getSms().send(norm, `${notice.text.te}\n\n${notice.text.en}\n\nInvite code: ${inviteId}\nValid 72 hours. [DRAFT NOTICE ${notice.version}]`);
   } catch {
-    db().prepare("DELETE FROM hh_invite WHERE id = ?").run(inviteId);
+    await st().deleteInvite(inviteId);
     return fail(res, 502, "could not deliver the invitation notice");
   }
   audit(pid, "household_invite_sent", inviteId, { relation });
   res.status(201).json({ inviteId, expiresAt: now + INVITE_TTL_MS });
-});
+}));
 
-function loadPendingInvite(inviteId: unknown): { invite?: Row; error?: [number, string] } {
+async function loadPendingInvite(inviteId: unknown): Promise<{ invite?: Row; error?: [number, string] }> {
   if (typeof inviteId !== "string") return { error: [400, "inviteId required"] };
-  expireStaleInvites(Date.now());
-  const invite = db().prepare("SELECT * FROM hh_invite WHERE id = ?").get(inviteId) as Row | undefined;
+  await expireStaleInvites(Date.now());
+  const invite = await st().invite(inviteId);
   if (!invite) return { error: [404, "invite not found"] };
   if (invite.status === "expired") return { error: [410, "invite expired"] };
   if (invite.status !== "pending") return { error: [409, `invite already ${invite.status}`] };
   return { invite };
 }
 
-householdRouter.post("/invites/accept", async (req: Request, res: Response) => {
+householdRouter.post("/invites/accept", asyncRoute(async (req: Request, res: Response) => {
   const pid = req.person!.id;
   const { inviteId, pin } = (req.body ?? {}) as { inviteId?: unknown; pin?: unknown };
   if (typeof pin !== "string" || !/^\d{4,6}$/.test(pin)) return fail(res, 400, "pin must be 4 to 6 digits");
-  const { invite, error } = loadPendingInvite(inviteId);
+  const { invite, error } = await loadPendingInvite(inviteId);
   if (!invite) return fail(res, error![0], error![1]);
   const me = getPerson(pid);
   // The code alone is not enough: the signed-in person's verified phone must be the number the invite was issued for.
@@ -316,10 +313,10 @@ householdRouter.post("/invites/accept", async (req: Request, res: Response) => {
     audit(pid, "household_invite_phone_mismatch", String(invite.id), { householdId: invite.household_id });
     return fail(res, 403, "this invite was not issued for your verified phone number", { code: "phone_mismatch" });
   }
-  const hh = db().prepare("SELECT head_person_id FROM hh_household WHERE id = ?").get(invite.household_id as string) as Row | undefined;
-  if (!hh) return fail(res, 404, "invite not found");
-  if (hh.head_person_id === pid) return fail(res, 400, "cannot accept your own invite");
-  if (householdOf(pid)) return fail(res, 409, "already in a household");
+  const headId = await st().headOf(invite.household_id as string);
+  if (headId === undefined) return fail(res, 404, "invite not found");
+  if (headId === pid) return fail(res, 400, "cannot accept your own invite");
+  if (await householdOf(pid)) return fail(res, 409, "already in a household");
   // One PIN, in identity. If the person already has one, accepting must prove it rather than overwrite it.
   const hasPin = !!(me.pin_salt && me.pin_hash);
   if (hasPin) {
@@ -330,48 +327,45 @@ householdRouter.post("/invites/accept", async (req: Request, res: Response) => {
   const notice = getNotice("household_invite")!;
   const consentId = recordConsent(pid, "household_invite", notice.version);
   const now = Date.now();
-  tx(() => {
-    db().prepare("INSERT INTO hh_member (id, household_id, person_id, relation, status, consent_id, created_at) VALUES (?,?,?,?,?,?,?)")
-      .run(randomUUID(), invite.household_id as string, pid, invite.relation as string, "accepted", consentId, now);
-    if (newHash) {
-      const { salt, hash } = newHash;
-      db().prepare("UPDATE persons SET pin_salt = ?, pin_hash = ? WHERE id = ?").run(salt, hash, pid);
-    }
-    db().prepare("UPDATE hh_invite SET status='accepted', phone_hash=NULL, accepted_person_id=? WHERE id=?").run(pid, invite.id as string);
+  await identityDb().tx(async (t) => {
+    const s = new HouseholdStore(t);
+    await s.insertAdult({ id: randomUUID(), household_id: invite.household_id as string, person_id: pid, relation: invite.relation as string, consent_id: consentId, at: now });
+    if (newHash) await s.setPin(pid, newHash.salt, newHash.hash);
+    await s.markAccepted(invite.id as string, pid);
   });
   audit(pid, "household_invite_accepted", String(invite.id), { consent: consentId });
   res.json({ ok: true, householdId: invite.household_id });
-});
+}));
 
-householdRouter.post("/invites/decline", (req: Request, res: Response) => {
-  const { invite, error } = loadPendingInvite((req.body ?? {}).inviteId);
+householdRouter.post("/invites/decline", asyncRoute(async (req: Request, res: Response) => {
+  const { invite, error } = await loadPendingInvite((req.body ?? {}).inviteId);
   if (!invite) return fail(res, error![0], error![1]);
-  startCooldown(invite.phone_hash as string | null, String(invite.household_id), "declined", Date.now());
-  db().prepare("UPDATE hh_invite SET status='declined', phone_hash=NULL WHERE id=?").run(invite.id as string);
+  await startCooldown(invite.phone_hash as string | null, String(invite.household_id), "declined", Date.now());
+  await st().markDeclined(invite.id as string);
   audit(req.person!.id, "household_invite_declined", String(invite.id));
   res.json({ ok: true });
-});
+}));
 
 /** "I did not agree to this": works on a pending invite, or after acceptance (removes the membership). */
-householdRouter.post("/invites/report-not-agreed", (req: Request, res: Response) => {
+householdRouter.post("/invites/report-not-agreed", asyncRoute(async (req: Request, res: Response) => {
   const pid = req.person!.id;
   const inviteId = (req.body ?? {}).inviteId;
   if (typeof inviteId !== "string") return fail(res, 400, "inviteId required");
-  expireStaleInvites(Date.now());
-  const invite = db().prepare("SELECT * FROM hh_invite WHERE id = ?").get(inviteId) as Row | undefined;
+  await expireStaleInvites(Date.now());
+  const invite = await st().invite(inviteId);
   if (!invite) return fail(res, 404, "invite not found");
   if (invite.status === "accepted" && invite.accepted_person_id !== pid) return fail(res, 403, "not your invite");
-  startCooldown((invite.phone_hash as string | null) ?? getPerson(pid)?.phone_hash, String(invite.household_id), "reported", Date.now());
-  if (invite.status === "accepted") db().prepare("DELETE FROM hh_member WHERE person_id = ? AND household_id = ?").run(pid, invite.household_id as string);
-  db().prepare("UPDATE hh_invite SET status='reported', phone_hash=NULL WHERE id=?").run(inviteId);
+  await startCooldown((invite.phone_hash as string | null) ?? getPerson(pid)?.phone_hash, String(invite.household_id), "reported", Date.now());
+  if (invite.status === "accepted") await st().deleteMemberOf(pid, invite.household_id as string);
+  await st().markReported(inviteId);
   audit(pid, "household_invite_reported_not_agreed", inviteId, { householdId: invite.household_id });
   res.json({ ok: true });
-});
+}));
 
 // ---- Minor dependents
-householdRouter.post("/dependents", (req: Request, res: Response) => {
+householdRouter.post("/dependents", asyncRoute(async (req: Request, res: Response) => {
   const pid = req.person!.id;
-  const h = householdOf(pid);
+  const h = await householdOf(pid);
   if (!h?.isHead) return fail(res, 403, "only the household head can add dependents");
   const { relation, yearOfBirth, parentalConsentVersion } = (req.body ?? {}) as { relation?: unknown; yearOfBirth?: unknown; parentalConsentVersion?: unknown };
   if (typeof relation !== "string" || !(DEPENDENT_RELATIONS as readonly string[]).includes(relation)) return fail(res, 400, "invalid relation");
@@ -379,111 +373,111 @@ householdRouter.post("/dependents", (req: Request, res: Response) => {
   if (!Number.isInteger(yearOfBirth) || (yearOfBirth as number) > thisYear || (yearOfBirth as number) < thisYear - 120) return fail(res, 400, "invalid yearOfBirth");
   if (thisYear - (yearOfBirth as number) >= 18) return fail(res, 400, "dependents must be under 18; adults must be invited");
   if (typeof parentalConsentVersion !== "string" || !getNotice("minor_dependent", parentalConsentVersion)) return fail(res, 400, "parental consent version required");
-  const nDeps = (db().prepare("SELECT COUNT(*) AS c FROM hh_member WHERE household_id = ? AND status = 'dependent'").get(h.household.id as string) as { c: number }).c;
+  const nDeps = await st().dependentCount(h.household.id as string);
   if (nDeps >= maxDependents()) return fail(res, 409, `a household can list at most ${maxDependents()} dependents`, { code: "dependents_cap" });
   const consentId = recordConsent(pid, "minor_dependent", parentalConsentVersion);
   const id = randomUUID();
   // Deliberately no name, no phone, no person_id: the schema CHECK makes a dependent unable to hold an account.
-  db().prepare("INSERT INTO hh_member (id, household_id, person_id, relation, status, year_of_birth, consent_id, created_at) VALUES (?,?,NULL,?,?,?,?,?)")
-    .run(id, h.household.id as string, relation, "dependent", yearOfBirth as number, consentId, Date.now());
+  await st().insertDependent({ id, household_id: h.household.id as string, relation, year_of_birth: yearOfBirth as number, consent_id: consentId, at: Date.now() });
   audit(pid, "dependent_added", id, { consent: consentId });
   res.status(201).json({ id, consentId });
-});
+}));
 
 // ---- Head transfer and removal
 /** S-149: the head proposes; nothing changes until the recipient confirms (72 h). One pending proposal per household. */
-householdRouter.post("/transfer-head", (req: Request, res: Response) => {
+householdRouter.post("/transfer-head", asyncRoute(async (req: Request, res: Response) => {
   const pid = req.person!.id;
-  const h = householdOf(pid);
+  const h = await householdOf(pid);
   if (!h?.isHead) return fail(res, 403, "only the head can transfer the role");
   const to = (req.body ?? {}).toPersonId;
   if (typeof to !== "string") return fail(res, 400, "toPersonId required");
   const hid = h.household.id as string;
-  const m = db().prepare("SELECT id FROM hh_member WHERE household_id=? AND person_id=? AND status='accepted'").get(hid, to) as Row | undefined;
+  const m = await st().acceptedMemberId(hid, to);
   if (!m) return fail(res, 400, "target must be an accepted adult member");
   const now = Date.now();
-  expireStaleInvites(now);
-  if (db().prepare("SELECT 1 FROM hh_transfer WHERE household_id = ? AND status = 'pending'").get(hid)) return fail(res, 409, "a transfer is already waiting for confirmation", { code: "transfer_pending" });
+  await expireStaleInvites(now);
+  if (await st().pendingTransfer(hid)) return fail(res, 409, "a transfer is already waiting for confirmation", { code: "transfer_pending" });
   const id = randomUUID();
-  db().prepare("INSERT INTO hh_transfer (id, household_id, from_person, to_person, status, created_at, expires_at) VALUES (?,?,?,?,'pending',?,?)").run(id, hid, pid, to, now, now + TRANSFER_TTL_MS);
+  await st().insertTransfer({ id, household_id: hid, from_person: pid, to_person: to, at: now, expires_at: now + TRANSFER_TTL_MS });
   audit(pid, "household_head_transfer_proposed", hid, { transfer: id });
   res.status(202).json({ transferId: id, status: "pending", expiresAt: now + TRANSFER_TTL_MS });
-});
+}));
 
-function loadTransfer(req: Request, res: Response, who: "to" | "from"): Row | null {
+async function loadTransfer(req: Request, res: Response, who: "to" | "from"): Promise<Row | null> {
   const id = (req.body ?? {}).transferId;
   if (typeof id !== "string") { fail(res, 400, "transferId required"); return null; }
-  expireStaleInvites(Date.now());
-  const t = db().prepare("SELECT * FROM hh_transfer WHERE id = ?").get(id) as Row | undefined;
+  await expireStaleInvites(Date.now());
+  const t = await st().transfer(id);
   if (!t || t[who === "to" ? "to_person" : "from_person"] !== req.person!.id) { fail(res, 404, "transfer not found"); return null; }
   if (t.status === "expired") { fail(res, 410, "transfer expired", { code: "transfer_expired" }); return null; }
   if (t.status !== "pending") { fail(res, 409, `transfer already ${t.status}`); return null; }
   return t;
 }
 
-householdRouter.post("/transfer-head/accept", (req: Request, res: Response) => {
-  const t = loadTransfer(req, res, "to");
+householdRouter.post("/transfer-head/accept", asyncRoute(async (req: Request, res: Response) => {
+  const t = await loadTransfer(req, res, "to");
   if (!t) return;
   const hid = t.household_id as string;
-  const hh = db().prepare("SELECT head_person_id FROM hh_household WHERE id = ?").get(hid) as Row | undefined;
-  const m = db().prepare("SELECT id FROM hh_member WHERE household_id=? AND person_id=? AND status='accepted'").get(hid, req.person!.id) as Row | undefined;
-  if (!hh || hh.head_person_id !== t.from_person || !m) {
-    db().prepare("UPDATE hh_transfer SET status='cancelled' WHERE id = ?").run(t.id as string);
+  const headId = await st().headOf(hid);
+  const m = await st().acceptedMemberId(hid, req.person!.id);
+  if (headId === undefined || headId !== t.from_person || !m) {
+    await st().setTransferStatus(t.id as string, "cancelled");
     return fail(res, 409, "the household changed; the transfer was cancelled");
   }
   // Old head becomes a regular member (relation 'other'); new head's member row is removed.
-  tx(() => {
-    db().prepare("DELETE FROM hh_member WHERE id = ?").run(m.id as string);
-    db().prepare("UPDATE hh_household SET head_person_id = ? WHERE id = ?").run(req.person!.id, hid);
-    db().prepare("INSERT INTO hh_member (id, household_id, person_id, relation, status, created_at) VALUES (?,?,?,?,?,?)").run(randomUUID(), hid, t.from_person as string, "other", "accepted", Date.now());
-    db().prepare("UPDATE hh_transfer SET status='accepted' WHERE id = ?").run(t.id as string);
+  await identityDb().tx(async (tx2) => {
+    const s = new HouseholdStore(tx2);
+    await s.deleteMember(m);
+    await s.setHead(hid, req.person!.id);
+    await s.insertAdult({ id: randomUUID(), household_id: hid, person_id: t.from_person as string, relation: "other", consent_id: null, at: Date.now() });
+    await s.setTransferStatus(t.id as string, "accepted");
   });
   audit(req.person!.id, "household_head_transferred", hid, { from: t.from_person, transfer: t.id });
   res.json({ ok: true });
-});
-householdRouter.post("/transfer-head/decline", (req: Request, res: Response) => {
-  const t = loadTransfer(req, res, "to");
+}));
+householdRouter.post("/transfer-head/decline", asyncRoute(async (req: Request, res: Response) => {
+  const t = await loadTransfer(req, res, "to");
   if (!t) return;
-  db().prepare("UPDATE hh_transfer SET status='declined' WHERE id = ?").run(t.id as string);
+  await st().setTransferStatus(t.id as string, "declined");
   audit(req.person!.id, "household_head_transfer_declined", String(t.household_id), { transfer: t.id });
   res.json({ ok: true });
-});
-householdRouter.post("/transfer-head/cancel", (req: Request, res: Response) => {
-  const t = loadTransfer(req, res, "from");
+}));
+householdRouter.post("/transfer-head/cancel", asyncRoute(async (req: Request, res: Response) => {
+  const t = await loadTransfer(req, res, "from");
   if (!t) return;
-  db().prepare("UPDATE hh_transfer SET status='cancelled' WHERE id = ?").run(t.id as string);
+  await st().setTransferStatus(t.id as string, "cancelled");
   audit(req.person!.id, "household_head_transfer_cancelled", String(t.household_id), { transfer: t.id });
   res.json({ ok: true });
-});
+}));
 
-householdRouter.delete("/members/:id", (req: Request, res: Response) => {
+householdRouter.delete("/members/:id", asyncRoute(async (req: Request, res: Response) => {
   const pid = req.person!.id;
-  const h = householdOf(pid);
+  const h = await householdOf(pid);
   if (!h) return fail(res, 404, "no household");
-  const m = db().prepare("SELECT * FROM hh_member WHERE id=? AND household_id=?").get(req.params.id, h.household.id as string) as Row | undefined;
+  const m = await st().member(String(req.params.id), h.household.id as string);
   if (!m) return fail(res, 404, "member not found");
   if (!h.isHead && m.person_id !== pid) return fail(res, 403, "members may only remove themselves");
-  db().prepare("DELETE FROM hh_member WHERE id = ?").run(m.id as string);
+  await st().deleteMember(m.id as string);
   audit(pid, "household_member_removed", String(m.id));
   res.json({ ok: true });
-});
+}));
 
 // Account erasure (DELETE /me in identity calls every registered hook): remove this person's household footprint.
 // Head dissolves the household: members (including dependents) and invites go in one transaction.
-householdRouter.delete("/", (req: Request, res: Response) => {
+householdRouter.delete("/", asyncRoute(async (req: Request, res: Response) => {
   const pid = req.person!.id;
-  const h = householdOf(pid);
+  const h = await householdOf(pid);
   if (!h?.isHead) return fail(res, 403, "only the household head can delete the household");
   const hid = h.household.id as string;
-  dissolveHousehold(hid);
+  await dissolveHousehold(hid);
   audit(pid, "household_deleted", hid);
   res.json({ ok: true });
-});
+}));
 
 // ---- Volunteer enrolment (S-136): the volunteer never chooses or knows the adult's PIN. Creates a PENDING person; the adult activates with the
 // code + OTP texted to their own phone and sets their own PIN (POST /identity/activate). Breaking change: `pin` is rejected and the response is
 // `{enrolmentId, personId, status: "pending", expiresAt}` (it was `{personId, tier}`).
-householdRouter.post("/volunteer/enrol", async (req: Request, res: Response) => {
+householdRouter.post("/volunteer/enrol", asyncRoute(async (req: Request, res: Response) => {
   const vid = req.person!.id;
   const v = getPerson(vid);
   if (!v || v.role !== "volunteer") return fail(res, 403, "only enrolled volunteers can enrol adults");
@@ -503,7 +497,7 @@ householdRouter.post("/volunteer/enrol", async (req: Request, res: Response) => 
   });
   if ("error" in r) return fail(res, r.status, r.error, { ...(r.code ? { code: r.code } : {}), ...(r.degraded ? { degraded: true, notice: DEGRADED_NOTICE } : {}) });
   res.status(201).json({ enrolmentId: r.enrolmentId, personId: r.personId, status: "pending", expiresAt: r.expiresAt });
-});
+}));
 
 // Account erasure (DELETE /me in identity calls every registered hook): remove this person's household footprint, atomically.
 registerErasureHook("households", (personId) => {
@@ -518,7 +512,7 @@ registerErasureHook("households", (personId) => {
     if (h) {
       const next = d.prepare("SELECT id, person_id FROM hh_member WHERE household_id = ? AND status='accepted' ORDER BY created_at LIMIT 1").get(h.id) as { id: string; person_id: string } | undefined;
       if (!next) {
-        dissolveHousehold(h.id);
+        dissolveHouseholdSync(h.id);
         dissolved = h.id;
       } else {
         d.prepare("DELETE FROM hh_member WHERE id = ?").run(next.id);

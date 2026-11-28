@@ -35,10 +35,7 @@
     "server/civic/issues/public.ts",
     "server/civic/issues/routes.ts",
     "server/civic/issues/service.ts",
-    "server/civic/mediahub/index.ts",
-    "server/civic/notify/delivery.ts",
     "server/civic/notify/schema.ts",
-    "server/civic/notify/service.ts",
     "server/civic/officers/index.ts",
     "server/civic/providers/keys.ts",
     "server/civic/providers/rehash.ts",
@@ -56,7 +53,6 @@
     "server/civic/surveys/responses.ts",
     "server/civic/surveys/results.ts",
     "server/civic/surveys/source.ts",
-    "server/civic/videocast/index.ts",
     "server/history/api.ts",
     "server/history/store.ts",
     "server/obs.ts"

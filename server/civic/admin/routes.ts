@@ -34,6 +34,8 @@ import {
 } from "../core";
 import type { RoleName } from "../core";
 import { rateAllow } from "../identity/service";
+import { identityDb } from "../core/asyncBridge";
+import { AdminStore } from "../../data/repos/admin";
 import { validateGrantUnit } from "../scope/model";
 import { confirmMfa, enrolMfa, mfaStatus, verifyMfa } from "./mfa";
 import { breakGlassError, getBreakGlass, publicBreakGlass } from "./breakglass";
@@ -48,50 +50,56 @@ const wrap = (fn: (req: Request, res: Response) => Promise<void> | void) => asyn
   try { await fn(req, res); } catch (e) { if (!res.headersSent) fail(res, 500, "internal error"); void e; }
 };
 
+const store = (): AdminStore => new AdminStore(identityDb());
+
 /** Requires a valid TOTP (or recovery) code from the signed-in admin on the request. */
 export function requireMfa(req: Request, res: Response, next: NextFunction): void {
+  mfaCheck(req, res).then((ok) => { if (ok) next(); }, next);
+}
+async function mfaCheck(req: Request, res: Response): Promise<boolean> {
   const pid = req.person!.id;
-  if (!rateAllow("mfa:" + pid, 10, 15 * 60 * 1000)) return void fail(res, 429, "too many MFA attempts; wait and retry");
-  const st = mfaStatus(pid);
-  if (!st.confirmed) return void fail(res, 403, "multi-factor authentication must be set up first (POST /admin/mfa/enrol)", { code: "mfa_enrol_required" });
+  const no = (status: number, error: string, extra: Record<string, unknown> = {}): boolean => { fail(res, status, error, extra); return false; };
+  if (!rateAllow("mfa:" + pid, 10, 15 * 60 * 1000)) return no(429, "too many MFA attempts; wait and retry");
+  const st = await mfaStatus(pid);
+  if (!st.confirmed) return no(403, "multi-factor authentication must be set up first (POST /admin/mfa/enrol)", { code: "mfa_enrol_required" });
   const code = str(req.headers["x-totp-code"] || req.body?.totp).replace(/\s/g, "");
   const recovery = str(req.headers["x-recovery-code"] || req.body?.recovery_code);
-  if (!code && !recovery) return void fail(res, 403, "a current authenticator code is required (x-totp-code)", { code: "mfa_required" });
-  const r = verifyMfa(pid, { code, recovery });
-  if (!r.ok) { audit(pid, "admin.mfa.failed", "person:" + pid, {}); return void fail(res, 403, "invalid or reused authenticator code", { code: "mfa_invalid" }); }
-  next();
+  if (!code && !recovery) return no(403, "a current authenticator code is required (x-totp-code)", { code: "mfa_required" });
+  const r = await verifyMfa(pid, { code, recovery });
+  if (!r.ok) { audit(pid, "admin.mfa.failed", "person:" + pid, {}); return no(403, "invalid or reused authenticator code", { code: "mfa_invalid" }); }
+  return true;
 }
 
 export const adminRouter = Router();
 adminRouter.use(express.json({ limit: "10kb" }));
 
-adminRouter.get("/me", requireAuth, wrap((req, res) => {
+adminRouter.get("/me", requireAuth, wrap(async (req, res) => {
   const pid = req.person!.id;
   const detailed = listRolesDetailed(pid);
   const details = [...detailed.map((r) => ({ role: r.role, jurisdiction: r.jurisdiction, department: r.department }))];
   for (const r of listRoles(pid)) if (!details.some((x) => x.role === r.role)) details.push({ role: r.role, jurisdiction: r.jurisdiction, department: null }); // bridged (volunteer)
   const isAdmin = hasRole(pid, "admin");
   // roles = role names (empty for a plain citizen, so no console tabs show); role_details carries scope + department.
-  res.json({ person_id: pid, roles: [...new Set(details.map((d) => d.role))], role_details: details, is_admin: isAdmin, mfa: mfaStatus(pid) });
+  res.json({ person_id: pid, roles: [...new Set(details.map((d) => d.role))], role_details: details, is_admin: isAdmin, mfa: await mfaStatus(pid) });
 }));
 
-adminRouter.post("/mfa/enrol", requireRole("admin"), wrap((req, res) => {
-  try { res.status(201).json(enrolMfa(req.person!.id)); } catch { fail(res, 409, "multi-factor authentication is already set up"); }
+adminRouter.post("/mfa/enrol", requireRole("admin"), wrap(async (req, res) => {
+  try { res.status(201).json(await enrolMfa(req.person!.id)); } catch { fail(res, 409, "multi-factor authentication is already set up"); }
 }));
-adminRouter.post("/mfa/confirm", requireRole("admin"), wrap((req, res) => {
+adminRouter.post("/mfa/confirm", requireRole("admin"), wrap(async (req, res) => {
   if (!rateAllow("mfa:" + req.person!.id, 10, 15 * 60 * 1000)) return fail(res, 429, "too many attempts; wait and retry");
-  if (!confirmMfa(req.person!.id, str(req.body?.code).replace(/\s/g, ""))) return fail(res, 400, "invalid code, or nothing to confirm");
-  res.json({ ok: true, mfa: mfaStatus(req.person!.id) });
+  if (!(await confirmMfa(req.person!.id, str(req.body?.code).replace(/\s/g, "")))) return fail(res, 400, "invalid code, or nothing to confirm");
+  res.json({ ok: true, mfa: await mfaStatus(req.person!.id) });
 }));
 
-adminRouter.post("/mfa/verify", requireRole("admin"), wrap((req, res) => {
+adminRouter.post("/mfa/verify", requireRole("admin"), wrap(async (req, res) => {
   const pid = req.person!.id;
   if (!rateAllow("mfa:" + pid, 10, 15 * 60 * 1000)) return fail(res, 429, "too many attempts; wait and retry");
   const code = str(req.body?.code).replace(/\s/g, "");
-  if (!mfaStatus(pid).confirmed) { if (!confirmMfa(pid, code)) return fail(res, 400, "invalid code, or nothing to confirm"); return void res.json({ ok: true, mfa: mfaStatus(pid) }); }
-  const r = verifyMfa(pid, { code, recovery: str(req.body?.recovery_code) });
+  if (!(await mfaStatus(pid)).confirmed) { if (!(await confirmMfa(pid, code))) return fail(res, 400, "invalid code, or nothing to confirm"); return void res.json({ ok: true, mfa: await mfaStatus(pid) }); }
+  const r = await verifyMfa(pid, { code, recovery: str(req.body?.recovery_code) });
   if (!r.ok) return fail(res, 403, "invalid or reused authenticator code", { code: "mfa_invalid" });
-  res.json({ ok: true, mfa: mfaStatus(pid) });
+  res.json({ ok: true, mfa: await mfaStatus(pid) });
 }));
 
 export class RoleRequestError extends Error {
@@ -102,34 +110,27 @@ export class RoleRequestError extends Error {
  * self grant and an identical pending request, stores the pending request and audits it. A DIFFERENT admin must approve it.
  * The caller has already authenticated the admin and checked the second factor.
  */
-export function insertRoleRequest(me: string, a: { action: "grant" | "revoke"; personId: string; role: RoleName; jurisdiction: string; department: string; reason: string }): { id: string; status: "pending"; expires_at: string } {
+export async function insertRoleRequest(me: string, a: { action: "grant" | "revoke"; personId: string; role: RoleName; jurisdiction: string; department: string; reason: string }): Promise<{ id: string; status: "pending"; expires_at: string }> {
   const { action, personId, role, jurisdiction, department, reason } = a;
   if (!ROLE_NAMES.includes(role)) throw new RoleRequestError(400, "unknown role", { roles: ROLE_NAMES });
   if (action === "grant") { const bad = validateGrantUnit(role, jurisdiction); if (bad) throw new RoleRequestError(400, "invalid jurisdiction for this role", { code: bad }); } // S-40: politician = a constituency; journalist / eci_liaison = state-level
-  const d = getDb();
-  if (!d.prepare("SELECT 1 AS x FROM persons WHERE id = ? AND deleted_at IS NULL").get(personId)) throw new RoleRequestError(404, "person not found");
+  const d = store();
+  if (!(await d.personExists(personId))) throw new RoleRequestError(404, "person not found");
   if (action === "grant" && personId === me) throw new RoleRequestError(403, "you cannot request a role for yourself", { code: "self_grant" });
-  expireRequests();
-  if (d.prepare("SELECT 1 AS x FROM role_requests WHERE status = 'pending' AND action = ? AND person_id = ? AND role = ? AND jurisdiction = ?").get(action, personId, role, jurisdiction)) {
+  await expireRequests();
+  if (await d.identicalPending(action, personId, role, jurisdiction)) {
     throw new RoleRequestError(409, "an identical request is already waiting for approval");
   }
   const id = crypto.randomUUID();
   const now = Date.now();
   const expires = new Date(now + REQUEST_TTL_MS).toISOString();
-  d.prepare("INSERT INTO role_requests (id, action, person_id, role, jurisdiction, department, reason, requested_by, status, created_at, expires_at) VALUES (?,?,?,?,?,?,?,?, 'pending', ?, ?)")
-    .run(id, action, personId, role, jurisdiction, department, reason, me, new Date(now).toISOString(), expires);
+  await d.insertRequest({ id, action, person_id: personId, role, jurisdiction, department, reason, requested_by: me, at: new Date(now).toISOString(), expires_at: expires });
   audit(me, "admin.role_request.create", "person:" + personId, { request: id, action, role, jurisdiction });
   return { id, status: "pending", expires_at: expires };
 }
 
-adminRouter.get("/roles", requireRole("admin"), wrap((req, res) => {
-  const where: string[] = ["p.deleted_at IS NULL"], args: string[] = [];
-  const pid = str(req.query.person_id), role = str(req.query.role);
-  if (pid) { where.push("r.person_id = ?"); args.push(pid); }
-  if (role) { where.push("r.role = ?"); args.push(role); }
-  const rows = getDb().prepare(
-    `SELECT r.person_id, r.role, r.jurisdiction, r.department, r.granted_by, r.granted_at FROM roles r JOIN persons p ON p.id = r.person_id
-      WHERE ${where.join(" AND ")} ORDER BY r.granted_at DESC LIMIT 200`).all(...args) as unknown as Record<string, string>[];
+adminRouter.get("/roles", requireRole("admin"), wrap(async (req, res) => {
+  const rows = (await store().roleHolders(str(req.query.person_id), str(req.query.role))) as Record<string, string>[];
   auditPrivilegedRead(req.person!.id, "roles", "admin lists role holders");
   res.json({ roles: rows.map((r) => ({ ...r, jurisdiction: r.jurisdiction || null, department: r.department || null })) });
 }));
@@ -138,32 +139,30 @@ const publicRequest = (r: Record<string, unknown>) => ({
   id: r.id, action: r.action, person_id: r.person_id, role: r.role, jurisdiction: r.jurisdiction || null, department: r.department || null, reason: r.reason,
   requested_by: r.requested_by, status: r.status, created_at: r.created_at, expires_at: r.expires_at, decided_by: r.decided_by ?? null, decided_at: r.decided_at ?? null,
 });
-function expireRequests(): void {
-  getDb().prepare("UPDATE role_requests SET status = 'expired' WHERE status = 'pending' AND expires_at <= ?").run(new Date().toISOString());
-}
+const expireRequests = (): Promise<void> => store().expire(new Date().toISOString());
 
-adminRouter.get(["/roles/requests", "/role-requests"], requireRole("admin"), wrap((req, res) => {
-  expireRequests();
+adminRouter.get(["/roles/requests", "/role-requests"], requireRole("admin"), wrap(async (req, res) => {
+  await expireRequests();
   const status = str(req.query.status) || "pending";
-  const rows = getDb().prepare("SELECT * FROM role_requests WHERE status = ? ORDER BY created_at DESC LIMIT 200").all(status) as unknown as Record<string, unknown>[];
+  const rows = (await store().requests(status)) as Record<string, unknown>[];
   auditPrivilegedRead(req.person!.id, "role_requests", "admin lists dual-control queue");
   res.json({ requests: rows.map(publicRequest) });
 }));
 
-adminRouter.post(["/roles/requests", "/role-requests"], requireRole("admin"), requireMfa, wrap((req, res) => {
+adminRouter.post(["/roles/requests", "/role-requests"], requireRole("admin"), requireMfa, wrap(async (req, res) => {
   const me = req.person!.id;
   const action = str(req.body?.action), personId = str(req.body?.person_id), role = str(req.body?.role) as RoleName;
   const jurisdiction = str(req.body?.jurisdiction).slice(0, 64), department = str(req.body?.department).slice(0, 64), reason = str(req.body?.reason).trim();
   if (action !== "grant" && action !== "revoke") return fail(res, 400, "action must be grant or revoke");
   if (reason.length < 5 || reason.length > 300) return fail(res, 400, "reason (5 to 300 characters) is required");
-  try { res.status(201).json(insertRoleRequest(me, { action, personId, role, jurisdiction, department, reason })); }
+  try { res.status(201).json(await insertRoleRequest(me, { action, personId, role, jurisdiction, department, reason })); }
   catch (e) { if (e instanceof RoleRequestError) return fail(res, e.status, e.message, e.extra); throw e; }
 }));
 
-adminRouter.post(["/roles/requests/:id/approve", "/role-requests/:id/approve"], requireRole("admin"), requireMfa, wrap((req, res) => {
+adminRouter.post(["/roles/requests/:id/approve", "/role-requests/:id/approve"], requireRole("admin"), requireMfa, wrap(async (req, res) => {
   const me = req.person!.id;
-  expireRequests();
-  const r = getDb().prepare("SELECT * FROM role_requests WHERE id = ?").get(str(req.params.id)) as unknown as Record<string, string> | undefined;
+  await expireRequests();
+  const r = (await store().request(str(req.params.id))) as Record<string, string> | undefined;
   if (!r) return fail(res, 404, "request not found");
   if (r.status === "expired") return fail(res, 410, "request expired", { code: "request_expired" });
   if (r.status !== "pending") return fail(res, 409, `request already ${r.status}`);
@@ -186,13 +185,13 @@ adminRouter.post(["/roles/requests/:id/approve", "/role-requests/:id/approve"], 
   res.json({ ok: true, status: "approved" });
 }));
 
-adminRouter.post(["/roles/requests/:id/reject", "/role-requests/:id/reject"], requireRole("admin"), requireMfa, wrap((req, res) => {
+adminRouter.post(["/roles/requests/:id/reject", "/role-requests/:id/reject"], requireRole("admin"), requireMfa, wrap(async (req, res) => {
   const me = req.person!.id;
-  expireRequests();
-  const r = getDb().prepare("SELECT * FROM role_requests WHERE id = ?").get(str(req.params.id)) as unknown as Record<string, string> | undefined;
+  await expireRequests();
+  const r = (await store().request(str(req.params.id))) as Record<string, string> | undefined;
   if (!r) return fail(res, 404, "request not found");
   if (r.status !== "pending") return fail(res, 409, `request already ${r.status}`);
-  getDb().prepare("UPDATE role_requests SET status = 'rejected', decided_by = ?, decided_at = ? WHERE id = ?").run(me, new Date().toISOString(), r.id);
+  await store().reject(r.id, me, new Date().toISOString());
   audit(me, "admin.role_request.reject", "person:" + r.person_id, { request: r.id, requested_by: r.requested_by });
   res.json({ ok: true, status: "rejected" });
 }));

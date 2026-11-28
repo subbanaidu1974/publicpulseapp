@@ -5,6 +5,10 @@
  */
 import crypto from "node:crypto";
 import { audit, getDb, getKeys, registerErasureHook, registerMigration } from "../core";
+import { identityDb } from "../core/asyncBridge";
+import { AdminStore } from "../../data/repos/admin";
+
+const st = (): AdminStore => new AdminStore(identityDb());
 
 registerMigration("admin_001_mfa_requests", `
 CREATE TABLE admin_mfa (
@@ -104,58 +108,50 @@ const rcHash = (code: string) => getKeys().hmac("mfa-recovery", code.toLowerCase
 const newRecoveryCode = () => { const h = crypto.randomBytes(5).toString("hex"); return h.slice(0, 5) + "-" + h.slice(5); };
 
 export interface MfaStatus { enrolled: boolean; confirmed: boolean; recovery_codes_left: number }
-export function mfaStatus(personId: string): MfaStatus {
-  const row = getDb().prepare("SELECT confirmed FROM admin_mfa WHERE person_id = ?").get(personId) as { confirmed: number } | undefined;
-  const left = (getDb().prepare("SELECT COUNT(*) AS c FROM admin_mfa_recovery WHERE person_id = ? AND used_at IS NULL").get(personId) as { c: number }).c;
-  return { enrolled: !!row, confirmed: !!row?.confirmed, recovery_codes_left: left };
+export async function mfaStatus(personId: string): Promise<MfaStatus> {
+  const row = await st().mfaRow(personId);
+  return { enrolled: !!row, confirmed: !!row?.confirmed, recovery_codes_left: await st().recoveryLeft(personId) };
 }
 
 /** Start (or restart, while unconfirmed) enrolment. Returns the secret and recovery codes ONCE; only encrypted/hashed forms are stored. */
-export function enrolMfa(personId: string, label = "People Pulse"): { secret: string; otpauth_uri: string; recovery_codes: string[] } {
-  const d = getDb();
-  if (mfaStatus(personId).confirmed) throw new Error("already enrolled");
+export async function enrolMfa(personId: string, label = "People Pulse"): Promise<{ secret: string; otpauth_uri: string; recovery_codes: string[] }> {
+  if ((await mfaStatus(personId)).confirmed) throw new Error("already enrolled");
   const raw = crypto.randomBytes(20);
   const secret = base32Encode(raw);
   const codes = Array.from({ length: 8 }, newRecoveryCode);
-  d.prepare("INSERT OR REPLACE INTO admin_mfa (person_id, secret_enc, confirmed, created_at, last_counter) VALUES (?,?,0,?,0)").run(personId, getKeys().encrypt("totp", secret), new Date().toISOString());
-  d.prepare("DELETE FROM admin_mfa_recovery WHERE person_id = ?").run(personId);
-  for (const c of codes) d.prepare("INSERT INTO admin_mfa_recovery (person_id, code_hash) VALUES (?,?)").run(personId, rcHash(c));
+  await st().startEnrolment(personId, getKeys().encrypt("totp", secret), new Date().toISOString(), codes.map(rcHash));
   audit(personId, "admin.mfa.enrol_started", "person:" + personId, {});
   const issuer = encodeURIComponent("People Pulse");
   return { secret, otpauth_uri: `otpauth://totp/${issuer}:${encodeURIComponent(label)}?secret=${secret}&issuer=${issuer}&algorithm=SHA1&digits=6&period=${TOTP_STEP_S}`, recovery_codes: codes };
 }
 
-function secretOf(personId: string): { secret: Buffer; confirmed: boolean; last: number } | null {
-  const row = getDb().prepare("SELECT secret_enc, confirmed, last_counter FROM admin_mfa WHERE person_id = ?").get(personId) as { secret_enc: string; confirmed: number; last_counter: number } | undefined;
+async function secretOf(personId: string): Promise<{ secret: Buffer; confirmed: boolean; last: number } | null> {
+  const row = await st().mfaRow(personId);
   if (!row) return null;
   return { secret: base32Decode(getKeys().decrypt("totp", row.secret_enc)), confirmed: !!row.confirmed, last: row.last_counter };
 }
 
 /** Confirm enrolment with the first valid code from the authenticator app. */
-export function confirmMfa(personId: string, code: string, now = Date.now()): boolean {
-  const s = secretOf(personId);
+export async function confirmMfa(personId: string, code: string, now = Date.now()): Promise<boolean> {
+  const s = await secretOf(personId);
   if (!s || s.confirmed) return false;
   const c = matchTotp(s.secret, code, now);
   if (c === null) return false;
-  getDb().prepare("UPDATE admin_mfa SET confirmed = 1, last_counter = ? WHERE person_id = ?").run(c, personId);
+  await st().confirm(personId, c);
   audit(personId, "admin.mfa.enrolled", "person:" + personId, {});
   return true;
 }
 
 /** Verify a TOTP code (single use per time step) or a recovery code (single use). Only for confirmed enrolments. */
-export function verifyMfa(personId: string, o: { code?: string; recovery?: string }, now = Date.now()): { ok: boolean; via?: "totp" | "recovery" } {
-  const s = secretOf(personId);
+export async function verifyMfa(personId: string, o: { code?: string; recovery?: string }, now = Date.now()): Promise<{ ok: boolean; via?: "totp" | "recovery" }> {
+  const s = await secretOf(personId);
   if (!s || !s.confirmed) return { ok: false };
   if (o.code) {
     const c = matchTotp(s.secret, o.code, now);
-    if (c !== null && c > s.last) {
-      getDb().prepare("UPDATE admin_mfa SET last_counter = ? WHERE person_id = ?").run(c, personId);
-      return { ok: true, via: "totp" };
-    }
+    if (c !== null && c > s.last && (await st().advanceCounter(personId, c))) return { ok: true, via: "totp" };
   }
   if (o.recovery) {
-    const r = getDb().prepare("UPDATE admin_mfa_recovery SET used_at = ? WHERE person_id = ? AND code_hash = ? AND used_at IS NULL").run(new Date(now).toISOString(), personId, rcHash(o.recovery));
-    if (Number(r.changes) > 0) { audit(personId, "admin.mfa.recovery_used", "person:" + personId, {}); return { ok: true, via: "recovery" }; }
+    if (await st().useRecovery(personId, rcHash(o.recovery), new Date(now).toISOString())) { audit(personId, "admin.mfa.recovery_used", "person:" + personId, {}); return { ok: true, via: "recovery" }; }
   }
   return { ok: false };
 }

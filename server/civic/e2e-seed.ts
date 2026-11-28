@@ -38,21 +38,21 @@ export function createE2eSeedRouter(): Router {
   });
   // Notifications (S-37): a verified sender organisation and a bound sender, made through the real service functions (two seeded admin ids
   // satisfy dual control). POST /notify/org {name?, kind?} -> {org_id, name}; POST /notify/sender {org_id, person_id, role?} -> {sender_id}.
-  r.post("/notify/org", (req, res) => {
+  r.post("/notify/org", async (req, res) => {
     if (!e2eSeedEnabled()) return void res.status(404).json({ error: "not found" });
     try {
       const name = typeof req.body?.name === "string" && req.body.name.trim().length >= 3 ? req.body.name.trim().slice(0, 100) : "E2E Department " + crypto.randomBytes(3).toString("hex");
       const kind = req.body?.kind === "eci_liaison" ? "eci_liaison" : "department";
-      const { id } = notify.requestOrg("e2e-seed-admin-a", { name, kind, letter_ref: "E2E/" + crypto.randomBytes(3).toString("hex"), email_domain: "e2e.gov.in", contact: "e2e@e2e.gov.in" });
-      notify.decideOrg("e2e-seed-admin-b", id, true);
+      const { id } = await notify.requestOrg("e2e-seed-admin-a", { name, kind, letter_ref: "E2E/" + crypto.randomBytes(3).toString("hex"), email_domain: "e2e.gov.in", contact: "e2e@e2e.gov.in" });
+      await notify.decideOrg("e2e-seed-admin-b", id, true);
       res.status(201).json({ org_id: id, name });
     } catch (e) { res.status(400).json({ error: String((e as Error).message) }); }
   });
-  r.post("/notify/sender", (req, res) => {
+  r.post("/notify/sender", async (req, res) => {
     if (!e2eSeedEnabled()) return void res.status(404).json({ error: "not found" });
     try {
-      const { id } = notify.requestSender("e2e-seed-admin-a", { org_id: String(req.body?.org_id ?? ""), person_id: String(req.body?.person_id ?? ""), role: typeof req.body?.role === "string" ? req.body.role : "department_sender" });
-      notify.decideSender("e2e-seed-admin-b", id, true);
+      const { id } = await notify.requestSender("e2e-seed-admin-a", { org_id: String(req.body?.org_id ?? ""), person_id: String(req.body?.person_id ?? ""), role: typeof req.body?.role === "string" ? req.body.role : "department_sender" });
+      await notify.decideSender("e2e-seed-admin-b", id, true);
       res.status(201).json({ sender_id: id });
     } catch (e) { res.status(400).json({ error: String((e as Error).message) }); }
   });

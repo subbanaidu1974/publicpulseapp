@@ -22,7 +22,9 @@
  */
 import crypto from "node:crypto";
 import express, { Router } from "express";
-import { audit, getDb, getKeys, registerMigration, requireAuth, requireRole } from "../core";
+import { audit, getKeys, registerMigration, requireAuth, requireRole } from "../core";
+import { identityDb } from "../core/asyncBridge";
+import { MediaHubStore, type SourceRow } from "../../data/repos/mediahub";
 import { isProductionEnv } from "../guards";
 import { mediaVideoHosts } from "../../security";
 import { asksPartyPreference, asksSecret, hasLink } from "../broadcast";
@@ -236,10 +238,10 @@ const REASONS = ["wrong", "partisan", "offensive", "broken", "other"] as const;
 class Bad extends Error { constructor(public code: string, m: string) { super(m); } }
 const str = (v: unknown): string => (typeof v === "string" ? v.normalize("NFKC").trim() : "");
 const fail = (res: express.Response, status: number, code: string, message: string): void => { res.status(status).json({ error: code, code, message }); };
-const db = () => getDb();
+const st = (): MediaHubStore => new MediaHubStore(identityDb());
 const isLocal = (h: string) => h === "localhost" || h === "127.0.0.1";
 
-interface Src { permission_by: string | null; id: string; kind: "news" | "live"; name_en: string; name_te: string | null; site_url: string; feed_url: string | null; stream_url: string | null; allow: "headline" | "snippet"; state: "AP" | "TG" | "BOTH"; permission_note: string | null; permission_date: string | null; contact: string | null; enabled: number; created_by: string; created_at: string; enabled_by: string | null; enabled_at: string | null; last_fetch_at: string | null; last_ok_at: string | null; last_error: string | null; health_ok: number | null; health_at: string | null }
+type Src = SourceRow;
 
 /** https only (http for localhost outside production); no login in the address; not too long. */
 export function checkUrl(label: string, raw: string, opts: { allowedHostsOnly?: boolean } = {}): string {
@@ -278,7 +280,7 @@ export function youtubeId(link: string): string | null {
 export const isYoutubeLiveChannel = (link: string): boolean => /^https:\/\/(www\.)?youtube\.com\/channel\/UC[A-Za-z0-9_-]{22}\/live\/?$/.test(link);
 export const youtubeFeedUrl = (channelId: string): string => `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
 
-export function addSource(adminId: string, body: Record<string, unknown>, now: Date = new Date()): Src {
+export async function addSource(adminId: string, body: Record<string, unknown>, now: Date = new Date()): Promise<Src> {
   const kind = body.kind === "live" ? "live" : body.kind === "news" ? "news" : null;
   if (!kind) throw new Bad("bad_kind", "kind must be news or live");
   const name_en = text("name", body.name_en, 2, 80, true)!, name_te = text("name_te", body.name_te, 1, 120, false);
@@ -290,10 +292,9 @@ export function addSource(adminId: string, body: Record<string, unknown>, now: D
   const allow = body.allow === "snippet" ? "snippet" : "headline";
   const state = body.state === "AP" || body.state === "TG" ? body.state : "BOTH";
   const id = crypto.randomUUID();
-  db().prepare("INSERT INTO mhub_sources (id,kind,name_en,name_te,site_url,feed_url,stream_url,allow,state,created_by,created_at,permission_note,permission_date,contact) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
-    .run(id, kind, name_en, name_te, site_url, feed_url, stream_url, allow, state, adminId, now.toISOString(), text("permission_note", body.permission_note, 10, 500, false), str(body.permission_date) || null, text("contact", body.contact, 5, 160, false));
+  await st().insertSource({ id, kind, name_en, name_te, site_url, feed_url, stream_url, allow, state, created_by: adminId, created_at: now.toISOString(), permission_note: text("permission_note", body.permission_note, 10, 500, false), permission_date: str(body.permission_date) || null, contact: text("contact", body.contact, 5, 160, false) });
   audit(adminId, "media.source.add", "mhub-source:" + id, { kind });
-  return getSource(id);
+  return await getSource(id);
 }
 
 /**
@@ -301,54 +302,54 @@ export function addSource(adminId: string, body: Record<string, unknown>, now: D
  * permission record and a different admin to switch it on, and it can be switched off or taken down like any source. The title is typed by the admin
  * (we do not fetch the page); the video is shown for 7 days like other news. Nothing is downloaded.
  */
-export function addVideoLink(adminId: string, body: Record<string, unknown>, now: Date = new Date()): Src {
+export async function addVideoLink(adminId: string, body: Record<string, unknown>, now: Date = new Date()): Promise<Src> {
   const link = str(body.link);
   const vid = youtubeId(link);
   if (!vid) throw new Bad("bad_youtube", "paste a YouTube video link (youtube.com/watch?v=..., youtu.be/... or youtube.com/shorts/...)");
   const title = text("title", body.title, 3, 200, true)!;
   const watch = `https://www.youtube.com/watch?v=${vid}`;
-  const s = addSource(adminId, { kind: "news", name_en: body.channel_name, name_te: body.channel_name_te, site_url: watch, feed_url: watch, allow: "headline", state: body.state, permission_note: body.permission_note, permission_date: body.permission_date, contact: body.contact }, now);
-  db().prepare("UPDATE mhub_sources SET feed_url = NULL, last_ok_at = ? WHERE id = ?").run(now.toISOString(), s.id);
-  db().prepare("INSERT INTO mhub_news (id,source_id,title,link,snippet,published_at,fetched_at) VALUES (?,?,?,?,NULL,?,?)").run(crypto.randomUUID(), s.id, title, watch, now.toISOString(), now.toISOString());
+  const s = await addSource(adminId, { kind: "news", name_en: body.channel_name, name_te: body.channel_name_te, site_url: watch, feed_url: watch, allow: "headline", state: body.state, permission_note: body.permission_note, permission_date: body.permission_date, contact: body.contact }, now);
+  await st().clearFeed(s.id, now.toISOString());
+  await st().insertNews({ id: crypto.randomUUID(), source_id: s.id, title, link: watch, snippet: null, published_at: now.toISOString(), fetched_at: now.toISOString() });
   audit(adminId, "media.video-link.add", "mhub-source:" + s.id, { video: vid });
-  return getSource(s.id);
+  return await getSource(s.id);
 }
 
-export function getSource(id: string): Src {
-  const s = db().prepare("SELECT * FROM mhub_sources WHERE id = ?").get(id) as unknown as Src | undefined;
+export async function getSource(id: string): Promise<Src> {
+  const s = await st().source(id);
   if (!s) throw new Bad("not_found", "no such source");
   return s;
 }
 
 /** Records the permission for a source that was added without one (for example a candidate loaded switched off). The admin who records it cannot also switch it on. */
-export function recordPermission(adminId: string, id: string, body: Record<string, unknown>, now: Date = new Date()): Src {
-  const s = getSource(id);
+export async function recordPermission(adminId: string, id: string, body: Record<string, unknown>, now: Date = new Date()): Promise<Src> {
+  const s = await getSource(id);
   if (s.enabled) throw new Bad("already_on", "switch the source off before changing its permission record");
   const note = text("permission_note", body.permission_note, 10, 500, true)!, contact = text("contact", body.contact, 5, 160, true)!;
   const d = new Date(str(body.permission_date));
   if (Number.isNaN(d.getTime()) || d.getTime() > now.getTime() + 86_400_000) throw new Bad("bad_date", "the permission date must be a real date, not in the future");
-  db().prepare("UPDATE mhub_sources SET permission_note = ?, permission_date = ?, contact = ?, permission_by = ? WHERE id = ?").run(note, str(body.permission_date), contact, adminId, id);
+  await st().setPermission(id, note, str(body.permission_date), contact, adminId);
   audit(adminId, "media.source.permission", "mhub-source:" + id);
-  return getSource(id);
+  return await getSource(id);
 }
 
 /** Switching on needs the permission record AND a different admin than the one who added it or recorded the permission. */
-export function enableSource(adminId: string, id: string, now: Date = new Date()): Src {
-  const s = getSource(id);
+export async function enableSource(adminId: string, id: string, now: Date = new Date()): Promise<Src> {
+  const s = await getSource(id);
   if (s.created_by === adminId || s.permission_by === adminId) throw new Bad("same_person", "a different admin must switch a source on");
   const date = s.permission_date ? new Date(s.permission_date) : null;
   if (!s.permission_note || !s.contact || !date || Number.isNaN(date.getTime()) || date.getTime() > now.getTime() + 86_400_000)
     throw new Bad("permission_missing", "record the permission first: a note saying why we may show it, the date it was given, and a contact at the source");
-  db().prepare("UPDATE mhub_sources SET enabled = 1, enabled_by = ?, enabled_at = ? WHERE id = ?").run(adminId, now.toISOString(), id);
+  await st().enable(id, adminId, now.toISOString());
   audit(adminId, "media.source.enable", "mhub-source:" + id);
-  return getSource(id);
+  return await getSource(id);
 }
 
-export function disableSource(adminId: string, id: string): Src {
-  getSource(id);
-  db().prepare("UPDATE mhub_sources SET enabled = 0 WHERE id = ?").run(id);
+export async function disableSource(adminId: string, id: string): Promise<Src> {
+  await getSource(id);
+  await st().disable(id);
   audit(adminId, "media.source.disable", "mhub-source:" + id);
-  return getSource(id);
+  return await getSource(id);
 }
 
 /* ---------------- feeds ---------------- */
@@ -383,10 +384,10 @@ export type Fetcher = (url: string, init: { method?: string; signal: AbortSignal
 const realFetch: Fetcher = (url, init) => fetch(url, init) as unknown as ReturnType<Fetcher>;
 
 export async function refreshSource(id: string, fetcher: Fetcher = realFetch, now: Date = new Date()): Promise<{ added: number }> {
-  const s = getSource(id);
+  const s = await getSource(id);
   if (s.kind !== "news" || !s.feed_url) throw new Bad("not_news", "this source has no news feed");
   if (!s.enabled) throw new Bad("not_enabled", "this source is switched off, so nothing is fetched from it");
-  db().prepare("UPDATE mhub_sources SET last_fetch_at = ? WHERE id = ?").run(now.toISOString(), id);
+  await st().markFetch(id, now.toISOString());
   try {
     const r = await fetcher(s.feed_url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     if (!r.ok) throw new Error(`the source answered ${r.status}`);
@@ -395,40 +396,34 @@ export async function refreshSource(id: string, fetcher: Fetcher = realFetch, no
     const items = parseFeed(body, now).slice(0, MAX_ITEMS_PER_FETCH);
     let added = 0;
     for (const it of items) {
-      const res = db().prepare("INSERT OR IGNORE INTO mhub_news (id,source_id,title,link,snippet,published_at,fetched_at) VALUES (?,?,?,?,?,?,?)")
-        .run(crypto.randomUUID(), id, it.title, it.link, s.allow === "snippet" ? it.snippet : null, it.published, now.toISOString());
-      added += Number(res.changes);
+      if (await st().addNewsIfNew({ id: crypto.randomUUID(), source_id: id, title: it.title, link: it.link, snippet: s.allow === "snippet" ? it.snippet : null, published_at: it.published, fetched_at: now.toISOString() })) added++;
     }
-    db().prepare("UPDATE mhub_sources SET last_ok_at = ?, last_error = NULL WHERE id = ?").run(now.toISOString(), id);
-    db().prepare("DELETE FROM mhub_news WHERE published_at < ?").run(new Date(now.getTime() - NEWS_KEEP_DAYS * 86_400_000).toISOString());
+    await st().markOk(id, now.toISOString());
+    await st().deleteNewsBefore(new Date(now.getTime() - NEWS_KEEP_DAYS * 86_400_000).toISOString());
     return { added };
   } catch (e) {
-    db().prepare("UPDATE mhub_sources SET last_error = ? WHERE id = ?").run(String((e as Error).message).slice(0, 200), id);
+    await st().markError(id, String((e as Error).message).slice(0, 200));
     throw new Bad("fetch_failed", `could not read the feed: ${(e as Error).message}`);
   }
 }
 
 /** Refreshes every enabled news source not fetched in the last REFRESH_MINUTES. Used by the news route (without waiting) and by tests. */
 export async function refreshDue(fetcher: Fetcher = realFetch, now: Date = new Date()): Promise<void> {
-  const due = db().prepare("SELECT id FROM mhub_sources WHERE kind = 'news' AND feed_url IS NOT NULL AND enabled = 1 AND (last_fetch_at IS NULL OR last_fetch_at < ?)").all(new Date(now.getTime() - REFRESH_MINUTES * 60_000).toISOString()) as { id: string }[];
-  for (const d of due) await refreshSource(d.id, fetcher, now).catch(() => undefined);
+  const due = await st().dueIds(new Date(now.getTime() - REFRESH_MINUTES * 60_000).toISOString());
+  for (const d of due) await refreshSource(d, fetcher, now).catch(() => undefined);
 }
 
-export function newsFor(state: string | undefined, now: Date = new Date()) {
+export async function newsFor(state: string | undefined, now: Date = new Date()) {
   const since = new Date(now.getTime() - NEWS_KEEP_DAYS * 86_400_000).toISOString();
-  const st = state === "AP" || state === "TG" ? state : null;
-  const base = `SELECT n.id, n.title, n.link, n.snippet, n.published_at, s.id AS sid, s.name_en, s.name_te, s.state FROM mhub_news n JOIN mhub_sources s ON s.id = n.source_id
-    WHERE s.enabled = 1 AND n.hidden = 0 AND n.published_at >= ? ${st ? "AND (s.state = ? OR s.state = 'BOTH')" : ""}`;
-  const args = st ? [since, st] : [since];
-  type Row = { id: string; title: string; link: string; snippet: string | null; published_at: string; sid: string; name_en: string; name_te: string | null; state: string };
+  const stt = state === "AP" || state === "TG" ? state : null;
   // Headlines and YouTube videos are read separately: with many channels switched on, the newest 100 rows would otherwise be all videos (or all headlines).
-  const heads = db().prepare(`${base} AND n.link NOT LIKE 'https://www.youtube.com/watch%' ORDER BY n.published_at DESC LIMIT 150`).all(...args) as unknown as Row[];
-  const vids = db().prepare(`${base} AND n.link LIKE 'https://www.youtube.com/watch%' ORDER BY n.published_at DESC LIMIT 400`).all(...args) as unknown as Row[];
+  const heads = await st().newsRows(since, stt, false, 150);
+  const vids = await st().newsRows(since, stt, true, 400);
   const rows = [...heads, ...vids].sort((a, b) => (a.published_at < b.published_at ? 1 : a.published_at > b.published_at ? -1 : 0));
   const items = rows.map((r) => ({ id: r.id, title: r.title, link: r.link, snippet: r.snippet, published_at: r.published_at, outlet_en: r.name_en, outlet_te: r.name_te, source_id: r.sid, youtube: youtubeId(r.link) }));
   const dayAgo = new Date(now.getTime() - 86_400_000).toISOString();
   const digest = items.filter((i) => i.published_at >= dayAgo).slice(0, 5);
-  const srcs = db().prepare("SELECT * FROM mhub_sources WHERE kind = 'news' AND enabled = 1").all() as unknown as Src[];
+  const srcs = await st().enabledNewsSources();
   const staleBefore = new Date(now.getTime() - STALE_HOURS * 3_600_000).toISOString();
   return { items, digest, sources: srcs.map((s) => ({ ...srcPublic(s), stale: !!s.feed_url && (!s.last_ok_at || s.last_ok_at < staleBefore) })), label: "publisher" };
 }
@@ -436,61 +431,58 @@ export function newsFor(state: string | undefined, now: Date = new Date()) {
 /* ---------------- live channels ---------------- */
 
 export async function checkStream(id: string, fetcher: Fetcher = realFetch, now: Date = new Date()): Promise<boolean> {
-  const s = getSource(id);
+  const s = await getSource(id);
   if (s.kind !== "live" || !s.stream_url) throw new Bad("no_stream", "this channel has no stream address to check");
   if (youtubeId(s.stream_url) || isYoutubeLiveChannel(s.stream_url)) throw new Bad("youtube_unchecked", "a YouTube stream plays in YouTube's own player; we cannot check it from here");
   let ok = false;
   try { const r = await fetcher(s.stream_url, { method: "HEAD", signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) }); ok = r.ok; } catch { ok = false; }
-  db().prepare("UPDATE mhub_sources SET health_ok = ?, health_at = ? WHERE id = ?").run(ok ? 1 : 0, now.toISOString(), id);
+  await st().setHealth(id, ok, now.toISOString());
   return ok;
 }
-export const liveChannels = () => (db().prepare("SELECT * FROM mhub_sources WHERE kind = 'live' AND enabled = 1 ORDER BY name_en").all() as unknown as Src[])
+export const liveChannels = async () => (await st().enabledLive())
   .map((s) => ({ ...srcPublic(s), stream_url: s.stream_url, health_ok: s.health_ok === null ? null : s.health_ok === 1, health_at: s.health_at }));
 
 /* ---------------- counts, reports ---------------- */
 
-export function countClick(kind: string, id: string, now: Date = new Date()): void {
+export async function countClick(kind: string, id: string, now: Date = new Date()): Promise<void> {
   if (kind !== "news" && kind !== "live") throw new Bad("bad_kind", "kind must be news or live");
-  const ok = kind === "news"
-    ? db().prepare("SELECT 1 FROM mhub_news n JOIN mhub_sources s ON s.id = n.source_id WHERE n.id = ? AND s.enabled = 1 AND n.hidden = 0").get(id)
-    : db().prepare("SELECT 1 FROM mhub_sources WHERE id = ? AND kind = 'live' AND enabled = 1").get(id);
+  const ok = kind === "news" ? await st().newsClickable(id) : await st().liveClickable(id);
   if (!ok) throw new Bad("not_found", "no such item");
-  db().prepare("INSERT INTO mhub_counts (kind,item_id,day,n) VALUES (?,?,?,1) ON CONFLICT (kind,item_id,day) DO UPDATE SET n = n + 1").run(kind, id, now.toISOString().slice(0, 10));
+  await st().bump(kind, id, now.toISOString().slice(0, 10));
 }
 
-export function reportItem(personId: string, body: Record<string, unknown>, now: Date = new Date()): void {
+export async function reportItem(personId: string, body: Record<string, unknown>, now: Date = new Date()): Promise<void> {
   const kind = str(body.kind), item = str(body.id), reason = str(body.reason);
   if (!["video", "news", "live"].includes(kind)) throw new Bad("bad_kind", "kind must be video, news or live");
   if (!(REASONS as readonly string[]).includes(reason)) throw new Bad("bad_reason", "choose a reason from the list");
   const note = str(body.note);
   if (note && (note.length > 200 || hasLink(note) || asksSecret(note) || asksPartyPreference(note))) throw new Bad("bad_note", "the note is at most 200 characters, with no link, no code or ID number and no party choice");
-  const exists = kind === "video" ? db().prepare("SELECT 1 FROM vcast_videos WHERE id = ?").get(item) : kind === "news" ? db().prepare("SELECT 1 FROM mhub_news WHERE id = ?").get(item) : db().prepare("SELECT 1 FROM mhub_sources WHERE id = ? AND kind = 'live'").get(item);
+  const exists = kind === "video" ? await st().videoExists(item) : kind === "news" ? await st().newsExists(item) : await st().liveExists(item);
   if (!exists) throw new Bad("not_found", "no such item");
   const reporter = getKeys().hmac("media-report", `${kind}:${item}:${personId}`); // one report per person per item, and no person id in the table
-  const r = db().prepare("INSERT OR IGNORE INTO mhub_reports (id,kind,item_id,reason,note,reporter,created_at) VALUES (?,?,?,?,?,?,?)").run(crypto.randomUUID(), kind, item, reason, note || null, reporter, now.toISOString());
-  if (Number(r.changes) === 0) throw new Bad("already_reported", "you have already reported this item");
+  if (!(await st().addReport({ id: crypto.randomUUID(), kind, item_id: item, reason, note: note || null, reporter, at: now.toISOString() }))) throw new Bad("already_reported", "you have already reported this item");
 }
 
-export function resolveReport(adminId: string, id: string, action: unknown, now: Date = new Date()): void {
-  const r = db().prepare("SELECT * FROM mhub_reports WHERE id = ? AND status = 'open'").get(id) as unknown as { kind: string; item_id: string } | undefined;
+export async function resolveReport(adminId: string, id: string, action: unknown, now: Date = new Date()): Promise<void> {
+  const r = await st().openReport(id);
   if (!r) throw new Bad("not_found", "no open report with that id");
   if (action !== "dismiss" && action !== "takedown") throw new Bad("bad_action", "action must be dismiss or takedown");
   if (action === "takedown") {
-    if (r.kind === "video") { try { recallVideo(adminId, r.item_id, "Withdrawn after a member report"); } catch (e) { if ((e as { code?: string }).code !== "not_live") throw e; } }
-    else if (r.kind === "news") db().prepare("UPDATE mhub_news SET hidden = 1 WHERE id = ?").run(r.item_id);
-    else db().prepare("UPDATE mhub_sources SET enabled = 0 WHERE id = ?").run(r.item_id);
+    if (r.kind === "video") { try { await recallVideo(adminId, r.item_id, "Withdrawn after a member report"); } catch (e) { if ((e as { code?: string }).code !== "not_live") throw e; } }
+    else if (r.kind === "news") await st().hideNews(r.item_id);
+    else await st().disable(r.item_id);
   }
   // every open report on the same item is closed together
-  db().prepare("UPDATE mhub_reports SET status = 'resolved', resolved_by = ?, resolved_at = ?, resolution = ? WHERE kind = ? AND item_id = ? AND status = 'open'").run(adminId, now.toISOString(), String(action), r.kind, r.item_id);
+  await st().closeReports(r.kind, r.item_id, adminId, now.toISOString(), String(action));
   audit(adminId, "media.report." + String(action), `mhub-${r.kind}:${r.item_id}`);
 }
 
-export function numbers() {
-  const rows = db().prepare("SELECT kind, item_id, SUM(n) AS total, MAX(day) AS last_day FROM mhub_counts GROUP BY kind, item_id").all() as unknown as { kind: string; item_id: string; total: number; last_day: string }[];
-  const name = (kind: string, id: string): string => (kind === "news"
-    ? (db().prepare("SELECT title FROM mhub_news WHERE id = ?").get(id) as { title: string } | undefined)?.title
-    : (db().prepare("SELECT name_en FROM mhub_sources WHERE id = ?").get(id) as { name_en: string } | undefined)?.name_en) ?? id;
-  const videos = db().prepare("SELECT id, title_en, views FROM vcast_videos WHERE status IN ('live','recalled')").all() as unknown as { id: string; title_en: string; views: number }[];
+export async function numbers() {
+  const rows = await st().counts();
+  const names = new Map<string, string>();
+  for (const r of rows) names.set(r.kind + ":" + r.item_id, ((r.kind === "news" ? await st().newsTitle(r.item_id) : await st().sourceName(r.item_id)) ?? r.item_id));
+  const name = (kind: string, id: string): string => names.get(kind + ":" + id) ?? id;
+  const videos = await st().countedVideos();
   return {
     min_shown: MIN_COUNT_SHOWN,
     items: [
@@ -507,14 +499,10 @@ export function numbers() {
  * so the News, Watch and Live tabs can be tried with real content. Turning the setting off puts them back. It never touches a source an admin switched on or recorded permission for. */
 export const previewSourcesEnabled = (): boolean => !isProductionEnv() && process.env.CIVIC_PREVIEW_SOURCES === "1";
 export const PREVIEW_NOTE = "PREVIEW ONLY (development setting): no permission has been recorded for this source";
-export function applyPreviewSources(now: Date = new Date()): void {
-  const d = db();
-  if (previewSourcesEnabled()) {
-    d.prepare("UPDATE mhub_sources SET enabled = 1, enabled_by = 'preview-setting', enabled_at = ?, permission_note = ?, permission_date = ?, contact = 'preview@example.invalid' WHERE id LIKE 'cand-%' AND enabled = 0 AND permission_note IS NULL")
-      .run(now.toISOString(), PREVIEW_NOTE, now.toISOString().slice(0, 10));
-  } else {
-    d.prepare("UPDATE mhub_sources SET enabled = 0, enabled_by = NULL, enabled_at = NULL, permission_note = NULL, permission_date = NULL, contact = NULL WHERE enabled_by = 'preview-setting'").run();
-  }
+export async function applyPreviewSources(now: Date = new Date()): Promise<void> {
+  const d = st();
+  if (previewSourcesEnabled()) await d.previewOn(now.toISOString(), PREVIEW_NOTE, now.toISOString().slice(0, 10));
+  else await d.previewOff();
 }
 
 export const demoNewsEnabled = (): boolean => !isProductionEnv() && process.env.CIVIC_DEMO_NEWS === "1";
@@ -526,26 +514,21 @@ const DEMO_ITEMS = [
   "Sample headline: a health camp is held in a mandal (not real news)",
   "Sample headline: a bus service is extended to a new route (not real news)",
 ];
-export function ensureDemoNews(now: Date = new Date()): void {
+export async function ensureDemoNews(now: Date = new Date()): Promise<void> {
   if (!demoNewsEnabled()) return;
-  const d = db();
-  if (!d.prepare("SELECT 1 FROM mhub_sources WHERE id = ?").get(DEMO_ID)) {
-    d.prepare("INSERT INTO mhub_sources (id,kind,name_en,name_te,site_url,feed_url,allow,state,created_by,created_at,permission_note,permission_date,contact,enabled,enabled_by,enabled_at,last_ok_at) VALUES (?,?,?,?,?,NULL,'headline','BOTH','system',?,?,?,?,1,'system',?,?)")
-      .run(DEMO_ID, "news", "DEMO outlet (sample headlines, not real news)", "డెమో (నమూనా శీర్షికలు, నిజమైన వార్తలు కావు)", "https://example.com/", now.toISOString(), "Sample content written by us for a preview; no real outlet is involved", now.toISOString().slice(0, 10), "demo@example.invalid", now.toISOString(), now.toISOString());
+  const d = st(), iso = now.toISOString(), day = iso.slice(0, 10);
+  if (!(await d.sourceExists(DEMO_ID))) {
+    await d.insertSource({ id: DEMO_ID, kind: "news", name_en: "DEMO outlet (sample headlines, not real news)", name_te: "డెమో (నమూనా శీర్షికలు, నిజమైన వార్తలు కావు)", site_url: "https://example.com/", feed_url: null, allow: "headline", state: "BOTH", created_by: "system", created_at: iso, permission_note: "Sample content written by us for a preview; no real outlet is involved", permission_date: day, contact: "demo@example.invalid", enabled: 1, enabled_by: "system", enabled_at: iso, last_ok_at: iso });
   }
   // One sample live channel that "streams" a looping sample clip from our own server, so the Live tab player can be seen working. Clearly labelled; demo only.
-  if (!d.prepare("SELECT 1 FROM mhub_sources WHERE id = ?").get("demo-live")) {
-    d.prepare("INSERT INTO mhub_sources (id,kind,name_en,name_te,site_url,feed_url,stream_url,allow,state,created_by,created_at,permission_note,permission_date,contact,enabled,enabled_by,enabled_at) VALUES (?,?,?,?,?,NULL,?,'headline','BOTH','system',?,?,?,?,1,'system',?)")
-      .run("demo-live", "live", "DEMO live channel (sample clip, not a real broadcast)", "డెమో ప్రత్యక్ష ఛానల్ (నమూనా క్లిప్, నిజమైన ప్రసారం కాదు)", "https://example.com/", "/demo/sample-1.webm", now.toISOString(), "Sample clip made by us for a preview; no real channel is involved", now.toISOString().slice(0, 10), "demo@example.invalid", now.toISOString());
+  if (!(await d.sourceExists("demo-live"))) {
+    await d.insertSource({ id: "demo-live", kind: "live", name_en: "DEMO live channel (sample clip, not a real broadcast)", name_te: "డెమో ప్రత్యక్ష ఛానల్ (నమూనా క్లిప్, నిజమైన ప్రసారం కాదు)", site_url: "https://example.com/", feed_url: null, stream_url: "/demo/sample-1.webm", allow: "headline", state: "BOTH", created_by: "system", created_at: iso, permission_note: "Sample clip made by us for a preview; no real channel is involved", permission_date: day, contact: "demo@example.invalid", enabled: 1, enabled_by: "system", enabled_at: iso });
   }
   // Fresh times on every call so the samples never age out of the 7-day window.
-  d.prepare("UPDATE mhub_sources SET last_ok_at = ? WHERE id = ?").run(now.toISOString(), DEMO_ID);
-  DEMO_ITEMS.forEach((t, i) => {
-    const at = new Date(now.getTime() - (20 + i * 45) * 60_000).toISOString();
-    const link = `https://example.com/demo-story-${i + 1}`;
-    d.prepare("INSERT INTO mhub_news (id,source_id,title,link,snippet,published_at,fetched_at) VALUES (?,?,?,?,NULL,?,?) ON CONFLICT (source_id, link) DO UPDATE SET published_at = excluded.published_at, title = excluded.title")
-      .run(crypto.randomUUID(), DEMO_ID, t, link, at, now.toISOString());
-  });
+  await d.markOk(DEMO_ID, iso);
+  for (const [i, t] of DEMO_ITEMS.entries()) {
+    await d.refreshNews({ id: crypto.randomUUID(), source_id: DEMO_ID, title: t, link: `https://example.com/demo-story-${i + 1}`, snippet: null, published_at: new Date(now.getTime() - (20 + i * 45) * 60_000).toISOString(), fetched_at: iso });
+  }
 }
 
 /** Three short sample clips (made for the preview, files in public/demo) so the Watch tab can be played before any real video is cleared. */
@@ -567,32 +550,32 @@ const wrap = (fn: (req: express.Request, res: express.Response) => void | Promis
 };
 const adminOnly = [requireAuth, requireRole("admin")];
 
-mediaRouter.get("/news", wrap((req, res) => {
+mediaRouter.get("/news", wrap(async (req, res) => {
   res.set("Cache-Control", "no-store");
-  ensureDemoNews(); applyPreviewSources();
+  await ensureDemoNews(); await applyPreviewSources();
   void refreshDue().catch(() => undefined); // never makes the reader wait
-  res.json(newsFor(typeof req.query.state === "string" ? req.query.state : undefined));
+  res.json(await newsFor(typeof req.query.state === "string" ? req.query.state : undefined));
 }));
 mediaRouter.get("/preview", wrap((_req, res) => { res.set("Cache-Control", "no-store"); res.json({ preview: previewSourcesEnabled() }); }));
 mediaRouter.get("/demo-videos", wrap((_req, res) => { res.set("Cache-Control", "no-store"); res.json({ videos: demoVideos() }); }));
-mediaRouter.get("/live", wrap((_req, res) => { res.set("Cache-Control", "no-store"); ensureDemoNews(); applyPreviewSources(); res.json({ channels: liveChannels(), preview: previewSourcesEnabled() }); }));
-mediaRouter.post("/click", wrap((req, res) => { countClick(str(req.body?.kind), str(req.body?.id)); res.json({ ok: true }); }));
-mediaRouter.post("/report", requireAuth, wrap((req, res) => { reportItem(req.person!.id, req.body ?? {}); res.status(201).json({ ok: true }); }));
+mediaRouter.get("/live", wrap(async (_req, res) => { res.set("Cache-Control", "no-store"); await ensureDemoNews(); await applyPreviewSources(); res.json({ channels: await liveChannels(), preview: previewSourcesEnabled() }); }));
+mediaRouter.post("/click", wrap(async (req, res) => { await countClick(str(req.body?.kind), str(req.body?.id)); res.json({ ok: true }); }));
+mediaRouter.post("/report", requireAuth, wrap(async (req, res) => { await reportItem(req.person!.id, req.body ?? {}); res.status(201).json({ ok: true }); }));
 
-mediaRouter.get("/admin/sources", ...adminOnly, wrap((req, res) => {
-  const rows = db().prepare("SELECT * FROM mhub_sources ORDER BY created_at DESC").all() as unknown as Src[];
+mediaRouter.get("/admin/sources", ...adminOnly, wrap(async (req, res) => {
+  const rows = await st().allSources();
   res.json({ sources: rows.map((s) => ({ ...s, enabled: s.enabled === 1, mine: s.created_by === req.person!.id || s.permission_by === req.person!.id, created_by: undefined, enabled_by: undefined, permission_by: undefined })), min_shown: MIN_COUNT_SHOWN, hosts: mediaVideoHosts() });
 }));
-mediaRouter.post("/admin/videos", ...adminOnly, wrap((req, res) => { const s = addVideoLink(req.person!.id, req.body ?? {}); res.status(201).json({ id: s.id }); }));
-mediaRouter.post("/admin/sources", ...adminOnly, wrap((req, res) => { const s = addSource(req.person!.id, req.body ?? {}); res.status(201).json({ id: s.id }); }));
-mediaRouter.post("/admin/sources/:id/permission", ...adminOnly, wrap((req, res) => { recordPermission(req.person!.id, String(req.params.id), req.body ?? {}); res.json({ ok: true }); }));
-mediaRouter.post("/admin/sources/:id/enable", ...adminOnly, wrap((req, res) => { enableSource(req.person!.id, String(req.params.id)); res.json({ ok: true }); }));
-mediaRouter.post("/admin/sources/:id/disable", ...adminOnly, wrap((req, res) => { disableSource(req.person!.id, String(req.params.id)); res.json({ ok: true }); }));
+mediaRouter.post("/admin/videos", ...adminOnly, wrap(async (req, res) => { const s = await addVideoLink(req.person!.id, req.body ?? {}); res.status(201).json({ id: s.id }); }));
+mediaRouter.post("/admin/sources", ...adminOnly, wrap(async (req, res) => { const s = await addSource(req.person!.id, req.body ?? {}); res.status(201).json({ id: s.id }); }));
+mediaRouter.post("/admin/sources/:id/permission", ...adminOnly, wrap(async (req, res) => { await recordPermission(req.person!.id, String(req.params.id), req.body ?? {}); res.json({ ok: true }); }));
+mediaRouter.post("/admin/sources/:id/enable", ...adminOnly, wrap(async (req, res) => { await enableSource(req.person!.id, String(req.params.id)); res.json({ ok: true }); }));
+mediaRouter.post("/admin/sources/:id/disable", ...adminOnly, wrap(async (req, res) => { await disableSource(req.person!.id, String(req.params.id)); res.json({ ok: true }); }));
 mediaRouter.post("/admin/sources/:id/refresh", ...adminOnly, wrap(async (req, res) => { res.json(await refreshSource(String(req.params.id))); }));
 mediaRouter.post("/admin/sources/:id/check", ...adminOnly, wrap(async (req, res) => { res.json({ ok: await checkStream(String(req.params.id)) }); }));
-mediaRouter.get("/admin/reports", ...adminOnly, wrap((_req, res) => {
-  const rows = db().prepare("SELECT id, kind, item_id, reason, note, created_at, status, resolution FROM mhub_reports ORDER BY (status = 'open') DESC, created_at DESC LIMIT 100").all();
+mediaRouter.get("/admin/reports", ...adminOnly, wrap(async (_req, res) => {
+  const rows = await st().reports();
   res.json({ reports: rows });
 }));
-mediaRouter.post("/admin/reports/:id/resolve", ...adminOnly, wrap((req, res) => { resolveReport(req.person!.id, String(req.params.id), req.body?.action); res.json({ ok: true }); }));
-mediaRouter.get("/admin/numbers", ...adminOnly, wrap((_req, res) => { res.json(numbers()); }));
+mediaRouter.post("/admin/reports/:id/resolve", ...adminOnly, wrap(async (req, res) => { await resolveReport(req.person!.id, String(req.params.id), req.body?.action); res.json({ ok: true }); }));
+mediaRouter.get("/admin/numbers", ...adminOnly, wrap(async (_req, res) => { res.json(await numbers()); }));
