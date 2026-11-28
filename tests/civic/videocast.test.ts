@@ -95,13 +95,13 @@ describe("video broadcasts (S-230, S-231) @E2E-221", () => {
     expect((await propose(a, { title_en: "Hi" })).status).toBe(400);
   });
 
-  it("the media address must be a direct https audio or video file with no login in it", () => {
+  it("the media address must be a direct https audio or video file with no login in it", async () => {
     expect(checkMediaUrl("https://media.example.org/a/b.MP4")).toMatchObject({ kind: "video" });
     expect(checkMediaUrl("https://media.example.org/a.mp3?x=1")).toMatchObject({ kind: "audio" });
     for (const bad of ["http://media.example.org/a.mp4", "https://user:pw@media.example.org/a.mp4", "https://media.example.org/page.html", "https://www.youtube.com/watch?v=abc", "javascript:alert(1)", "ftp://x.org/a.mp4", "not a url", "https://x.org/" + "a".repeat(600) + ".mp4"])
       expect(() => checkMediaUrl(bad), bad).toThrow();
     expect(checkMediaUrl("http://localhost:3000/a.wav").kind).toBe("audio"); // development only
-    expect(() => checkMediaUrl("https://other.example.net/a.mp4")).toThrow(/approved list/); // a host that is not on MEDIA_VIDEO_HOSTS
+    await expect((async () => checkMediaUrl("https://other.example.net/a.mp4"))()).rejects.toThrow(/approved list/); // a host that is not on MEDIA_VIDEO_HOSTS
   });
 
   it("plays are counted without a person, and the count stays hidden under the minimum", async () => {

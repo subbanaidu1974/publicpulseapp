@@ -54,7 +54,6 @@
     "server/civic/surveys/responses.ts",
     "server/civic/surveys/results.ts",
     "server/civic/surveys/source.ts",
-    "server/civic/videocast/index.ts",
     "server/history/api.ts",
     "server/history/store.ts",
     "server/obs.ts"

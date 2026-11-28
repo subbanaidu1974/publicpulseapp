@@ -33,13 +33,13 @@ const feedOf = (xml: string, ok = true, status = 200): Fetcher => async () => ({
 const NEWS = { kind: "news", name_en: "Daily Telugu", site_url: "https://daily.example.net/", feed_url: "https://daily.example.net/feed.xml", allow: "headline", state: "AP", permission_note: "Written reuse permission from the editor, mail of 20 Nov 2026", permission_date: "2026-11-20", contact: "desk@daily.example.net" };
 
 describe("media hub: sources, news, live, reports, counts (S-225, S-226, S-228, S-234, S-236) @E2E-223", () => {
-  it("a source starts switched off, needs the permission record, and a DIFFERENT admin must switch it on; any admin can switch it off", () => {
+  it("a source starts switched off, needs the permission record, and a DIFFERENT admin must switch it on; any admin can switch it off", async () => {
     const a = admin(), b = admin();
     const noPerm = addSource(a.id, { ...NEWS, permission_note: undefined, permission_date: undefined, contact: undefined }, NOW);
     expect(noPerm.enabled).toBe(0);
-    expect(() => enableSource(b.id, noPerm.id, NOW)).toThrow(/record the permission/);
+    await expect((async () => enableSource(b.id, noPerm.id, NOW))()).rejects.toThrow(/record the permission/);
     const s = addSource(a.id, NEWS, NOW);
-    expect(() => enableSource(a.id, s.id, NOW)).toThrow(/different admin/);
+    await expect((async () => enableSource(a.id, s.id, NOW))()).rejects.toThrow(/different admin/);
     expect(enableSource(b.id, s.id, NOW).enabled).toBe(1);
     expect(disableSource(a.id, s.id).enabled).toBe(0);
   });
@@ -55,16 +55,16 @@ describe("media hub: sources, news, live, reports, counts (S-225, S-226, S-228, 
     expect((await call("GET", "/m/admin/numbers", u.token)).status).toBe(403);
   });
 
-  it("addresses must be https with no login and a stream must be on the approved host list", () => {
-    expect(() => checkUrl("x", "http://daily.example.net/feed")).toThrow(/https/);
-    expect(() => checkUrl("x", "https://u:p@daily.example.net/feed")).toThrow(/login/);
-    expect(() => checkUrl("x", "javascript:alert(1)")).toThrow();
+  it("addresses must be https with no login and a stream must be on the approved host list", async () => {
+    await expect((async () => checkUrl("x", "http://daily.example.net/feed"))()).rejects.toThrow(/https/);
+    await expect((async () => checkUrl("x", "https://u:p@daily.example.net/feed"))()).rejects.toThrow(/login/);
+    await expect((async () => checkUrl("x", "javascript:alert(1)"))()).rejects.toThrow();
     expect(checkUrl("x", "https://daily.example.net/feed")).toContain("https://");
-    expect(() => checkUrl("stream", "https://elsewhere.example.net/live.m3u8", { allowedHostsOnly: true })).toThrow(/approved list/);
+    await expect((async () => checkUrl("stream", "https://elsewhere.example.net/live.m3u8", { allowedHostsOnly: true }))()).rejects.toThrow(/approved list/);
     expect(checkUrl("stream", "https://streams.example.org/live.m3u8", { allowedHostsOnly: true })).toContain("streams.example.org");
   });
 
-  it("the feed reader takes RSS and Atom, keeps headline, link and time, skips broken items and never keeps the article", () => {
+  it("the feed reader takes RSS and Atom, keeps headline, link and time, skips broken items and never keeps the article", async () => {
     const rss = RSS([
       { t: "Water scheme opens in <b>Guntur</b>", l: "https://daily.example.net/a", d: "Wed, 25 Nov 2026 08:00:00 GMT", desc: "<p>Long body &amp; more</p>" },
       { t: "x", l: "https://daily.example.net/short", d: "Wed, 25 Nov 2026 08:00:00 GMT" },
@@ -135,7 +135,7 @@ describe("media hub: sources, news, live, reports, counts (S-225, S-226, S-228, 
     expect(liveChannels()[0].health_ok).toBe(true);
     expect(await checkStream(ch.id, async () => { throw new Error("down"); }, NOW)).toBe(false);
     expect(liveChannels()[0].health_ok).toBe(false);
-    expect(() => addSource(a.id, { kind: "live", name_en: "Other", site_url: "https://o.example.net/", stream_url: "https://not-listed.example.net/x.m3u8" }, NOW)).toThrow(/approved list/);
+    await expect((async () => addSource(a.id, { kind: "live", name_en: "Other", site_url: "https://o.example.net/", stream_url: "https://not-listed.example.net/x.m3u8" }, NOW))()).rejects.toThrow(/approved list/);
   });
 
   it("clicks are one counter per item per day with no person, hidden under the minimum, and only for items that are shown", async () => {
@@ -147,10 +147,10 @@ describe("media hub: sources, news, live, reports, counts (S-225, S-226, S-228, 
     expect(numbers().items.find((x) => x.item_id === id)?.total).toBeNull();
     countClick("news", id, NOW);
     expect(numbers().items.find((x) => x.item_id === id)?.total).toBe(MIN_COUNT_SHOWN);
-    expect(() => countClick("news", "nope", NOW)).toThrow();
-    expect(() => countClick("other", id, NOW)).toThrow();
+    await expect((async () => countClick("news", "nope", NOW))()).rejects.toThrow();
+    await expect((async () => countClick("other", id, NOW))()).rejects.toThrow();
     disableSource(a.id, s.id);
-    expect(() => countClick("news", id, NOW)).toThrow(); // switched off: not countable
+    await expect((async () => countClick("news", id, NOW))()).rejects.toThrow(); // switched off: not countable
     const cols = (getDb().prepare("PRAGMA table_info(mhub_counts)").all() as { name: string }[]).map((c) => c.name);
     expect(cols.filter((c) => /person|viewer|member|reader/i.test(c))).toEqual([]);
   });
@@ -161,29 +161,29 @@ describe("media hub: sources, news, live, reports, counts (S-225, S-226, S-228, 
     await refreshSource(s.id, feedOf(RSS([{ t: "Disputed story here", l: "https://daily.example.net/d", d: "Thu, 26 Nov 2026 08:00:00 GMT" }])), NOW);
     const nid = newsFor(undefined, NOW).items[0].id;
     reportItem(u1.id, { kind: "news", id: nid, reason: "wrong" }, NOW);
-    expect(() => reportItem(u1.id, { kind: "news", id: nid, reason: "wrong" }, NOW)).toThrow(/already reported/);
-    expect(() => reportItem(u2.id, { kind: "news", id: nid, reason: "nonsense" }, NOW)).toThrow(/reason/);
-    expect(() => reportItem(u2.id, { kind: "news", id: nid, reason: "wrong", note: "see https://x.example" }, NOW)).toThrow(/note/);
-    expect(() => reportItem(u2.id, { kind: "news", id: "missing", reason: "wrong" }, NOW)).toThrow(/no such item/);
+    await expect((async () => reportItem(u1.id, { kind: "news", id: nid, reason: "wrong" }, NOW))()).rejects.toThrow(/already reported/);
+    await expect((async () => reportItem(u2.id, { kind: "news", id: nid, reason: "nonsense" }, NOW))()).rejects.toThrow(/reason/);
+    await expect((async () => reportItem(u2.id, { kind: "news", id: nid, reason: "wrong", note: "see https://x.example" }, NOW))()).rejects.toThrow(/note/);
+    await expect((async () => reportItem(u2.id, { kind: "news", id: "missing", reason: "wrong" }, NOW))()).rejects.toThrow(/no such item/);
     reportItem(u2.id, { kind: "news", id: nid, reason: "partisan" }, NOW);
     const open = (getDb().prepare("SELECT id FROM mhub_reports WHERE status = 'open'").all() as { id: string }[]);
     expect(open).toHaveLength(2);
-    resolveReport(b.id, open[0].id, "takedown", NOW);
+    await resolveReport(b.id, open[0].id, "takedown", NOW);
     expect(newsFor(undefined, NOW).items).toEqual([]); // hidden
     expect((getDb().prepare("SELECT COUNT(*) c FROM mhub_reports WHERE status = 'open'").get() as { c: number }).c).toBe(0); // both reports closed together
     const cols = (getDb().prepare("PRAGMA table_info(mhub_reports)").all() as { name: string }[]).map((c) => c.name);
     expect(cols).not.toContain("person_id");
     // a video report takedown recalls the video
-    const v = createVideo(a.id, { title_en: "Explainer on results", media_url: "https://media.example.org/e.mp4", credit: "Own work 2026", confirm_neutral: true, confirm_rights: true }, NOW);
-    approveVideo(b.id, v.id, NOW);
+    const v = await createVideo(a.id, { title_en: "Explainer on results", media_url: "https://media.example.org/e.mp4", credit: "Own work 2026", confirm_neutral: true, confirm_rights: true }, NOW);
+    await approveVideo(b.id, v.id, NOW);
     reportItem(u1.id, { kind: "video", id: v.id, reason: "broken" }, NOW);
     const vr = (getDb().prepare("SELECT id FROM mhub_reports WHERE kind = 'video'").get() as { id: string }).id;
-    resolveReport(a.id, vr, "takedown", NOW);
-    expect(liveFor(new Date(NOW.getTime() + 1000))).toEqual([]);
+    await resolveReport(a.id, vr, "takedown", NOW);
+    expect(await liveFor(new Date(NOW.getTime() + 1000))).toEqual([]);
     // and a dismissal changes nothing
     const ch = addSource(a.id, { kind: "live", name_en: "Chan", site_url: "https://c.example.net/", permission_note: "Confirmed in writing by them", permission_date: "2026-11-21", contact: "x@c.example.net" }, NOW); enableSource(b.id, ch.id, NOW);
     reportItem(u1.id, { kind: "live", id: ch.id, reason: "other" }, NOW);
-    resolveReport(a.id, (getDb().prepare("SELECT id FROM mhub_reports WHERE kind = 'live'").get() as { id: string }).id, "dismiss", NOW);
+    await resolveReport(a.id, (getDb().prepare("SELECT id FROM mhub_reports WHERE kind = 'live'").get() as { id: string }).id, "dismiss", NOW);
     expect(liveChannels()).toHaveLength(1);
   });
 
@@ -198,59 +198,59 @@ describe("media hub: sources, news, live, reports, counts (S-225, S-226, S-228, 
 
 describe("video library, silence windows and corrections (S-229, S-231) @E2E-224", () => {
   const V = { title_en: "How to read your result", media_url: "https://media.example.org/e.mp4", credit: "People Pulse 2026", confirm_neutral: true, confirm_rights: true };
-  it("an explainer can be kept in the Watch library with a transcript; links in a transcript are refused", () => {
+  it("an explainer can be kept in the Watch library with a transcript; links in a transcript are refused", async () => {
     const a = admin(), b = admin();
-    const v = createVideo(a.id, { ...V, library: true, transcript: "This explainer shows how a result sheet is read, row by row." }, NOW);
-    approveVideo(b.id, v.id, NOW);
-    const item = liveFor(new Date(NOW.getTime() + 1000))[0];
+    const v = await createVideo(a.id, { ...V, library: true, transcript: "This explainer shows how a result sheet is read, row by row." }, NOW);
+    await approveVideo(b.id, v.id, NOW);
+    const item = (await liveFor(new Date(NOW.getTime() + 1000)))[0];
     expect(item).toMatchObject({ library: true });
     expect(item.transcript).toContain("result sheet");
-    expect(() => createVideo(a.id, { ...V, transcript: "Read more at https://example.org/page about it all" }, NOW)).toThrow(/link/);
-    const plain = createVideo(a.id, V, NOW); approveVideo(b.id, plain.id, NOW);
-    expect(liveFor(new Date(NOW.getTime() + 1000)).find((x) => x.id === plain.id)).toMatchObject({ library: false, transcript: null });
+    await expect((async () => await createVideo(a.id, { ...V, transcript: "Read more at https://example.org/page about it all" }, NOW))()).rejects.toThrow(/link/);
+    const plain = await createVideo(a.id, V, NOW); await approveVideo(b.id, plain.id, NOW);
+    expect((await liveFor(new Date(NOW.getTime() + 1000))).find((x) => x.id === plain.id)).toMatchObject({ library: false, transcript: null });
   });
 
-  it("a silence window holds anything approved inside it until the window ends, and chained windows hold until the last", () => {
+  it("a silence window holds anything approved inside it until the window ends, and chained windows hold until the last", async () => {
     const a = admin(), b = admin();
-    const w = addWindow(a.id, { label: "Polling day silence", starts_at: "2026-11-26T09:00:00Z", ends_at: "2026-11-28T09:00:00Z" }, NOW);
-    const v = createVideo(a.id, V, NOW); approveVideo(b.id, v.id, NOW);
-    expect(liveFor(new Date("2026-11-27T10:00:00Z"))).toEqual([]); // held
-    expect(liveFor(new Date("2026-11-28T09:00:01Z"))).toHaveLength(1); // released at the end
-    addWindow(a.id, { label: "Counting day", starts_at: "2026-11-28T09:00:00Z", ends_at: "2026-11-29T09:00:00Z" }, NOW);
-    expect(afterSilence("2026-11-27T10:00:00Z")).toBe("2026-11-29T09:00:00.000Z");
+    const w = await addWindow(a.id, { label: "Polling day silence", starts_at: "2026-11-26T09:00:00Z", ends_at: "2026-11-28T09:00:00Z" }, NOW);
+    const v = await createVideo(a.id, V, NOW); await approveVideo(b.id, v.id, NOW);
+    expect(await liveFor(new Date("2026-11-27T10:00:00Z"))).toEqual([]); // held
+    expect(await liveFor(new Date("2026-11-28T09:00:01Z"))).toHaveLength(1); // released at the end
+    await addWindow(a.id, { label: "Counting day", starts_at: "2026-11-28T09:00:00Z", ends_at: "2026-11-29T09:00:00Z" }, NOW);
+    expect(await afterSilence("2026-11-27T10:00:00Z")).toBe("2026-11-29T09:00:00.000Z");
     expect(w.label).toBe("Polling day silence");
   });
 
-  it("adding a window also holds an item that is already live inside it; a bad window is refused", () => {
+  it("adding a window also holds an item that is already live inside it; a bad window is refused", async () => {
     const a = admin(), b = admin();
-    const v = createVideo(a.id, V, NOW); approveVideo(b.id, v.id, NOW);
-    expect(liveFor(new Date("2026-11-26T10:00:05Z"))).toHaveLength(1);
-    addWindow(a.id, { label: "Sudden hold", starts_at: "2026-11-26T09:00:00Z", ends_at: "2026-11-27T09:00:00Z" }, NOW);
-    expect(liveFor(new Date("2026-11-26T10:00:05Z"))).toEqual([]);
-    expect(() => addWindow(a.id, { label: "Backwards", starts_at: "2026-11-30T00:00:00Z", ends_at: "2026-11-29T00:00:00Z" }, NOW)).toThrow(/end must be after/);
-    expect(() => addWindow(a.id, { label: "Too long", starts_at: "2026-11-30T00:00:00Z", ends_at: "2026-12-30T00:00:00Z" }, NOW)).toThrow(/within 14 days/);
-    expect(() => addWindow(a.id, { label: "Over", starts_at: "2026-11-01T00:00:00Z", ends_at: "2026-11-02T00:00:00Z" }, NOW)).toThrow(/already over/);
+    const v = await createVideo(a.id, V, NOW); await approveVideo(b.id, v.id, NOW);
+    expect(await liveFor(new Date("2026-11-26T10:00:05Z"))).toHaveLength(1);
+    await addWindow(a.id, { label: "Sudden hold", starts_at: "2026-11-26T09:00:00Z", ends_at: "2026-11-27T09:00:00Z" }, NOW);
+    expect(await liveFor(new Date("2026-11-26T10:00:05Z"))).toEqual([]);
+    await expect((async () => await addWindow(a.id, { label: "Backwards", starts_at: "2026-11-30T00:00:00Z", ends_at: "2026-11-29T00:00:00Z" }, NOW))()).rejects.toThrow(/end must be after/);
+    await expect((async () => await addWindow(a.id, { label: "Too long", starts_at: "2026-11-30T00:00:00Z", ends_at: "2026-12-30T00:00:00Z" }, NOW))()).rejects.toThrow(/within 14 days/);
+    await expect((async () => await addWindow(a.id, { label: "Over", starts_at: "2026-11-01T00:00:00Z", ends_at: "2026-11-02T00:00:00Z" }, NOW))()).rejects.toThrow(/already over/);
   });
 
-  it("a running window can only be ended early by a different admin", () => {
+  it("a running window can only be ended early by a different admin", async () => {
     const a = admin(), b = admin();
-    const w = addWindow(a.id, { label: "Hold for the day", starts_at: "2026-11-26T09:00:00Z", ends_at: "2026-11-27T09:00:00Z" }, NOW);
-    expect(() => endWindow(a.id, w.id, NOW)).toThrow(/different admin/);
-    endWindow(b.id, w.id, NOW);
-    expect(() => endWindow(b.id, w.id, NOW)).toThrow(/no such active window/);
-    expect(afterSilence("2026-11-26T12:00:00.000Z")).toBe("2026-11-26T12:00:00.000Z");
+    const w = await addWindow(a.id, { label: "Hold for the day", starts_at: "2026-11-26T09:00:00Z", ends_at: "2026-11-27T09:00:00Z" }, NOW);
+    await expect((async () => await endWindow(a.id, w.id, NOW))()).rejects.toThrow(/different admin/);
+    await endWindow(b.id, w.id, NOW);
+    await expect((async () => await endWindow(b.id, w.id, NOW))()).rejects.toThrow(/no such active window/);
+    expect(await afterSilence("2026-11-26T12:00:00.000Z")).toBe("2026-11-26T12:00:00.000Z");
   });
 
   it("window routes are admin only, and a recalled item that members could see shows as a correction for a week", async () => {
     const a = admin(), b = admin(), u = mkPerson();
     expect((await call("POST", "/v/admin/windows", u.token, {})).status).toBe(403);
-    const v = createVideo(a.id, V, NOW); approveVideo(b.id, v.id, NOW);
-    recallVideo(a.id, v.id, "Wrong video, a corrected one follows", new Date(NOW.getTime() + 60_000));
-    const c = correctionsFor(new Date(NOW.getTime() + 3_600_000));
+    const v = await createVideo(a.id, V, NOW); await approveVideo(b.id, v.id, NOW);
+    await recallVideo(a.id, v.id, "Wrong video, a corrected one follows", new Date(NOW.getTime() + 60_000));
+    const c = await correctionsFor(new Date(NOW.getTime() + 3_600_000));
     expect(c).toHaveLength(1);
     expect(c[0]).toMatchObject({ title_en: V.title_en, note: "Wrong video, a corrected one follows" });
-    expect(correctionsFor(new Date(NOW.getTime() + 9 * 86_400_000))).toEqual([]); // gone after a week
-    const never = createVideo(a.id, V, NOW); // a pending item that members never saw is not a correction
+    expect(await correctionsFor(new Date(NOW.getTime() + 9 * 86_400_000))).toEqual([]); // gone after a week
+    const never = await createVideo(a.id, V, NOW); // a pending item that members never saw is not a correction
     expect(never.status).toBe("pending");
   });
 });
@@ -267,14 +267,14 @@ describe("YouTube channel news: official feed, embed id only (S-238) @E2E-227", 
     expect(youtubeId("https://www.youtube.com/watch?v=short")).toBeNull();
     expect(youtubeId("https://www.youtube.com/watch?v=dQw4w9WgXcQ%22%3E")).toBeNull();
   });
-  it("a channel id builds the official feed address itself; a bad id or a live source is refused; it still needs permission and a second admin", () => {
+  it("a channel id builds the official feed address itself; a bad id or a live source is refused; it still needs permission and a second admin", async () => {
     const a = admin(), b = admin();
-    expect(() => addSource(a.id, { ...NEWS, feed_url: undefined, site_url: undefined, youtube_channel_id: "UCshort" }, NOW)).toThrow(/channel id/);
-    expect(() => addSource(a.id, { ...NEWS, kind: "live", youtube_channel_id: CH }, NOW)).toThrow(/channel id/);
+    await expect((async () => addSource(a.id, { ...NEWS, feed_url: undefined, site_url: undefined, youtube_channel_id: "UCshort" }, NOW))()).rejects.toThrow(/channel id/);
+    await expect((async () => addSource(a.id, { ...NEWS, kind: "live", youtube_channel_id: CH }, NOW))()).rejects.toThrow(/channel id/);
     const s = addSource(a.id, { ...NEWS, feed_url: "https://evil.example.net/x", site_url: undefined, youtube_channel_id: CH }, NOW);
     expect(s.feed_url).toBe(`https://www.youtube.com/feeds/videos.xml?channel_id=${CH}`);
     expect(s.enabled).toBe(0);
-    expect(() => enableSource(a.id, s.id, NOW)).toThrow(/different admin/);
+    await expect((async () => enableSource(a.id, s.id, NOW))()).rejects.toThrow(/different admin/);
     enableSource(b.id, s.id, NOW);
   });
   it("reading the channel feed keeps title, link and date; members get the embed id and no description", async () => {
@@ -294,9 +294,9 @@ describe("paste-a-link: one YouTube video (S-239) @E2E-229", () => {
   it("only a YouTube video link is accepted, and the headline is typed by the admin", async () => {
     const { addVideoLink } = await import("../../server/civic/mediahub");
     const a = admin();
-    expect(() => addVideoLink(a.id, { ...V, link: "https://evil.example.net/watch?v=dQw4w9WgXcQ" }, NOW)).toThrow(/YouTube video link/);
-    expect(() => addVideoLink(a.id, { ...V, link: "https://www.youtube.com/@channel" }, NOW)).toThrow(/YouTube video link/);
-    expect(() => addVideoLink(a.id, { ...V, title: "" }, NOW)).toThrow(/title/);
+    await expect((async () => addVideoLink(a.id, { ...V, link: "https://evil.example.net/watch?v=dQw4w9WgXcQ" }, NOW))()).rejects.toThrow(/YouTube video link/);
+    await expect((async () => addVideoLink(a.id, { ...V, link: "https://www.youtube.com/@channel" }, NOW))()).rejects.toThrow(/YouTube video link/);
+    await expect((async () => addVideoLink(a.id, { ...V, title: "" }, NOW))()).rejects.toThrow(/title/);
   });
   it("starts off, needs the permission record and a different admin, then members get the embed id; it is never fetched or called stale", async () => {
     const { addVideoLink } = await import("../../server/civic/mediahub");
@@ -305,7 +305,7 @@ describe("paste-a-link: one YouTube video (S-239) @E2E-229", () => {
     expect(s.enabled).toBe(0);
     expect(s.feed_url).toBeNull();
     expect(newsFor(undefined, NOW).items).toHaveLength(0);
-    expect(() => enableSource(a.id, s.id, NOW)).toThrow(/different admin/);
+    await expect((async () => enableSource(a.id, s.id, NOW))()).rejects.toThrow(/different admin/);
     enableSource(b.id, s.id, NOW);
     const later = new Date(NOW.getTime() + 20 * 3_600_000);
     await refreshDue(async () => { throw new Error("must not fetch"); }, later);
@@ -328,8 +328,8 @@ describe("live channel with a YouTube live link (S-241) @E2E-233", () => {
     const a = admin(), b = admin();
     const s = addSource(a.id, CH, NOW);
     expect(s.stream_url).toContain("youtube.com/watch");
-    expect(() => addSource(a.id, { ...CH, stream_url: "https://elsewhere.example.net/live.m3u8" }, NOW)).toThrow(/approved list/);
-    expect(() => enableSource(a.id, s.id, NOW)).toThrow(/different admin/);
+    await expect((async () => addSource(a.id, { ...CH, stream_url: "https://elsewhere.example.net/live.m3u8" }, NOW))()).rejects.toThrow(/approved list/);
+    await expect((async () => enableSource(a.id, s.id, NOW))()).rejects.toThrow(/different admin/);
     enableSource(b.id, s.id, NOW);
     expect(liveChannels()).toHaveLength(1);
     await expect(checkStream(s.id, async () => { throw new Error("must not fetch"); }, NOW)).rejects.toThrow(/YouTube/);
@@ -347,14 +347,14 @@ describe("candidate AP and Telangana news sources, loaded switched off (S-242) @
     expect([ap.state, tg.state]).toEqual(["AP", "TG"]);
     expect(ap.permission_note).toBeNull();
     expect(newsFor(undefined, NOW).items).toHaveLength(0);
-    expect(() => enableSource(admin().id, "cand-hindu-ap", NOW)).toThrow(/record the permission/);
+    await expect((async () => enableSource(admin().id, "cand-hindu-ap", NOW))()).rejects.toThrow(/record the permission/);
     await expect(refreshSource("cand-hindu-ap", feedOf("<rss/>"), NOW)).rejects.toThrow(/switched off/);
   });
   it("the admin who records the permission cannot switch it on; a different admin can; then the feed is read for its state only", async () => {
     const a = admin(), b = admin();
-    expect(() => recordPermission(a.id, "cand-hindu-ap", { ...PERM, permission_date: "2099-01-01" }, NOW)).toThrow(/date/);
+    await expect((async () => recordPermission(a.id, "cand-hindu-ap", { ...PERM, permission_date: "2099-01-01" }, NOW))()).rejects.toThrow(/date/);
     recordPermission(a.id, "cand-hindu-ap", PERM, NOW);
-    expect(() => enableSource(a.id, "cand-hindu-ap", NOW)).toThrow(/different admin/);
+    await expect((async () => enableSource(a.id, "cand-hindu-ap", NOW))()).rejects.toThrow(/different admin/);
     enableSource(b.id, "cand-hindu-ap", NOW);
     await refreshSource("cand-hindu-ap", feedOf(RSS([{ t: "Water scheme opens", l: "https://www.thehindu.com/x/1.ece", d: "Thu, 26 Nov 2026 08:00:00 GMT" }])), NOW);
     expect(newsFor("AP", NOW).items).toHaveLength(1);
@@ -378,7 +378,7 @@ describe("candidate Telugu channel feeds, loaded switched off (S-244) @E2E-239",
       expect(c.enabled).toBe(0);
       expect(c.permission_note).toBeNull();
       expect(c.name_te).toBeTruthy();
-      expect(() => enableSource(admin().id, id, NOW)).toThrow(/record the permission/);
+      await expect((async () => enableSource(admin().id, id, NOW))()).rejects.toThrow(/record the permission/);
     }
     expect(newsFor(undefined, NOW).items).toHaveLength(0);
   });
@@ -386,21 +386,21 @@ describe("candidate Telugu channel feeds, loaded switched off (S-244) @E2E-239",
 
 describe("demo news preview (S-245) @E2E-240", () => {
   afterEach(() => { delete process.env.CIVIC_DEMO_NEWS; });
-  it("does nothing unless CIVIC_DEMO_NEWS=1, and never in production", () => {
+  it("does nothing unless CIVIC_DEMO_NEWS=1, and never in production", async () => {
     ensureDemoNews(NOW);
     expect(newsFor(undefined, NOW).items).toHaveLength(0);
     process.env.CIVIC_DEMO_NEWS = "1";
     const prev = process.env.NODE_ENV; process.env.NODE_ENV = "production";
     try { ensureDemoNews(NOW); expect(newsFor(undefined, NOW).items).toHaveLength(0); } finally { process.env.NODE_ENV = prev; }
   });
-  it("offers three sample clips from our own server only when the demo is on", () => {
+  it("offers three sample clips from our own server only when the demo is on", async () => {
     expect(demoVideos()).toEqual([]);
     process.env.CIVIC_DEMO_NEWS = "1";
     const v = demoVideos();
     expect(v).toHaveLength(3);
     expect(v.every((x) => x.media_url.startsWith("/demo/") && /demo, not news/.test(x.title))).toBe(true);
   });
-  it("adds one labelled sample source with five sample headlines, no real outlet, refreshed each call without duplicates", () => {
+  it("adds one labelled sample source with five sample headlines, no real outlet, refreshed each call without duplicates", async () => {
     process.env.CIVIC_DEMO_NEWS = "1";
     ensureDemoNews(NOW); ensureDemoNews(new Date(NOW.getTime() + 3600_000));
     const n = newsFor(undefined, new Date(NOW.getTime() + 3600_000));
@@ -408,7 +408,7 @@ describe("demo news preview (S-245) @E2E-240", () => {
     expect(n.items.every((i) => i.title.startsWith("Sample headline") && i.link.startsWith("https://example.com/") && /DEMO/.test(i.outlet_en))).toBe(true);
     expect(n.sources[0].stale).toBe(false);
   });
-  it("adds one labelled sample live channel that plays a sample clip from our own server, once, and none when the demo is off", () => {
+  it("adds one labelled sample live channel that plays a sample clip from our own server, once, and none when the demo is off", async () => {
     ensureDemoNews(NOW);
     expect(liveChannels()).toEqual([]);
     process.env.CIVIC_DEMO_NEWS = "1";
@@ -431,7 +431,7 @@ describe("candidate Google News topic feeds, loaded switched off (S-278) @E2E-24
       expect(c.enabled).toBe(0);
       expect(c.permission_note).toBeNull();
       expect(c.name_te).toBeTruthy();
-      expect(() => enableSource(admin().id, id, NOW)).toThrow(/record the permission/);
+      await expect((async () => enableSource(admin().id, id, NOW))()).rejects.toThrow(/record the permission/);
     }
     expect(newsFor(undefined, NOW).items).toHaveLength(0);
   });
@@ -446,7 +446,7 @@ describe("candidate Telugu news channels on YouTube, loaded switched off (S-279)
       expect(c.enabled).toBe(0);
       expect(c.permission_note).toBeNull();
       expect(c.name_te).toBeTruthy();
-      expect(() => enableSource(admin().id, id, NOW)).toThrow(/record the permission/);
+      await expect((async () => enableSource(admin().id, id, NOW))()).rejects.toThrow(/record the permission/);
     }
     expect(newsFor(undefined, NOW).items).toHaveLength(0);
   });
@@ -463,7 +463,7 @@ describe("harvested candidates: live channels, news feeds and video channels, al
       expect(c.stream_url).toMatch(/^https:\/\/www\.youtube\.com\/channel\/UC[A-Za-z0-9_-]{22}\/live$/);
       expect(CH.test(c.stream_url!.split("/")[4])).toBe(true);
       expect([c.enabled, c.permission_note, c.name_te ? 1 : 0]).toEqual([0, null, 1]);
-      expect(() => enableSource(admin().id, `cand-live-${k}`, NOW)).toThrow(/record the permission/);
+      await expect((async () => enableSource(admin().id, `cand-live-${k}`, NOW))()).rejects.toThrow(/record the permission/);
     }
     expect(liveChannels()).toEqual([]);
   });
@@ -474,7 +474,7 @@ describe("harvested candidates: live channels, news feeds and video channels, al
       const c = getSource(`cand-feed-${k}`);
       expect(c.feed_url).toMatch(/^https:\/\//);
       expect([c.kind, c.enabled, c.permission_note]).toEqual(["news", 0, null]);
-      expect(() => enableSource(admin().id, `cand-feed-${k}`, NOW)).toThrow(/record the permission/);
+      await expect((async () => enableSource(admin().id, `cand-feed-${k}`, NOW))()).rejects.toThrow(/record the permission/);
     }
     const vids = ["ddnews", "sansad", "pib", "bbc-te", "hans", "ddsaptagiri", "dw", "aljazeera"];
     for (const k of vids) {

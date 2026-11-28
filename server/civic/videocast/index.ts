@@ -15,7 +15,9 @@
  */
 import crypto from "node:crypto";
 import express, { Router } from "express";
-import { audit, getDb, registerMigration, requireAuth, requireRole } from "../core";
+import { audit, registerMigration, requireAuth, requireRole } from "../core";
+import { identityDb } from "../core/asyncBridge";
+import { VideoStore, type VideoRow } from "../../data/repos/videocast";
 import { asksPartyPreference, asksSecret, hasLink } from "../broadcast";
 import { mediaVideoHosts } from "../../security";
 
@@ -45,9 +47,9 @@ const VIDEO_EXT = /\.(mp4|m4v|webm|ogv)$/i, AUDIO_EXT = /\.(mp3|m4a|ogg|oga|opus
 class Bad extends Error { constructor(public code: string, m: string) { super(m); } }
 const str = (v: unknown): string => (typeof v === "string" ? v.normalize("NFKC").trim() : "");
 const fail = (res: express.Response, status: number, code: string, message: string): void => { res.status(status).json({ error: code, code, message }); };
-const db = () => getDb();
+const st = (): VideoStore => new VideoStore(identityDb());
 
-interface Row { library: number; transcript: string | null; id: string; title_en: string; title_te: string | null; note_en: string | null; note_te: string | null; media_url: string; kind: string; credit: string; status: string; created_by: string; created_at: string; publish_at: string | null; decided_by: string | null; decided_at: string | null; live_at: string | null; recall_note: string | null; views: number }
+type Row = VideoRow;
 
 /** A direct media file: https (http only for localhost outside production), no login in the address, an audio or video file name, and not too long. */
 export function checkMediaUrl(raw: string): { url: string; kind: "video" | "audio" } {
@@ -76,7 +78,7 @@ const mine = (r: Row, me: string) => r.created_by === me;
 const status = (r: Row, now: string) => (r.status === "live" && r.live_at && r.live_at > now ? "scheduled" : r.status);
 const member = (r: Row) => ({ library: r.library === 1, transcript: r.transcript, id: r.id, title_en: r.title_en, title_te: r.title_te, note_en: r.note_en, note_te: r.note_te, media_url: r.media_url, kind: r.kind, credit: r.credit, live_at: r.live_at });
 
-export function createVideo(adminId: string, body: Record<string, unknown>, now: Date = new Date()): Row {
+export async function createVideo(adminId: string, body: Record<string, unknown>, now: Date = new Date()): Promise<Row> {
   const title_en = cleanText("title", body.title_en, 5, 120, true)!, title_te = cleanText("title_te", body.title_te, 3, 160, false);
   const note_en = cleanText("note", body.note_en, 3, 400, false), note_te = cleanText("note_te", body.note_te, 3, 600, false);
   const credit = cleanText("credit", body.credit, 3, 160, true)!;
@@ -90,36 +92,34 @@ export function createVideo(adminId: string, body: Record<string, unknown>, now:
     if (Number.isNaN(t.getTime()) || t.getTime() > now.getTime() + 30 * 86_400_000) throw new Bad("bad_publish_at", "the start time must be a valid time within the next 30 days");
     if (t.getTime() > now.getTime()) publish_at = t.toISOString();
   }
-  if ((db().prepare("SELECT COUNT(*) AS c FROM vcast_videos WHERE status = 'pending'").get() as { c: number }).c >= MAX_PENDING) throw new Bad("too_many_pending", `at most ${MAX_PENDING} items can wait for approval; decide some first`);
+  if ((await st().pendingCount()) >= MAX_PENDING) throw new Bad("too_many_pending", `at most ${MAX_PENDING} items can wait for approval; decide some first`);
   const id = crypto.randomUUID();
-  db().prepare("INSERT INTO vcast_videos (id,title_en,title_te,note_en,note_te,media_url,kind,credit,status,created_by,created_at,publish_at,library,transcript) VALUES (?,?,?,?,?,?,?,?, 'pending', ?,?,?,?,?)")
-    .run(id, title_en, title_te, note_en, note_te, url, kind, credit, adminId, now.toISOString(), publish_at, library, transcript);
+  await st().insert({ id, title_en, title_te, note_en, note_te, media_url: url, kind, credit, created_by: adminId, at: now.toISOString(), publish_at, library, transcript });
   audit(adminId, "videocast.propose", "vcast:" + id, { kind });
-  return get(id);
+  return await get(id);
 }
 
-function get(id: string): Row {
-  const r = db().prepare("SELECT * FROM vcast_videos WHERE id = ?").get(id) as unknown as Row | undefined;
+async function get(id: string): Promise<Row> {
+  const r = await st().get(id);
   if (!r) throw new Bad("not_found", "no such item");
   return r;
 }
 
 /** Silence windows (S-231): while a window is active, nothing goes live. A start time that falls inside one (or inside several that touch) is moved to the end of the last. */
 export interface SilenceWindow { id: string; label: string; starts_at: string; ends_at: string; created_by: string; ended: boolean }
-export function activeWindows(): SilenceWindow[] {
-  const rows = db().prepare("SELECT * FROM vcast_windows WHERE ended_at IS NULL ORDER BY starts_at").all() as unknown as { id: string; label: string; starts_at: string; ends_at: string; created_by: string }[];
-  return rows.map((w) => ({ ...w, ended: false }));
+export async function activeWindows(): Promise<SilenceWindow[]> {
+  return (await st().activeWindows()).map((w) => ({ ...w, ended: false }));
 }
-export function afterSilence(iso: string): string {
+export async function afterSilence(iso: string): Promise<string> {
   let t = iso;
   for (let i = 0; i < 20; i++) {
-    const w = activeWindows().find((x) => x.starts_at <= t && t < x.ends_at);
+    const w = (await activeWindows()).find((x) => x.starts_at <= t && t < x.ends_at);
     if (!w) return t;
     t = w.ends_at;
   }
   return t;
 }
-export function addWindow(adminId: string, body: Record<string, unknown>, now: Date = new Date()): SilenceWindow {
+export async function addWindow(adminId: string, body: Record<string, unknown>, now: Date = new Date()): Promise<SilenceWindow> {
   const label = cleanText("label", body.label, 3, 120, true)!;
   const a = new Date(String(body.starts_at)), b = new Date(String(body.ends_at));
   if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) throw new Bad("bad_window", "start and end must be valid times");
@@ -127,88 +127,86 @@ export function addWindow(adminId: string, body: Record<string, unknown>, now: D
   if (b.getTime() < now.getTime()) throw new Bad("bad_window", "the window is already over");
   if (a.getTime() > now.getTime() + 365 * 86_400_000) throw new Bad("bad_window", "the start must be within a year");
   const id = crypto.randomUUID();
-  db().prepare("INSERT INTO vcast_windows (id,label,starts_at,ends_at,created_by,created_at) VALUES (?,?,?,?,?,?)").run(id, label, a.toISOString(), b.toISOString(), adminId, now.toISOString());
+  await st().insertWindow({ id, label, starts_at: a.toISOString(), ends_at: b.toISOString(), created_by: adminId, at: now.toISOString() });
   // Anything already live, or approved for a time inside the window, is held until it ends. Nothing is recalled: it simply stops being listed.
-  db().prepare("UPDATE vcast_videos SET live_at = ? WHERE status = 'live' AND live_at >= ? AND live_at < ?").run(b.toISOString(), a.toISOString(), b.toISOString());
+  await st().holdUntil(a.toISOString(), b.toISOString());
   audit(adminId, "videocast.window.add", "vcast-window:" + id, { starts_at: a.toISOString(), ends_at: b.toISOString() });
   return { id, label, starts_at: a.toISOString(), ends_at: b.toISOString(), created_by: adminId, ended: false };
 }
 /** Ending a window early needs a different admin than the one who made it, so one person cannot lift a hold alone. */
-export function endWindow(adminId: string, id: string, now: Date = new Date()): void {
-  const w = db().prepare("SELECT * FROM vcast_windows WHERE id = ? AND ended_at IS NULL").get(id) as unknown as { created_by: string; ends_at: string } | undefined;
+export async function endWindow(adminId: string, id: string, now: Date = new Date()): Promise<void> {
+  const w = await st().openWindow(id);
   if (!w) throw new Bad("not_found", "no such active window");
   if (w.ends_at > now.toISOString() && w.created_by === adminId) throw new Bad("same_person", "a different admin must end a window that is still running");
-  db().prepare("UPDATE vcast_windows SET ended_by = ?, ended_at = ? WHERE id = ?").run(adminId, now.toISOString(), id);
+  await st().endWindow(id, adminId, now.toISOString());
   // Videos held until this window's end are released now, unless another running window still covers this moment.
-  db().prepare("UPDATE vcast_videos SET live_at = ? WHERE status = 'live' AND live_at = ? AND live_at > ?").run(afterSilence(now.toISOString()), w.ends_at, now.toISOString());
+  await st().release(w.ends_at, now.toISOString(), await afterSilence(now.toISOString()));
   audit(adminId, "videocast.window.end", "vcast-window:" + id);
 }
 
 /** Items withdrawn in the last 7 days that members had been able to see, so a person who saw one learns it was withdrawn and why. */
-export function correctionsFor(now: Date = new Date()) {
+export async function correctionsFor(now: Date = new Date()) {
   const since = new Date(now.getTime() - 7 * 86_400_000).toISOString();
-  const rows = db().prepare("SELECT id, title_en, title_te, recall_note, decided_at FROM vcast_videos WHERE status = 'recalled' AND live_at IS NOT NULL AND live_at <= decided_at AND decided_at >= ? ORDER BY decided_at DESC LIMIT 10").all(since) as unknown as { id: string; title_en: string; title_te: string | null; recall_note: string | null; decided_at: string }[];
+  const rows = await st().corrections(since);
   return rows.map((r) => ({ id: r.id, title_en: r.title_en, title_te: r.title_te, note: r.recall_note, withdrawn_at: r.decided_at }));
 }
 
-export function approveVideo(adminId: string, id: string, now: Date = new Date()): Row {
-  const r = get(id);
+export async function approveVideo(adminId: string, id: string, now: Date = new Date()): Promise<Row> {
+  const r = await get(id);
   if (r.status !== "pending") throw new Bad("not_pending", "only an item waiting for approval can be approved");
   if (r.created_by === adminId) throw new Bad("same_person", "a different admin must approve it");
-  const live = afterSilence(r.publish_at && r.publish_at > now.toISOString() ? r.publish_at : now.toISOString());
-  db().prepare("UPDATE vcast_videos SET status = 'live', decided_by = ?, decided_at = ?, live_at = ? WHERE id = ? AND status = 'pending'").run(adminId, now.toISOString(), live, id);
+  const live = await afterSilence(r.publish_at && r.publish_at > now.toISOString() ? r.publish_at : now.toISOString());
+  await st().approve(id, adminId, now.toISOString(), live);
   audit(adminId, "videocast.approve", "vcast:" + id, { live_at: live });
-  return get(id);
+  return await get(id);
 }
 
-export function rejectVideo(adminId: string, id: string, now: Date = new Date()): Row {
-  const r = get(id);
+export async function rejectVideo(adminId: string, id: string, now: Date = new Date()): Promise<Row> {
+  const r = await get(id);
   if (r.status !== "pending") throw new Bad("not_pending", "only an item waiting for approval can be refused");
-  db().prepare("UPDATE vcast_videos SET status = 'rejected', decided_by = ?, decided_at = ? WHERE id = ? AND status = 'pending'").run(adminId, now.toISOString(), id);
+  await st().reject(id, adminId, now.toISOString());
   audit(adminId, "videocast.reject", "vcast:" + id);
-  return get(id);
+  return await get(id);
 }
 
-export function recallVideo(adminId: string, id: string, note: unknown, now: Date = new Date()): Row {
-  const r = get(id);
+export async function recallVideo(adminId: string, id: string, note: unknown, now: Date = new Date()): Promise<Row> {
+  const r = await get(id);
   if (r.status !== "live") throw new Bad("not_live", "only a live item can be recalled");
   const n = cleanText("note", note, 3, 200, false);
-  db().prepare("UPDATE vcast_videos SET status = 'recalled', decided_by = ?, decided_at = ?, recall_note = ? WHERE id = ? AND status = 'live'").run(adminId, now.toISOString(), n, id);
+  await st().recall(id, adminId, now.toISOString(), n);
   audit(adminId, "videocast.recall", "vcast:" + id);
-  return get(id);
+  return await get(id);
 }
 
-export function liveFor(now: Date = new Date()) {
-  const rows = db().prepare("SELECT * FROM vcast_videos WHERE status = 'live' AND live_at <= ? ORDER BY live_at DESC, id LIMIT ?").all(now.toISOString(), MAX_LIVE_LISTED) as unknown as Row[];
-  return rows.map(member);
+export async function liveFor(now: Date = new Date()) {
+  return (await st().live(now.toISOString(), MAX_LIVE_LISTED)).map(member);
 }
 
-export function countView(id: string, now: Date = new Date()): void {
-  const r = db().prepare("UPDATE vcast_videos SET views = views + 1 WHERE id = ? AND status = 'live' AND live_at <= ?").run(id, now.toISOString());
-  if (Number(r.changes) === 0) throw new Bad("not_found", "no live item with that id");
+export async function countView(id: string, now: Date = new Date()): Promise<void> {
+  if (!(await st().countView(id, now.toISOString()))) throw new Bad("not_found", "no live item with that id");
 }
 
 export const videocastRouter = Router();
 videocastRouter.use(express.json({ limit: "16kb" }));
-const wrap = (fn: (req: express.Request, res: express.Response) => void) => (req: express.Request, res: express.Response): void => {
-  try { fn(req, res); } catch (e) {
+const wrap = (fn: (req: express.Request, res: express.Response) => void | Promise<void>) => async (req: express.Request, res: express.Response): Promise<void> => {
+  try { await fn(req, res); } catch (e) {
     if (e instanceof Bad) fail(res, e.code === "not_found" ? 404 : ["same_person", "not_pending", "not_live", "too_many_pending"].includes(e.code) ? 409 : 400, e.code, e.message);
     else { console.error(e); fail(res, 500, "error", "server error"); }
   }
 };
 const adminOnly = [requireAuth, requireRole("admin")];
 
-videocastRouter.post("/admin", ...adminOnly, wrap((req, res) => { const r = createVideo(req.person!.id, req.body ?? {}); res.status(201).json({ ...member(r), status: r.status, mine: true }); }));
-videocastRouter.get("/admin", ...adminOnly, wrap((req, res) => {
+videocastRouter.post("/admin", ...adminOnly, wrap(async (req, res) => { const r = await createVideo(req.person!.id, req.body ?? {}); res.status(201).json({ ...member(r), status: r.status, mine: true }); }));
+videocastRouter.get("/admin", ...adminOnly, wrap(async (req, res) => {
   const now = new Date().toISOString();
-  const rows = db().prepare("SELECT * FROM vcast_videos ORDER BY created_at DESC LIMIT 100").all() as unknown as Row[];
-  res.json({ items: rows.map((r) => ({ ...member(r), status: status(r, now), mine: mine(r, req.person!.id), publish_at: r.publish_at, recall_note: r.recall_note, views: r.views >= MIN_VIEWS_SHOWN ? r.views : null, views_hidden_below: MIN_VIEWS_SHOWN })), registered_users: (db().prepare("SELECT COUNT(*) AS c FROM persons WHERE deleted_at IS NULL").get() as { c: number }).c });
+  const rows = await st().listAdmin();
+  res.json({ items: rows.map((r) => ({ ...member(r), status: status(r, now), mine: mine(r, req.person!.id), publish_at: r.publish_at, recall_note: r.recall_note, views: r.views >= MIN_VIEWS_SHOWN ? r.views : null, views_hidden_below: MIN_VIEWS_SHOWN })), registered_users: await st().registeredUsers() });
 }));
-videocastRouter.post("/admin/:id/approve", ...adminOnly, wrap((req, res) => { const r = approveVideo(req.person!.id, String(req.params.id)); res.json({ ok: true, status: r.status, live_at: r.live_at }); }));
-videocastRouter.post("/admin/:id/reject", ...adminOnly, wrap((req, res) => { rejectVideo(req.person!.id, String(req.params.id)); res.json({ ok: true }); }));
-videocastRouter.post("/admin/:id/recall", ...adminOnly, wrap((req, res) => { recallVideo(req.person!.id, String(req.params.id), req.body?.note); res.json({ ok: true }); }));
-videocastRouter.get("/admin/windows", ...adminOnly, wrap((_req, res) => { res.json({ windows: activeWindows() }); }));
-videocastRouter.post("/admin/windows", ...adminOnly, wrap((req, res) => { res.status(201).json(addWindow(req.person!.id, req.body ?? {})); }));
-videocastRouter.post("/admin/windows/:id/end", ...adminOnly, wrap((req, res) => { endWindow(req.person!.id, String(req.params.id)); res.json({ ok: true }); }));
-videocastRouter.get("/", requireAuth, wrap((_req, res) => { res.set("Cache-Control", "no-store"); res.json({ items: liveFor(), corrections: correctionsFor() }); }));
-videocastRouter.post("/:id/view", requireAuth, wrap((req, res) => { countView(String(req.params.id)); res.json({ ok: true }); }));
+videocastRouter.post("/admin/:id/approve", ...adminOnly, wrap(async (req, res) => { const r = await approveVideo(req.person!.id, String(req.params.id)); res.json({ ok: true, status: r.status, live_at: r.live_at }); }));
+videocastRouter.post("/admin/:id/reject", ...adminOnly, wrap(async (req, res) => { await rejectVideo(req.person!.id, String(req.params.id)); res.json({ ok: true }); }));
+videocastRouter.post("/admin/:id/recall", ...adminOnly, wrap(async (req, res) => { await recallVideo(req.person!.id, String(req.params.id), req.body?.note); res.json({ ok: true }); }));
+videocastRouter.get("/admin/windows", ...adminOnly, wrap(async (_req, res) => { res.json({ windows: await activeWindows() }); }));
+videocastRouter.post("/admin/windows", ...adminOnly, wrap(async (req, res) => { res.status(201).json(await addWindow(req.person!.id, req.body ?? {})); }));
+videocastRouter.post("/admin/windows/:id/end", ...adminOnly, wrap(async (req, res) => { await endWindow(req.person!.id, String(req.params.id)); res.json({ ok: true }); }));
+videocastRouter.get("/", requireAuth, wrap(async (_req, res) => { res.set("Cache-Control", "no-store"); res.json({ items: await liveFor(), corrections: await correctionsFor() }); }));
+videocastRouter.post("/:id/view", requireAuth, wrap(async (req, res) => { await countView(String(req.params.id)); res.json({ ok: true }); }));

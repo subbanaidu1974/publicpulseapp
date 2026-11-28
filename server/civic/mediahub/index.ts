@@ -471,12 +471,12 @@ export function reportItem(personId: string, body: Record<string, unknown>, now:
   if (Number(r.changes) === 0) throw new Bad("already_reported", "you have already reported this item");
 }
 
-export function resolveReport(adminId: string, id: string, action: unknown, now: Date = new Date()): void {
+export async function resolveReport(adminId: string, id: string, action: unknown, now: Date = new Date()): Promise<void> {
   const r = db().prepare("SELECT * FROM mhub_reports WHERE id = ? AND status = 'open'").get(id) as unknown as { kind: string; item_id: string } | undefined;
   if (!r) throw new Bad("not_found", "no open report with that id");
   if (action !== "dismiss" && action !== "takedown") throw new Bad("bad_action", "action must be dismiss or takedown");
   if (action === "takedown") {
-    if (r.kind === "video") { try { recallVideo(adminId, r.item_id, "Withdrawn after a member report"); } catch (e) { if ((e as { code?: string }).code !== "not_live") throw e; } }
+    if (r.kind === "video") { try { await recallVideo(adminId, r.item_id, "Withdrawn after a member report"); } catch (e) { if ((e as { code?: string }).code !== "not_live") throw e; } }
     else if (r.kind === "news") db().prepare("UPDATE mhub_news SET hidden = 1 WHERE id = ?").run(r.item_id);
     else db().prepare("UPDATE mhub_sources SET enabled = 0 WHERE id = ?").run(r.item_id);
   }
@@ -594,5 +594,5 @@ mediaRouter.get("/admin/reports", ...adminOnly, wrap((_req, res) => {
   const rows = db().prepare("SELECT id, kind, item_id, reason, note, created_at, status, resolution FROM mhub_reports ORDER BY (status = 'open') DESC, created_at DESC LIMIT 100").all();
   res.json({ reports: rows });
 }));
-mediaRouter.post("/admin/reports/:id/resolve", ...adminOnly, wrap((req, res) => { resolveReport(req.person!.id, String(req.params.id), req.body?.action); res.json({ ok: true }); }));
+mediaRouter.post("/admin/reports/:id/resolve", ...adminOnly, wrap(async (req, res) => { await resolveReport(req.person!.id, String(req.params.id), req.body?.action); res.json({ ok: true }); }));
 mediaRouter.get("/admin/numbers", ...adminOnly, wrap((_req, res) => { res.json(numbers()); }));
