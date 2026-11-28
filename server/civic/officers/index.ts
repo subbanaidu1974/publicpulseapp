@@ -21,6 +21,10 @@
 import crypto from "node:crypto";
 import express, { Router } from "express";
 import type { Request, Response } from "express";
+import { identityDb } from "../core/asyncBridge";
+import { asyncRoute } from "../../data/http";
+import { OfficerApplications } from "../../data/repos/officerApplications";
+import type { ApplicationRow as Row, ApplicationStatus } from "../../data/repos/officerApplications";
 import { audit, auditPrivilegedRead, getDb, getKeys, getStore, hasRole, registerErasureHook, registerMigration, requireAuth, requireRole } from "../core";
 import { rateAllow } from "../identity/service";
 import { RoleRequestError, insertRoleRequest, requireMfa } from "../admin/routes";
@@ -68,15 +72,11 @@ ALTER TABLE officer_application ADD COLUMN email_confirmed_at TEXT;
 `, "identity");
 
 // A person's application (name, work e-mail, the letter reference) goes with the account. The letter file itself is erased by the media hook.
+// Still the synchronous handle on purpose: erasure hooks run inside the caller's synchronous identity transaction (moves with the core, last).
 registerErasureHook("officers.application", (personId) => { getDb().prepare("DELETE FROM officer_application WHERE person_id = ?").run(personId); });
 
-export type ApplicationStatus = "submitted" | "awaiting_second_admin" | "approved" | "rejected" | "withdrawn" | "expired";
-interface Row {
-  id: string; person_id: string; details_enc: string; email_domain: string; department: string; designation: string; jurisdiction: string; letter_ref: string;
-  domain_check: string; status: ApplicationStatus; letter_checked: number; role_request_id: string | null; reviewed_by: string | null; reviewed_at: string | null;
-  review_note: string | null; created_at: string; updated_at: string;
-  email_code_hash: string | null; email_code_expires: string | null; email_code_tries: number; email_sends: number; email_sent_at: string | null; email_confirmed_at: string | null;
-}
+export type { ApplicationStatus };
+const repo = () => new OfficerApplications(identityDb());
 
 const PURPOSE = "people_contact"; // the existing contact-details key purpose; no new key material needed for name and e-mail at rest
 const applyPerPerson = () => Number(process.env.CIVIC_OFFICER_APPLY_PER_30D || 3);
@@ -94,21 +94,22 @@ export const OFFICER_DEPARTMENTS: string[] = [...new Set(CATEGORY_LIST.map((c) =
 export class OfficerError extends Error { constructor(public status: number, message: string, public extra: Record<string, unknown> = {}) { super(message); } }
 
 /** Bring the application in line with its dual-control request (approved, rejected or expired by the second admin or by time). */
-function sync(row: Row): Row {
+async function sync(row: Row): Promise<Row> {
   if (row.status !== "awaiting_second_admin" || !row.role_request_id) return row;
-  const rr = getDb().prepare("SELECT status, decided_by FROM role_requests WHERE id = ?").get(row.role_request_id) as { status: string; decided_by: string | null } | undefined;
-  if (rr?.status === "pending" && new Date((getDb().prepare("SELECT expires_at FROM role_requests WHERE id = ?").get(row.role_request_id) as { expires_at: string }).expires_at) > new Date()) return row;
+  const r = repo();
+  const rr = await r.roleRequest(row.role_request_id);
+  if (rr?.status === "pending" && new Date(rr.expires_at) > new Date()) return row;
   let next: ApplicationStatus;
   if (!rr || rr.status === "pending" || rr.status === "expired") next = "expired";
   else if (rr.status === "approved") next = "approved";
   else next = "rejected";
   const now = new Date().toISOString();
-  getDb().prepare("UPDATE officer_application SET status = ?, updated_at = ? WHERE id = ?").run(next, now, row.id);
+  await r.setStatus(row.id, next, now);
   audit("system", "officer.application." + next, "application:" + row.id, { request: row.role_request_id, decided_by: rr?.decided_by ?? null });
   return { ...row, status: next, updated_at: now };
 }
-const rowOf = (id: string): Row | undefined => {
-  const r = getDb().prepare("SELECT * FROM officer_application WHERE id = ?").get(id) as unknown as Row | undefined;
+const rowOf = async (id: string): Promise<Row | undefined> => {
+  const r = await repo().get(id);
   return r ? sync(r) : undefined;
 };
 const details = (r: Row): { full_name: string; email: string } => { try { return JSON.parse(getKeys().decrypt(PURPOSE, r.details_enc)); } catch { return { full_name: "", email: "" }; } };
@@ -129,7 +130,7 @@ const codeHash = (appId: string, code: string): string => getKeys().hmac("otp", 
  * route can echo it when CIVIC_EXPOSE_DEV_MAIL=1 outside production; callers never log it.
  */
 export async function sendEmailConfirmation(personId: string, appId: string, now = new Date()): Promise<{ sent: true; expires_in_s: number; code: string }> {
-  const r = rowOf(appId);
+  const r = await rowOf(appId);
   if (!r || r.person_id !== personId) throw new OfficerError(404, "application not found");
   if (r.status !== "submitted") throw new OfficerError(409, `application is ${r.status}`, { code: "not_reviewable" });
   if (r.email_confirmed_at) throw new OfficerError(409, "this e-mail address is already confirmed", { code: "email_already_confirmed" });
@@ -137,8 +138,7 @@ export async function sendEmailConfirmation(personId: string, appId: string, now
   if (r.email_sends >= emailSendsMax()) throw new OfficerError(429, "too many confirmation e-mails for this application", { code: "email_send_limit" });
   const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, "0");
   const t = now.toISOString();
-  getDb().prepare("UPDATE officer_application SET email_code_hash = ?, email_code_expires = ?, email_code_tries = 0, email_sends = email_sends + 1, email_sent_at = ?, updated_at = ? WHERE id = ?")
-    .run(codeHash(r.id, code), new Date(now.getTime() + EMAIL_CODE_TTL_MS).toISOString(), t, t, r.id);
+  await repo().saveEmailCode(r.id, codeHash(r.id, code), new Date(now.getTime() + EMAIL_CODE_TTL_MS).toISOString(), t);
   try {
     await getMail().send({
       to: details(r).email, subject: "People Pulse: confirm your official e-mail address",
@@ -146,7 +146,7 @@ export async function sendEmailConfirmation(personId: string, appId: string, now
       idempotencyKey: `officer-email:${r.id}:${r.email_sends + 1}`,
     });
   } catch {
-    getDb().prepare("UPDATE officer_application SET email_code_hash = NULL, email_code_expires = NULL, email_sent_at = NULL WHERE id = ?").run(r.id);
+    await repo().voidEmailCode(r.id);
     audit(personId, "officer.application.email_failed", "application:" + r.id, {});
     throw new OfficerError(502, "we could not send the e-mail; try again in a moment", { code: "email_delivery_failed", can_retry: true });
   }
@@ -155,8 +155,8 @@ export async function sendEmailConfirmation(personId: string, appId: string, now
 }
 
 /** Check the code the applicant typed. Five wrong tries or the expiry burn the code (they ask for a new one). */
-export function confirmEmail(personId: string, appId: string, codeIn: unknown, now = new Date()): { ok: true; email_confirmed: true } {
-  const r = rowOf(appId);
+export async function confirmEmail(personId: string, appId: string, codeIn: unknown, now = new Date()): Promise<{ ok: true; email_confirmed: true }> {
+  const r = await rowOf(appId);
   if (!r || r.person_id !== personId) throw new OfficerError(404, "application not found");
   if (r.status !== "submitted") throw new OfficerError(409, `application is ${r.status}`, { code: "not_reviewable" });
   if (r.email_confirmed_at) return { ok: true, email_confirmed: true };
@@ -167,12 +167,11 @@ export function confirmEmail(personId: string, appId: string, codeIn: unknown, n
   if (!ok) {
     const tries = r.email_code_tries + 1;
     const burnt = tries >= EMAIL_TRIES_MAX;
-    if (burnt) getDb().prepare("UPDATE officer_application SET email_code_hash = NULL, email_code_expires = NULL, email_code_tries = ? WHERE id = ?").run(tries, r.id);
-    else getDb().prepare("UPDATE officer_application SET email_code_tries = ? WHERE id = ?").run(tries, r.id);
+    await repo().wrongCode(r.id, tries, burnt);
     throw new OfficerError(400, burnt ? "too many wrong codes; ask for a new one" : "that code is not right", { code: burnt ? "email_code_expired" : "email_code_wrong" });
   }
   const t = now.toISOString();
-  getDb().prepare("UPDATE officer_application SET email_confirmed_at = ?, email_code_hash = NULL, email_code_expires = NULL, updated_at = ? WHERE id = ?").run(t, t, r.id);
+  await repo().confirmEmail(r.id, t);
   audit(personId, "officer.application.email_confirmed", "application:" + r.id, {});
   return { ok: true, email_confirmed: true };
 }
@@ -180,7 +179,7 @@ export function confirmEmail(personId: string, appId: string, codeIn: unknown, n
 export interface ApplyInput { full_name?: unknown; department?: unknown; designation?: unknown; official_email?: unknown; jurisdiction?: unknown; letter_ref?: unknown }
 
 /** Submit an application. Throws OfficerError (status, message, extra.code); exported for tests and ops tooling. */
-export function submitApplication(personId: string, input: ApplyInput, ip = "-", now = new Date()): { id: string; status: ApplicationStatus } {
+export async function submitApplication(personId: string, input: ApplyInput, ip = "-", now = new Date()): Promise<{ id: string; status: ApplicationStatus }> {
   if (!rateAllow("officer-apply-ip:" + ip, applyPerIpHour(), 3600_000, now.getTime())) throw new OfficerError(429, "too many applications from this network; wait and retry", { code: "rate_limited" });
   if (!rateAllow("officer-apply-try:" + personId, 30, 3600_000, now.getTime())) throw new OfficerError(429, "too many attempts; wait and retry", { code: "rate_limited" }); // every attempt, valid or not
   const fullName = clean(input.full_name, 120), department = clean(input.department, 64), designation = clean(input.designation, 80), jurisdiction = clean(input.jurisdiction, 40);
@@ -197,18 +196,16 @@ export function submitApplication(personId: string, input: ApplyInput, ip = "-",
     throw new OfficerError(dom.reason === "bad_email" ? 400 : 422, dom.reason === "bad_email" ? "enter a valid official e-mail address" : "this e-mail domain is not on the official list", { code: dom.reason });
   }
   if (hasRole(personId, "officer")) throw new OfficerError(409, "you already hold the officer role", { code: "already_officer" });
-  const d = getDb();
-  for (const o of d.prepare("SELECT * FROM officer_application WHERE person_id = ? AND status = 'awaiting_second_admin'").all(personId) as unknown as Row[]) sync(o);
-  if (d.prepare("SELECT 1 AS x FROM officer_application WHERE person_id = ? AND status IN ('submitted','awaiting_second_admin')").get(personId)) throw new OfficerError(409, "an application of yours is already under review", { code: "application_open" });
+  const r = repo();
+  for (const o of await r.awaiting(personId)) await sync(o);
+  if (await r.hasOpen(personId)) throw new OfficerError(409, "an application of yours is already under review", { code: "application_open" });
   const id = crypto.randomUUID();
   let mediaId: string;
   try { mediaId = claimMedia(str(input.letter_ref), personId, "photo"); } catch (e) { if (e instanceof MediaError) throw new OfficerError(400, "attach the letter first (a JPEG or PNG scan)", { code: "letter_required" }); throw e; }
   // only a complete, valid application uses up the monthly allowance, so a typo does not lock anyone out
   if (!rateAllow("officer-apply:" + personId, applyPerPerson(), 30 * DAY, now.getTime())) throw new OfficerError(429, "application limit reached; try again later", { code: "rate_limited" });
   const t = now.toISOString();
-  d.prepare(`INSERT INTO officer_application (id, person_id, details_enc, email_domain, department, designation, jurisdiction, letter_ref, domain_check, status, created_at, updated_at)
-    VALUES (?,?,?,?,?,?,?,?, 'pass', 'submitted', ?, ?)`)
-    .run(id, personId, getKeys().encrypt(PURPOSE, JSON.stringify({ full_name: fullName, email: dom.email })), dom.domain, department, designation, jurisdiction, "media:" + mediaId, t, t);
+  await r.insert({ id, person_id: personId, details_enc: getKeys().encrypt(PURPOSE, JSON.stringify({ full_name: fullName, email: dom.email })), email_domain: dom.domain, department, designation, jurisdiction, letter_ref: "media:" + mediaId, at: t });
   attachMedia(mediaId, "officer-application:" + id); // attached media is kept for the retention period instead of the 24 hour unattached purge
   audit(personId, "officer.application.submit", "application:" + id, { department, domain: dom.domain, jurisdiction });
   return { id, status: "submitted" };
@@ -232,7 +229,7 @@ officersRouter.get("/domains", (req, res) => {
 });
 
 officersRouter.post("/applications", requireAuth, wrap(async (req, res) => {
-  const out = submitApplication(req.person!.id, req.body ?? {}, req.ip || "-");
+  const out = await submitApplication(req.person!.id, req.body ?? {}, req.ip || "-");
   res.status(201);
   // the e-mail goes out after the application is stored; a mail failure leaves the application in place and the person can ask again
   const body: Record<string, unknown> = { ...out, email_confirmation: "sent" };
@@ -250,18 +247,18 @@ officersRouter.post("/applications/:id/email/resend", requireAuth, wrap(async (r
   return body;
 }));
 
-officersRouter.post("/applications/:id/email/confirm", requireAuth, wrap((req) => confirmEmail(req.person!.id, String(req.params.id), req.body?.code)));
+officersRouter.post("/applications/:id/email/confirm", requireAuth, wrap(async (req) => confirmEmail(req.person!.id, String(req.params.id), req.body?.code)));
 
-officersRouter.get("/applications/mine", requireAuth, wrap((req) => {
-  const rows = getDb().prepare("SELECT * FROM officer_application WHERE person_id = ? ORDER BY created_at DESC LIMIT 20").all(req.person!.id) as unknown as Row[];
-  return { applications: rows.map((r) => mine(sync(r))) };
+officersRouter.get("/applications/mine", requireAuth, wrap(async (req) => {
+  const rows = await repo().forPerson(req.person!.id);
+  return { applications: (await Promise.all(rows.map(sync))).map(mine) };
 }));
 
-officersRouter.post("/applications/:id/withdraw", requireAuth, wrap((req) => {
-  const r = rowOf(String(req.params.id));
+officersRouter.post("/applications/:id/withdraw", requireAuth, wrap(async (req) => {
+  const r = await rowOf(String(req.params.id));
   if (!r || r.person_id !== req.person!.id) throw new OfficerError(404, "application not found");
   if (r.status !== "submitted") throw new OfficerError(409, "this application can no longer be withdrawn", { code: "not_withdrawable" });
-  getDb().prepare("UPDATE officer_application SET status = 'withdrawn', updated_at = ? WHERE id = ?").run(new Date().toISOString(), r.id);
+  await repo().setStatus(r.id, "withdrawn", new Date().toISOString());
   audit(req.person!.id, "officer.application.withdraw", "application:" + r.id, {});
   return { ok: true, status: "withdrawn" };
 }));
@@ -270,27 +267,27 @@ officersRouter.post("/applications/:id/withdraw", requireAuth, wrap((req) => {
 // Admin verification queue
 // ---------------------------------------------------------------------------------------------
 
-officersRouter.get("/admin/queue", requireRole("admin"), wrap((req) => {
+officersRouter.get("/admin/queue", requireRole("admin"), wrap(async (req) => {
   const status = clean(req.query.status, 32) || "submitted";
-  for (const r of getDb().prepare("SELECT * FROM officer_application WHERE status = 'awaiting_second_admin'").all() as unknown as Row[]) sync(r); // so the status filter is accurate
-  const rows = getDb().prepare("SELECT * FROM officer_application WHERE status = ? ORDER BY created_at ASC LIMIT 200").all(status) as unknown as Row[];
+  for (const r of await repo().awaiting()) await sync(r); // so the status filter is accurate
+  const rows = await repo().byStatus(status);
   auditPrivilegedRead(req.person!.id, "officer_applications", "admin lists the officer verification queue");
   return { applications: rows.map(adminView) };
 }));
 
-officersRouter.get("/admin/applications/:id/letter", requireRole("admin"), (req, res) => {
-  const r = rowOf(String(req.params.id));
+officersRouter.get("/admin/applications/:id/letter", requireRole("admin"), asyncRoute(async (req, res) => {
+  const r = await rowOf(String(req.params.id));
   const m = r ? getMedia(r.letter_ref.replace(/^media:/, "")) : null;
   const buf = m ? readMediaFile(m) : null;
   if (!r || !m || !buf) return void res.status(404).json({ error: "letter not found" });
   auditPrivilegedRead(req.person!.id, "officer_letter:" + r.id, "admin views an officer application letter");
   res.set({ "Content-Type": m.mime, "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store", "Content-Disposition": "inline", "Content-Security-Policy": "default-src 'none'" });
   res.send(buf);
-});
+}));
 
-officersRouter.post("/admin/applications/:id/verify", requireRole("admin"), requireMfa, wrap((req, res) => {
+officersRouter.post("/admin/applications/:id/verify", requireRole("admin"), requireMfa, wrap(async (req, res) => {
   const me = req.person!.id;
-  const r = rowOf(String(req.params.id));
+  const r = await rowOf(String(req.params.id));
   if (!r) throw new OfficerError(404, "application not found");
   if (r.person_id === me) throw new OfficerError(403, "you cannot review your own application", { code: "self_grant" });
   if (r.status !== "submitted") throw new OfficerError(409, `application is ${r.status}`, { code: "not_reviewable" });
@@ -300,23 +297,22 @@ officersRouter.post("/admin/applications/:id/verify", requireRole("admin"), requ
   if (!checkOfficialEmail(details(r).email).ok) throw new OfficerError(422, "the e-mail domain is no longer on the official list", { code: "domain_not_allowed" }); // the registry may have changed since submission
   const rr = insertRoleRequest(me, { action: "grant", personId: r.person_id, role: "officer", jurisdiction: r.jurisdiction, department: r.department, reason: `officer application ${r.id.slice(0, 8)}: letter checked` });
   const now = new Date().toISOString();
-  getDb().prepare("UPDATE officer_application SET status = 'awaiting_second_admin', letter_checked = 1, role_request_id = ?, reviewed_by = ?, reviewed_at = ?, review_note = ?, updated_at = ? WHERE id = ?")
-    .run(rr.id, me, now, note || null, now, r.id);
+  await repo().markVerified(r.id, rr.id, me, now, note || null);
   audit(me, "officer.application.verify", "application:" + r.id, { request: rr.id, department: r.department });
   res.status(201);
   return { id: r.id, status: "awaiting_second_admin", role_request_id: rr.id, expires_at: rr.expires_at, next: "a different admin approves the role request" };
 }));
 
-officersRouter.post("/admin/applications/:id/reject", requireRole("admin"), requireMfa, wrap((req) => {
+officersRouter.post("/admin/applications/:id/reject", requireRole("admin"), requireMfa, wrap(async (req) => {
   const me = req.person!.id;
-  const r = rowOf(String(req.params.id));
+  const r = await rowOf(String(req.params.id));
   if (!r) throw new OfficerError(404, "application not found");
   if (r.status !== "submitted" && r.status !== "awaiting_second_admin") throw new OfficerError(409, `application is ${r.status}`, { code: "not_reviewable" });
   const note = clean(req.body?.note, 300);
   if (note.length < 5) throw new OfficerError(400, "a short reason is required", { code: "note_required" });
   const now = new Date().toISOString();
-  if (r.role_request_id) getDb().prepare("UPDATE role_requests SET status = 'rejected', decided_by = ?, decided_at = ? WHERE id = ? AND status = 'pending'").run(me, now, r.role_request_id);
-  getDb().prepare("UPDATE officer_application SET status = 'rejected', reviewed_by = ?, reviewed_at = ?, review_note = ?, updated_at = ? WHERE id = ?").run(me, now, note, now, r.id);
+  if (r.role_request_id) await repo().rejectRoleRequest(r.role_request_id, me, now);
+  await repo().markRejected(r.id, me, now, note);
   audit(me, "officer.application.reject", "application:" + r.id, { request: r.role_request_id });
   return { ok: true, status: "rejected" };
 }));
