@@ -202,7 +202,7 @@ Provider, instance sizes, exact recovery targets (proposals above), whether `pp_
 
 
 ## Identity store schema (S-250, built 2026-11-27)
-The MySQL schema of the identity store (46 tables, 30 indexes) is **generated**, not hand-written: `npm run backend:schema` migrates a fresh SQLite identity store, reads its DDL and translates it (`server/data/schema/translate.ts`) into `server/data/schema/identity.mysql.sql`. `tests/backend/identitySchema.test.ts` fails when that file is stale, and (with MYSQL_TEST_URL) compares the real MySQL tables, columns, nullability, keys and indexes with SQLite.
+The MySQL schema of the identity store (49 tables) is **generated**, not hand-written: `npm run backend:schema` migrates a fresh SQLite identity store, reads its DDL and translates it (`server/data/schema/translate.ts`) into `server/data/schema/identity.mysql.sql`. `tests/backend/identitySchema.test.ts` fails when that file is stale, and (with MYSQL_TEST_URL) compares the real MySQL tables, columns, nullability, keys and indexes with SQLite.
 
 Rules the translator applies, and why:
 - **Collation `utf8mb4_bin` on every table and text column.** SQLite compares text exactly; MySQL 8 defaults to a case- and accent-insensitive collation, which would make ids, hashes and codes that differ only by case collide. The tests check this.
@@ -215,3 +215,14 @@ Rules the translator applies, and why:
 This is one baseline for a database that is not live yet. After the cutover (S-256) it is never regenerated: changes become new migrations after it.
 
 **Copying and checking data:** `server/data/copy.ts` (`copyTables`, `verifyTables`) copies rows in batches inside one transaction per table, refuses a target table that already has rows, and compares row counts and an order-independent content digest per table. It is the building block for the cutover (S-256); it does not lock the source.
+
+### How identity code is being ported (S-250)
+The legacy code is synchronous and the store is shared by about 32 files, so it moves **module by module**, not all at once:
+1. `server/civic/core/asyncBridge.ts` gives an async `Db` over the **same** SQLite connection the legacy code uses (`identityDb()`), so a half-converted store still has one connection and one transaction state. It is SQLite only; the app cannot run identity on MySQL until every module below is converted.
+2. Each module gets a repository in `server/data/repos/` that takes a `Db` and uses only portable SQL. Its tests run on SQLite always and on MySQL when `MYSQL_TEST_URL` is set.
+3. Callers become async (Express 4 needs `asyncRoute` from `server/data/http.ts` so a rejected promise reaches the error handler instead of hanging the request). Inside a transaction do not await network, disk or timers.
+4. The module drops out of `tests/backend/legacy-sync-db-files.json` (the ratchet), so progress is visible and cannot go backwards.
+
+Converted so far: photo submissions (`server/photo-submissions.ts`, 4 routes plus the 2 helpers the public photo routes in `server/geo-api.ts` use). Next candidates, smallest first: people requests and takedowns (`server/people-api.ts`), officer applications, notify, mediahub and video broadcasts, then the core (persons, sessions, rate limiter, consents), which is used by almost everything and goes last.
+
+Correction: the first version of the generated schema (46 tables) missed three tables registered by modules outside `server/civic` (photo and people tables). The generator now loads those modules, and `identitySchema.test.ts` fails when a table the store registry lists is missing from the schema (`hh_pin` is the one listed table that a later migration drops).

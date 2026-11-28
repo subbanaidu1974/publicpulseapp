@@ -29,6 +29,7 @@ import type { CandidateResult } from "../src/lib/elections";
 import { STATES, isStateCode } from "../src/lib/states";
 import type { StateCode } from "../src/lib/states";
 import { photoGate } from "./people-api";
+import { asyncRoute } from "./data/http";
 import { approvedUploadPath, approvedUploads } from "./photo-submissions";
 import { splitVotingReport } from "../src/lib/splitvoting";
 import { loadSegments } from "../pipeline/lsmap/segments";
@@ -194,12 +195,12 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
   // code of conduct period, and a photo takedown hides it at once (keys: <ST>-assembly-<acNo> and leader-<PARTY>).
   const photoDir = path.join(baseDir, "data", "generated", "photos");
   const winnerKey = (p: Json) => `${p.state}-assembly-${p.acNo}`;
-  const visibleWinners = (): { photos: Json[]; blackout: Record<string, boolean> } => {
+  const visibleWinners = async (): Promise<{ photos: Json[]; blackout: Record<string, boolean> }> => {
     const gate = photoGate();
     const blackout = { AP: gate.blackout("AP"), TG: gate.blackout("TG") } as Record<string, boolean>;
     const commons = (readJson(path.join(photoDir, "index.json"))?.photos as Json[]) ?? [];
     // S-200: a photo the candidate side supplied and an admin approved replaces the Commons photo for that seat
-    const uploads = approvedUploads() as unknown as Json[];
+    const uploads = (await approvedUploads()) as unknown as Json[];
     const upSeats = new Set(uploads.map(winnerKey));
     const all = [...uploads, ...commons.filter((p) => !upSeats.has(winnerKey(p)))];
     return { blackout, photos: all.filter((p) => !blackout[String(p.state)] && !gate.hidden("photo", winnerKey(p))) };
@@ -210,22 +211,22 @@ export function createGeoApiRouter(data: Datasets, opts: { baseDir?: string } = 
     const all = (readJson(path.join(photoDir, "leaders.json"))?.photos as Json[]) ?? [];
     return { blackout, photos: blackout ? [] : all.filter((p) => !gate.hidden("photo", `leader-${p.party}`)) };
   };
-  router.get("/photos/index.json", (_req, res) => {
-    const v = visibleWinners();
+  router.get("/photos/index.json", asyncRoute(async (_req, res) => {
+    const v = await visibleWinners();
     res.set("Cache-Control", "no-store").json({ schema: 1, blackout: v.blackout, photos: v.photos });
-  });
+  }));
   router.get("/photos/leaders.json", (_req, res) => {
     const v = visibleLeaders();
     res.set("Cache-Control", "no-store").json({ schema: 1, blackout: v.blackout, photos: v.photos });
   });
-  router.get("/photos/:file", (req, res) => {
+  router.get("/photos/:file", asyncRoute(async (req, res) => {
     const file = String(req.params.file);
-    const listed = [...visibleWinners().photos, ...visibleLeaders().photos].some((p) => p.file === file);
+    const listed = [...(await visibleWinners()).photos, ...visibleLeaders().photos].some((p) => p.file === file);
     if (!/^([A-Z]{2}-\d{4}-\d+|leader-[A-Z]{2,6}|upload-ph_[0-9a-f]{16})\.(jpg|jpeg|png|webp)$/.test(file) || !listed) return err(res, 404, "no_photo", "No such photo");
-    const target = file.startsWith("upload-") ? approvedUploadPath(file) : path.join(photoDir, file);
+    const target = file.startsWith("upload-") ? await approvedUploadPath(file) : path.join(photoDir, file);
     if (!target || !fs.existsSync(target)) return err(res, 404, "no_photo", "No such photo");
     res.set("Cache-Control", "no-store").sendFile(path.resolve(target));
-  });
+  }));
   router.get("/geo/:state/:file(ac|pc|district|mandal).geojson", (req, res) => sendGeojson(req, res));
   function sendGeojson(req: Request, res: Response) {
     const state = String(req.params.state).toUpperCase();

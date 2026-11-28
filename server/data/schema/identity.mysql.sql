@@ -423,6 +423,36 @@ CREATE TABLE IF NOT EXISTS `otps` (
   PRIMARY KEY (`phone_hash`, `purpose`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
+CREATE TABLE IF NOT EXISTS `people_requests` (
+  `id` VARCHAR(190) COLLATE utf8mb4_bin NOT NULL,
+  `created_at` VARCHAR(190) COLLATE utf8mb4_bin NOT NULL,
+  `kind` MEDIUMTEXT COLLATE utf8mb4_bin NOT NULL CHECK (kind IN ('correction','takedown','other')),
+  `page` MEDIUMTEXT COLLATE utf8mb4_bin NOT NULL,
+  `target_kind` MEDIUMTEXT COLLATE utf8mb4_bin,
+  `target_key` MEDIUMTEXT COLLATE utf8mb4_bin,
+  `reason` MEDIUMTEXT COLLATE utf8mb4_bin NOT NULL,
+  `contact_enc` MEDIUMTEXT COLLATE utf8mb4_bin,
+  `status` VARCHAR(190) COLLATE utf8mb4_bin NOT NULL DEFAULT 'open' CHECK (status IN ('open','resolved','rejected')),
+  `sla_days` BIGINT NOT NULL DEFAULT 7,
+  `sla_due` MEDIUMTEXT COLLATE utf8mb4_bin NOT NULL,
+  `resolved_at` MEDIUMTEXT COLLATE utf8mb4_bin,
+  `resolution` MEDIUMTEXT COLLATE utf8mb4_bin,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+CREATE TABLE IF NOT EXISTS `people_takedowns` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `target_kind` VARCHAR(190) COLLATE utf8mb4_bin NOT NULL CHECK (target_kind IN ('photo','field','office-holder')),
+  `target_key` VARCHAR(190) COLLATE utf8mb4_bin NOT NULL,
+  `request_id` MEDIUMTEXT COLLATE utf8mb4_bin,
+  `active` BIGINT NOT NULL DEFAULT 1,
+  `state` MEDIUMTEXT COLLATE utf8mb4_bin NOT NULL DEFAULT ('pending-review') CHECK (state IN ('pending-review','confirmed')),
+  `created_at` MEDIUMTEXT COLLATE utf8mb4_bin NOT NULL,
+  `updated_at` MEDIUMTEXT COLLATE utf8mb4_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY (`target_kind`, `target_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
 CREATE TABLE IF NOT EXISTS `persons` (
   `id` VARCHAR(190) COLLATE utf8mb4_bin NOT NULL,
   `tier` MEDIUMTEXT COLLATE utf8mb4_bin NOT NULL DEFAULT ('T0'),
@@ -446,6 +476,28 @@ CREATE TABLE IF NOT EXISTS `persons` (
   `email_hash` VARCHAR(190) COLLATE utf8mb4_bin,
   `email_enc` MEDIUMTEXT COLLATE utf8mb4_bin,
   `last_active_at` MEDIUMTEXT COLLATE utf8mb4_bin,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+CREATE TABLE IF NOT EXISTS `photo_submissions` (
+  `id` VARCHAR(190) COLLATE utf8mb4_bin NOT NULL,
+  `created_at` VARCHAR(190) COLLATE utf8mb4_bin NOT NULL,
+  `state` MEDIUMTEXT COLLATE utf8mb4_bin NOT NULL,
+  `ac_no` BIGINT NOT NULL,
+  `year` BIGINT NOT NULL,
+  `candidate` MEDIUMTEXT COLLATE utf8mb4_bin NOT NULL,
+  `claimed_name` MEDIUMTEXT COLLATE utf8mb4_bin NOT NULL,
+  `relationship` MEDIUMTEXT COLLATE utf8mb4_bin NOT NULL,
+  `holder` MEDIUMTEXT COLLATE utf8mb4_bin NOT NULL,
+  `contact_enc` MEDIUMTEXT COLLATE utf8mb4_bin NOT NULL,
+  `file` MEDIUMTEXT COLLATE utf8mb4_bin NOT NULL,
+  `mime` MEDIUMTEXT COLLATE utf8mb4_bin NOT NULL,
+  `bytes` BIGINT NOT NULL,
+  `sha256` MEDIUMTEXT COLLATE utf8mb4_bin NOT NULL,
+  `status` VARCHAR(190) COLLATE utf8mb4_bin NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
+  `decided_at` MEDIUMTEXT COLLATE utf8mb4_bin,
+  `decided_by` MEDIUMTEXT COLLATE utf8mb4_bin,
+  `note` MEDIUMTEXT COLLATE utf8mb4_bin,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
@@ -619,9 +671,13 @@ CREATE INDEX `officer_application_person` ON `officer_application` (`person_id`,
 
 CREATE INDEX `officer_application_status` ON `officer_application` (`status`, `created_at`);
 
+CREATE INDEX `people_requests_status` ON `people_requests` (`status`, `created_at`);
+
 CREATE UNIQUE INDEX `idx_persons_email_hash` ON `persons` (`email_hash`);
 
 CREATE INDEX `idx_persons_phone_hash` ON `persons` (`phone_hash`);
+
+CREATE INDEX `photo_submissions_status` ON `photo_submissions` (`status`, `created_at`);
 
 CREATE INDEX `idx_rate_events` ON `rate_events` (`key`, `ts`);
 

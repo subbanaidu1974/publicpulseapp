@@ -6,7 +6,7 @@ import { identityMysqlDdl, identitySqliteObjects } from "../../scripts/identity-
 import { MysqlDb, parseMysqlUrl, migrate, migrationStatus } from "../../server/data";
 import { identityMysqlMigrations, identityMysqlSqlPath } from "../../server/data/schema/identity";
 import { translateSqlite } from "../../server/data/schema/translate";
-import { getStore } from "../../server/civic/core/stores";
+import { getStore, STORE_TABLES } from "../../server/civic/core/stores";
 
 /** S-250: the MySQL schema of the identity store is generated from the SQLite migrations and must keep the same tables, columns, keys and indexes. */
 describe("identity store MySQL schema is current @E2E-250", () => {
@@ -18,6 +18,12 @@ describe("identity store MySQL schema is current @E2E-250", () => {
     const ddl = identityMysqlDdl();
     expect([...ddl.matchAll(/CREATE TABLE IF NOT EXISTS `(\w+)`/g)].map((m) => m[1]).sort()).toEqual(tables);
     expect(tables.length).toBeGreaterThan(40);
+  });
+  it("includes every table the store registry says the identity store owns (a module that is not loaded must not silently drop its tables)", () => {
+    const ddl = identityMysqlDdl();
+    const DROPPED = ["hh_pin"]; // listed in the registry but removed by a later migration (households/routes.ts)
+    const missing = STORE_TABLES.identity.filter((t) => t !== "migrations" && !DROPPED.includes(t) && !ddl.includes("CREATE TABLE IF NOT EXISTS `" + t + "`"));
+    expect(missing).toEqual([]);
   });
   it("refuses constructs it would silently change", () => {
     const t = (sql: string, type = "table") => translateSqlite([{ type, name: "x", tbl_name: "x", sql }]);

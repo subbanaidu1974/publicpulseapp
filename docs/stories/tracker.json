@@ -3281,12 +3281,14 @@
       "status": "in_progress",
       "tests": [
         "tests/backend/identitySchema.test.ts",
-        "tests/backend/identityCopy.test.ts"
+        "tests/backend/identityCopy.test.ts",
+        "tests/backend/photoSubmissions.repo.test.ts",
+        "tests/geo-api/photo-submissions.test.ts"
       ],
       "priority": "P0",
       "wave": "B1",
       "source": "user request 2026-11-26 (backend roadmap; design only, wait for the owner's call to start)",
-      "notes": "STARTED 2026-11-27 (schema and data move only). DONE: generated MySQL schema for all 46 identity tables and 30 indexes (server/data/schema, npm run backend:schema), kept current by a test; verified on MySQL 8.4 to match SQLite in tables, columns, nullability, primary keys and indexes; exact-case text (utf8mb4_bin), CHECK rules, many NULLs in unique columns, Telugu text and auto ids behave as on SQLite; copy and verify tool (server/data/copy.ts) with digest check, tested SQLite to SQLite and SQLite to MySQL. NOT done: the identity code (about 32 files of persons, sessions, households, officers, notify, provider keys and the mediahub and videocast tables that live in this store) still reads and writes SQLite through the synchronous handle, so the running app does not use MySQL yet; the route handlers must become async first (S-248 follow-up, store by store); SQL in those files must quote reserved-word columns such as key; no data was moved from a real store; no cutover (S-256), no MySQL user per store, no encrypted-column key check against a real copy, CI MySQL job not yet run on GitHub."
+      "notes": "STARTED 2026-11-27. DONE: generated MySQL schema for the 49 identity tables (server/data/schema, npm run backend:schema) kept current by tests, including a check against the store registry (the first version had 46 and missed 3 tables registered outside server/civic; fixed); verified on MySQL 8.4 to match SQLite in tables, columns, nullability, keys and indexes; exact-case text, CHECK rules, NULLs in unique columns, Telugu text and auto ids behave as on SQLite; copy and verify tool (server/data/copy.ts); async bridge over the shared SQLite connection (server/civic/core/asyncBridge.ts); FIRST MODULE PORTED: photo submissions (repository in server/data/repos, async routes, tested on SQLite and MySQL, existing API and browser tests pass), which left the sync-handle list (60 files remain). NOT done: about 31 other files still use the synchronous handle (people requests and takedowns, officers, notify, mediahub, video broadcasts, households, identity service with persons, sessions, rate limiter and consents, admin); until all are converted the running app cannot use MySQL for identity; SQL there must quote reserved-word columns such as key; no data moved from a real store; no cutover (S-256); no MySQL user per store; CI MySQL job not yet run on GitHub."
     },
     {
       "id": "S-251",
