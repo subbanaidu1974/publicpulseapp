@@ -174,21 +174,21 @@ identityRouter.post("/login", wrap(async (req, res) => {
   fail(res, 401, "wrong phone or PIN");
 }));
 
-identityRouter.post("/logout", requireAuth, wrap((req, res) => {
-  if (req.sessionId) revokeSessionById(req.person!.id, req.sessionId);
+identityRouter.post("/logout", requireAuth, wrap(async (req, res) => {
+  if (req.sessionId) await revokeSessionById(req.person!.id, req.sessionId);
   audit(req.person!.id, "logout", "person:" + req.person!.id, {});
   res.json({ ok: true });
 }));
 
-identityRouter.get("/sessions", requireAuth, wrap((req, res) => {
+identityRouter.get("/sessions", requireAuth, wrap(async (req, res) => {
   res.json({
-    sessions: listSessions(req.person!.id).map((s) => ({
+    sessions: (await listSessions(req.person!.id)).map((s) => ({
       id: s.id, created_at: s.created_at, last_seen: s.last_seen_at, expires_at: s.expires_at, device: s.label, current: s.id === req.sessionId,
     })),
   });
 }));
-const revokeOne = wrap((req, res) => {
-  const ok = revokeSessionById(req.person!.id, str(req.params.id));
+const revokeOne = wrap(async (req, res) => {
+  const ok = await revokeSessionById(req.person!.id, str(req.params.id));
   if (!ok) return fail(res, 404, "session not found");
   audit(req.person!.id, "session.revoke", "person:" + req.person!.id, {});
   res.json({ ok: true, current: str(req.params.id) === req.sessionId });
@@ -322,7 +322,7 @@ identityRouter.delete("/me", requireAuth, wrap(async (req, res) => {
   const pin = str(req.body?.pin);
   if (!p.pin_salt || !p.pin_hash || !(await verifyPinAsync(pin, p.pin_salt, p.pin_hash))) return fail(res, 401, "PIN required to delete the account");
   const out = deleteAccount(p.id);
-  revokeSessions(p.id);
+  await revokeSessions(p.id);
   res.json({ deleted: true, audit_rows_redacted: out.audit_rows_redacted });
 }));
 

@@ -136,7 +136,7 @@ describe("identity hardening (S-59)", () => {
     expect((exp() - Date.now()) / 86400000).toBeGreaterThan(6.9);
     getDb().prepare("UPDATE sessions SET expires_at = ?").run(new Date(Date.now() - 1000).toISOString());
     expect((await call("GET", "/me", undefined, a.token)).status).toBe(401);
-    expect(listSessions(a.id)).toHaveLength(0);
+    expect(await listSessions(a.id)).toHaveLength(0);
   });
 
   it("citizens have an empty roles array on /me", async () => {
