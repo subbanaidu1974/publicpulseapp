@@ -41,7 +41,7 @@ export default function MediaPage() {
     </div>
   );
   return (
-    <div data-testid="media-home" lang={lang} className={`${sec === "watch" ? "max-w-6xl" : "max-w-3xl"} mx-auto w-full space-y-6 overflow-x-hidden`}>
+    <div data-testid="media-home" lang={lang} className={`${sec === "watch" || sec === "news" ? "max-w-6xl" : "max-w-3xl"} mx-auto w-full space-y-6 overflow-x-hidden`}>
       <header className="space-y-2">
         <h2 className="text-2xl font-serif italic">{t("m.title")}</h2>
         <p className="text-sm">{t("m.intro")}</p>

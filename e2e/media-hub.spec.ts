@@ -2,10 +2,16 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import type { AddressInfo } from 'node:net';
-import { test, expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
+import { test, expect, type Browser, type BrowserContext, type Locator, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { API, bearer, openCivicAs, seedPerson } from './civic-seed';
 import { openCivic } from './civic-helpers';
+
+/** S-287: on a wide screen a news item is a tile that opens on request; on a phone the swipe card shows everything already. */
+async function openTile(item: Locator) {
+  const b = item.getByTestId('news-expand');
+  if (await b.count() && (await b.getAttribute('aria-expanded')) === 'false') await b.click();
+}
 
 /**
  * Recorded media journey (S-225, S-226, S-228, S-229, S-231, S-232, S-234, S-235, S-236):
@@ -171,6 +177,7 @@ test.describe('Media tab journey, recorded (S-225 to S-236)', () => {
       await expect(M.getByTestId('news-pubnote')).toBeVisible();
       await expect(M.getByTestId('news-digest')).toBeVisible();
       await expect(M.getByText('An old story from last month')).toHaveCount(0); // older than a week is not shown
+      await openTile(item);
       await expect(item).toContainText('stays on the outlet'); // the snippet this source allows
       await beat(M, 1500);
       const [popup] = await Promise.all([M.context().waitForEvent('page'), item.getByTestId('news-link').click()]);
@@ -323,6 +330,7 @@ test.describe('Media rules (S-225 to S-236)', () => {
       await expect(page.getByTestId('news-list')).toBeVisible();
       await expect(page.getByTestId('news-item').first()).toBeVisible();
       await expect(page.getByTestId('news-link').first()).toContainText(/[ఀ-౿]/);
+      await openTile(page.getByTestId('news-item').first());
       await page.getByTestId('news-item').first().getByTestId('report-open').click();
       await expect(page.getByTestId('report-form')).toBeVisible();
       await expect(page.getByTestId('report-send')).toContainText(/[ఀ-౿]/);
@@ -361,6 +369,7 @@ test.describe('YouTube channel news (S-238)', () => {
       await expect(item).toBeVisible();
       await expect(item.getByTestId('news-yt-frame')).toHaveCount(0);
       expect(framed).toBe(0); // nothing requested from YouTube yet
+      await openTile(item);
       await item.getByTestId('news-yt-play').click();
       const frame = item.getByTestId('news-yt-frame');
       await expect(frame).toHaveAttribute('src', new RegExp(`^https://www\.youtube-nocookie\.com/embed/${vid}`));
@@ -404,6 +413,7 @@ test.describe('Paste a YouTube link (S-239)', () => {
       await expect(item).toBeVisible();
       await expect(item.getByTestId('news-outlet')).toHaveText(`Channel TV ${tag}`);
       expect(framed).toBe(0);
+      await openTile(item);
       await item.getByTestId('news-yt-play').click();
       await expect(item.getByTestId('news-yt-frame')).toHaveAttribute('src', /youtube-nocookie\.com\/embed\/dQw4w9WgXcQ/);
       await expect.poll(() => framed).toBeGreaterThan(0);
