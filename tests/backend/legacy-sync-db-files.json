@@ -35,7 +35,6 @@
     "server/civic/issues/public.ts",
     "server/civic/issues/routes.ts",
     "server/civic/issues/service.ts",
-    "server/civic/mediahub/index.ts",
     "server/civic/notify/schema.ts",
     "server/civic/officers/index.ts",
     "server/civic/providers/keys.ts",
