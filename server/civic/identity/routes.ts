@@ -74,7 +74,7 @@ async function requestOtp(req: Request, res: Response, purpose: OtpPurpose) {
   if (!rateAllow("otp:phone:" + phone, 3, 10 * MIN) || !rateAllow("otp:ip:" + ctx.ip, capScale(ctx, Number(process.env.CIVIC_OTP_IP_LIMIT || 10)), 10 * MIN) || (ctx.device && !rateAllow("otp:dev:" + ctx.device, 5, 10 * MIN))) {
     return fail(res, 429, "too many OTP requests; wait and retry");
   }
-  const left = otpRemainingMs(phone, purpose);
+  const left = await otpRemainingMs(phone, purpose);
   if (left > 0) return void res.json({ ok: true, already_sent: true, expires_in_s: Math.ceil(left / 1000) }); // do not let a flood invalidate the owner's pending code
   if (!smsBudgetAllow()) { markSmsExhausted(); return fail(res, 429, "sms capacity reached; try again later", { degraded: true, notice: DEGRADED_NOTICE, ...OTP_NOTICE }); }
   const lane = otpQueue.admit(smsHourlyBudget()); // budget smoothing: a burst beyond the slot allowance waits in a bounded queue
@@ -84,14 +84,14 @@ async function requestOtp(req: Request, res: Response, purpose: OtpPurpose) {
   // S-162: ported / young-prepaid / otherwise elevated-risk numbers get a stricter per-phone cap (CIVIC_RISK_CAP_FACTOR), like capScale for unverified clients.
   if (isElevatedRisk(numberRisk(info)) && !rateAllow("otp:riskphone:" + phone, Math.max(1, Math.floor(3 * riskCapFactor())), 10 * MIN)) return fail(res, 429, "too many OTP requests; wait and retry");
   const code = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
-  storeOtp(phone, purpose, code);
+  await storeOtp(phone, purpose, code);
   const text = `People Pulse code: ${code}. Valid for 5 minutes. Do not share it.`;
   // S-164: report what really happened. A failed send drops the stored code so a resend is allowed at once (still inside the per-phone cap and the SMS budget).
   let delivery: SmsDelivery = "queued";
   if (lane.lane === "now") delivery = await sendSmsReport(phone, text);
-  else otpQueue.enqueue(async () => { if ((await sendSmsReport(phone, text)) === "failed") discardOtp(phone, purpose); }, smsHourlyBudget());
+  else otpQueue.enqueue(async () => { if ((await sendSmsReport(phone, text)) === "failed") await discardOtp(phone, purpose); }, smsHourlyBudget());
   if (delivery === "failed") {
-    discardOtp(phone, purpose);
+    await discardOtp(phone, purpose);
     audit("system", "otp.delivery_failed", "otp", { purpose });
     return fail(res, 502, "we could not send the code; try again in a moment", { delivery: "failed", can_retry: true });
   }
@@ -108,7 +108,7 @@ identityRouter.post("/signup/verify", wrap(async (req, res) => {
   if (!E164_IN.test(phone) || !/^\d{6}$/.test(otp)) return fail(res, 400, "invalid phone or otp");
   if (!PIN_RE.test(pin)) return fail(res, 400, "PIN must be 4 to 6 digits");
   if (weakPin(res, pin)) return; // checked before the code is consumed
-  if (!consumeOtp(phone, "signup", otp)) return fail(res, 400, "code expired or invalid; request a new one");
+  if (!(await consumeOtp(phone, "signup", otp))) return fail(res, 400, "code expired or invalid; request a new one");
   if (personsOnPhone(phone).length > 0) return fail(res, 409, "this number already has an account; sign in, or have an adult on it link you", { code: "number_registered" });
   const info = await lookupNumber(phone);
   if (info.voip) return fail(res, 403, "this number cannot be used to sign up");
@@ -205,7 +205,7 @@ identityRouter.post("/pin/recover", wrap(async (req, res) => {
   const ctx = await requestContext(req);
   if (!rateAllow("recover:ip:" + ctx.ip, capScale(ctx, 20), 15 * MIN)) return fail(res, 429, "too many attempts; wait and retry");
   // A recovery code, or (older clients) the code from /signup/request, both prove control of the number.
-  if (!consumeOtp(phone, "recovery", otp) && !consumeOtp(phone, "signup", otp)) return fail(res, 400, "code expired or invalid; request a new one");
+  if (!(await consumeOtp(phone, "recovery", otp)) && !(await consumeOtp(phone, "signup", otp))) return fail(res, 400, "code expired or invalid; request a new one");
   const cands = personsOnPhone(phone).filter((c) => !isPendingActivation(c));
   const target = personId ? cands.find((c) => c.id === personId) : cands.length === 1 ? cands[0] : undefined;
   if (!target) return fail(res, 400, cands.length > 1 ? "several adults share this number; send person_id" : "no account on this number", cands.length > 1 ? { code: "person_required", members: cands.map((c) => ({ person_id: c.id, label: c.label, locked: isLockedAnywhere(c.id) })) } : {});

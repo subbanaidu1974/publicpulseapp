@@ -9,6 +9,9 @@ import {
 } from "../core";
 import type { Tier } from "../core";
 import { phoneHashCandidates } from "../providers/rehash";
+import { OtpStore } from "../../data/repos/otp";
+import { identityDb } from "../core/asyncBridge";
+import type { Db } from "../../data";
 
 registerMigration("identity_001", `
 CREATE TABLE otps (
@@ -246,44 +249,27 @@ export const OTP_PURPOSES: OtpPurpose[] = ["signup", "recovery", "enrol"];
 export const OTP_MAX_ATTEMPTS = 5;
 
 const inList = (n: number) => Array.from({ length: n }, () => "?").join(",");
-interface OtpRow { phone_hash: string; code_hash: string; expires_at: string; attempts: number }
-/** The OTP row for (phone, purpose) under ANY active key version (S-161 dual-read; current-version row preferred). */
-function otpRow(phone: string, purpose: OtpPurpose): OtpRow | undefined {
-  const cands = phoneHashCandidates(phone);
-  const rows = getDb().prepare(`SELECT phone_hash, code_hash, expires_at, attempts FROM otps WHERE phone_hash IN (${inList(cands.length)}) AND purpose = ?`).all(...cands, purpose) as unknown as OtpRow[];
-  return rows.sort((a, b) => cands.indexOf(a.phone_hash) - cands.indexOf(b.phone_hash))[0];
-}
+const otps = (): OtpStore => new OtpStore(identityDb());
 /** Milliseconds left on a still-usable code for (phone, purpose), or 0. A code with 5 failed tries counts as burned (0). */
-export function otpRemainingMs(phone: string, purpose: OtpPurpose, now = Date.now()): number {
-  const row = otpRow(phone, purpose);
+export async function otpRemainingMs(phone: string, purpose: OtpPurpose, now = Date.now()): Promise<number> {
+  const row = await otps().row(phoneHashCandidates(phone), purpose); // any active key version (S-161 dual-read; current-version row preferred)
   if (!row || row.attempts >= OTP_MAX_ATTEMPTS) return 0;
   return Math.max(0, new Date(row.expires_at).getTime() - now);
 }
 /** Store a fresh code (hashed) for (phone, purpose), replacing an expired or burned one. Single-write: always under the CURRENT key version. */
-export function storeOtp(phone: string, purpose: OtpPurpose, code: string, now = Date.now()): void {
-  const cands = phoneHashCandidates(phone);
-  const d = getDb();
-  if (cands.length > 1) d.prepare(`DELETE FROM otps WHERE phone_hash IN (${inList(cands.length - 1)}) AND purpose = ?`).run(...cands.slice(1), purpose);
-  d.prepare("INSERT OR REPLACE INTO otps (phone_hash, purpose, code_hash, expires_at, attempts) VALUES (?,?,?,?,0)")
-    .run(cands[0], purpose, getKeys().hmac("otp", code), new Date(now + OTP_TTL_MS).toISOString());
+export function storeOtp(phone: string, purpose: OtpPurpose, code: string, now = Date.now(), db?: Db): Promise<void> {
+  return new OtpStore(db ?? identityDb()).store(phoneHashCandidates(phone), purpose, getKeys().hmac("otp", code), new Date(now + OTP_TTL_MS).toISOString());
 }
 /** Drop the pending code for (phone, purpose), whichever key version it was stored under (a code whose SMS never left is not "already sent"). */
-export function discardOtp(phone: string, purpose: OtpPurpose): void {
-  const cands = phoneHashCandidates(phone);
-  getDb().prepare(`DELETE FROM otps WHERE phone_hash IN (${inList(cands.length)}) AND purpose = ?`).run(...cands, purpose);
-}
-/** Check a code for (phone, purpose): constant-time, 5 tries, single use (deleted on success). */
-export function consumeOtp(phone: string, purpose: OtpPurpose, code: string, now = new Date()): boolean {
-  const d = getDb();
-  const row = otpRow(phone, purpose);
+export function discardOtp(phone: string, purpose: OtpPurpose): Promise<void> { return otps().discard(phoneHashCandidates(phone), purpose); }
+/** Check a code for (phone, purpose): constant-time, 5 tries, single use (the row is removed on success, and only one caller can remove it). */
+export async function consumeOtp(phone: string, purpose: OtpPurpose, code: string, now = new Date()): Promise<boolean> {
+  const st = otps();
+  const row = await st.row(phoneHashCandidates(phone), purpose);
   if (!row || row.expires_at < now.toISOString() || row.attempts >= OTP_MAX_ATTEMPTS) return false;
   const given = Buffer.from(getKeys().hmac("otp", code), "hex"), want = Buffer.from(row.code_hash, "hex");
-  if (given.length !== want.length || !crypto.timingSafeEqual(given, want)) {
-    d.prepare("UPDATE otps SET attempts = attempts + 1 WHERE phone_hash = ? AND purpose = ?").run(row.phone_hash, purpose);
-    return false;
-  }
-  d.prepare("DELETE FROM otps WHERE phone_hash = ? AND purpose = ?").run(row.phone_hash, purpose);
-  return true;
+  if (given.length !== want.length || !crypto.timingSafeEqual(given, want)) { await st.wrongTry(row.phone_hash, purpose); return false; }
+  return st.spend(row.phone_hash, purpose);
 }
 
 // ---------------------------------------------------------------------------------------------

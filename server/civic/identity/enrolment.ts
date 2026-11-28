@@ -9,7 +9,7 @@
 import crypto from "node:crypto";
 import { audit, createSession, getDb, getKeys, getSms, recordConsent, registerErasureHook, registerMigration, runInTransaction } from "../core";
 import {
-  PENDING_FLAG, OTP_TTL_MS, AGE_GATE_DAYS, consumeOtp, getPerson, hashPinAsync, lookupNumber, numberFlags, personsOnPhone, phoneHash, publicPerson, rateAllow,
+  PENDING_FLAG, OTP_TTL_MS, AGE_GATE_DAYS, consumeOtp, discardOtp, getPerson, hashPinAsync, lookupNumber, numberFlags, personsOnPhone, phoneHash, publicPerson, rateAllow,
   smsBudgetAllow, storeOtp, weakPinReason, WEAK_PIN_MESSAGE,
 } from "./service";
 import type { PersonRow } from "./service";
@@ -81,16 +81,16 @@ export async function createEnrolment(o: {
       .run(personId, phoneHash(o.phone), getKeys().encrypt("phone", o.phone), o.label ?? null, JSON.stringify(flags), now.toISOString(), new Date(now.getTime() + AGE_GATE_DAYS * 86400000).toISOString());
     d.prepare(`INSERT INTO enrolments (id, volunteer_id, context_kind, context_ref, label, person_id, code_hash, notice_version, status, created_at, expires_at)
                VALUES (?,?,?,?,?,?,?,?, 'pending', ?, ?)`).run(enrolmentId, o.volunteerId, o.contextKind, o.contextRef ?? null, o.label ?? null, personId, codeHash(code), o.noticeVersion, now.toISOString(), expires);
-    storeOtp(o.phone, "enrol", otp, now.getTime());
   });
   try {
+    await storeOtp(o.phone, "enrol", otp, now.getTime()); // a failure here takes the same clean-up path as a failed send
     await getSms().send(o.phone, `${o.noticeText}\n\nPeople Pulse activation. Code: ${showCode(code)}  OTP: ${otp}\nEnter both in the app and choose your OWN PIN. Never tell the PIN to anyone, including the volunteer. Valid 72 hours (OTP 5 minutes).`);
   } catch {
     runInTransaction(() => {
       d.prepare("DELETE FROM persons WHERE id = ?").run(personId);
       d.prepare("DELETE FROM enrolments WHERE id = ?").run(enrolmentId);
-      d.prepare("DELETE FROM otps WHERE phone_hash = ? AND purpose = 'enrol'").run(phoneHash(o.phone));
     });
+    await discardOtp(o.phone, "enrol");
     return { ok: false, status: 502, error: "could not deliver the notice to the adult" };
   }
   audit(o.volunteerId, "volunteer_enrolment", "person:" + personId, { contextKind: o.contextKind, contextRef: o.contextRef ?? null, notice: o.noticeVersion, status: "pending" });
@@ -110,7 +110,7 @@ export async function activateEnrolment(o: { code: string; otp: string; pin: str
   if (!p?.phone_enc) return bad;
   if (!/^\d{4,6}$/.test(o.pin)) return { ok: false, status: 400, error: "PIN must be 4 to 6 digits" };
   if (weakPinReason(o.pin)) return { ok: false, status: 400, error: WEAK_PIN_MESSAGE, code: "weak_pin" };
-  if (!consumeOtp(getKeys().decrypt("phone", p.phone_enc), "enrol", o.otp, now)) return bad;
+  if (!(await consumeOtp(getKeys().decrypt("phone", p.phone_enc), "enrol", o.otp, now))) return bad;
   const h = await hashPinAsync(o.pin);
   runInTransaction(() => {
     d.prepare(`UPDATE persons SET pin_salt = ?, pin_hash = ?, eligible_from = ?, last_active_at = ?,
