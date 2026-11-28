@@ -9,6 +9,8 @@ import { describe, expect, it } from "vitest";
  */
 const ROOT = path.resolve(__dirname, "../..");
 const LIST = path.join(__dirname, "legacy-sync-db-files.json");
+/** The bridge between legacy sync code and the async layer is the one allowed exception (see its header). */
+const BRIDGE = ["server/civic/core/asyncBridge.ts"];
 const PATTERN = /node:sqlite|\.prepare\(|\bgetDb\(|\bgetStore\(/;
 
 export function scan(): string[] {
@@ -17,7 +19,7 @@ export function scan(): string[] {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
       const p = path.join(dir, e.name);
       if (e.isDirectory()) { if (e.name === "node_modules" || p === path.join(ROOT, "server", "data")) continue; walk(p); }
-      else if (/\.ts$/.test(e.name) && PATTERN.test(fs.readFileSync(p, "utf8"))) out.push(path.relative(ROOT, p).replace(/\\/g, "/"));
+      else if (/\.ts$/.test(e.name) && !BRIDGE.includes(path.relative(ROOT, p).replace(/\\/g, "/")) && PATTERN.test(fs.readFileSync(p, "utf8"))) out.push(path.relative(ROOT, p).replace(/\\/g, "/"));
     }
   };
   walk(path.join(ROOT, "server"));

@@ -18,7 +18,10 @@ import express, { Router } from "express";
 import type { Request, Response } from "express";
 import type { CandidateResult } from "../src/lib/elections";
 import { isStateCode } from "../src/lib/states";
-import { audit, getDb, getKeys, migrate, registerMigration, requireRole } from "./civic/core";
+import { audit, getKeys, registerMigration, requireRole } from "./civic/core";
+import { identityDb } from "./civic/core/asyncBridge";
+import { PhotoSubmissions } from "./data/repos/photoSubmissions";
+import { asyncRoute } from "./data/http";
 import { getMediaScanner } from "./civic/issues/media";
 import { rateLimiter } from "./security";
 
@@ -46,10 +49,7 @@ CREATE TABLE IF NOT EXISTS photo_submissions (
 CREATE INDEX IF NOT EXISTS photo_submissions_status ON photo_submissions(status, created_at);
 `);
 
-let migrated = false;
-const db = () => { if (!migrated) { migrate(); migrated = true; } return getDb(); };
-/** Test hook: the in-memory DB is recreated between tests. */
-export function resetPhotoSubmissionsDbFlag(): void { migrated = false; }
+const repo = () => new PhotoSubmissions(identityDb());
 
 export const MAX_BYTES = 2_000_000;
 export const RELATIONSHIPS = ["candidate", "party office", "authorised representative"] as const;
@@ -108,9 +108,9 @@ export function seatWinner(rows: CandidateResult[], state: string, acNo: number)
 
 export interface UploadPhotoEntry { state: string; year: number; acNo: number; candidate: string; file: string; author: string; licence: string; licenceUrl: null; source: string; origin: "upload"; submissionId: string }
 /** Approved submissions in the same shape as the other winner photos; the photo routes in geo-api.ts add these (newest approval wins per seat). */
-export function approvedUploads(): UploadPhotoEntry[] {
+export async function approvedUploads(): Promise<UploadPhotoEntry[]> {
   let rows: Record<string, unknown>[];
-  try { rows = db().prepare("SELECT * FROM photo_submissions WHERE status = 'approved' ORDER BY decided_at DESC").all() as Record<string, unknown>[]; } catch { return []; }
+  try { rows = await repo().approved() as unknown as Record<string, unknown>[]; } catch { return []; }
   const seen = new Set<string>();
   const out: UploadPhotoEntry[] = [];
   for (const r of rows) {
@@ -125,11 +125,11 @@ export function approvedUploads(): UploadPhotoEntry[] {
   return out;
 }
 /** The stored file for a public upload name like upload-<id>.jpg, only if that id is currently approved. */
-export function approvedUploadPath(file: string): string | null {
+export async function approvedUploadPath(file: string): Promise<string | null> {
   const m = /^upload-(ph_[0-9a-f]{16})\.(jpg|png)$/.exec(file);
   if (!m) return null;
-  const row = db().prepare("SELECT file FROM photo_submissions WHERE id = ? AND status = 'approved'").get(m[1]) as { file: string } | undefined;
-  return row ? path.join(dir(), row.file) : null;
+  const stored = await repo().approvedFile(m[1]);
+  return stored ? path.join(dir(), stored) : null;
 }
 
 export function createPhotoSubmissionsRouter(data: { elections: CandidateResult[] }): Router {
@@ -164,16 +164,17 @@ export function createPhotoSubmissionsRouter(data: { elections: CandidateResult[
     const file = `${id}.${kind.ext}`;
     fs.mkdirSync(dir(), { recursive: true });
     fs.writeFileSync(path.join(dir(), file), clean, { mode: 0o600 });
-    db().prepare(`INSERT INTO photo_submissions (id, created_at, state, ac_no, year, candidate, claimed_name, relationship, holder, contact_enc, file, mime, bytes, sha256)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(id, new Date().toISOString(), state, acNo, winner.year, winner.names[0], claimedName, relationship, holder,
-      getKeys().encrypt("photo_contact", contact), file, kind.mime, clean.length, crypto.createHash("sha256").update(clean).digest("hex"));
+    await repo().insert({
+      id, created_at: new Date().toISOString(), state, ac_no: acNo, year: winner.year, candidate: winner.names[0], claimed_name: claimedName, relationship, holder,
+      contact_enc: getKeys().encrypt("photo_contact", contact), file, mime: kind.mime, bytes: clean.length, sha256: crypto.createHash("sha256").update(clean).digest("hex"),
+    });
     audit("anon", "photos.submission.create", `photo_submission:${id}`, { state, acNo });
     res.status(201).json({ ok: true, id, status: "pending" });
   });
 
-  router.get("/photos/admin/submissions", requireRole("admin"), (req, res) => {
+  router.get("/photos/admin/submissions", requireRole("admin"), asyncRoute(async (req, res) => {
     const status = str(req.query.status, 10);
-    const rows = db().prepare(`SELECT * FROM photo_submissions ${status ? "WHERE status = ?" : ""} ORDER BY created_at DESC LIMIT 200`).all(...(status ? [status] : [])) as Record<string, unknown>[];
+    const rows = await repo().list(status ?? null, 200) as unknown as Record<string, unknown>[];
     res.set("Cache-Control", "no-store").json({
       submissions: rows.map((r) => {
         let contact: string | null;
@@ -182,23 +183,22 @@ export function createPhotoSubmissionsRouter(data: { elections: CandidateResult[
         return { ...rest, contact, fileUrl: `/api/v1/photos/admin/submissions/${r.id}/file` };
       }),
     });
-  });
+  }));
 
-  router.get("/photos/admin/submissions/:id/file", requireRole("admin"), (req, res) => {
-    const row = db().prepare("SELECT file, mime FROM photo_submissions WHERE id = ?").get(String(req.params.id)) as { file: string; mime: string } | undefined;
+  router.get("/photos/admin/submissions/:id/file", requireRole("admin"), asyncRoute(async (req, res) => {
+    const row = await repo().fileAndMime(String(req.params.id));
     if (!row) return err(res, 404, "No such submission", "not_found");
     res.set({ "Cache-Control": "no-store", "Content-Type": row.mime }).sendFile(path.join(dir(), row.file));
-  });
+  }));
 
-  router.post("/photos/admin/submissions/:id/decide", requireRole("admin"), express.json({ limit: "4kb" }), (req, res) => {
+  router.post("/photos/admin/submissions/:id/decide", requireRole("admin"), express.json({ limit: "4kb" }), asyncRoute(async (req, res) => {
     const b = (req.body ?? {}) as Record<string, unknown>;
     const status = str(b.status, 10);
     if (status !== "approved" && status !== "rejected") return err(res, 400, "status must be approved or rejected", "invalid_status");
-    const r = db().prepare("UPDATE photo_submissions SET status = ?, decided_at = ?, decided_by = ?, note = ? WHERE id = ?")
-      .run(status, new Date().toISOString(), req.person?.id ?? "unknown", str(b.note, 500) ?? null, String(req.params.id));
-    if (!r.changes) return err(res, 404, "No such submission", "not_found");
+    const found = await repo().decide(String(req.params.id), status, req.person?.id ?? "unknown", str(b.note, 500) ?? null, new Date().toISOString());
+    if (!found) return err(res, 404, "No such submission", "not_found");
     audit(req.person?.id ?? "unknown", "photos.submission.decide", `photo_submission:${String(req.params.id)}`, { status });
     res.json({ ok: true });
-  });
+  }));
   return router;
 }

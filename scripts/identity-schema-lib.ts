@@ -1,4 +1,6 @@
-import "../server/civic/index"; // registers every migration of every store
+import "../server/civic/index"; // registers every migration of every store...
+import "../server/people-api"; // ...including the identity tables registered by modules outside server/civic
+import "../server/photo-submissions";
 import { getStore, migrateStore } from "../server/civic/core/stores";
 import { translateSqlite, type SqliteObject } from "../server/data/schema/translate";
 

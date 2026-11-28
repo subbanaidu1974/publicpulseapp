@@ -60,7 +60,6 @@
     "server/history/api.ts",
     "server/history/store.ts",
     "server/obs.ts",
-    "server/people-api.ts",
-    "server/photo-submissions.ts"
+    "server/people-api.ts"
   ]
 }

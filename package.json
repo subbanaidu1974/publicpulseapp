@@ -34,7 +34,7 @@
     "test:pipeline": "vitest run tests/pipeline",
     "test:api": "vitest run tests/api tests/lib",
     "test": "vitest run",
-    "test:backend": "vitest run tests/backend",
+    "test:backend": "vitest run tests/backend --no-file-parallelism",
     "backend:contract": "tsx scripts/route-inventory.ts",
     "backend:schema": "tsx scripts/identity-mysql-schema.ts",
     "db:mysql:up": "docker compose -f docker-compose.dev.yml up -d --wait",
