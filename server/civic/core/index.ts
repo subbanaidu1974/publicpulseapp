@@ -35,6 +35,8 @@ import {
   registeredMigrations, runInStore, storeFile, storeMigrationStatus, tablesOf, writeAtCommit, type StoreMigrationStatus, type StoreName,
 } from "./stores";
 import { importLegacyDatabase } from "./legacy";
+import { CoreStore, type SessionInfo } from "../../data/repos/core";
+import { identityDb } from "./asyncBridge";
 import { scrubAuditMeta } from "./auditscrub";
 
 export { SCRUBBED, auditScrubCount, findAuditViolations, maskPhones, resetAuditScrubCount, scrubAuditMeta } from "./auditscrub";
@@ -316,6 +318,7 @@ export function isDevSmsProvider(): boolean { return !smsProvider || smsProvider
 export const sessionTtlDays = () => Math.max(0.0001, Number(process.env.CIVIC_SESSION_TTL_DAYS || 7));
 /** Absolute lifetime cap regardless of use (env CIVIC_SESSION_MAX_DAYS, default 30). */
 export const sessionMaxDays = () => Math.max(sessionTtlDays(), Number(process.env.CIVIC_SESSION_MAX_DAYS || 30));
+const core = (): CoreStore => new CoreStore(identityDb());
 const SESSION_TOUCH_MS = 5 * 60 * 1000;
 
 registerMigration("core_003_sessions", `
@@ -339,40 +342,31 @@ export function createSession(personId: string, opts: { label?: string } = {}): 
   return token;
 }
 /** (addition) Revoke every session of a person. */
-export function revokeSessions(personId: string): void {
-  getDb().prepare("DELETE FROM sessions WHERE person_id = ?").run(personId);
-}
-export interface SessionInfo { id: string; created_at: string; last_seen_at: string | null; expires_at: string; label: string | null }
+export async function revokeSessions(personId: string): Promise<void> { await core().revokeAll(personId); }
+export type { SessionInfo };
 /** (addition, S-59) Live sessions of a person (never includes the token or its hash). */
-export function listSessions(personId: string, now: Date = new Date()): SessionInfo[] {
-  return getDb().prepare("SELECT id, created_at, last_seen_at, expires_at, label FROM sessions WHERE person_id = ? AND expires_at > ? ORDER BY created_at DESC")
-    .all(personId, now.toISOString()) as unknown as SessionInfo[];
-}
+export function listSessions(personId: string, now: Date = new Date()): Promise<SessionInfo[]> { return core().list(personId, now.toISOString()); }
 /** (addition, S-59) Revoke one session by its public id; false when it is not this person's. */
-export function revokeSessionById(personId: string, sessionId: string): boolean {
-  return Number(getDb().prepare("DELETE FROM sessions WHERE person_id = ? AND id = ?").run(personId, sessionId).changes) > 0;
-}
+export function revokeSessionById(personId: string, sessionId: string): Promise<boolean> { return core().revokeOne(personId, sessionId); }
 
-/** Express middleware: requires header `Authorization: Bearer <session token>`; sets req.person and req.sessionId; 401 JSON {error} otherwise. */
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+/** Express middleware: requires header `Authorization: Bearer <session token>`; sets req.person and req.sessionId; 401 JSON {error} otherwise. The lookup is on the async data layer, so `next` runs after it. */
+export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   const h = req.headers.authorization || "";
   const m = /^Bearer\s+(\S+)$/i.exec(h);
   if (!m) { res.status(401).json({ error: "authentication required" }); return; }
   try {
     const th = getKeys().hmac("session", m[1]);
-    const row = getDb().prepare(
-      `SELECT p.id AS id, p.tier AS tier, s.expires_at AS exp, s.id AS sid, s.created_at AS created, s.last_seen_at AS seen
-         FROM sessions s JOIN persons p ON p.id = s.person_id
-        WHERE s.token_hash = ? AND p.deleted_at IS NULL`).get(th) as { id: string; tier: Tier; exp: string; sid: string | null; created: string; seen: string | null } | undefined;
+    const st = core();
+    const row = await st.authRow(th);
     const now = Date.now();
     if (!row || row.exp < new Date(now).toISOString()) { res.status(401).json({ error: "invalid or expired session" }); return; }
     // Sliding refresh (at most every 5 minutes), never past the absolute cap.
     if (!row.seen || now - new Date(row.seen).getTime() > SESSION_TOUCH_MS) {
       const cap = new Date(row.created).getTime() + sessionMaxDays() * 86400000;
-      const next = Math.min(now + sessionTtlDays() * 86400000, cap);
-      getDb().prepare("UPDATE sessions SET last_seen_at = ?, expires_at = MAX(expires_at, ?) WHERE token_hash = ?").run(new Date(now).toISOString(), new Date(next).toISOString(), th);
+      const nextExp = Math.min(now + sessionTtlDays() * 86400000, cap);
+      await st.touch(th, new Date(now).toISOString(), new Date(nextExp).toISOString());
     }
-    req.person = { id: row.id, tier: row.tier, roles: listRoles(row.id).map((r) => r.role) };
+    req.person = { id: row.id, tier: row.tier as Tier, roles: await st.roleNames(row.id) };
     if (row.sid) req.sessionId = row.sid;
     next();
   } catch {
@@ -856,9 +850,11 @@ export function listRolesDetailed(personId: string): { role: RoleName; jurisdict
 /** Express middleware: authenticates (as requireAuth) and then requires a role (any of several when more than one is given); 403 JSON {error} otherwise. */
 export function requireRole(...roles: RoleName[]) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    requireAuth(req, res, () => {
-      if (!req.person || !hasAnyRole(req.person.id, roles)) { res.status(403).json({ error: "forbidden: " + roles.join(" or ") + " role required" }); return; }
-      next();
+    void requireAuth(req, res, () => {
+      core().holdsAny(req.person!.id, roles).then((ok) => {
+        if (!ok) { res.status(403).json({ error: "forbidden: " + roles.join(" or ") + " role required" }); return; }
+        next();
+      }, () => { res.status(401).json({ error: "authentication failed" }); });
     });
   };
 }

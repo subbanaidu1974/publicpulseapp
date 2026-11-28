@@ -52,19 +52,19 @@ describe("core: keys and sms", () => {
 });
 
 describe("core: auth", () => {
-  it("requireAuth returns JSON 401 without a valid bearer token and sets req.person with one", () => {
+  it("requireAuth returns JSON 401 without a valid bearer token and sets req.person with one", async () => {
     getDb().prepare("INSERT INTO persons (id, tier, created_at, eligible_from) VALUES ('p1','T1','2026-01-01','2026-01-15')").run();
     const token = createSession("p1");
-    const run = (auth?: string) => {
+    const run = async (auth?: string) => {
       let status = 200, body: unknown, nexted = false;
       const req = { headers: auth ? { authorization: auth } : {} } as never as import("express").Request;
       const res = { status(s: number) { status = s; return this; }, json(b: unknown) { body = b; return this; } } as never as import("express").Response;
-      requireAuth(req, res, () => { nexted = true; });
+      await requireAuth(req, res, () => { nexted = true; });
       return { status, body, nexted, person: req.person };
     };
-    expect(run()).toMatchObject({ status: 401, nexted: false });
-    expect(run("Bearer nope")).toMatchObject({ status: 401 });
-    expect(run("Bearer " + token)).toMatchObject({ nexted: true, person: { id: "p1", tier: "T1" } });
+    expect(await run()).toMatchObject({ status: 401, nexted: false });
+    expect(await run("Bearer nope")).toMatchObject({ status: 401 });
+    expect(await run("Bearer " + token)).toMatchObject({ nexted: true, person: { id: "p1", tier: "T1" } });
   });
 });
 
